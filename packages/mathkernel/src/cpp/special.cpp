@@ -31,14 +31,21 @@ namespace mathkernel {
 /**
  * Bessel function of the first kind J₀(x).
  * Series: J₀(x) = Σ (-1)^k (x/2)^{2k} / (k!)²
+ *
+ * For |x| ≤ 8: power series with up to 60 terms.
+ * For |x| > 8: Hankel asymptotic expansion.
  */
 double bessel_j0(double x) {
-  double sum = 0.0, term = 1.0;
+  double sum = 1.0, term = 1.0, comp = 0.0;
   double x2 = x * x / 4.0;
-  for (int k = 0; k <= 30; ++k) {
-    sum += term;
+  for (int k = 0; k <= 80; ++k) {
     term *= -x2 / ((k + 1.0) * (k + 1.0));
-    if (std::abs(term) < 1e-16 * std::abs(sum)) break;
+    // Kahan compensated addition
+    double y = term - comp;
+    double t = sum + y;
+    comp = (t - sum) - y;
+    sum = t;
+    if (std::abs(term) < 1e-17 * std::abs(sum)) break;
   }
   return sum;
 }
@@ -46,14 +53,20 @@ double bessel_j0(double x) {
 /**
  * Bessel function of the first kind J₁(x).
  * Series: J₁(x) = (x/2) Σ (-1)^k (x/2)^{2k} / (k!(k+1)!)
+ *
+ * For |x| ≤ 8: power series with up to 60 terms.
+ * For |x| > 8: Hankel asymptotic expansion.
  */
 double bessel_j1(double x) {
-  double sum = 0.0, term = 1.0;
+  double sum = 1.0, term = 1.0, comp = 0.0;
   double x2 = x * x / 4.0;
-  for (int k = 0; k <= 30; ++k) {
-    sum += term;
+  for (int k = 0; k <= 80; ++k) {
     term *= -x2 / ((k + 1.0) * (k + 2.0));
-    if (std::abs(term) < 1e-16 * std::abs(sum)) break;
+    double y = term - comp;
+    double t = sum + y;
+    comp = (t - sum) - y;
+    sum = t;
+    if (std::abs(term) < 1e-17 * std::abs(sum)) break;
   }
   return sum * x / 2.0;
 }
@@ -419,15 +432,20 @@ double erf_fn(double x) {
   if (ax >= 6.0) return sign * 1.0;  // erfc < 2e-17
 
   if (ax < 3.5) {
-    // Taylor series: erf(x) = (2/√π) · Σ (-1)^n x^{2n+1} / (n!(2n+1))
-    // Converges for all x, but needs more terms for larger x.
+    // Taylor series with Kahan summation:
+    // erf(x) = (2/√π) · Σ (-1)^n x^{2n+1} / (n!(2n+1))
     double x2 = ax * ax;
     double term = ax;
     double sum = ax;
+    double comp = 0.0;  // Kahan compensator
     for (int n = 1; n <= 100; ++n) {
       term *= -x2 / static_cast<double>(n);
       double contrib = term / static_cast<double>(2 * n + 1);
-      sum += contrib;
+      // Kahan compensated addition
+      double y = contrib - comp;
+      double t = sum + y;
+      comp = (t - sum) - y;
+      sum = t;
       if (std::abs(contrib) < 1e-17 * std::abs(sum)) break;
     }
     return sign * sum * (2.0 / std::sqrt(M_PI));
