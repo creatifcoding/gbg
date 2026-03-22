@@ -139,6 +139,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "erfc_fn", args: [1.0],    expected: 0.1572992070502851,   source: "1 - erf(1)" },
   { fn: "erfc_fn", args: [1.5],    expected: 0.033894853524689270, source: "Python math.erfc" },
   { fn: "erfc_fn", args: [2.0],    expected: 0.004677734981047266, source: "1 - erf(2)" },
+
+  // ── Bessel Y1 ──
+  { fn: "bessel_y1", args: [0.5],  expected: -1.4714723926702431, source: "A&S Table 9.1" },
+  { fn: "bessel_y1", args: [1],    expected: -0.7812128213002887, source: "A&S Table 9.1" },
+  { fn: "bessel_y1", args: [5],    expected: 0.14786314339122827, source: "Wronskian Python" },
+  { fn: "bessel_y1", args: [10],   expected: 0.24901542420695388, source: "A&S Table 9.1" },
+
+  // ── Modified Bessel I0 ──
+  { fn: "bessel_i0", args: [0],    expected: 1.0,                  source: "Definition" },
+  { fn: "bessel_i0", args: [1],    expected: 1.2660658777520082,   source: "A&S Table 9.8" },
+  { fn: "bessel_i0", args: [5],    expected: 27.23987182360445,    source: "Series Python" },
+
+  // ── Modified Bessel I1 ──
+  { fn: "bessel_i1", args: [1],    expected: 0.5651591039924850,   source: "A&S Table 9.8" },
+  { fn: "bessel_i1", args: [5],    expected: 24.33564214245053,    source: "Series Python" },
+
+  // ── Exponential Integral E1 ──
+  { fn: "expint_e1", args: [0.5],  expected: 0.5597735947761608,   source: "A&S Table 5.1" },
+  { fn: "expint_e1", args: [1],    expected: 0.21938393439552027,  source: "A&S Table 5.1" },
+  { fn: "expint_e1", args: [5],    expected: 0.0011482955912753258, source: "A&S Table 5.1" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

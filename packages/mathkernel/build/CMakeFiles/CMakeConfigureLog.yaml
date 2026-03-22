@@ -21,6 +21,7 @@ events:
       - "uname"
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -166,6 +167,7 @@ events:
       - "/nix/store/lrx5q7fas4bldb5m342liwyy693sas0g-ncurses-6.5-dev/bin/"
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/uname"
+      - "/home/getbygenius/.pi/agent/bin/uname"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/uname"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/uname"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/uname"
@@ -227,6 +229,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -402,6 +405,7 @@ events:
       - "smake"
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -549,6 +553,7 @@ events:
       - "/sbin/"
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/gmake"
+      - "/home/getbygenius/.pi/agent/bin/gmake"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/gmake"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/gmake"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/gmake"
@@ -695,6 +700,7 @@ events:
       - "/bin/gmake"
       - "/sbin/gmake"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/make"
+      - "/home/getbygenius/.pi/agent/bin/make"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/make"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/make"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/make"
@@ -818,6 +824,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -990,6 +997,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -1138,6 +1146,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/llvm-strip"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/llvm-strip"
+      - "/home/getbygenius/.pi/agent/bin/llvm-strip"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/llvm-strip"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/llvm-strip"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/llvm-strip"
@@ -1279,6 +1288,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -1451,6 +1461,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -1599,6 +1610,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/ld.lld"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/ld.lld"
+      - "/home/getbygenius/.pi/agent/bin/ld.lld"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/ld.lld"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/ld.lld"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/ld.lld"
@@ -1746,6 +1758,7 @@ events:
       - "/sbin/ld.lld"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/ld"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/ld"
+      - "/home/getbygenius/.pi/agent/bin/ld"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/ld"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/ld"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/ld"
@@ -1804,6 +1817,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -1976,6 +1990,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -2124,6 +2139,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/llvm-objdump"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/llvm-objdump"
+      - "/home/getbygenius/.pi/agent/bin/llvm-objdump"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/llvm-objdump"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/llvm-objdump"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/llvm-objdump"
@@ -2265,6 +2281,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -2437,6 +2454,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -2585,6 +2603,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/llvm-objcopy"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/llvm-objcopy"
+      - "/home/getbygenius/.pi/agent/bin/llvm-objcopy"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/llvm-objcopy"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/llvm-objcopy"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/llvm-objcopy"
@@ -2726,6 +2745,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -2898,6 +2918,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -3046,6 +3067,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/llvm-readelf"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/llvm-readelf"
+      - "/home/getbygenius/.pi/agent/bin/llvm-readelf"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/llvm-readelf"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/llvm-readelf"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/llvm-readelf"
@@ -3187,6 +3209,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -3359,6 +3382,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -3507,6 +3531,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/llvm-dlltool"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/llvm-dlltool"
+      - "/home/getbygenius/.pi/agent/bin/llvm-dlltool"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/llvm-dlltool"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/llvm-dlltool"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/llvm-dlltool"
@@ -3648,6 +3673,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -3820,6 +3846,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -3968,6 +3995,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/llvm-addr2line"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/llvm-addr2line"
+      - "/home/getbygenius/.pi/agent/bin/llvm-addr2line"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/llvm-addr2line"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/llvm-addr2line"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/llvm-addr2line"
@@ -4109,6 +4137,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"
@@ -4280,6 +4309,7 @@ events:
     candidate_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/"
+      - "/home/getbygenius/.pi/agent/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/"
@@ -4428,6 +4458,7 @@ events:
     searched_directories:
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/share/emscripten/tapi"
       - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin/tapi"
+      - "/home/getbygenius/.pi/agent/bin/tapi"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin/tapi"
       - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin/tapi"
       - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin/tapi"
@@ -4577,6 +4608,7 @@ events:
     search_context:
       ENV{PATH}:
         - "/nix/store/j8fwjzi6wds13v3w9z89js8bc2xhdkd4-emscripten-4.0.22/bin"
+        - "/home/getbygenius/.pi/agent/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-mix/bin"
         - "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/bin"
         - "/nix/store/fryiyyhhilpqhx2wc4b6l5gnxc8w18rg-git-2.52.0/bin"

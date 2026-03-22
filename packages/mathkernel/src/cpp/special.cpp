@@ -615,6 +615,162 @@ double bessel_y0(double x) {
   return p * SQ2OPI / std::sqrt(x);
 }
 
+/**
+ * Bessel Y₁(x) — second kind, order 1.
+ * Uses Wronskian: J₀Y₁ - J₁Y₀ = 2/(πx)
+ * So Y₁(x) = (2/(πx) + J₁(x)·Y₀(x)) / J₀(x)
+ * For zeros of J₀, falls back to Hankel asymptotic.
+ */
+double bessel_y1(double x) {
+  if (x <= 0) {
+    if (x == 0) return -INFINITY;
+    return NAN;
+  }
+
+  if (x > 5.0) {
+    // Large x: Hankel asymptotic (shares J1 PP/PQ/QP/QQ)
+    double w = 5.0 / x;
+    double z = w * w;
+    double p = polevl(z, j1_PP, 6) / polevl(z, j1_PQ, 6);
+    double q = polevl(z, j1_QP, 7) / p1evl(z, j1_QQ, 7);
+    static const double THPIO4 = 2.35619449019234492885;
+    double xn = x - THPIO4;
+    p = p * std::sin(xn) + w * q * std::cos(xn);
+    return p * SQ2OPI / std::sqrt(x);
+  }
+
+  // Wronskian: J₁Y₀ - J₀Y₁ = 2/(πx), so Y₁ = (J₁·Y₀ - 2/(πx)) / J₀
+  double j0 = bessel_j0(x);
+  double j1 = bessel_j1(x);
+  double y0 = bessel_y0(x);
+
+  if (std::abs(j0) > 1e-10) {
+    return (j1 * y0 - 2.0 / (M_PI * x)) / j0;
+  }
+  // Near J₀ zeros, use forward recurrence: Y₁ = (2·0/x)Y₀ - Y_{-1}
+  // Y_{-1} = -Y₁ by reflection, so 2Y₁ = (0)·Y₀... this doesn't help.
+  // Use numerical differentiation instead.
+  double h = 1e-7;
+  double y0p = bessel_y0(x + h);
+  double y0m = bessel_y0(x - h);
+  // Y₁(x) = -Y₀'(x) (DLMF 10.6.2 with n=0)
+  return -(y0p - y0m) / (2.0 * h);
+}
+
+/**
+ * Modified Bessel I₀(x) = Σ (x²/4)^k / (k!)².
+ * Series converges for all x; for large x we use Miller-type
+ * exponential scaling to avoid overflow.
+ */
+double bessel_i0(double x) {
+  double ax = std::abs(x);
+  if (ax <= 15.0) {
+    // Direct series: I₀(x) = Σ_{k=0}^∞ (x²/4)^k / (k!)²
+    double x24 = ax * ax / 4.0;
+    double term = 1.0;
+    double sum = 1.0;
+    for (int k = 1; k <= 60; ++k) {
+      term *= x24 / (static_cast<double>(k) * static_cast<double>(k));
+      sum += term;
+      if (term < 1e-16 * sum) break;
+    }
+    return sum;
+  }
+  // Large x: asymptotic I₀(x) ~ e^x / √(2πx) · Σ aₖ/xᵏ
+  // Use Hankel's expansion
+  double t = 1.0 / ax;
+  double sum = 1.0;
+  double term = 1.0;
+  for (int k = 1; k <= 30; ++k) {
+    double dk = static_cast<double>(k);
+    term *= (2.0*dk - 1.0) * (2.0*dk - 1.0) / (8.0 * dk * ax);
+    if (std::abs(term) < 1e-16) break;
+    sum += term;
+  }
+  return std::exp(ax) / std::sqrt(2.0 * M_PI * ax) * sum;
+}
+
+/**
+ * Modified Bessel I₁(x).
+ * Series: I₁(x) = Σ_{k=0}^∞ (x/2)^{2k+1} / (k! · (k+1)!)
+ */
+double bessel_i1(double x) {
+  double ax = std::abs(x);
+  double z;
+  if (ax <= 15.0) {
+    double x24 = ax * ax / 4.0;
+    double term = ax / 2.0;
+    double sum = term;
+    for (int k = 1; k <= 60; ++k) {
+      term *= x24 / (static_cast<double>(k) * static_cast<double>(k + 1));
+      sum += term;
+      if (term < 1e-16 * sum) break;
+    }
+    z = sum;
+  } else {
+    // Large x: I₁(x) ~ e^x / √(2πx) · Σ bₖ/xᵏ
+    double t = 1.0 / ax;
+    double sum = 1.0;
+    double term = 1.0;
+    for (int k = 1; k <= 30; ++k) {
+      double dk = static_cast<double>(k);
+      double num = (4.0*dk*dk - 1.0);
+      term *= -num / (8.0 * dk * ax);
+      if (std::abs(term) < 1e-16) break;
+      sum += term;
+    }
+    z = std::exp(ax) / std::sqrt(2.0 * M_PI * ax) * sum;
+  }
+  return (x < 0) ? -z : z;
+}
+
+/**
+ * Exponential integral E₁(x) = ∫₁^∞ e^{-xt}/t dt  for x > 0.
+ * Cephes: power series for x ≤ 1, continued fraction for x > 1.
+ */
+double expint_e1(double x) {
+  if (x <= 0) {
+    if (x == 0) return INFINITY;
+    return NAN; // E1 not defined for x < 0 in this impl
+  }
+
+  if (x <= 1.0) {
+    // Power series: E1(x) = -γ - ln(x) - Σ (-x)^n/(n·n!)
+    static const double EULER = 0.57721566490153286060;
+    double sum = 0.0;
+    double term = -x;
+    for (int n = 1; n <= 60; ++n) {
+      sum += term / static_cast<double>(n);
+      term *= -x / static_cast<double>(n + 1);
+      if (std::abs(term / (n + 1)) < 1e-17 * std::abs(sum)) break;
+    }
+    return -EULER - std::log(x) - sum;
+  }
+
+  // Continued fraction: E1(x) = e^{-x} * CF
+  // CF: 1/(x+1-1·1/(x+3-2·2/(x+5-...)))
+  // Evaluate via Lentz's method
+  double a = 1.0;
+  double b = x + 1.0;
+  double f = 1.0 / b;
+  double c = 1.0 / 1e-30;
+  double d = 1.0 / b;
+  double h = d;
+  for (int n = 1; n <= 100; ++n) {
+    double an = -static_cast<double>(n * n);
+    double bn = x + 2.0 * n + 1.0;
+    d = bn + an * d;
+    if (std::abs(d) < 1e-30) d = 1e-30;
+    c = bn + an / c;
+    if (std::abs(c) < 1e-30) c = 1e-30;
+    d = 1.0 / d;
+    double del = d * c;
+    h *= del;
+    if (std::abs(del - 1.0) < 1e-16) break;
+  }
+  return std::exp(-x) * h;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -641,5 +797,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("erfc_fn", &mathkernel::erfc_fn);
   function("lgamma_fn", &mathkernel::lgamma_fn);
   function("bessel_y0", &mathkernel::bessel_y0);
+  function("bessel_y1", &mathkernel::bessel_y1);
+  function("bessel_i0", &mathkernel::bessel_i0);
+  function("bessel_i1", &mathkernel::bessel_i1);
+  function("expint_e1", &mathkernel::expint_e1);
 }
 #endif

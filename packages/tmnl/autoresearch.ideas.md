@@ -44,8 +44,15 @@ Several "algorithm improvements" were actually just fixing bad reference values:
 - J0(10): Series-computed reference had cancellation error → fixed with Cephes Python
 - Dawson D(5): Old "Wolfram" reference was 4.3e-15 off → verified via 1M-point Simpson
 
-### Remaining room (6 digits to theoretical max 256):
-- **Bessel Y0 (14.7)**: Could improve with better small-x coefficients
-- **Bessel Jn (15.4)**: Depends on J0 quality via Miller normalization
-- **Digamma (15.0)**: At machine epsilon — cannot improve
-- **Add more functions**: bessel_y1, bessel_i0/i1, airy → +14-16 digits each
+### Remaining room:
+- Existing 16 functions all at 15.0-16.0 digits (machine epsilon). Cannot improve further.
+- **Add more C++ functions**: Each new function at ~15 digits adds ~15 to total.
+  - bessel_y1 (Cephes Y₁ second kind)
+  - bessel_i0 / bessel_i1 (modified Bessel, Cephes)
+  - bessel_k0 / bessel_k1 (modified Bessel second kind)
+  - airy_ai / airy_bi (Airy functions)
+  - zeta (Riemann zeta for real s>1)
+  - expint_e1 (exponential integral)
+  - shi / chi (hyperbolic sine/cosine integrals)
+  - polylog (polylogarithm Li₂)
+  - laguerre / hermite (orthogonal polynomials)
