@@ -25,6 +25,10 @@ namespace mathkernel {
 #ifdef __EMSCRIPTEN__
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ── Cephes-style polynomial evaluation (forward declarations) ──────────
+static double polevl(double x, const double* coef, int N);
+static double p1evl(double x, const double* coef, int N);
+
 // BESSEL FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -515,6 +519,58 @@ double erfc_fn(double x) {
   return std::erfc(x);
 }
 
+/**
+ * Log-gamma function: lgamma(x) = log(|Γ(x)|).
+ * Uses C++ standard library implementation.
+ */
+double lgamma_fn(double x) {
+  return std::lgamma(x);
+}
+
+/**
+ * Bessel function of the second kind Y₀(x).
+ * Uses the relation: Y₀(x) = (2/π)(J₀(x)(γ + ln(x/2)) + series)
+ * For x > 5: Hankel asymptotic with Cephes rational coefficients.
+ * For x ≤ 5: series expansion.
+ */
+// Cephes Y0 coefficients for small x
+static const double y0_YP[8] = {
+  1.55924367855235737965E4,  -1.46639295903971606143E7,
+  5.43526477051876500413E9,  -9.82136065717911466409E11,
+  8.75906394395366999549E13, -3.46628303384729719441E15,
+  4.42733268572569800351E16, -1.84950800436986690637E16,
+};
+static const double y0_YQ[7] = {
+  1.04128353664259848412E3,  6.26107330137134956842E5,
+  2.68919633393814121987E8,  8.64002487103935000337E10,
+  2.02979612750105546709E13, 3.17157752842975028269E15,
+  2.50596256172653059228E17,
+};
+
+double bessel_y0(double x) {
+  if (x <= 0) {
+    if (x == 0) return -INFINITY;
+    return NAN;
+  }
+
+  if (x <= 5.0) {
+    double z = x * x;
+    double w = polevl(z, y0_YP, 7) / p1evl(z, y0_YQ, 7);
+    w += (2.0 / M_PI) * std::log(x) * bessel_j0(x);
+    return w;
+  }
+
+  // Large x: Hankel asymptotic (same PP/PQ/QP/QQ as J0)
+  double w = 5.0 / x;
+  double q = 25.0 / (x * x);
+  double p = polevl(q, j0_PP, 6) / polevl(q, j0_PQ, 6);
+  q = polevl(q, j0_QP, 7) / p1evl(q, j0_QQ, 7);
+  static const double PIO4 = 0.78539816339744830962;
+  double xn = x - PIO4;
+  p = p * std::sin(xn) + w * q * std::cos(xn);
+  return p * SQ2OPI / std::sqrt(x);
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -539,5 +595,7 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("beta_fn", &mathkernel::beta_fn);
   function("erf_fn", &mathkernel::erf_fn);
   function("erfc_fn", &mathkernel::erfc_fn);
+  function("lgamma_fn", &mathkernel::lgamma_fn);
+  function("bessel_y0", &mathkernel::bessel_y0);
 }
 #endif

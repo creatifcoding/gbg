@@ -119,6 +119,18 @@ const REFERENCES: RefEntry[] = [
   { fn: "bessel_jn", args: [3, 2],  expected: 0.12894324947440205, source: "Wolfram J_3(2)" },
   { fn: "bessel_jn", args: [5, 3],  expected: 0.04302843487704758, source: "Python scipy J_5(3)" },
 
+  // ── Log-Gamma ──
+  { fn: "lgamma_fn", args: [1],    expected: 0.0,                  source: "log(Γ(1)) = log(1) = 0" },
+  { fn: "lgamma_fn", args: [0.5],  expected: 0.5723649429247001,   source: "log(√π)" },
+  { fn: "lgamma_fn", args: [5],    expected: 3.1780538303479458,   source: "log(4!) = log(24)" },
+  { fn: "lgamma_fn", args: [10],   expected: 12.801827480081469,   source: "log(9!)" },
+  { fn: "lgamma_fn", args: [100],  expected: 359.1342053695754,    source: "Wolfram" },
+
+  // ── Bessel Y0 ──
+  { fn: "bessel_y0", args: [0.5],  expected: -0.44451873350670656, source: "A&S Table 9.1" },
+  { fn: "bessel_y0", args: [1],    expected: 0.08825696421567696,  source: "A&S Table 9.1" },
+  { fn: "bessel_y0", args: [5],    expected: -0.30851762524903357, source: "A&S Table 9.1" },
+
   // ── Erfc ──
   { fn: "erfc_fn", args: [0],      expected: 1.0,                  source: "erfc(0) = 1" },
   { fn: "erfc_fn", args: [0.5],    expected: 0.4795001221869535,   source: "Python math.erfc" },
