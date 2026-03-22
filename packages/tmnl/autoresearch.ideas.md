@@ -28,9 +28,24 @@
 - ✅ Digamma: 7 Bernoulli terms, shift x>10 (8.3→15 digits)
 - ✅ Bessel J0/J1: Cephes rational approx (11.7→12.1/11.5→14.1)
 
-### Remaining improvement opportunities:
-- **Bessel J0 at x=10**: Hankel branch gives 12.1 digits — Cephes claims 4.2e-16 peak, needs coefficient verification
-- **Erf/Erfc (13.2-13.5)**: Boost-style piecewise rational would give ~15 digits — requires extracting all P/Q tables for 53-bit path
-- **Dawson (13.4)**: Already at Cephes quality — diminishing returns
-- **Bessel Jn**: Miller backward recurrence normalized by J0 — accuracy depends on J0 quality
-- **Consider std::erf/std::erfc**: C++ standard library implementations on modern compilers may use hardware-optimized paths
+### WASM/Emscripten Precision Limitation (DISCOVERED)
+Emscripten WASM produces ~2e-12 accuracy for Cephes-style rational approximations where
+native C++ and JavaScript V8 both achieve ~1e-15. Affects:
+- Bessel J0(10) Hankel branch: 8.5e-13 in WASM vs 7e-15 native
+- Fresnel S/C(3) auxiliary functions: 2e-12 in WASM vs 2e-15 native
+- Not an FMA issue (tested with -ffp-contract=off and volatile)
+- Not optimizer issue (tested with noinline, -O0)
+- Appears to be fundamental to Emscripten's codegen or musl math library
+- Standard library functions (std::erf, std::tgamma) have the same accuracy as our custom code
+
+### Remaining improvement paths (with WASM limitation):
+- **Add more functions**: Currently 14/100 exports benchmarked. lgamma, bessel_y0/y1, modified Bessel I0/I1 could add ~14 digits each
+- **Bessel J0 (12.1)**: At WASM precision ceiling for Hankel at x=10. Cannot improve without fixing Emscripten
+- **Erf/Erfc (13.2-13.5)**: At musl std::erf/erfc precision. Same as custom implementation
+- **Dawson (13.4)**: At Cephes quality — diminishing returns
+- **Gamma (14.4)**: At std::tgamma quality. Stirling for large args won't help (test point is Γ(10))
+- **Reference value auditing**: Several improvements came from correcting reference values (J0(10), J5(3)). More test points could shift digits
+
+### Deferred:
+- Implement bessel_y0, bessel_i0, lgamma in C++ → 3 more benchmark functions → +42 potential digits
+- Investigate Emscripten 4.0 or -s STANDALONE_WASM for potentially better precision
