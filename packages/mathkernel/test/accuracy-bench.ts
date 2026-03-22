@@ -185,6 +185,27 @@ const REFERENCES: RefEntry[] = [
   { fn: "airy_ai", args: [0],      expected: 0.35502805388781724, source: "1/(3^{2/3}Γ(2/3))" },
   { fn: "airy_ai", args: [1],      expected: 0.13529241631288141, source: "A&S Table 10.11" },
   { fn: "airy_ai", args: [-1],     expected: 0.5355608832923521,  source: "A&S Table 10.11" },
+
+  // ── Laguerre L_n ──
+  { fn: "laguerre_l", args: [0, 1],   expected: 1.0,                source: "Definition" },
+  { fn: "laguerre_l", args: [2, 1],   expected: -0.5,               source: "L2(1) = (1-2+1²/2)" },
+  { fn: "laguerre_l", args: [5, 3],   expected: 0.85,               source: "Recurrence" },
+  { fn: "laguerre_l", args: [10, 2],  expected: -0.30906525573192222, source: "Python recurrence" },
+
+  // ── Hermite H_n ──
+  { fn: "hermite_h", args: [2, 1],    expected: 2.0,                source: "4x²-2 at x=1" },
+  { fn: "hermite_h", args: [3, 2],    expected: 40.0,               source: "8x³-12x at x=2" },
+  { fn: "hermite_h", args: [5, 1],    expected: -8.0,               source: "Recurrence" },
+
+  // ── Legendre P_n ──
+  { fn: "legendre_p", args: [2, 0.5], expected: -0.125,             source: "(3x²-1)/2 at 0.5" },
+  { fn: "legendre_p", args: [5, 0.5], expected: 0.08984375,         source: "Recurrence" },
+  { fn: "legendre_p", args: [10, 0.5], expected: -0.18822860717773438, source: "Recurrence" },
+
+  // ── Chebyshev T_n ──
+  { fn: "chebyshev_t", args: [5, 0.5],  expected: 0.5,               source: "cos(5·arccos(0.5))" },
+  { fn: "chebyshev_t", args: [10, 0.3], expected: 0.9955225088,      source: "cos(10·arccos(0.3))" },
+  { fn: "chebyshev_t", args: [7, 0.9],  expected: -0.9998784,        source: "cos(7·arccos(0.9))" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

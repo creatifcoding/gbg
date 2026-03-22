@@ -1020,6 +1020,72 @@ double airy_ai(double x) {
   return sum;
 }
 
+/**
+ * Laguerre polynomial L_n(x) via forward recurrence.
+ * L_0 = 1, L_1 = 1-x, L_{n+1} = ((2n+1-x)L_n - nL_{n-1}) / (n+1)
+ */
+double laguerre_l(int n, double x) {
+  if (n == 0) return 1.0;
+  if (n == 1) return 1.0 - x;
+  double l0 = 1.0, l1 = 1.0 - x;
+  for (int k = 1; k < n; ++k) {
+    double l2 = ((2.0*k + 1.0 - x) * l1 - static_cast<double>(k) * l0) / static_cast<double>(k + 1);
+    l0 = l1;
+    l1 = l2;
+  }
+  return l1;
+}
+
+/**
+ * Hermite polynomial H_n(x) (probabilist's version He_n).
+ * He_0 = 1, He_1 = x, He_{n+1} = x·He_n - n·He_{n-1}
+ * Physicist's H_n(x): H_0=1, H_1=2x, H_{n+1}=2x·H_n - 2n·H_{n-1}
+ * We use physicist's convention.
+ */
+double hermite_h(int n, double x) {
+  if (n == 0) return 1.0;
+  if (n == 1) return 2.0 * x;
+  double h0 = 1.0, h1 = 2.0 * x;
+  for (int k = 1; k < n; ++k) {
+    double h2 = 2.0 * x * h1 - 2.0 * static_cast<double>(k) * h0;
+    h0 = h1;
+    h1 = h2;
+  }
+  return h1;
+}
+
+/**
+ * Legendre polynomial P_n(x) via forward recurrence.
+ * P_0 = 1, P_1 = x, (n+1)P_{n+1} = (2n+1)x·P_n - n·P_{n-1}
+ */
+double legendre_p(int n, double x) {
+  if (n == 0) return 1.0;
+  if (n == 1) return x;
+  double p0 = 1.0, p1 = x;
+  for (int k = 1; k < n; ++k) {
+    double p2 = ((2.0*k + 1.0) * x * p1 - static_cast<double>(k) * p0) / static_cast<double>(k + 1);
+    p0 = p1;
+    p1 = p2;
+  }
+  return p1;
+}
+
+/**
+ * Chebyshev polynomial T_n(x).
+ * T_0 = 1, T_1 = x, T_{n+1} = 2x·T_n - T_{n-1}
+ */
+double chebyshev_t(int n, double x) {
+  if (n == 0) return 1.0;
+  if (n == 1) return x;
+  double t0 = 1.0, t1 = x;
+  for (int k = 1; k < n; ++k) {
+    double t2 = 2.0 * x * t1 - t0;
+    t0 = t1;
+    t1 = t2;
+  }
+  return t1;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1056,5 +1122,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("spence", &mathkernel::spence);
   function("trigamma", &mathkernel::trigamma);
   function("airy_ai", &mathkernel::airy_ai);
+  function("laguerre_l", &mathkernel::laguerre_l);
+  function("hermite_h", &mathkernel::hermite_h);
+  function("legendre_p", &mathkernel::legendre_p);
+  function("chebyshev_t", &mathkernel::chebyshev_t);
 }
 #endif
