@@ -169,6 +169,22 @@ const REFERENCES: RefEntry[] = [
   { fn: "riemann_zeta", args: [3],  expected: 1.2020569031595942,  source: "Apéry's constant" },
   { fn: "riemann_zeta", args: [4],  expected: 1.0823232337111381,  source: "π⁴/90" },
   { fn: "riemann_zeta", args: [10], expected: 1.0009945751278180,  source: "Wolfram" },
+
+  // ── Spence / Dilogarithm Li₂ ──
+  { fn: "spence", args: [0],       expected: 0.0,                  source: "Definition" },
+  { fn: "spence", args: [0.5],     expected: 0.5822405264650125,   source: "Wolfram" },
+  { fn: "spence", args: [1],       expected: 1.6449340668482264,   source: "π²/6" },
+  { fn: "spence", args: [-1],      expected: -0.8224670334241132,  source: "-π²/12" },
+
+  // ── Trigamma ψ₁ ──
+  { fn: "trigamma", args: [1],      expected: 1.6449340668482264,  source: "π²/6" },
+  { fn: "trigamma", args: [2],      expected: 0.6449340668482264,  source: "π²/6 - 1" },
+  { fn: "trigamma", args: [0.5],    expected: 4.934802200544679,   source: "Wolfram" },
+
+  // ── Airy Ai ──
+  { fn: "airy_ai", args: [0],      expected: 0.35502805388781724, source: "1/(3^{2/3}Γ(2/3))" },
+  { fn: "airy_ai", args: [1],      expected: 0.13529241631288141, source: "A&S Table 10.11" },
+  { fn: "airy_ai", args: [-1],     expected: 0.5355608832923521,  source: "A&S Table 10.11" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

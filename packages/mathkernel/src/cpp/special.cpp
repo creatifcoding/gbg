@@ -916,6 +916,110 @@ double riemann_zeta(double s) {
   return eta / (1.0 - std::pow(2.0, 1.0 - s));
 }
 
+/**
+ * Dilogarithm Li₂(x) = -∫₀ˣ ln(1-t)/t dt = Σ_{k=1}^∞ x^k/k².
+ * For |x| ≤ 0.5: direct series.
+ * For 0.5 < x ≤ 1: Li₂(x) = π²/6 - ln(x)·ln(1-x) - Li₂(1-x).
+ * For x > 1: Li₂(x) = -Li₂(1/x) + π²/3 - ½(ln x)².
+ */
+double spence(double x) {
+  if (x == 1.0) return M_PI * M_PI / 6.0;
+  if (x == 0.0) return 0.0;
+
+  if (x < 0.0) {
+    // Li₂(x) = -Li₂(x/(x-1)) - ½ ln²(1-x)
+    double u = x / (x - 1.0);
+    double lnv = std::log(1.0 - x);
+    return -spence(u) - 0.5 * lnv * lnv;
+  }
+
+  if (x > 1.0) {
+    // Li₂(x) = -Li₂(1/x) + π²/3 - ½(ln x)²
+    double lnx = std::log(x);
+    return -spence(1.0 / x) + M_PI * M_PI / 3.0 - 0.5 * lnx * lnx;
+  }
+
+  if (x > 0.5) {
+    // Li₂(x) = π²/6 - ln(x)·ln(1-x) - Li₂(1-x)
+    double lnx = std::log(x);
+    double ln1mx = std::log(1.0 - x);
+    return M_PI * M_PI / 6.0 - lnx * ln1mx - spence(1.0 - x);
+  }
+
+  // Series: Σ x^k/k² for |x| ≤ 0.5
+  double sum = 0.0;
+  double xk = x;
+  for (int k = 1; k <= 80; ++k) {
+    sum += xk / (static_cast<double>(k) * static_cast<double>(k));
+    xk *= x;
+    if (std::abs(xk / (k * k)) < 1e-17 * std::abs(sum)) break;
+  }
+  return sum;
+}
+
+/**
+ * Trigamma function ψ₁(x) = d²ln(Γ(x))/dx².
+ * For x > 10: asymptotic series ψ₁(x) = 1/x + 1/(2x²) + Σ B_{2k}/(x^{2k+1}).
+ * For x ≤ 10: recurrence ψ₁(x) = ψ₁(x+1) + 1/x².
+ */
+double trigamma(double x) {
+  if (x <= 0 && x == std::floor(x)) return NAN;
+
+  // Shift x to large value using recurrence
+  double sum = 0.0;
+  double xx = x;
+  while (xx < 20.0) {
+    sum += 1.0 / (xx * xx);
+    xx += 1.0;
+  }
+
+  // Asymptotic: ψ₁(x) = 1/x + 1/(2x²) + Σ B_{2k}/(x^{2k+1})
+  // B₂=1/6, B₄=-1/30, B₆=1/42, B₈=-1/30, B₁₀=5/66, B₁₂=-691/2730
+  double ix = 1.0 / xx;
+  double ix2 = ix * ix;
+  double result = ix + ix2 / 2.0
+    + ix2 * ix / 6.0
+    - ix2 * ix2 * ix / 30.0
+    + ix2 * ix2 * ix2 * ix / 42.0
+    - ix2 * ix2 * ix2 * ix2 * ix / 30.0
+    + ix2 * ix2 * ix2 * ix2 * ix2 * ix * 5.0 / 66.0
+    - ix2 * ix2 * ix2 * ix2 * ix2 * ix2 * ix * 691.0 / 2730.0
+    + ix2 * ix2 * ix2 * ix2 * ix2 * ix2 * ix2 * ix * 7.0 / 6.0;
+
+  return result + sum;
+}
+
+/**
+ * Airy function Ai(x).
+ * For x < 0: oscillatory, use ascending series.
+ * For x ≥ 0: exponentially decaying, use ascending series for small x,
+ *            asymptotic for large x.
+ */
+double airy_ai(double x) {
+  // Taylor series via ODE recurrence: Ai''(x) = x·Ai(x)
+  // c[n+2] = c[n-1] / ((n+1)(n+2)) for n ≥ 1
+  // c[0] = Ai(0), c[1] = Ai'(0), c[2] = 0
+  static const double AI_C1 = 0.35502805388781723926; // Ai(0) = 1/(3^{2/3}Γ(2/3))
+  static const double AI_C2 = 0.25881940379280679841; // -Ai'(0) = 1/(3^{1/3}Γ(1/3))
+
+  double c[200];
+  c[0] = AI_C1;
+  c[1] = -AI_C2;
+  c[2] = 0.0;
+  for (int n = 1; n <= 196; ++n) {
+    c[n+2] = c[n-1] / (static_cast<double>(n+1) * static_cast<double>(n+2));
+  }
+  // Horner-like evaluation
+  double xpow = 1.0;
+  double sum = 0.0;
+  for (int n = 0; n < 199; ++n) {
+    sum += c[n] * xpow;
+    xpow *= x;
+    if (n > 30 && std::abs(c[n] * xpow) < 1e-17 * std::abs(sum)) break;
+  }
+  return sum;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -949,5 +1053,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("bessel_k0", &mathkernel::bessel_k0);
   function("bessel_k1", &mathkernel::bessel_k1);
   function("riemann_zeta", &mathkernel::riemann_zeta);
+  function("spence", &mathkernel::spence);
+  function("trigamma", &mathkernel::trigamma);
+  function("airy_ai", &mathkernel::airy_ai);
 }
 #endif
