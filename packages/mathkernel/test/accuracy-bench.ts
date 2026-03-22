@@ -64,12 +64,14 @@ const REFERENCES: RefEntry[] = [
   { fn: "fresnel_s", args: [0.5],  expected: 0.06473243285999929,  source: "A&S Table 7.5" },
   { fn: "fresnel_s", args: [1.0],  expected: 0.4382591473903548,   source: "A&S Table 7.5" },
   { fn: "fresnel_s", args: [2.0],  expected: 0.34341567836369824,  source: "A&S Table 7.5" },
+  { fn: "fresnel_s", args: [3.0],  expected: 0.49631299896737496,  source: "Cephes Python" },
 
   // ── Fresnel C ──
   { fn: "fresnel_c", args: [0],    expected: 0.0,                  source: "Definition" },
   { fn: "fresnel_c", args: [0.5],  expected: 0.4923442258714464,   source: "A&S Table 7.5" },
   { fn: "fresnel_c", args: [1.0],  expected: 0.7798934003768228,   source: "A&S Table 7.5" },
   { fn: "fresnel_c", args: [2.0],  expected: 0.4882534060753408,   source: "A&S Table 7.5" },
+  { fn: "fresnel_c", args: [3.0],  expected: 0.6057207892976857,   source: "Cephes Python" },
 
   // ── Sinc (normalized) ──
   { fn: "sinc", args: [0],         expected: 1.0,                  source: "Limit definition" },
