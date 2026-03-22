@@ -1911,6 +1911,44 @@ double polygamma(int n, double x) {
   return (n % 2 == 0) ? -result : result;
 }
 
+/**
+ * Exponential integral E_n(x) = ∫₁^∞ e^{-xt}/t^n dt.
+ * For n=1 uses our existing E1. For n≥2 uses the recurrence:
+ * E_{n+1}(x) = (1/n)(e^{-x} - x·E_n(x))
+ */
+double expint_en(int n, double x) {
+  if (n == 1) return expint_e1(x);
+  if (x < 0) return NAN;
+  if (x == 0) return 1.0 / static_cast<double>(n - 1);
+
+  // Forward recurrence from E1
+  double e = expint_e1(x);
+  double emx = std::exp(-x);
+  for (int k = 1; k < n; ++k) {
+    e = (emx - x * e) / static_cast<double>(k);
+  }
+  return e;
+}
+
+/**
+ * Associated Laguerre polynomial L_n^α(x).
+ * L_0^α = 1, L_1^α = 1+α-x.
+ * (n+1)L_{n+1}^α = (2n+1+α-x)L_n^α - (n+α)L_{n-1}^α.
+ */
+double assoc_laguerre(int n, double alpha, double x) {
+  if (n == 0) return 1.0;
+  double l0 = 1.0;
+  double l1 = 1.0 + alpha - x;
+  if (n == 1) return l1;
+  for (int k = 1; k < n; ++k) {
+    double dk = static_cast<double>(k);
+    double l2 = ((2.0*dk + 1.0 + alpha - x) * l1 - (dk + alpha) * l0) / (dk + 1.0);
+    l0 = l1;
+    l1 = l2;
+  }
+  return l1;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1987,5 +2025,7 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("erfcinv", &mathkernel::erfcinv);
   function("bessel_in", &mathkernel::bessel_in);
   function("polygamma", &mathkernel::polygamma);
+  function("expint_en", &mathkernel::expint_en);
+  function("assoc_laguerre", &mathkernel::assoc_laguerre);
 }
 #endif

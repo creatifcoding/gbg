@@ -371,6 +371,16 @@ const REFERENCES: RefEntry[] = [
   { fn: "bessel_in", args: [2, 1],      expected: 0.13574766976703828, source: "Miller backward" },
   { fn: "bessel_in", args: [3, 2],      expected: 0.21273995923985264, source: "Miller backward" },
   { fn: "bessel_in", args: [0, 1],      expected: 1.2660658777520082,  source: "=I₀(1)" },
+
+  // ── Exponential Integral E_n ──
+  { fn: "expint_en", args: [2, 1],      expected: 0.14849550677592172, source: "Recurrence from E1" },
+  { fn: "expint_en", args: [3, 1],      expected: 0.10969196719776031, source: "Recurrence from E2" },
+  { fn: "expint_en", args: [1, 2],      expected: 0.04890051070806112, source: "=E1(2)" },
+
+  // ── Associated Laguerre L_n^α ──
+  { fn: "assoc_laguerre", args: [2, 1, 1],    expected: 0.5,          source: "Recurrence" },
+  { fn: "assoc_laguerre", args: [3, 0.5, 2],  expected: -0.8958333333333334, source: "Recurrence" },
+  { fn: "assoc_laguerre", args: [0, 2, 5],    expected: 1.0,          source: "L₀=1" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
