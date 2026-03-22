@@ -552,6 +552,29 @@ const REFERENCES: RefEntry[] = [
   { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
   { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
 
+  // ── Lucas ──
+  { fn: "lucas", args: [0],            expected: 2.0,              source: "L(0)=2" },
+  { fn: "lucas", args: [5],            expected: 11.0,             source: "Known" },
+  { fn: "lucas", args: [10],           expected: 123.0,            source: "Known" },
+
+  // ── Versine ──
+  { fn: "versine", args: [0],          expected: 0.0,              source: "1-cos(0)=0" },
+  { fn: "versine", args: [1],          expected: 0.45969769413186023, source: "1-cos(1)" },
+
+  // ── Haversine ──
+  { fn: "haversine", args: [0],        expected: 0.0,              source: "hav(0)=0" },
+  { fn: "haversine", args: [1],        expected: 0.22984884706593015, source: "sin²(½)" },
+
+  // ── Witch of Agnesi ──
+  { fn: "witch_agnesi", args: [0],     expected: 1.0,              source: "1/(1+0)" },
+  { fn: "witch_agnesi", args: [1],     expected: 0.5,              source: "1/2" },
+  { fn: "witch_agnesi", args: [2],     expected: 0.2,              source: "1/5" },
+
+  // ── Log-Cosh ──
+  { fn: "log_cosh", args: [0],         expected: 0.0,              source: "ln(1)=0" },
+  { fn: "log_cosh", args: [1],         expected: 0.4337808304830271, source: "ln(cosh(1))" },
+  { fn: "log_cosh", args: [5],         expected: 4.306898218339271, source: "ln(cosh(5))" },
+
   // ── Fibonacci ──
   { fn: "fibonacci", args: [10],       expected: 55.0,             source: "Known" },
   { fn: "fibonacci", args: [20],       expected: 6765.0,           source: "Known" },

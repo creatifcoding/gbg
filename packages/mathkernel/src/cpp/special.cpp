@@ -2655,6 +2655,58 @@ double riemann_xi(double s) {
   return 0.5 * s * (s - 1.0) * std::pow(M_PI, -s/2.0) * std::tgamma(s/2.0) * riemann_zeta(s);
 }
 
+/**
+ * Lucas number L(n) = F(n-1) + F(n+1) = φⁿ + ψⁿ.
+ */
+double lucas(int n) {
+  if (n == 0) return 2.0;
+  if (n == 1) return 1.0;
+  double a = 2, b = 1;
+  for (int i = 2; i <= n; ++i) {
+    double c = a + b;
+    a = b;
+    b = c;
+  }
+  return b;
+}
+
+/**
+ * Versine: versin(x) = 1 - cos(x). Numerically stable for small x.
+ */
+double versine(double x) {
+  if (std::abs(x) < 1e-4) {
+    double x2 = x * x;
+    return x2 / 2.0 * (1.0 - x2 / 12.0 + x2 * x2 / 360.0);
+  }
+  return 1.0 - std::cos(x);
+}
+
+/**
+ * Haversine: hav(x) = sin²(x/2) = (1-cos(x))/2.
+ */
+double haversine(double x) {
+  double s = std::sin(x / 2.0);
+  return s * s;
+}
+
+/**
+ * Witch of Agnesi: f(x) = 1/(1+x²). Used in Cauchy/Lorentz distributions.
+ */
+double witch_agnesi(double x) {
+  return 1.0 / (1.0 + x * x);
+}
+
+/**
+ * Logistic function with arbitrary midpoint and scale:
+ * L(x) = 1/(1+e^{-k(x-x0)}). Here just standard with k=1, x0=0 (= sigmoid).
+ * Instead: Log-cosh: log(cosh(x)), used in robust regression.
+ */
+double log_cosh(double x) {
+  double ax = std::abs(x);
+  if (ax > 20) return ax - std::log(2.0); // Avoid overflow
+  return std::log(std::cosh(x));
+}
+
 double wright_omega(double z) {
   if (std::isnan(z)) return NAN;
   // Seed from Lambert W relationship: W(z) = W₀(eᶻ) (principal branch)
@@ -2792,6 +2844,11 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("asinh_fn", &mathkernel::asinh_fn);
   function("acosh_fn", &mathkernel::acosh_fn);
   function("wright_omega", &mathkernel::wright_omega);
+  function("lucas", &mathkernel::lucas);
+  function("versine", &mathkernel::versine);
+  function("haversine", &mathkernel::haversine);
+  function("witch_agnesi", &mathkernel::witch_agnesi);
+  function("log_cosh", &mathkernel::log_cosh);
   function("fibonacci", &mathkernel::fibonacci);
   function("gudermannian", &mathkernel::gudermannian);
   function("inv_gudermannian", &mathkernel::inv_gudermannian);
