@@ -221,6 +221,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "airy_bi", args: [0],          expected: 0.6149266274460007, source: "1/(3^{1/6}Γ(2/3))" },
   { fn: "airy_bi", args: [1],          expected: 1.2074235949528713, source: "ODE Taylor" },
   { fn: "airy_bi", args: [-1],         expected: 0.10399738949694455, source: "ODE Taylor" },
+
+  // ── Sine Integral Si ──
+  { fn: "sine_integral", args: [1],    expected: 0.9460830703671830, source: "Series" },
+  { fn: "sine_integral", args: [0.5],  expected: 0.4931074180430667, source: "Series" },
+  { fn: "sine_integral", args: [2],    expected: 1.6054129768026945, source: "Series" },
+
+  // ── Cosine Integral Ci ──
+  { fn: "cosine_integral", args: [1],  expected: 0.33740392290096816, source: "Series" },
+  { fn: "cosine_integral", args: [0.5], expected: -0.17778407880661287, source: "Series Python" },
+  { fn: "cosine_integral", args: [2],  expected: 0.42298082877486476,  source: "Series Python" },
+
+  // ── Inverse Error Function ──
+  { fn: "erfinv", args: [0],           expected: 0.0,                source: "Definition" },
+  { fn: "erfinv", args: [0.5],         expected: 0.4769362762044699, source: "Newton" },
+  { fn: "erfinv", args: [0.9],         expected: 1.1630871536766743, source: "Newton" },
+
+  // ── Lambert W ──
+  { fn: "lambertw", args: [0],         expected: 0.0,                source: "Definition" },
+  { fn: "lambertw", args: [1],         expected: 0.5671432904097838, source: "Omega constant" },
+  { fn: "lambertw", args: [Math.E],    expected: 1.0,                source: "W(e) = 1" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

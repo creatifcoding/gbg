@@ -1148,6 +1148,101 @@ double airy_bi(double x) {
   return sum;
 }
 
+/**
+ * Sine integral Si(x) = ∫₀ˣ sin(t)/t dt.
+ * Series: Si(x) = Σ_{k=0}^∞ (-1)^k x^{2k+1} / ((2k+1)·(2k+1)!)
+ */
+double sine_integral(double x) {
+  double x2 = x * x;
+  double term = x;
+  double sum = x;
+  for (int k = 1; k <= 60; ++k) {
+    term *= -x2 / (static_cast<double>(2*k) * static_cast<double>(2*k + 1));
+    double contrib = term / static_cast<double>(2*k + 1);
+    sum += contrib;
+    if (std::abs(contrib) < 1e-16 * std::abs(sum)) break;
+  }
+  return sum;
+}
+
+/**
+ * Cosine integral Ci(x) = γ + ln(x) + ∫₀ˣ (cos(t)-1)/t dt.
+ * Series: Ci(x) = γ + ln(x) + Σ_{k=1}^∞ (-1)^k x^{2k} / (2k·(2k)!)
+ */
+double cosine_integral(double x) {
+  if (x <= 0) return NAN;
+  static const double EULER = 0.57721566490153286060;
+  double x2 = x * x;
+  double term = 1.0;
+  double sum = 0.0;
+  for (int k = 1; k <= 60; ++k) {
+    term *= -x2 / (static_cast<double>(2*k - 1) * static_cast<double>(2*k));
+    double contrib = term / static_cast<double>(2*k);
+    sum += contrib;
+    if (std::abs(contrib) < 1e-16 * std::abs(sum)) break;
+  }
+  return EULER + std::log(x) + sum;
+}
+
+/**
+ * Inverse error function erfinv(p): x such that erf(x) = p.
+ * Newton iteration on erf(x) - p = 0, starting from rational approximation.
+ */
+double erfinv(double p) {
+  if (p <= -1.0) return -INFINITY;
+  if (p >= 1.0) return INFINITY;
+  if (p == 0.0) return 0.0;
+
+  // Initial guess via rational approx
+  double a = 0.147;
+  double ln1mp2 = std::log(1.0 - p * p);
+  double t = 2.0 / (M_PI * a) + ln1mp2 / 2.0;
+  double x0 = (p > 0 ? 1 : -1) * std::sqrt(std::sqrt(t * t - ln1mp2 / a) - t);
+
+  // Newton iterations: x_{n+1} = x_n - (erf(x_n) - p) / (2/√π · e^{-x_n²})
+  double x = x0;
+  for (int i = 0; i < 10; ++i) {
+    double f = std::erf(x) - p;
+    double fp = 2.0 / std::sqrt(M_PI) * std::exp(-x * x);
+    double dx = f / fp;
+    x -= dx;
+    if (std::abs(dx) < 1e-16 * std::abs(x)) break;
+  }
+  return x;
+}
+
+/**
+ * Lambert W function W₀(x): principal branch of w·e^w = x.
+ * Newton iteration with Halley step.
+ */
+double lambertw(double x) {
+  if (x == 0.0) return 0.0;
+  if (x < -1.0/M_E) return NAN;
+  if (x == -1.0/M_E) return -1.0;
+
+  // Initial guess
+  double w;
+  if (x < 1.0) {
+    w = x * (1.0 - x * (1.0 - 2.0 * x)); // Taylor near 0
+  } else {
+    w = std::log(x);
+    if (x > 3.0) w -= std::log(w);
+  }
+
+  // Halley iteration
+  for (int i = 0; i < 20; ++i) {
+    double ew = std::exp(w);
+    double wew = w * ew;
+    double f = wew - x;
+    double fp = ew * (w + 1.0);
+    double fpp = ew * (w + 2.0);
+    double dw = f / (fp - f * fpp / (2.0 * fp));
+    w -= dw;
+    if (std::abs(dw) < 1e-16 * std::abs(w)) break;
+  }
+  return w;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1191,5 +1286,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("shi", &mathkernel::shi);
   function("chi", &mathkernel::chi);
   function("airy_bi", &mathkernel::airy_bi);
+  function("sine_integral", &mathkernel::sine_integral);
+  function("cosine_integral", &mathkernel::cosine_integral);
+  function("erfinv", &mathkernel::erfinv);
+  function("lambertw", &mathkernel::lambertw);
 }
 #endif
