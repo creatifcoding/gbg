@@ -552,6 +552,32 @@ const REFERENCES: RefEntry[] = [
   { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
   { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
 
+  // ── Fibonacci ──
+  { fn: "fibonacci", args: [10],       expected: 55.0,             source: "Known" },
+  { fn: "fibonacci", args: [20],       expected: 6765.0,           source: "Known" },
+  { fn: "fibonacci", args: [50],       expected: 12586269025.0,    source: "Known" },
+
+  // ── Gudermannian ──
+  { fn: "gudermannian", args: [1],     expected: 0.8657694832396586, source: "atan(sinh(1))" },
+  { fn: "gudermannian", args: [0],     expected: 0.0,              source: "gd(0)=0" },
+
+  // ── Inverse Gudermannian ──
+  { fn: "inv_gudermannian", args: [0.5], expected: 0.5222381032784403, source: "atanh(sin(½))" },
+  { fn: "inv_gudermannian", args: [0],   expected: 0.0,              source: "gd⁻¹(0)=0" },
+
+  // ── Softplus ──
+  { fn: "softplus", args: [0],         expected: 0.6931471805599453, source: "ln(2)" },
+  { fn: "softplus", args: [1],         expected: 1.3132616875182228, source: "ln(1+e)" },
+  { fn: "softplus", args: [-5],        expected: 0.006715348489118068, source: "ln(1+e⁻⁵)" },
+
+  // ── AGM ──
+  { fn: "agm", args: [1, 1.4142135623730951], expected: 1.1981402347355923, source: "AGM(1,√2)" },
+  { fn: "agm", args: [1, 1],           expected: 1.0,              source: "AGM(a,a)=a" },
+
+  // ── Riemann Xi ──
+  { fn: "riemann_xi", args: [2],       expected: 0.5235987755982988, source: "π/6" },
+  { fn: "riemann_xi", args: [3],       expected: 0.5739398940467553, source: "Computed" },
+
   // ── Kelvin ber ──
   { fn: "kelvin_ber", args: [0],       expected: 1.0,              source: "ber(0)=1" },
   { fn: "kelvin_ber", args: [1],       expected: 0.98438178121308695, source: "Series" },

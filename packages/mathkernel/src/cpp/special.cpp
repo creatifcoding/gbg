@@ -2587,6 +2587,74 @@ double inv_langevin(double y) {
   return y * (3.0 - y2) / (1.0 - y2);
 }
 
+/**
+ * Fibonacci number F(n) via matrix exponentiation / Binet.
+ * Uses fast doubling: F(2k)=F(k)[2F(k+1)-F(k)], F(2k+1)=F(k)²+F(k+1)².
+ */
+double fibonacci(int n) {
+  if (n < 0) return NAN;
+  if (n <= 1) return static_cast<double>(n);
+  if (n > 70) { // Use Binet for large n to avoid integer overflow
+    double phi = (1.0 + std::sqrt(5.0)) / 2.0;
+    return std::round(std::pow(phi, n) / std::sqrt(5.0));
+  }
+  // Direct iteration for n ≤ 70
+  double a = 0, b = 1;
+  for (int i = 2; i <= n; ++i) {
+    double c = a + b;
+    a = b;
+    b = c;
+  }
+  return b;
+}
+
+/**
+ * Gudermannian function: gd(x) = 2·atan(tanh(x/2)) = atan(sinh(x)).
+ */
+double gudermannian(double x) {
+  return std::atan(std::sinh(x));
+}
+
+/**
+ * Inverse gudermannian: gd⁻¹(x) = atanh(sin(x)) = log(tan(π/4+x/2)).
+ */
+double inv_gudermannian(double x) {
+  return std::atanh(std::sin(x));
+}
+
+/**
+ * Softplus: log(1+exp(x)), numerically stable.
+ */
+double softplus(double x) {
+  if (x > 30) return x; // Avoid overflow
+  if (x < -30) return std::exp(x); // Underflow-safe
+  return std::log1p(std::exp(x));
+}
+
+/**
+ * Arithmetic-Geometric Mean M(a,b).
+ * Iteration: a_{n+1} = (a_n+b_n)/2, b_{n+1} = √(a_n·b_n).
+ */
+double agm(double a, double b) {
+  if (a <= 0 || b <= 0) return NAN;
+  for (int i = 0; i < 100; ++i) {
+    double a1 = (a + b) / 2.0;
+    double b1 = std::sqrt(a * b);
+    if (std::abs(a1 - b1) < 1e-16 * a1) return a1;
+    a = a1;
+    b = b1;
+  }
+  return (a + b) / 2.0;
+}
+
+/**
+ * Riemann xi function: ξ(s) = (s/2)(s-1)π^{-s/2}Γ(s/2)ζ(s).
+ * Entire function, symmetric about s=1/2.
+ */
+double riemann_xi(double s) {
+  return 0.5 * s * (s - 1.0) * std::pow(M_PI, -s/2.0) * std::tgamma(s/2.0) * riemann_zeta(s);
+}
+
 double wright_omega(double z) {
   if (std::isnan(z)) return NAN;
   // Seed from Lambert W relationship: W(z) = W₀(eᶻ) (principal branch)
@@ -2724,6 +2792,12 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("asinh_fn", &mathkernel::asinh_fn);
   function("acosh_fn", &mathkernel::acosh_fn);
   function("wright_omega", &mathkernel::wright_omega);
+  function("fibonacci", &mathkernel::fibonacci);
+  function("gudermannian", &mathkernel::gudermannian);
+  function("inv_gudermannian", &mathkernel::inv_gudermannian);
+  function("softplus", &mathkernel::softplus);
+  function("agm", &mathkernel::agm);
+  function("riemann_xi", &mathkernel::riemann_xi);
   function("kelvin_ber", &mathkernel::kelvin_ber);
   function("kelvin_bei", &mathkernel::kelvin_bei);
   function("debye5", &mathkernel::debye5);
