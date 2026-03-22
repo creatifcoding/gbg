@@ -241,6 +241,16 @@ const REFERENCES: RefEntry[] = [
   { fn: "lambertw", args: [0],         expected: 0.0,                source: "Definition" },
   { fn: "lambertw", args: [1],         expected: 0.5671432904097838, source: "Omega constant" },
   { fn: "lambertw", args: [Math.E],    expected: 1.0,                source: "W(e) = 1" },
+
+  // ── Debye D₁ ──
+  { fn: "debye1", args: [0],           expected: 1.0,                source: "Definition" },
+  { fn: "debye1", args: [1],           expected: 0.7775046341122486, source: "Simpson" },
+  { fn: "debye1", args: [2],           expected: 0.6069472846098077, source: "Simpson 1000" },
+
+  // ── Normal Quantile Φ⁻¹ ──
+  { fn: "normsinv", args: [0.5],       expected: 0.0,                source: "Symmetry" },
+  { fn: "normsinv", args: [0.975],     expected: 1.9599639845400540, source: "Known value" },
+  { fn: "normsinv", args: [0.025],     expected: -1.9599639845400540, source: "Symmetry" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

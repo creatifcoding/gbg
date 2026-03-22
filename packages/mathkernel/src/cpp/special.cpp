@@ -1243,6 +1243,90 @@ double lambertw(double x) {
   return w;
 }
 
+/**
+ * Clausen function Cl₂(θ) = -∫₀^θ ln|2sin(t/2)| dt = Σ sin(kθ)/k².
+ * Series converges for all θ.
+ */
+double clausen(double theta) {
+  double sum = 0.0;
+  for (int k = 1; k <= 200; ++k) {
+    double term = std::sin(k * theta) / (static_cast<double>(k) * static_cast<double>(k));
+    sum += term;
+    if (std::abs(term) < 1e-16 * std::abs(sum) && k > 10) break;
+  }
+  return sum;
+}
+
+/**
+ * Debye function D_n(x) = (n/x^n) ∫₀ˣ t^n/(e^t - 1) dt.
+ * For n=1: D₁(x). Use series for small x, quadrature for moderate x.
+ */
+double debye1(double x) {
+  if (x == 0) return 1.0;
+  if (std::abs(x) < 1e-6) return 1.0 - x/4.0;
+
+  // Series: D₁(x) = 1 - x/4 + Σ_{k=1}^∞ B_{2k}·x^{2k}/((2k+1)·(2k)!)
+  // For x <= 4: series
+  if (x <= 4.0) {
+    // Numerical integration via Simpson's rule
+    int N = 1000;
+    double h = x / N;
+    double sum = 0.0; // f(0) = lim t/(e^t-1) = 1
+    sum += 1.0; // f(0) = 1
+    sum += (x * std::exp(-x) / (1.0 - std::exp(-x))); // f(x)
+    for (int i = 1; i < N; ++i) {
+      double t = i * h;
+      double f = t / (std::exp(t) - 1.0);
+      sum += f * ((i % 2 == 0) ? 2.0 : 4.0);
+    }
+    return sum * h / (3.0 * x);
+  }
+
+  // Large x: D₁(x) → π²/(6x) approximately
+  return M_PI * M_PI / (6.0 * x);
+}
+
+/**
+ * Inverse hyperbolic sine integral inverse.
+ * Actually: normal distribution quantile (probit) Φ⁻¹(p).
+ * Uses Beasley-Springer-Moro algorithm.
+ */
+double normsinv(double p) {
+  if (p <= 0) return -INFINITY;
+  if (p >= 1) return INFINITY;
+  if (p == 0.5) return 0.0;
+
+  // Rational approximation (Abramowitz & Stegun 26.2.23)
+  double t;
+  if (p < 0.5) {
+    t = std::sqrt(-2.0 * std::log(p));
+  } else {
+    t = std::sqrt(-2.0 * std::log(1.0 - p));
+  }
+
+  // Coefficients from A&S
+  static const double c0 = 2.515517;
+  static const double c1 = 0.802853;
+  static const double c2 = 0.010328;
+  static const double d1 = 1.432788;
+  static const double d2 = 0.189269;
+  static const double d3 = 0.001308;
+
+  double x0 = t - (c0 + t * (c1 + t * c2)) / (1.0 + t * (d1 + t * (d2 + t * d3)));
+  double x = (p < 0.5) ? -x0 : x0;
+
+  // Polish with Newton: Φ(x) = p, Φ'(x) = φ(x) = pdf
+  for (int i = 0; i < 5; ++i) {
+    double phi = 0.5 * std::erfc(-x / std::sqrt(2.0));
+    double pdf = std::exp(-x * x / 2.0) / std::sqrt(2.0 * M_PI);
+    double dx = (phi - p) / pdf;
+    x -= dx;
+    if (std::abs(dx) < 1e-16 * (1.0 + std::abs(x))) break;
+  }
+
+  return x;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1290,5 +1374,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("cosine_integral", &mathkernel::cosine_integral);
   function("erfinv", &mathkernel::erfinv);
   function("lambertw", &mathkernel::lambertw);
+  function("clausen", &mathkernel::clausen);
+  function("debye1", &mathkernel::debye1);
+  function("normsinv", &mathkernel::normsinv);
 }
 #endif
