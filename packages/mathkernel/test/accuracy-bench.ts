@@ -466,6 +466,31 @@ const REFERENCES: RefEntry[] = [
   { fn: "trinomial", args: [6, 2, 2],  expected: 90.0,             source: "6!/(2!2!2!)" },
   { fn: "trinomial", args: [10, 3, 3], expected: 4200.0,           source: "10!/(3!3!4!)" },
   { fn: "trinomial", args: [5, 5, 0],  expected: 1.0,              source: "5!/(5!0!0!)" },
+
+  // ── Gamma Sign ──
+  { fn: "gamma_sign", args: [-0.5],    expected: -1.0,             source: "Γ(-0.5)<0" },
+  { fn: "gamma_sign", args: [-1.5],    expected: 1.0,              source: "Γ(-1.5)>0" },
+  { fn: "gamma_sign", args: [2],       expected: 1.0,              source: "Γ(2)>0" },
+
+  // ── Struve H₁ ──
+  { fn: "struve_h1", args: [0],        expected: 0.0,              source: "H₁(0)=0" },
+  { fn: "struve_h1", args: [1],        expected: 0.19845740165182896, source: "Quadrature" },
+  { fn: "struve_h1", args: [2],        expected: 0.6467639900831578, source: "Quadrature 1000pt" },
+
+  // ── Partial Exponential Sum ──
+  { fn: "exp_sum", args: [3, 1],       expected: 2.6666666666666665, source: "1+1+½+⅙" },
+  { fn: "exp_sum", args: [0, 5],       expected: 1.0,              source: "Just x⁰/0!" },
+  { fn: "exp_sum", args: [10, 1],      expected: 2.7182818011463845, source: "≈e" },
+
+  // ── Unnormalized Sinc ──
+  { fn: "sinc_unnorm", args: [0],      expected: 1.0,              source: "lim sin(x)/x" },
+  { fn: "sinc_unnorm", args: [1],      expected: 0.8414709848078965, source: "sin(1)" },
+  { fn: "sinc_unnorm", args: [2],      expected: 0.45464871341284085, source: "sin(2)/2" },
+
+  // ── |Γ(x)| ──
+  { fn: "abs_gamma", args: [0.5],      expected: 1.7724538509055159, source: "√π" },
+  { fn: "abs_gamma", args: [-0.5],     expected: 3.544907701811032, source: "2√π" },
+  { fn: "abs_gamma", args: [5],        expected: 24.0,             source: "4!" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

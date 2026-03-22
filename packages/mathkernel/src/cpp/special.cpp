@@ -2230,6 +2230,70 @@ double trinomial(int n, int k1, int k2) {
   ));
 }
 
+/**
+ * Log of the gamma function sign: returns sign of Γ(x).
+ * Γ(x) is positive when x > 0 or x ∈ (-2,-1)∪(-4,-3)∪...
+ */
+double gamma_sign(double x) {
+  if (x > 0) return 1.0;
+  if (x == std::floor(x)) return NAN; // poles
+  int n = static_cast<int>(std::floor(-x));
+  return (n % 2 == 0) ? -1.0 : 1.0;
+}
+
+/**
+ * Struve function H₁(x) via numerical integration.
+ * H₁(x) = (2/π) ∫₀^{π/2} sin(x cos θ) sin²(θ) dθ... 
+ * Actually: H₁(x) = (2x/π) ∫₀^{π/2} sin(x cos θ) sin²(θ) dθ.
+ * Let me use: H_ν(x) = (2(x/2)^ν)/(√π Γ(ν+1/2)) ∫₀^{π/2} sin(x cos θ) sin^{2ν}(θ) dθ
+ * For ν=1: H₁(x) = (2x/2)/(√π·Γ(3/2)) ∫₀^{π/2} sin(x cosθ) sin²θ dθ
+ * Γ(3/2) = √π/2, so factor = x / (√π · √π/2) = x/(π/2) = 2x/π
+ * H₁(x) = (2x/π) ∫₀^{π/2} sin(x cosθ) sin²θ dθ
+ */
+double struve_h1(double x) {
+  if (x == 0) return 0.0;
+  int N = 1000;
+  double h_step = M_PI / 2.0 / N;
+  double s = 0.0;
+  for (int i = 0; i < N; ++i) {
+    double theta = (i + 0.5) * h_step;
+    double sin_theta = std::sin(theta);
+    s += std::sin(x * std::cos(theta)) * sin_theta * sin_theta;
+  }
+  s *= h_step;
+  return (2.0 * x / M_PI) * s;
+}
+
+/**
+ * Exponential sum: Σ_{k=0}^{n} x^k / k! (partial sum of eˣ).
+ * Useful for computing P(X≤n; λ=x) = e^{-x} · expsum(n, x).
+ */
+double exp_sum(int n, double x) {
+  double sum = 1.0;
+  double term = 1.0;
+  for (int k = 1; k <= n; ++k) {
+    term *= x / static_cast<double>(k);
+    sum += term;
+  }
+  return sum;
+}
+
+/**
+ * Normalized sinc: sin(πx)/(πx). Already have sinc — this is a no-op alias
+ * but we can add: unnormalized sinc: sin(x)/x.
+ */
+double sinc_unnorm(double x) {
+  if (std::abs(x) < 1e-15) return 1.0;
+  return std::sin(x) / x;
+}
+
+/**
+ * Absolute value of Gamma: |Γ(x)| for all real x.
+ */
+double abs_gamma(double x) {
+  return std::abs(std::tgamma(x));
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2325,5 +2389,10 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("hyp0f1", &mathkernel::hyp0f1);
   function("owens_t", &mathkernel::owens_t);
   function("trinomial", &mathkernel::trinomial);
+  function("gamma_sign", &mathkernel::gamma_sign);
+  function("struve_h1", &mathkernel::struve_h1);
+  function("exp_sum", &mathkernel::exp_sum);
+  function("sinc_unnorm", &mathkernel::sinc_unnorm);
+  function("abs_gamma", &mathkernel::abs_gamma);
 }
 #endif
