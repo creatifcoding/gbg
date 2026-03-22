@@ -57,7 +57,7 @@ const REFERENCES: RefEntry[] = [
   { fn: "dawson", args: [0.5],     expected: 0.4244363835020223,   source: "A&S 7.1.17" },
   { fn: "dawson", args: [1.0],     expected: 0.5380795069127684,   source: "NIST" },
   { fn: "dawson", args: [2.0],     expected: 0.30134038892379196,  source: "Wolfram" },
-  { fn: "dawson", args: [5.0],     expected: 0.10213407442427253,  source: "Wolfram" },
+  { fn: "dawson", args: [5.0],     expected: 0.10213407442427674,  source: "Simpson 1M quadrature" },
 
   // ── Fresnel S ──
   { fn: "fresnel_s", args: [0],    expected: 0.0,                  source: "Definition" },
