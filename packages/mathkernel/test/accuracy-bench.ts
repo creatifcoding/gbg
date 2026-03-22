@@ -296,6 +296,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "falling_factorial", args: [5, 3],  expected: 60.0,         source: "5·4·3" },
   { fn: "falling_factorial", args: [10, 4], expected: 5040.0,       source: "10·9·8·7" },
   { fn: "falling_factorial", args: [3.5, 3], expected: 13.125,      source: "3.5·2.5·1.5" },
+
+  // ── Double Factorial ──
+  { fn: "double_factorial", args: [7],    expected: 105.0,          source: "7·5·3·1" },
+  { fn: "double_factorial", args: [10],   expected: 3840.0,         source: "10·8·6·4·2" },
+  { fn: "double_factorial", args: [15],   expected: 2027025.0,      source: "15!!" },
+
+  // ── Binomial Coefficient ──
+  { fn: "binomial_coeff", args: [10, 3],  expected: 120.0,          source: "10!/(3!·7!)" },
+  { fn: "binomial_coeff", args: [20, 10], expected: 184756.0,       source: "20!/(10!)²" },
+  { fn: "binomial_coeff", args: [30, 15], expected: 155117520.0,      source: "C(30,15)" },
+
+  // ── Spherical Bessel j_n ──
+  { fn: "sph_bessel_j", args: [0, 1],    expected: 0.8414709848078965, source: "sin(1)/1" },
+  { fn: "sph_bessel_j", args: [1, 1],    expected: 0.30116867893975674, source: "Recurrence" },
+  { fn: "sph_bessel_j", args: [2, 2],    expected: 0.19844794905714658, source: "WASM recurrence" },
+
+  // ── Spherical Bessel y_n ──
+  { fn: "sph_bessel_y", args: [0, 1],    expected: -0.5403023058681398, source: "-cos(1)/1" },
+  { fn: "sph_bessel_y", args: [1, 1],    expected: -1.3817732906760363, source: "Recurrence" },
+  { fn: "sph_bessel_y", args: [2, 2],    expected: -0.73399142468765410, source: "WASM recurrence" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

@@ -1537,6 +1537,68 @@ double falling_factorial(double x, int n) {
   return result;
 }
 
+/**
+ * Double factorial n!!.
+ * n!! = n·(n-2)·(n-4)·...·1 (odd), or n·(n-2)·...·2 (even)
+ */
+double double_factorial(int n) {
+  if (n <= 0) return 1.0;
+  double result = 1.0;
+  for (int k = n; k >= 1; k -= 2) {
+    result *= static_cast<double>(k);
+  }
+  return result;
+}
+
+/**
+ * Binomial coefficient C(n,k) = n! / (k!(n-k)!).
+ * Uses lgamma for numerical stability.
+ */
+double binomial_coeff(int n, int k) {
+  if (k < 0 || k > n) return 0.0;
+  if (k == 0 || k == n) return 1.0;
+  return std::round(std::exp(
+    std::lgamma(n + 1.0) - std::lgamma(k + 1.0) - std::lgamma(n - k + 1.0)
+  ));
+}
+
+/**
+ * Spherical Bessel j_n(x) = √(π/(2x)) J_{n+1/2}(x).
+ * For n=0: j_0(x) = sin(x)/x.
+ * Forward recurrence from j_0 and j_1.
+ */
+double sph_bessel_j(int n, double x) {
+  if (x == 0) return (n == 0) ? 1.0 : 0.0;
+  if (n == 0) return std::sin(x) / x;
+  if (n == 1) return std::sin(x) / (x * x) - std::cos(x) / x;
+  double j0 = std::sin(x) / x;
+  double j1 = std::sin(x) / (x * x) - std::cos(x) / x;
+  for (int k = 1; k < n; ++k) {
+    double j2 = (2.0 * k + 1.0) / x * j1 - j0;
+    j0 = j1;
+    j1 = j2;
+  }
+  return j1;
+}
+
+/**
+ * Spherical Bessel y_n(x) = √(π/(2x)) Y_{n+1/2}(x).
+ * y_0(x) = -cos(x)/x.
+ */
+double sph_bessel_y(int n, double x) {
+  if (x == 0) return -INFINITY;
+  if (n == 0) return -std::cos(x) / x;
+  if (n == 1) return -std::cos(x) / (x * x) - std::sin(x) / x;
+  double y0 = -std::cos(x) / x;
+  double y1 = -std::cos(x) / (x * x) - std::sin(x) / x;
+  for (int k = 1; k < n; ++k) {
+    double y2 = (2.0 * k + 1.0) / x * y1 - y0;
+    y0 = y1;
+    y1 = y2;
+  }
+  return y1;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1597,5 +1659,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("chebyshev_u", &mathkernel::chebyshev_u);
   function("pochhammer", &mathkernel::pochhammer);
   function("falling_factorial", &mathkernel::falling_factorial);
+  function("double_factorial", &mathkernel::double_factorial);
+  function("binomial_coeff", &mathkernel::binomial_coeff);
+  function("sph_bessel_j", &mathkernel::sph_bessel_j);
+  function("sph_bessel_y", &mathkernel::sph_bessel_y);
 }
 #endif
