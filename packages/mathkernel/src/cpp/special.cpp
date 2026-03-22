@@ -2294,6 +2294,93 @@ double abs_gamma(double x) {
   return std::abs(std::tgamma(x));
 }
 
+/**
+ * Dirichlet eta function η(s) = (1 - 2^{1-s})·ζ(s).
+ * Converges faster than zeta for s near 1.
+ */
+double dirichlet_eta(double s) {
+  if (s == 1.0) return std::log(2.0); // η(1) = ln(2)
+  return (1.0 - std::pow(2.0, 1.0 - s)) * riemann_zeta(s);
+}
+
+/**
+ * Debye function D₂(x) = (2/x²)∫₀ˣ t²/(eᵗ-1) dt.
+ */
+double debye2(double x) {
+  if (x == 0) return 1.0;
+  if (std::abs(x) < 1e-6) return 1.0 - x/3.0;
+  int N = 1000;
+  double h = x / N;
+  double sum = 0.0;
+  // f(0) = lim t²/(eᵗ-1) = 0 (L'Hôpital → 0)
+  // Actually: lim_{t→0} t²/(e^t-1) = lim t²/t = t → 0. Yes.
+  for (int i = 1; i < N; ++i) {
+    double t = i * h;
+    double f = t * t / (std::exp(t) - 1.0);
+    sum += f * ((i % 2 == 0) ? 2.0 : 4.0);
+  }
+  // Endpoints: f(0) = 0, f(x) = x²/(eˣ-1)
+  sum += x * x / (std::exp(x) - 1.0);
+  return sum * h / (3.0 * x * x / 2.0);
+}
+
+/**
+ * Debye function D₃(x) = (3/x³)∫₀ˣ t³/(eᵗ-1) dt.
+ * Important for Debye model of specific heat.
+ */
+double debye3(double x) {
+  if (x == 0) return 1.0;
+  if (std::abs(x) < 1e-6) return 1.0 - 3.0*x/8.0;
+  int N = 1000;
+  double h = x / N;
+  double sum = 0.0;
+  for (int i = 1; i < N; ++i) {
+    double t = i * h;
+    double f = t * t * t / (std::exp(t) - 1.0);
+    sum += f * ((i % 2 == 0) ? 2.0 : 4.0);
+  }
+  sum += x * x * x / (std::exp(x) - 1.0);
+  return sum * h / (3.0 * x * x * x / 3.0);
+}
+
+/**
+ * Modified spherical Bessel i_n(x) = √(π/(2x)) I_{n+1/2}(x).
+ * i_0(x) = sinh(x)/x.
+ */
+double sph_bessel_i(int n, double x) {
+  if (x == 0) return (n == 0) ? 1.0 : 0.0;
+  if (n == 0) return std::sinh(x) / x;
+  if (n == 1) return std::cosh(x) / x - std::sinh(x) / (x * x);
+  // Forward recurrence: i_{n+1} = i_{n-1} - (2n+1)/x · i_n
+  double i0 = std::sinh(x) / x;
+  double i1 = std::cosh(x) / x - std::sinh(x) / (x * x);
+  for (int k = 1; k < n; ++k) {
+    double i2 = i0 - (2.0 * k + 1.0) / x * i1;
+    i0 = i1;
+    i1 = i2;
+  }
+  return i1;
+}
+
+/**
+ * Modified spherical Bessel k_n(x) = √(π/(2x)) K_{n+1/2}(x).
+ * k_0(x) = π/(2x) e^{-x}.
+ * k_1(x) = k_0(x) (1+1/x).
+ */
+double sph_bessel_k(int n, double x) {
+  if (x <= 0) return INFINITY;
+  if (n == 0) return M_PI / (2.0 * x) * std::exp(-x);
+  double k0 = M_PI / (2.0 * x) * std::exp(-x);
+  double k1 = k0 * (1.0 + 1.0 / x);
+  if (n == 1) return k1;
+  for (int k = 1; k < n; ++k) {
+    double k2 = k0 + (2.0 * k + 1.0) / x * k1;
+    k0 = k1;
+    k1 = k2;
+  }
+  return k1;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2394,5 +2481,10 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("exp_sum", &mathkernel::exp_sum);
   function("sinc_unnorm", &mathkernel::sinc_unnorm);
   function("abs_gamma", &mathkernel::abs_gamma);
+  function("dirichlet_eta", &mathkernel::dirichlet_eta);
+  function("debye2", &mathkernel::debye2);
+  function("debye3", &mathkernel::debye3);
+  function("sph_bessel_i", &mathkernel::sph_bessel_i);
+  function("sph_bessel_k", &mathkernel::sph_bessel_k);
 }
 #endif

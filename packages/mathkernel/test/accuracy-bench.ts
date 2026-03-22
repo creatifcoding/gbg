@@ -491,6 +491,29 @@ const REFERENCES: RefEntry[] = [
   { fn: "abs_gamma", args: [0.5],      expected: 1.7724538509055159, source: "√π" },
   { fn: "abs_gamma", args: [-0.5],     expected: 3.544907701811032, source: "2√π" },
   { fn: "abs_gamma", args: [5],        expected: 24.0,             source: "4!" },
+
+  // ── Dirichlet Eta ──
+  { fn: "dirichlet_eta", args: [1],    expected: 0.6931471805599453, source: "ln(2)" },
+  { fn: "dirichlet_eta", args: [2],    expected: 0.8224670334241132, source: "π²/12" },
+  { fn: "dirichlet_eta", args: [0],    expected: 0.5,              source: "η(0)=1/2" },
+
+  // ── Debye D₂ ──
+  { fn: "debye2", args: [0],           expected: 1.0,              source: "D₂(0)=1" },
+  { fn: "debye2", args: [1],           expected: 0.7078784756278287, source: "Simpson 1000pt" },
+
+  // ── Debye D₃ ──
+  { fn: "debye3", args: [0],           expected: 1.0,              source: "D₃(0)=1" },
+  { fn: "debye3", args: [1],           expected: 0.674415564077846, source: "Simpson 1000pt" },
+
+  // ── Spherical Bessel i_n ──
+  { fn: "sph_bessel_i", args: [0, 1],  expected: 1.1752011936438014, source: "sinh(1)" },
+  { fn: "sph_bessel_i", args: [1, 1],  expected: 0.3678794411714423, source: "cosh(1)-sinh(1)" },
+  { fn: "sph_bessel_i", args: [0, 0],  expected: 1.0,              source: "i₀(0)=1" },
+
+  // ── Spherical Bessel k_n ──
+  { fn: "sph_bessel_k", args: [0, 1],  expected: 0.5778636748954609, source: "π/(2e)" },
+  { fn: "sph_bessel_k", args: [1, 1],  expected: 1.1557273497909218, source: "k₀(1+1/1)" },
+  { fn: "sph_bessel_k", args: [0, 2],  expected: 0.10629208289690908, source: "π/(4e²)" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
