@@ -835,18 +835,68 @@ double bessel_k1(double x) {
     return NAN;
   }
 
+  if (x <= 2.0) {
+    // K₁(x) = 1/x + (x/2)·ln(x/2)·I₁(x) + series
+    // A&S 9.6.11: K₁(x) = 1/x + x/2·(ln(x/2)+γ)·I₁(x) - x/4·Σ...
+    // Better: direct series from A&S 9.6.11
+    // K₁(x) = 1/x + (x/2)·[ln(x/2) + γ]·I₁(x)
+    //        - (1/2)·Σ_{k=0}^∞ (-1)^k·[(ψ(k+1)+ψ(k+2))/2]·(x/2)^{2k+1} / (k!·(k+1)!)
+    // Actually use the cleaner Cephes-style approach:
+    // K₁(x) = log(x/2)·I₁(x) + 1/x + (x/4)·S
+    double x2 = x / 2.0;
+    double lnx2 = std::log(x2);
+
+    // Compute I₁(x) via series: I₁(x) = Σ (x/2)^{2k+1} / (k!·(k+1)!)
+    double i1 = bessel_i1(x);
+
+    // Series part: Σ_{k=0}^∞ (ψ(k+1) + ψ(k+2))·(x²/4)^k / (k!·(k+1)!)
+    // Where ψ(k+1) = -γ + H_k
+    double gamma_em = 0.5772156649015329;
+    double psi_sum = 0.0;
+    double hk = 0.0;      // H_k = Σ 1/j
+    double hk1 = 1.0;     // H_{k+1} = 1
+    double term = 1.0;    // (x²/4)^k / (k!·(k+1)!)
+    double x24 = x * x / 4.0;
+
+    for (int k = 0; k <= 30; ++k) {
+      double psi_k1 = -gamma_em + hk;      // ψ(k+1)
+      double psi_k2 = -gamma_em + hk1;     // ψ(k+2)
+      psi_sum += (psi_k1 + psi_k2) * term;
+
+      // Update for next iteration
+      double dk = static_cast<double>(k + 1);
+      hk += 1.0 / dk;
+      hk1 += 1.0 / (dk + 1.0);
+      term *= x24 / (dk * (dk + 1.0));
+      if (std::abs(term) < 1e-18) break;
+    }
+
+    return lnx2 * i1 + 1.0 / x - 0.5 * x2 * psi_sum;
+  }
+
   if (x <= 20.0) {
-    // Use Wronskian: K₁ = -dK₀/dx
-    // K₀'(x) = -K₁(x), so K₁ = -K₀'
-    // Use high-order finite difference for accuracy
-    double h = x * 1e-6;
-    if (h < 1e-10) h = 1e-10;
-    // 5-point stencil: f'(x) ≈ (-f(x+2h) + 8f(x+h) - 8f(x-h) + f(x-2h)) / (12h)
-    double k0_p2 = bessel_k0(x + 2*h);
-    double k0_p1 = bessel_k0(x + h);
-    double k0_m1 = bessel_k0(x - h);
-    double k0_m2 = bessel_k0(x - 2*h);
-    return -(-k0_p2 + 8.0*k0_p1 - 8.0*k0_m1 + k0_m2) / (12.0 * h);
+    // Intermediate x: Wronskian K₁(x) = (I₁K₀ - I₀K₁ = 1/x)
+    // Actually use: K₁ = (1/x - I₁·K₀) / I₀ ... no, that's circular.
+    // Use asymptotic polynomial:
+    // K₁(x) ≈ √(π/(2x))·e^{-x}·(1 + Σ bₖ/x^k)
+    double inv_x = 1.0 / x;
+    // Polynomial coefficients for K₁ asymptotic: bₖ = (4·1²-1)(4·1²-9)...(4·1²-(2k-1)²) / (k!·8^k)
+    // = (4ν²-1²)(4ν²-3²)...(4ν²-(2k-1)²) / (k!·(8x)^k) where ν=1
+    // 4ν²=4, so: (4-1)/8x, (4-1)(4-9)/(2·64x²), ...
+    // = 3/(8x), 3·(-5)/(128x²), 3·(-5)·(-21)/(3·1024x³), ...
+    double t = 1.0 / (8.0 * x);
+    double mu = 4.0; // 4ν² where ν=1
+    double sum = 1.0;
+    double term2 = 1.0;
+    for (int k = 1; k <= 30; ++k) {
+      double dk = static_cast<double>(k);
+      double factor = (mu - (2.0*dk - 1.0)*(2.0*dk - 1.0)) / (dk * 8.0 * x);
+      double old_term = term2;
+      term2 *= factor;
+      if (std::abs(term2) > std::abs(old_term) && k > 2) break;
+      sum += term2;
+    }
+    return std::sqrt(M_PI / (2.0 * x)) * std::exp(-x) * sum;
   }
 
   // Large x: K₁(x) ~ √(π/(2x)) · e^{-x} · Σ bₖ

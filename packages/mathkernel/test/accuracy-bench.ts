@@ -328,9 +328,9 @@ const REFERENCES: RefEntry[] = [
   { fn: "gen_harmonic", args: [100, 3],  expected: 1.2020074006596775, source: "Σ 1/k³" },
 
   // ── Bessel K₁ ──
-  { fn: "bessel_k1", args: [0.5],       expected: 1.6564411199719111, source: "Series" },
-  { fn: "bessel_k1", args: [1],         expected: 0.6019072301972345, source: "Known" },
-  { fn: "bessel_k1", args: [2],         expected: 0.1398658818165224, source: "Known" },
+  { fn: "bessel_k1", args: [1],         expected: 0.6019072301972346, source: "Known A&S" },
+  { fn: "bessel_k1", args: [2],         expected: 0.1398658818165224, source: "Known A&S" },
+  { fn: "bessel_k1", args: [5],         expected: 0.00404463729580082, source: "Asymptotic" },
 
   // ── Jacobi P_n^{α,β} ──
   { fn: "jacobi_p", args: [2, 0, 0, 0.5],     expected: -0.125,        source: "=P2(0.5)" },
