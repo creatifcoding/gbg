@@ -351,6 +351,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "bessel_yn", args: [2, 1],       expected: -1.6506826068162543, source: "Known" },
   { fn: "bessel_yn", args: [3, 2],       expected: -1.127783776840428, source: "Recurrence" },
   { fn: "bessel_yn", args: [2, 5],       expected: 0.36766288260552427, source: "Recurrence" },
+
+  // ── 1/Γ(x) ──
+  { fn: "rgamma", args: [0.5],          expected: 0.5641895835477563, source: "1/√π" },
+  { fn: "rgamma", args: [1],            expected: 1.0,               source: "1/Γ(1)=1" },
+  { fn: "rgamma", args: [5],            expected: 0.041666666666666664, source: "1/24" },
+
+  // ── ln C(n,k) ──
+  { fn: "log_binomial", args: [20, 10], expected: 12.126791314602456, source: "lgamma" },
+  { fn: "log_binomial", args: [100, 50],expected: 66.78384165201749,  source: "lgamma" },
+  { fn: "log_binomial", args: [10, 0],  expected: 0.0,               source: "ln(1)=0" },
+
+  // ── erfcinv ──
+  { fn: "erfcinv", args: [1],           expected: 0.0,               source: "erfinv(0)=0" },
+  { fn: "erfcinv", args: [0.05],        expected: 1.385903824349678, source: "erfinv(0.95)" },
+  { fn: "erfcinv", args: [1.5],         expected: -0.4769362762044699, source: "erfinv(-0.5)" },
+
+  // ── Bessel I_n ──
+  { fn: "bessel_in", args: [2, 1],      expected: 0.13574766976703828, source: "Miller backward" },
+  { fn: "bessel_in", args: [3, 2],      expected: 0.21273995923985264, source: "Miller backward" },
+  { fn: "bessel_in", args: [0, 1],      expected: 1.2660658777520082,  source: "=I₀(1)" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

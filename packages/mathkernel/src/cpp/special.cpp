@@ -1811,6 +1811,106 @@ double bessel_yn(int n, double x) {
   return y1;
 }
 
+/**
+ * Lanczos approximation of Γ(x) — not used directly, but for reference.
+ * Here we implement reciprocal gamma: 1/Γ(x) which avoids overflow.
+ */
+double rgamma(double x) {
+  return 1.0 / std::tgamma(x);
+}
+
+/**
+ * Log of binomial coefficient: ln C(n,k).
+ * More numerically stable than log(C(n,k)) for large n.
+ */
+double log_binomial(int n, int k) {
+  if (k < 0 || k > n) return -INFINITY;
+  if (k == 0 || k == n) return 0.0;
+  return std::lgamma(n + 1.0) - std::lgamma(k + 1.0) - std::lgamma(n - k + 1.0);
+}
+
+/**
+ * Inverse error function complement: erfcinv(p) = erfinv(1-p).
+ * Uses the same Newton iteration approach as erfinv.
+ */
+double erfcinv(double p) {
+  return erfinv(1.0 - p);
+}
+
+/**
+ * Bessel I_n(x) for arbitrary integer order via forward recurrence from I₀, I₁.
+ * Uses Miller's backward recurrence for stability.
+ */
+double bessel_in(int n, double x) {
+  if (n == 0) return bessel_i0(x);
+  if (n == 1) return bessel_i1(x);
+  if (x == 0.0) return 0.0;
+
+  // Miller's backward recurrence for I_n
+  int nmax = n + 30 + static_cast<int>(std::sqrt(40.0 * n));
+  double tox = 2.0 / x;
+  double bip = 0.0, bi = 1.0;
+  double ans = 0.0;
+  for (int j = nmax; j >= 1; --j) {
+    double bim = bip + static_cast<double>(j) * tox * bi;
+    bip = bi;
+    bi = bim;
+    // Prevent overflow
+    if (std::abs(bi) > 1e10) {
+      ans *= 1e-10;
+      bi *= 1e-10;
+      bip *= 1e-10;
+    }
+    if (j == n) ans = bip;
+  }
+  // Normalize: I₀ = sum
+  ans *= bessel_i0(x) / bi;
+  return (x < 0 && (n % 2 == 1)) ? -ans : ans;
+}
+
+/**
+ * Polygamma ψ^{(n)}(x) — the n-th derivative of digamma.
+ * ψ^{(0)} = digamma, ψ^{(1)} = trigamma, etc.
+ * For n ≥ 1: ψ^{(n)}(x) = (-1)^{n+1} n! Σ_{k=0}^∞ 1/(x+k)^{n+1}
+ */
+double polygamma(int n, double x) {
+  if (n == 0) return digamma(x);
+  if (n == 1) return trigamma(x);
+  if (x <= 0 || n < 0) return NAN;
+
+  // Shift to large x for asymptotic convergence
+  double result = 0.0;
+  while (x < 20.0) {
+    result += 1.0 / std::pow(x, n + 1);
+    x += 1.0;
+  }
+
+  // Asymptotic: ψ^{(n)}(x) ~ (-1)^{n+1} [ (n-1)!/x^n + n!/(2x^{n+1}) + Σ B_{2k}·.../(x^{n+2k}) ]
+  double inv_x = 1.0 / x;
+  double sum = 0.0;
+  // Leading term: (n-1)! / x^n
+  double n_fact_m1 = std::tgamma(static_cast<double>(n)); // (n-1)!
+  sum += n_fact_m1 * std::pow(inv_x, n);
+  // Next: n! / (2x^{n+1})
+  double n_fact = n_fact_m1 * n;
+  sum += 0.5 * n_fact * std::pow(inv_x, n + 1);
+  // Bernoulli terms
+  static const double B[] = {1.0/6, -1.0/30, 1.0/42, -1.0/30, 5.0/66, -691.0/2730, 7.0/6};
+  double term = 1.0;
+  for (int k = 0; k < 7; ++k) {
+    int m = 2*k + 2;
+    double rising = 1.0;
+    for (int j = 0; j < m; ++j) {
+      rising *= static_cast<double>(n + j);
+    }
+    double contrib = B[k] * rising / std::tgamma(m + 1.0) * std::pow(inv_x, n + m);
+    sum += contrib;
+  }
+
+  result += sum;
+  return (n % 2 == 0) ? -result : result;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1882,5 +1982,10 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("assoc_legendre", &mathkernel::assoc_legendre);
   function("expint_ei", &mathkernel::expint_ei);
   function("bessel_yn", &mathkernel::bessel_yn);
+  function("rgamma", &mathkernel::rgamma);
+  function("log_binomial", &mathkernel::log_binomial);
+  function("erfcinv", &mathkernel::erfcinv);
+  function("bessel_in", &mathkernel::bessel_in);
+  function("polygamma", &mathkernel::polygamma);
 }
 #endif
