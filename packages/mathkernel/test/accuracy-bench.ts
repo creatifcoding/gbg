@@ -552,6 +552,40 @@ const REFERENCES: RefEntry[] = [
   { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
   { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
 
+  // ── Logaddexp ──
+  { fn: "logaddexp", args: [0, 0],     expected: 0.6931471805599453, source: "ln(2)" },
+  { fn: "logaddexp", args: [1, 2],     expected: 2.3132616875182228, source: "2+ln(1+e⁻¹)" },
+  { fn: "logaddexp", args: [-100, -100], expected: -99.30685281944005, source: "-100+ln(2)" },
+
+  // ── expm1 ──
+  { fn: "expm1_fn", args: [0],         expected: 0.0,              source: "e⁰-1" },
+  { fn: "expm1_fn", args: [1e-15],     expected: 1e-15,            source: "≈x for small x" },
+  { fn: "expm1_fn", args: [1],         expected: 1.718281828459045, source: "e-1" },
+
+  // ── log1p ──
+  { fn: "log1p_fn", args: [0],         expected: 0.0,              source: "ln(1)=0" },
+  { fn: "log1p_fn", args: [1e-15],     expected: 1e-15,            source: "≈x for small x" },
+  { fn: "log1p_fn", args: [1],         expected: 0.6931471805599453, source: "ln(2)" },
+
+  // ── cbrt ──
+  { fn: "cbrt_fn", args: [8],          expected: 2.0,              source: "∛8=2" },
+  { fn: "cbrt_fn", args: [27],         expected: 3.0,              source: "∛27=3" },
+  { fn: "cbrt_fn", args: [2],          expected: 1.2599210498948732, source: "∛2" },
+
+  // ── hypot ──
+  { fn: "hypot_fn", args: [3, 4],      expected: 5.0,              source: "3-4-5" },
+  { fn: "hypot_fn", args: [1, 1],      expected: 1.4142135623730951, source: "√2" },
+
+  // ── Reciprocal Trig ──
+  { fn: "sec", args: [0],              expected: 1.0,              source: "1/cos(0)" },
+  { fn: "sec", args: [1],              expected: 1.8508157176809255, source: "1/cos(1)" },
+  { fn: "csc", args: [1],              expected: 1.1883951057781212, source: "1/sin(1)" },
+  { fn: "cot", args: [1],              expected: 0.6420926159343306, source: "cos(1)/sin(1)" },
+
+  // ── Hyperbolic Secant ──
+  { fn: "sech", args: [0],             expected: 1.0,              source: "1/cosh(0)" },
+  { fn: "sech", args: [1],             expected: 0.6480542736638854, source: "1/cosh(1)" },
+
   // ── Lucas ──
   { fn: "lucas", args: [0],            expected: 2.0,              source: "L(0)=2" },
   { fn: "lucas", args: [5],            expected: 11.0,             source: "Known" },

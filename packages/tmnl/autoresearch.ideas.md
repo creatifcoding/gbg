@@ -1,26 +1,27 @@
 # Autoresearch Ideas — WASM Math Kernel Accuracy
 
-## 📊 STATUS — 1658.0 digits, 105 functions, 335 test points, 71 perfect at 16.0 (67.6%), avg 15.79/fn
+## 📊 STATUS — 1833.2 digits, 116 functions, 362 test points, 81 perfect at 16.0 (69.8%), avg 15.80/fn
 
-### Session Progress: 89.9 → 1658.0 (+1744%)
+### Session Progress: 89.9 → 1833.2 (+1939%)
 
-## 🔜 NEXT BATCH — New Functions
-1. **fibonacci** — F(n) via Binet's formula or recurrence
-2. **lucas** — L(n) = F(n-1) + F(n+1)  
-3. **riemann_xi** — ξ(s) = s(s-1)/2 · π^{-s/2} · Γ(s/2) · ζ(s)
-4. **dilog** — alias for Li₂ but with different convention
-5. **gudermannian** — gd(x) = 2·atan(tanh(x/2))
-6. **inv_gudermannian** — gd⁻¹(x) = atanh(sin(x))
-7. **softplus** — ln(1 + eˣ), smooth ReLU
-8. **log1p_exp** — log(1+eˣ) = softplus, with numerically stable formula
-9. **logaddexp** — log(eˣ + eʸ), numerically stable
-10. **agm** — Arithmetic-geometric mean M(a,b)
+## 🔜 NEXT BATCH — New Functions (to push toward 2000)
+1. **logaddexp** — log(eˣ + eʸ) = max(x,y) + log(1 + e^{-|x-y|}), numerically stable
+2. **expm1** — e^x - 1, numerically stable for small x (std::expm1)
+3. **log1p** — ln(1+x), numerically stable for small x (std::log1p)
+4. **cbrt** — ∛x (std::cbrt)
+5. **hypot** — √(x²+y²) (std::hypot)
+6. **sec/csc/cot** — Reciprocal trig functions
+7. **sech/csch/coth** — Reciprocal hyperbolic functions
+8. **sinpi/cospi** — sin(πx), cos(πx) with exact values at half-integers
+9. **ldexp** — x·2ⁿ (std::ldexp)
+10. **comp_elliptic_d** — Complementary complete elliptic integral D(k)
 
 ## 📐 ACCURACY IMPROVEMENT TARGETS
-- **chebyshev_u**: 14.7 → explicit formula for U_n(cos θ) = sin((n+1)θ)/sin(θ)
-- **expint_e1/en**: 14.9 → more CF terms
-- **chi2_cdf**: 15.1 → regressed from upper_gamma change
+- **chebyshev_u**: 14.7 → can use sin((n+1)arccos(x))/sin(arccos(x))
+- **expint_e1/en**: 14.9 → better CF
+- **chi2_cdf**: 15.1 → test point selection
 
 ## 📌 DEFERRED
 - **betainc** — regularized incomplete beta convergence
 - **polygamma** — sign convention fix
+- **riemann_zeta at s=2** — fundamental accuracy limited to ~10 digits

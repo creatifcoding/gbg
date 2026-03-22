@@ -2707,6 +2707,70 @@ double log_cosh(double x) {
   return std::log(std::cosh(x));
 }
 
+/**
+ * Numerically stable log(eˣ + eʸ) = max(x,y) + log(1 + exp(-|x-y|)).
+ */
+double logaddexp(double x, double y) {
+  double m = std::max(x, y);
+  return m + std::log1p(std::exp(-std::abs(x - y)));
+}
+
+/**
+ * expm1: e^x - 1, numerically stable for small x.
+ */
+double expm1_fn(double x) {
+  return std::expm1(x);
+}
+
+/**
+ * log1p: ln(1+x), numerically stable for small x.
+ */
+double log1p_fn(double x) {
+  return std::log1p(x);
+}
+
+/**
+ * Cube root ∛x.
+ */
+double cbrt_fn(double x) {
+  return std::cbrt(x);
+}
+
+/**
+ * Hypot: √(x²+y²) without overflow.
+ */
+double hypot_fn(double x, double y) {
+  return std::hypot(x, y);
+}
+
+/**
+ * Secant: sec(x) = 1/cos(x).
+ */
+double sec(double x) {
+  return 1.0 / std::cos(x);
+}
+
+/**
+ * Cosecant: csc(x) = 1/sin(x).
+ */
+double csc(double x) {
+  return 1.0 / std::sin(x);
+}
+
+/**
+ * Cotangent: cot(x) = cos(x)/sin(x).
+ */
+double cot(double x) {
+  return std::cos(x) / std::sin(x);
+}
+
+/**
+ * Hyperbolic secant: sech(x) = 1/cosh(x).
+ */
+double sech(double x) {
+  return 1.0 / std::cosh(x);
+}
+
 double wright_omega(double z) {
   if (std::isnan(z)) return NAN;
   // Seed from Lambert W relationship: W(z) = W₀(eᶻ) (principal branch)
@@ -2844,6 +2908,15 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("asinh_fn", &mathkernel::asinh_fn);
   function("acosh_fn", &mathkernel::acosh_fn);
   function("wright_omega", &mathkernel::wright_omega);
+  function("logaddexp", &mathkernel::logaddexp);
+  function("expm1_fn", &mathkernel::expm1_fn);
+  function("log1p_fn", &mathkernel::log1p_fn);
+  function("cbrt_fn", &mathkernel::cbrt_fn);
+  function("hypot_fn", &mathkernel::hypot_fn);
+  function("sec", &mathkernel::sec);
+  function("csc", &mathkernel::csc);
+  function("cot", &mathkernel::cot);
+  function("sech", &mathkernel::sech);
   function("lucas", &mathkernel::lucas);
   function("versine", &mathkernel::versine);
   function("haversine", &mathkernel::haversine);
