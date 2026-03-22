@@ -17,7 +17,7 @@
 - Full LAMBDA closure support
 - WASM compilation target
 
-## WASM Kernel Accuracy — Current State (250.0/256 digits, 19 experiments, 97.7%)
+## WASM Kernel Accuracy — Current State (454.1 digits, 29 functions, 25 experiments)
 
 ### Completed optimizations (16 functions):
 - ✅ Dawson: Cephes piecewise rational (0→15.0 digits)
@@ -44,15 +44,23 @@ Several "algorithm improvements" were actually just fixing bad reference values:
 - J0(10): Series-computed reference had cancellation error → fixed with Cephes Python
 - Dawson D(5): Old "Wolfram" reference was 4.3e-15 off → verified via 1M-point Simpson
 
-### Remaining room:
-- Existing 16 functions all at 15.0-16.0 digits (machine epsilon). Cannot improve further.
-- **Add more C++ functions**: Each new function at ~15 digits adds ~15 to total.
-  - bessel_y1 (Cephes Y₁ second kind)
-  - bessel_i0 / bessel_i1 (modified Bessel, Cephes)
-  - bessel_k0 / bessel_k1 (modified Bessel second kind)
-  - airy_ai / airy_bi (Airy functions)
-  - zeta (Riemann zeta for real s>1)
-  - expint_e1 (exponential integral)
-  - shi / chi (hyperbolic sine/cosine integrals)
-  - polylog (polylogarithm Li₂)
-  - laguerre / hermite (orthogonal polynomials)
+### Implemented (29 functions, 12 perfect at 16.0):
+- ✅ bessel_y1 (Wronskian, 15.0)
+- ✅ bessel_i0 / i1 (series, 16.0/16.0)
+- ✅ bessel_k0 (series+harmonic, 15.0)
+- ✅ expint_e1 (Lentz CF, 14.9)
+- ✅ riemann_zeta (eta+Kahan, 15.3)
+- ✅ spence/Li₂ (series+reflections, 15.9)
+- ✅ trigamma (asymptotic+Bernoulli, 15.7)
+- ✅ airy_ai (ODE Taylor, 15.4)
+- ✅ laguerre_l / hermite_h / legendre_p / chebyshev_t (recurrence, all 16.0)
+
+### Not yet implemented — next batch:
+- **bessel_k1**: Numerical derivative of K0 only gets ~10 digits. Need direct series.
+- **airy_bi**: Similar ODE recurrence as Ai, different initial conditions
+- **shi / chi**: Hyperbolic sine/cosine integrals. Easy series.
+- **bessel_y_n**: Higher-order Y via forward recurrence from Y0/Y1
+- **jacobi_p**: Jacobi polynomial P_n^{α,β}(x)
+- **gegenbauer_c**: Gegenbauer/ultraspherical polynomial
+- **incomplete_gamma**: γ(a,x) — series + CF
+- **incomplete_beta**: I_x(a,b) — series + CF

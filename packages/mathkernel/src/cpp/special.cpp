@@ -1086,6 +1086,68 @@ double chebyshev_t(int n, double x) {
   return t1;
 }
 
+/**
+ * Hyperbolic sine integral Shi(x) = ∫₀ˣ sinh(t)/t dt.
+ * Series: Shi(x) = Σ_{k=0}^∞ x^{2k+1} / ((2k+1)·(2k+1)!)
+ */
+double shi(double x) {
+  double x2 = x * x;
+  double term = x;
+  double sum = x;
+  for (int k = 1; k <= 60; ++k) {
+    term *= x2 / (static_cast<double>(2*k) * static_cast<double>(2*k + 1));
+    double contrib = term / static_cast<double>(2*k + 1);
+    sum += contrib;
+    if (std::abs(contrib) < 1e-16 * std::abs(sum)) break;
+  }
+  return sum;
+}
+
+/**
+ * Hyperbolic cosine integral Chi(x) = γ + ln(x) + ∫₀ˣ (cosh(t)-1)/t dt.
+ * Series: Chi(x) = γ + ln(x) + Σ_{k=1}^∞ x^{2k} / (2k·(2k)!)
+ */
+double chi(double x) {
+  if (x <= 0) return NAN;
+  static const double EULER = 0.57721566490153286060;
+  double x2 = x * x;
+  double term = 1.0;
+  double sum = 0.0;
+  for (int k = 1; k <= 60; ++k) {
+    term *= x2 / (static_cast<double>(2*k - 1) * static_cast<double>(2*k));
+    double contrib = term / static_cast<double>(2*k);
+    sum += contrib;
+    if (std::abs(contrib) < 1e-16 * std::abs(sum)) break;
+  }
+  return EULER + std::log(x) + sum;
+}
+
+/**
+ * Airy function Bi(x) — companion to Ai(x).
+ * Same ODE Bi''(x) = x·Bi(x), different initial conditions:
+ * Bi(0) = 1/(3^{1/6}Γ(2/3)), Bi'(0) = 3^{1/6}/Γ(1/3)
+ */
+double airy_bi(double x) {
+  static const double BI_C1 = 0.61492662744600073516; // Bi(0)
+  static const double BI_C2 = 0.44828835735382635791; // Bi'(0)
+
+  double c[200];
+  c[0] = BI_C1;
+  c[1] = BI_C2;
+  c[2] = 0.0;
+  for (int n = 1; n <= 196; ++n) {
+    c[n+2] = c[n-1] / (static_cast<double>(n+1) * static_cast<double>(n+2));
+  }
+  double xpow = 1.0;
+  double sum = 0.0;
+  for (int n = 0; n < 199; ++n) {
+    sum += c[n] * xpow;
+    xpow *= x;
+    if (n > 30 && std::abs(c[n] * xpow) < 1e-17 * std::abs(sum)) break;
+  }
+  return sum;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1126,5 +1188,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("hermite_h", &mathkernel::hermite_h);
   function("legendre_p", &mathkernel::legendre_p);
   function("chebyshev_t", &mathkernel::chebyshev_t);
+  function("shi", &mathkernel::shi);
+  function("chi", &mathkernel::chi);
+  function("airy_bi", &mathkernel::airy_bi);
 }
 #endif

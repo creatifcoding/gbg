@@ -206,6 +206,21 @@ const REFERENCES: RefEntry[] = [
   { fn: "chebyshev_t", args: [5, 0.5],  expected: 0.5,               source: "cos(5·arccos(0.5))" },
   { fn: "chebyshev_t", args: [10, 0.3], expected: 0.9955225088,      source: "cos(10·arccos(0.3))" },
   { fn: "chebyshev_t", args: [7, 0.9],  expected: -0.9998784,        source: "cos(7·arccos(0.9))" },
+
+  // ── Hyperbolic Sine Integral Shi ──
+  { fn: "shi", args: [1],              expected: 1.0572508753757286, source: "Series" },
+  { fn: "shi", args: [0.5],            expected: 0.5069967498196671, source: "Series" },
+  { fn: "shi", args: [2],              expected: 2.5015674333549760, source: "Series" },
+
+  // ── Hyperbolic Cosine Integral Chi ──
+  { fn: "chi", args: [1],              expected: 0.8378669409802082, source: "Series" },
+  { fn: "chi", args: [0.5],            expected: -0.05277684495649357, source: "Series" },
+  { fn: "chi", args: [2],              expected: 2.4526669226469147, source: "Series" },
+
+  // ── Airy Bi ──
+  { fn: "airy_bi", args: [0],          expected: 0.6149266274460007, source: "1/(3^{1/6}Γ(2/3))" },
+  { fn: "airy_bi", args: [1],          expected: 1.2074235949528713, source: "ODE Taylor" },
+  { fn: "airy_bi", args: [-1],         expected: 0.10399738949694455, source: "ODE Taylor" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
