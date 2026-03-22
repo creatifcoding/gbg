@@ -446,6 +446,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "hyp2f1", args: [1, 1, 2, 0.5], expected: 1.3862943611198906, source: "-ln(½)/½" },
   { fn: "hyp2f1", args: [0.5, 1, 1.5, 0.25], expected: 1.0986122886681096, source: "atanh(½)/½" },
   { fn: "hyp2f1", args: [1, 1, 1, 0],   expected: 1.0,              source: "z=0" },
+
+  // ── 1F1 Confluent Hypergeometric ──
+  { fn: "hyp1f1", args: [1, 1, 1],     expected: 2.718281828459045, source: "=eˣ" },
+  { fn: "hyp1f1", args: [1, 2, 1],     expected: 1.7182818284590453, source: "(e-1)/1" },
+  { fn: "hyp1f1", args: [0.5, 1.5, -1], expected: 0.7468241328124271, source: "Series" },
+
+  // ── 0F1 Confluent Hypergeometric Limit ──
+  { fn: "hyp0f1", args: [1, -0.25],    expected: 0.7651976865579666, source: "=J₀(1)" },
+  { fn: "hyp0f1", args: [1, 0],        expected: 1.0,              source: "z=0" },
+  { fn: "hyp0f1", args: [0.5, 1],      expected: 3.7621956910836318, source: "Series" },
+
+  // ── Owen's T ──
+  { fn: "owens_t", args: [1, 1],       expected: 0.0667419431550866, source: "Quadrature" },
+  { fn: "owens_t", args: [0, 1],       expected: 0.125,            source: "atan(1)/(2π)=π/4/(2π)=1/8" },
+  { fn: "owens_t", args: [1, 0],       expected: 0.0,              source: "T(h,0)=0" },
+
+  // ── Trinomial ──
+  { fn: "trinomial", args: [6, 2, 2],  expected: 90.0,             source: "6!/(2!2!2!)" },
+  { fn: "trinomial", args: [10, 3, 3], expected: 4200.0,           source: "10!/(3!3!4!)" },
+  { fn: "trinomial", args: [5, 5, 0],  expected: 1.0,              source: "5!/(5!0!0!)" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

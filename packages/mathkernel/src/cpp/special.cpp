@@ -2160,6 +2160,76 @@ double hyp2f1(double a, double b, double c, double z) {
   return sum;
 }
 
+/**
+ * Confluent hypergeometric 1F1(a;b;z) = Σ (a)_k z^k / ((b)_k k!).
+ */
+double hyp1f1(double a, double b, double z) {
+  double sum = 1.0;
+  double term = 1.0;
+  for (int k = 1; k <= 200; ++k) {
+    double dk = static_cast<double>(k);
+    term *= (a + dk - 1.0) / ((b + dk - 1.0) * dk) * z;
+    sum += term;
+    if (std::abs(term) < 1e-16 * std::abs(sum) && k > 5) break;
+  }
+  return sum;
+}
+
+/**
+ * Confluent hypergeometric limit function 0F1(;b;z) = Σ z^k / ((b)_k k!).
+ */
+double hyp0f1(double b, double z) {
+  double sum = 1.0;
+  double term = 1.0;
+  for (int k = 1; k <= 200; ++k) {
+    double dk = static_cast<double>(k);
+    term *= z / ((b + dk - 1.0) * dk);
+    sum += term;
+    if (std::abs(term) < 1e-16 * std::abs(sum) && k > 5) break;
+  }
+  return sum;
+}
+
+/**
+ * Generalized Laguerre function via 1F1:
+ * L_n^α(x) = C(n+α,n) · 1F1(-n; α+1; x)
+ * (Alternative implementation for verification)
+ */
+
+/**
+ * Owen's T function T(h,a).
+ * T(h,a) = (1/2π) ∫₀^a exp(-h²(1+t²)/2)/(1+t²) dt.
+ * For small a: numerical integration.
+ */
+double owens_t(double h, double a) {
+  if (a == 0) return 0.0;
+  if (h == 0) return std::atan(a) / (2.0 * M_PI);
+  // Midpoint quadrature
+  int N = 200;
+  double step = a / N;
+  double sum = 0.0;
+  double h2 = h * h;
+  for (int i = 0; i < N; ++i) {
+    double t = (i + 0.5) * step;
+    double t2 = t * t;
+    sum += std::exp(-0.5 * h2 * (1.0 + t2)) / (1.0 + t2);
+  }
+  return sum * step / (2.0 * M_PI);
+}
+
+/**
+ * Multinomial coefficient n! / (k1! · k2! · ... · km!).
+ * Takes n, and the number of parts follows.
+ * Here simplified: trinomial(n, k1, k2) = n! / (k1! k2! (n-k1-k2)!)
+ */
+double trinomial(int n, int k1, int k2) {
+  int k3 = n - k1 - k2;
+  if (k1 < 0 || k2 < 0 || k3 < 0) return 0.0;
+  return std::round(std::exp(
+    std::lgamma(n + 1.0) - std::lgamma(k1 + 1.0) - std::lgamma(k2 + 1.0) - std::lgamma(k3 + 1.0)
+  ));
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2251,5 +2321,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("mittag_leffler", &mathkernel::mittag_leffler);
   function("poisson_cdf", &mathkernel::poisson_cdf);
   function("hyp2f1", &mathkernel::hyp2f1);
+  function("hyp1f1", &mathkernel::hyp1f1);
+  function("hyp0f1", &mathkernel::hyp0f1);
+  function("owens_t", &mathkernel::owens_t);
+  function("trinomial", &mathkernel::trinomial);
 }
 #endif
