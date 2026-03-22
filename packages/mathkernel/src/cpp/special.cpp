@@ -2087,6 +2087,79 @@ double euler_number(int n) {
   return E[m];
 }
 
+/**
+ * Stirling numbers of the first kind |s(n,k)| (unsigned).
+ * |s(n,0)| = 0, |s(n,n)| = 1, |s(n+1,k)| = n·|s(n,k)| + |s(n,k-1)|.
+ */
+double stirling1(int n, int k) {
+  if (k < 0 || k > n) return 0.0;
+  if (n == 0) return (k == 0) ? 1.0 : 0.0;
+  if (k == 0) return 0.0;
+  if (k == n) return 1.0;
+  if (n > 100) return NAN;
+
+  std::vector<double> prev(k + 1, 0.0);
+  std::vector<double> curr(k + 1, 0.0);
+  prev[1] = 1.0; // |s(1,1)| = 1
+  for (int i = 2; i <= n; ++i) {
+    for (int j = 1; j <= std::min(i, k); ++j) {
+      curr[j] = static_cast<double>(i - 1) * prev[j] + prev[j - 1];
+    }
+    std::swap(prev, curr);
+    std::fill(curr.begin(), curr.end(), 0.0);
+  }
+  return prev[k];
+}
+
+/**
+ * Mittag-Leffler function E_α(x) = Σ_{k=0}^∞ x^k / Γ(αk+1).
+ * For α=1: E₁(x) = eˣ.
+ * For α=2: E₂(x) = cosh(√x) (for x≥0).
+ */
+double mittag_leffler(double alpha, double x) {
+  if (alpha <= 0) return NAN;
+  double sum = 0.0;
+  double term = 1.0; // x^0 / Γ(1)
+  sum += term;
+  for (int k = 1; k <= 200; ++k) {
+    term *= x / std::tgamma(alpha * k + 1.0) * std::tgamma(alpha * (k - 1) + 1.0);
+    // Simpler: just compute directly
+    double contrib = std::pow(x, k) / std::tgamma(alpha * k + 1.0);
+    sum += contrib;
+    if (std::abs(contrib) < 1e-17 * std::abs(sum) && k > 5) break;
+  }
+  return sum;
+}
+
+/**
+ * Poisson CDF: P(X ≤ k) = Q(k+1, λ) = 1 - P(k+1, λ)  
+ * where P is the regularized lower gamma, Q = 1 - P is the upper.
+ */
+double poisson_cdf(int k, double lambda) {
+  if (lambda < 0) return NAN;
+  if (lambda == 0) return 1.0;
+  if (k < 0) return 0.0;
+  // Q(k+1, λ) = Γ(k+1, λ) / Γ(k+1)
+  return 1.0 - gamma_p(static_cast<double>(k + 1), lambda);
+}
+
+/**
+ * Gauss hypergeometric 2F1(a,b;c;z) for |z| < 1.
+ * Series: Σ (a)_k (b)_k z^k / ((c)_k k!).
+ */
+double hyp2f1(double a, double b, double c, double z) {
+  if (std::abs(z) >= 1.0) return NAN; // Series diverges
+  double sum = 1.0;
+  double term = 1.0;
+  for (int k = 1; k <= 200; ++k) {
+    double dk = static_cast<double>(k);
+    term *= (a + dk - 1.0) * (b + dk - 1.0) / ((c + dk - 1.0) * dk) * z;
+    sum += term;
+    if (std::abs(term) < 1e-16 * std::abs(sum) && k > 5) break;
+  }
+  return sum;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2174,5 +2247,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("stirling2", &mathkernel::stirling2);
   function("bell_number", &mathkernel::bell_number);
   function("euler_number", &mathkernel::euler_number);
+  function("stirling1", &mathkernel::stirling1);
+  function("mittag_leffler", &mathkernel::mittag_leffler);
+  function("poisson_cdf", &mathkernel::poisson_cdf);
+  function("hyp2f1", &mathkernel::hyp2f1);
 }
 #endif

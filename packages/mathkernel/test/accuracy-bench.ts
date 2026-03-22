@@ -426,6 +426,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "euler_number", args: [0],       expected: 1.0,              source: "E₀=1" },
   { fn: "euler_number", args: [4],       expected: 5.0,              source: "E₄=5" },
   { fn: "euler_number", args: [6],       expected: -61.0,            source: "E₆=-61" },
+
+  // ── Stirling 1st Kind |s(n,k)| ──
+  { fn: "stirling1", args: [5, 2],      expected: 50.0,             source: "Known" },
+  { fn: "stirling1", args: [4, 2],      expected: 11.0,             source: "Known" },
+  { fn: "stirling1", args: [6, 3],      expected: 225.0,            source: "Known" },
+
+  // ── Mittag-Leffler E_α(x) ──
+  { fn: "mittag_leffler", args: [1, 1], expected: 2.718281828459045, source: "e" },
+  { fn: "mittag_leffler", args: [2, 1], expected: 1.5430806348152437, source: "cosh(1)" },
+  { fn: "mittag_leffler", args: [1, 0], expected: 1.0,              source: "e⁰=1" },
+
+  // ── Poisson CDF ──
+  { fn: "poisson_cdf", args: [3, 2],    expected: 0.857123460498547, source: "1-P(4,2)" },
+  { fn: "poisson_cdf", args: [0, 1],    expected: 0.36787944117144233, source: "e⁻¹" },
+  { fn: "poisson_cdf", args: [5, 5],    expected: 0.6159606548330632, source: "1-P(6,5)" },
+
+  // ── Gauss 2F1 ──
+  { fn: "hyp2f1", args: [1, 1, 2, 0.5], expected: 1.3862943611198906, source: "-ln(½)/½" },
+  { fn: "hyp2f1", args: [0.5, 1, 1.5, 0.25], expected: 1.0986122886681096, source: "atanh(½)/½" },
+  { fn: "hyp2f1", args: [1, 1, 1, 0],   expected: 1.0,              source: "z=0" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
