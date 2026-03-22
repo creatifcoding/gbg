@@ -2771,6 +2771,20 @@ double sech(double x) {
   return 1.0 / std::cosh(x);
 }
 
+/**
+ * Cosecant hyperbolic: csch(x) = 1/sinh(x).
+ */
+double csch(double x) {
+  return 1.0 / std::sinh(x);
+}
+
+/**
+ * Cotangent hyperbolic: coth(x) = cosh(x)/sinh(x).
+ */
+double coth(double x) {
+  return std::cosh(x) / std::sinh(x);
+}
+
 double wright_omega(double z) {
   if (std::isnan(z)) return NAN;
   // Seed from Lambert W relationship: W(z) = W₀(eᶻ) (principal branch)
@@ -2908,6 +2922,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("asinh_fn", &mathkernel::asinh_fn);
   function("acosh_fn", &mathkernel::acosh_fn);
   function("wright_omega", &mathkernel::wright_omega);
+  function("csch", &mathkernel::csch);
+  function("coth", &mathkernel::coth);
   function("logaddexp", &mathkernel::logaddexp);
   function("expm1_fn", &mathkernel::expm1_fn);
   function("log1p_fn", &mathkernel::log1p_fn);

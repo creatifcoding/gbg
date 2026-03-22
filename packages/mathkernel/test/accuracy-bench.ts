@@ -552,6 +552,14 @@ const REFERENCES: RefEntry[] = [
   { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
   { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
 
+  // ── Cosecant Hyperbolic ──
+  { fn: "csch", args: [1],             expected: 0.8509181282393216, source: "1/sinh(1)" },
+  { fn: "csch", args: [2],             expected: 0.2757205647717832, source: "1/sinh(2)" },
+
+  // ── Cotangent Hyperbolic ──
+  { fn: "coth", args: [1],             expected: 1.3130352854993313, source: "cosh(1)/sinh(1)" },
+  { fn: "coth", args: [2],             expected: 1.0373147207275479, source: "cosh(2)/sinh(2)" },
+
   // ── Logaddexp ──
   { fn: "logaddexp", args: [0, 0],     expected: 0.6931471805599453, source: "ln(2)" },
   { fn: "logaddexp", args: [1, 2],     expected: 2.3132616875182228, source: "2+ln(1+e⁻¹)" },
