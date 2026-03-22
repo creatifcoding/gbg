@@ -1500,14 +1500,14 @@ double upper_gamma(double a, double x) {
   if (x < 0) return NAN;
   if (x == 0) return std::tgamma(a);
 
-  if (x > a + 1.0) {
+  if (x > 0.5 * a || x > 1.0) {
     // Continued fraction: Γ(a,x) = e^{-x} x^a · CF
-    // CF via Lentz's method
+    // CF via Lentz's method — use for wider range to avoid cancellation
     double b = x + 1.0 - a;
     double c = 1e30;
     double d = 1.0 / b;
     double h = d;
-    for (int k = 1; k <= 100; ++k) {
+    for (int k = 1; k <= 200; ++k) {
       double an = -static_cast<double>(k) * (static_cast<double>(k) - a);
       b += 2.0;
       d = b + an * d;
