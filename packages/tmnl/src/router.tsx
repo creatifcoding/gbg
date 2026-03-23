@@ -114,6 +114,12 @@ const dataGridTestbedRoute = createRoute({
   component: lazyRouteComponent(() => import('./components/testbed/DataGridTestbedSwitch'), 'DataGridTestbedSwitch'),
 });
 
+const datagridStressTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/datagrid-stress',
+  component: lazyRouteComponent(() => import('./components/testbed/DatagridStressTestbed'), 'DatagridStressTestbed'),
+});
+
 const effectAtomTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/effect-atom',
@@ -558,6 +564,7 @@ const routeTree = rootRoute.addChildren([
   testbedRoute,
   testbedV2Route,
   dataGridTestbedRoute,
+  datagridStressTestbedRoute,
   effectAtomTestbedRoute,
   hotkeyTestbedRoute,
   baseModalTestbedRoute,

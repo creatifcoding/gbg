@@ -155,6 +155,17 @@ export {
   type GridBridgeConfig, type ColumnMeta, type DatagridColDef, type DatagridRowData, type EditRequestResult,
 } from "./bridge/ag-grid"
 
+// ── UI (Theme + Renderers) ──────────────────────────
+export {
+  COLORS, TYPOGRAPHY, SPACING, DIMENSIONS, ANIMATION,
+  TMNL_TOKENS, STATUS_COLORS, FLASH_COLORS,
+  type TmnlTokens, type StatusColors, type FlashColors,
+  createDirectTheme,
+  RowHeaderRenderer,
+  FormulaCellRenderer,
+  StatusCellRenderer,
+} from "./ui"
+
 // ── Hooks ───────────────────────────────────────────
 export {
   useCell, useCellDisplay, useCellNumber,
