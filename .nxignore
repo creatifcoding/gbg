@@ -28,3 +28,6 @@ venv/
 receipts/
 
 packages/tmnl/integrate/**/*
+
+# Vendor directories (C++ libs, etc.)
+**/vendor/
