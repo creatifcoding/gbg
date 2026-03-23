@@ -89,6 +89,8 @@
     "rfc:assemble": "bun run scripts/assemble-rfc.ts"
   },
   "dependencies": {
+    "@tmnl/datagrid": "workspace:*",
+    "@tmnl/stx": "workspace:*",
     "@ai-sdk/anthropic": "^3.0.14",
     "@ai-sdk/react": "^3.0.3",
     "@ant-design/charts": "^2.6.7",
