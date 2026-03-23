@@ -229,6 +229,7 @@ export default defineConfig(() => ({
       // Exclude heavy directories from file watching to prevent ENOSPC
       ignored: [
         '**/src-tauri/**',
+        '**/target/**',
         '**/.direnv/**',
         '**/.git/**',
         '**/node_modules/.cache/**',
