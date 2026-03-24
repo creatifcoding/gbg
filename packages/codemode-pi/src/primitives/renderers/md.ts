@@ -36,10 +36,10 @@ import { register } from '../registry.js'
  * Get the active pi markdown theme, or a plain fallback if theme isn't initialized.
  * This makes the renderer testable without a full pi runtime.
  */
+import { getMarkdownTheme } from '@mariozechner/pi-coding-agent'
+
 function getMdTheme(): MarkdownTheme {
   try {
-    // Dynamic import to avoid hard crash when theme not initialized
-    const { getMarkdownTheme } = require('@mariozechner/pi-coding-agent')
     return getMarkdownTheme()
   } catch {
     // Fallback: passthrough theme for tests / headless environments

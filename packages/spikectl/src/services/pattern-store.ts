@@ -14,6 +14,7 @@ import {
   getAppPaths,
   type TableDef,
 } from "@gbg/ctl"
+import { mkdirSync } from "node:fs"
 import { Context, Effect, Layer } from "effect"
 import { SpikePattern, SpikeFix, HypothesisConfig } from "../schemas/index.js"
 
@@ -433,9 +434,8 @@ export const PatternStoreLive = Layer.effect(
  */
 const ensureDataDir = () =>
   Effect.sync(() => {
-    const fs = require("node:fs")
     const dir = APP_PATHS.db.substring(0, APP_PATHS.db.lastIndexOf("/"))
-    fs.mkdirSync(dir, { recursive: true })
+    mkdirSync(dir, { recursive: true })
   }).pipe(Effect.ignore)
 
 /**

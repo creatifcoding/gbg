@@ -14,7 +14,7 @@
  * @module
  */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
 import { join, relative, dirname, basename } from 'node:path'
 import { execSync } from 'node:child_process'
 
@@ -744,7 +744,7 @@ function findOrphans(dir: string, files: string[]): string[] {
       const target = join(dir, sub)
       if (!existsSync(target)) continue
       try {
-        const searchFiles = existsSync(target) && require('fs').statSync(target).isDirectory()
+        const searchFiles = existsSync(target) && statSync(target).isDirectory()
           ? findMd(target)
           : [target]
         for (const sf of searchFiles) {
