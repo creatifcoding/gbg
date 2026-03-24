@@ -16,7 +16,9 @@ export const openPanelProps = new Map<string, unknown>()
  * Call this at module initialization time.
  */
 export function registerPanelType<P>(entry: PanelRegistryEntry<P>): void {
+  console.log('[PanelRegistry] registerPanelType called with id:', entry.id)
   registryMap.set(entry.id, entry as PanelRegistryEntry)
+  console.log('[PanelRegistry] registryMap now has', registryMap.size, 'entries:', Array.from(registryMap.keys()))
 }
 
 /**

@@ -17,10 +17,17 @@ import { registryMap, openPanelProps } from './panel-registry-crud'
  * Returns the panel ID if successful, null if type not found.
  */
 export function openRegisteredPanel<P>(typeId: string, props?: P): string | null {
+  console.log('[PanelRegistry] openRegisteredPanel called with typeId:', typeId)
+  console.log('[PanelRegistry] registryMap size:', registryMap.size)
+  console.log('[PanelRegistry] registryMap keys:', Array.from(registryMap.keys()))
+
   const entry = registryMap.get(typeId)
   if (!entry) {
+    console.warn(`[PanelRegistry] Panel type not found: ${typeId}`)
     return null
   }
+
+  console.log('[PanelRegistry] Found entry:', entry.title)
 
   const panelId = `${typeId}-${nanoid(8)}`
 

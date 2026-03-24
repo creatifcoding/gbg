@@ -418,5 +418,5 @@ export const VARIABLE_COUNT = Variable.list().length;
 
 // Log registration on import
 if (typeof window !== 'undefined') {
-  // ${VARIABLE_COUNT} variables registered
+  console.log(`[TMNL Variables v2] Registered ${VARIABLE_COUNT} variables`);
 }

@@ -36,7 +36,7 @@ import { codeEditorOpenAtom } from './atom'
 
 export function toggleCodeEditor() {
   const current = Atom.get(codeEditorOpenAtom)
-  // toggle
+  console.log('[CodeEditor] toggle called, current:', current, '→', !current)
   Atom.set(codeEditorOpenAtom, !current)
 }
 
@@ -137,7 +137,7 @@ class EditorErrorBoundary extends React.Component<
 export function CodeEditorWorkspaceOverlay() {
   const isOpen = useAtomValue(codeEditorOpenAtom)
 
-  // render gate
+  console.log('[CodeEditorOverlay] render, isOpen:', isOpen)
 
   if (!isOpen) return null
 
