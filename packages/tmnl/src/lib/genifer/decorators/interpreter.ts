@@ -27,6 +27,7 @@ import type {
   ActionDef,
   BindingDef,
 } from './generation-schema'
+import { emitDynamicEvent } from '../services/DynamicEventService'
 import { ActionGroupAtoms, type ActionGroupAtomsOps, type ActionGroupInstance } from './action-group'
 import { getComponentRegistry } from './component'
 import { getActionGroupInstances, hydrate as hydrateDecorated } from './action-group'
@@ -192,7 +193,6 @@ function executeAction(
         ])
         // Also emit via DynamicEventService if available (notifies subscribers)
         try {
-          const { emitDynamicEvent } = require('../services/DynamicEventService')
           Effect.runSync(emitDynamicEvent(actionDef.event, resolvedPayload, 'interpreter'))
         } catch { /* DynamicEventService not available — that's ok */ }
       })

@@ -8,6 +8,7 @@
  */
 
 import { Context, Effect, Layer } from 'effect';
+import TelegramBotClass from 'node-telegram-bot-api';
 import type TelegramBot from 'node-telegram-bot-api';
 import type { Message } from 'node-telegram-bot-api';
 
@@ -98,9 +99,6 @@ export const TelegramAgentLive = Layer.effect(
   Effect.gen(function* () {
     const config = yield* TelegramAgentConfigTag;
 
-    // node-telegram-bot-api is CommonJS, use require
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const TelegramBotClass = require('node-telegram-bot-api') as typeof TelegramBot;
     const bot: TelegramBot = new TelegramBotClass(config.token, {
       polling: false, // We'll start manually
     });

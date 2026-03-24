@@ -78,11 +78,10 @@ export function SessionRegistryProvider({
  * Browser → IndexedDB (survives restarts). SSR/tests → in-memory.
  * Swap to SQLite by providing a different KVS layer.
  */
+import { layerIndexedDB } from './idb-kvs'
+
 function selectKvsLayer(): Layer.Layer<KeyValueStore.KeyValueStore> {
   if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
-    // Lazy import to avoid bundling idb-keyval in SSR
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { layerIndexedDB } = require('./idb-kvs') as typeof import('./idb-kvs')
     return layerIndexedDB
   }
   return KeyValueStore.layerMemory

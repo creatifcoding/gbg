@@ -98,16 +98,7 @@ const uuidStringify = (bytes: Uint8Array): string => {
 // MsgPack utilities
 // =============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let msgpackr: any = null
-
-const getMsgPackr = () => {
-  if (!msgpackr) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    msgpackr = require('msgpackr')
-  }
-  return msgpackr
-}
+import * as msgpackr from 'msgpackr'
 
 // =============================================================================
 // SQL Row Types
@@ -134,7 +125,7 @@ interface RemoteSqlRow {
 // =============================================================================
 
 const sqlRowToEntry = (row: IIoTEntrySqlRow): EventJournal.Entry => {
-  const mp = getMsgPackr()
+  const mp = msgpackr
   const payloadBytes = mp.encode(row.payload)
 
   return new EventJournal.Entry(
@@ -149,7 +140,7 @@ const sqlRowToEntry = (row: IIoTEntrySqlRow): EventJournal.Entry => {
 }
 
 const decodePayloadToJson = (entry: EventJournal.Entry): unknown => {
-  const mp = getMsgPackr()
+  const mp = msgpackr
   return mp.decode(entry.payload)
 }
 

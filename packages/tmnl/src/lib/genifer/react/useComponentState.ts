@@ -10,6 +10,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
+import { dirtyElementsAtom } from './state-sync.js'
 import {
   elementStatesAtom,
   getStateSyncService,
@@ -98,7 +99,6 @@ export function useComponentState(element: InteractableElement): UseComponentSta
       // We use the dirtyElementsAtom but subscribe to states for simplicity
       // (dirty updates happen alongside state updates)
       try {
-        const { dirtyElementsAtom } = require('./state-sync.js')
         return r.get(dirtyElementsAtom).has(key)
       } catch {
         return false

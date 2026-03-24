@@ -22,6 +22,7 @@ import React, {
 import { MonacoEditorReactComp } from '@typefox/monaco-editor-react'
 import type { EditorApp } from 'monaco-languageclient/editorApp'
 import * as monaco from 'monaco-editor'
+import { initVimMode } from 'monaco-vim'
 import { VANTA_THEME_ID, VANTA_THEME_DATA, TMNL_EDITOR_OPTIONS } from './theme/vanta-monaco-theme'
 import { ALL_SYNTAX_TOKENS } from './theme/vanta-syntax-tokens'
 import {
@@ -77,9 +78,6 @@ function initVim(
   statusBarEl: HTMLElement | null,
 ): VimModeHandle | null {
   try {
-    // monaco-vim exports initVimMode
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { initVimMode } = require('monaco-vim')
     const vimMode = initVimMode(editor, statusBarEl)
 
     // Sync vim mode changes to atoms

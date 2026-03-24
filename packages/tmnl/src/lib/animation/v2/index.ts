@@ -125,26 +125,25 @@ export type { GsapEase } from './drivers/gsap'
  * Animation.setDriver(myDriver)
  * ```
  */
+import { createAnimation, setDriver, getDriver } from './atom'
+import { getInterpolator } from './interpolators'
+
 export const Animation = {
   create: (
     initial: import('./types').AnimationValue,
     options?: import('./types').AnimationOptions
   ) => {
-    const { createAnimation } = require('./atom')
     return createAnimation(initial, options)
   },
   setDriver: (driver: import('./types').AnimationDriver) => {
-    const { setDriver } = require('./atom')
     setDriver(driver)
   },
   getDriver: () => {
-    const { getDriver } = require('./atom')
     return getDriver()
   },
   interpolators: {
     number: (from: number, to: number, t: number) => from + (to - from) * t,
     auto: <T>(sample: T) => {
-      const { getInterpolator } = require('./interpolators')
       return getInterpolator(sample)
     },
   },

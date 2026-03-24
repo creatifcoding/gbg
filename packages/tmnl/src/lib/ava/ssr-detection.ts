@@ -32,7 +32,8 @@ export function createAvaClient(): AvaClientV2 {
   
   if (isSSR()) {
     // Server-side: Create client with Node.js WebSocket
-    const WebSocket = require('ws')
+    // Note: ws is only available server-side; browser uses native WebSocket
+    const WebSocket = globalThis.WebSocket
     return new AvaClientV2(url, WebSocket, {
       // Server-side specific options
       reconnectInterval: 1000,

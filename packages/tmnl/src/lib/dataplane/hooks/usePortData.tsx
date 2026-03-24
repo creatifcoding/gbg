@@ -23,6 +23,7 @@ import { useAtomValue } from '@effect-atom/atom-react';
 
 import {
   portAtom,
+  portsAtom,
   linksForPortAtom,
   versionAtom,
 } from '../atoms';
@@ -132,11 +133,7 @@ export function useHasOutgoing(portId: PortId): boolean {
 export function useBlockPorts(blockId: string): ReadonlyArray<LinkPort> {
   const allPorts = useAtomValue(
     useMemo(
-      () => {
-        // Import portsAtom here to avoid circular deps
-        const { portsAtom } = require('../atoms');
-        return portsAtom;
-      },
+      () => portsAtom,
       []
     )
   );
