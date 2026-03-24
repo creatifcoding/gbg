@@ -38,6 +38,31 @@ When extracting components or refactoring imports:
 
 ---
 
+## Git Discipline — NO BLIND STAGING
+
+**CRITICAL: Never use `git add -A`. Ever.**
+
+`git add -A` stages everything blindly — untracked files, vendor garbage, debug artifacts, secrets. It is the `rm -rf /` of version control hygiene.
+
+### The Rules
+
+1. **`git add <explicit paths>`** — Name every file you're staging.
+2. **Review before commit** — If you can't list what you changed, you don't know what you're committing.
+3. **No wildcards either** — `git add .` is just as bad. Be surgical.
+
+### Pattern
+
+```bash
+# WRONG — What is this, a freshman CS class?
+git add -A
+git add .
+
+# RIGHT — You know exactly what you touched
+git add packages/tmnl/src/lib/harness/session/v2/atoms.ts packages/tmnl/vite.config.ts
+```
+
+---
+
 ## Package Manager Discipline — BUN OR NOTHING
 
 **CRITICAL: This household runs on `bun`. Not npm. Not yarn. Not pnpm. Bun.**
