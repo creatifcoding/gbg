@@ -1,15 +1,15 @@
 {
   "version": 2,
-  "timestamp": "2026-03-22T22:54:19.318Z",
+  "timestamp": "2026-03-24T02:01:01.174Z",
   "servers": {
     "exa": [
       {
         "name": "web_search_exa",
-        "description": "Search the web for any topic and get clean, ready-to-use content.\n\nBest for: Finding current information, news, facts, or answering questions about any topic.\nReturns: Clean text content from top search results, ready for LLM use.",
+        "description": "Search the web for any topic and get clean, ready-to-use content.\n\nBest for: Finding current information, news, facts, or answering questions about any topic.\nReturns: Clean text content from top search results, ready for LLM use.\n\nQuery tips: describe the ideal page, not keywords. \"blog post comparing React and Vue performance\" not \"React vs Vue\".\nIf highlights are insufficient, follow up with crawling_exa on the best URLs.",
         "params": {
           "query": {
             "type": "string",
-            "description": "Websearch query",
+            "description": "Natural language search query. Should be a semantically rich description of the ideal page, not just keywords.",
             "required": true
           },
           "numResults": {
@@ -29,7 +29,17 @@
           },
           "category": {
             "type": "string",
-            "description": "Filter results to a specific category - 'company': company websites and profiles, 'research paper': academic papers and research, 'people': LinkedIn profiles and personal bios",
+            "description": "Filter results to a specific category",
+            "required": false
+          },
+          "freshness": {
+            "type": "string",
+            "description": "How recent results should be. Only set when recency matters.",
+            "required": false
+          },
+          "includeDomains": {
+            "type": "array",
+            "description": "List of domains to include in the search. If specified, results will only come from these domains.",
             "required": false
           }
         }
@@ -52,16 +62,31 @@
       },
       {
         "name": "crawling_exa",
-        "description": "Get the full content of a specific webpage. Use when you have an exact URL.\n\nBest for: Extracting content from a known URL.\nReturns: Full text content and metadata from the page.",
+        "description": "Read a webpage's full content as clean markdown. Use after web_search_exa when highlights are insufficient or to read any URL.\n\nBest for: Extracting full content from known URLs. Batch multiple URLs in one call.\nReturns: Clean text content and metadata from the page(s).",
         "params": {
-          "url": {
-            "type": "string",
-            "description": "URL to crawl and extract content from",
+          "urls": {
+            "type": "array",
+            "description": "URLs to read. Batch multiple URLs in one call.",
             "required": true
           },
           "maxCharacters": {
             "type": "number",
-            "description": "Maximum characters to extract (must be a number, default: 3000)",
+            "description": "Maximum characters to extract per page (must be a number, default: 3000)",
+            "required": false
+          },
+          "maxAgeHours": {
+            "type": "number",
+            "description": "Maximum age of cached content in hours. 0 = always livecrawl, omit = use cache with livecrawl fallback.",
+            "required": false
+          },
+          "subpages": {
+            "type": "number",
+            "description": "Number of subpages to also crawl from each URL.",
+            "required": false
+          },
+          "subpageTarget": {
+            "type": "string",
+            "description": "Keywords to prioritize when selecting subpages",
             "required": false
           }
         }
@@ -116,16 +141,16 @@
       },
       {
         "name": "get_code_context_exa",
-        "description": "Find code examples, documentation, and programming solutions. Searches GitHub, Stack Overflow, and official docs.\n\nBest for: Any programming question - API usage, library examples, code snippets, debugging help.\nReturns: Relevant code and documentation, formatted for easy reading.",
+        "description": "Find code examples, documentation, and programming solutions. \n\nBest for: Any programming question - API usage, library examples, code snippets, debugging help.\nReturns: Relevant code and documentation.\n\nQuery tips: describe what you're looking for specifically. \"Python requests library POST with JSON body\" not \"python http\".\nIf highlights are insufficient, follow up with crawling_exa on the best URLs.",
         "params": {
           "query": {
             "type": "string",
             "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
             "required": true
           },
-          "tokensNum": {
+          "numResults": {
             "type": "number",
-            "description": "Number of tokens to return (must be a number, 1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.",
+            "description": "Number of search results to return (must be a number, default: 8)",
             "required": false
           }
         }
