@@ -22,8 +22,8 @@ export function HoundstoothGOL() {
 
   // Dynamic resolution based on window size (full viewport)
   const [simResolution, setSimResolution] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1920,
-    height: typeof window !== 'undefined' ? window.innerHeight : 1080,
+    width: 0,
+    height: 0,
   });
 
   // Responsive houndstooth scale (big pattern, proportional to container)
@@ -398,6 +398,11 @@ export function HoundstoothGOL() {
 
     // Render loop
     const render = (now: number) => {
+      if (simResolution.width <= 0 || simResolution.height <= 0 || textures.length < 2) {
+        rafIdRef.current = requestAnimationFrame(render);
+        return;
+      }
+
       const time = (now - startTimeRef.current) * 0.001;
       const updateInterval = 1.0 / speed;
 
