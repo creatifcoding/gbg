@@ -198,6 +198,7 @@ export function HoundstoothGOL() {
       width: number,
       height: number
     ) => {
+      if (width <= 0 || height <= 0) return;
       gl.bindTexture(gl.TEXTURE_2D, texture);
       const data = new Uint8Array(width * height * 4);
       for (let i = 0; i < data.length; i += 4) {
@@ -228,6 +229,7 @@ export function HoundstoothGOL() {
       width: number,
       height: number
     ): [WebGLTexture, WebGLFramebuffer] | null => {
+      if (width <= 0 || height <= 0) return null;
       const texture = gl.createTexture();
       if (!texture) return null;
 
@@ -281,10 +283,9 @@ export function HoundstoothGOL() {
   // Update resolution based on window size (full viewport)
   useEffect(() => {
     const updateResolution = () => {
-      setSimResolution({
-        width: Math.floor(window.innerWidth * 1.4),
-        height: Math.floor(window.innerHeight * 1.4),
-      });
+      const w = Math.max(1, Math.floor(window.innerWidth * 1.4));
+      const h = Math.max(1, Math.floor(window.innerHeight * 1.4));
+      setSimResolution({ width: w, height: h });
     };
 
     updateResolution();
@@ -297,7 +298,7 @@ export function HoundstoothGOL() {
   // Setup WebGL and render loop
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || simResolution.width === 0 || simResolution.height === 0)
+    if (!canvas || simResolution.width <= 0 || simResolution.height <= 0)
       return;
 
     const gl = canvas.getContext('webgl');
