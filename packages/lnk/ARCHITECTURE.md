@@ -67,7 +67,7 @@ deviation from this list requires updating this document.
 
 | Module | Role |
 |---|---|
-| `Context.Service<>()` | All services (`DurableStreamsClient`, `DurableStreamWire`, `DurableStreamCodec`). v4 unifies four v3 patterns into one. |
+| `Context.Service<>()` | All services (`DurableStreamsClient`, `Wire`, `DurableStreamCodec`). v4 unifies four v3 patterns into one. |
 | `Context.Reference<T>(id, opts)` | Service defaults (e.g. configurable backoff schedules, default timeouts). |
 | **`Effect.YieldableClass<A, E, R>`** | Custom yieldable handles. `DurableStream` extends this — `yield*` on it runs the `Effect` returned by `asEffect()`. The handle retains its own type identity (no silent collapse to `Effect`). |
 | `Effect.Yieldable<Self, A, E, R>` interface | Underlying contract: `asEffect(): Effect<A, E, R>` + `[Symbol.iterator]()`. `YieldableClass` provides the iterator boilerplate via internal `SingleShotGen`. |
@@ -240,7 +240,7 @@ We do not reinvent reactive bindings. `@tmnl/stx` already provides exactly the s
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│  DurableStreamWire  (Context.Service — pluggable transport)       │
+│  Wire  (Context.Service — pluggable transport)       │
 │  ─ Methods mirror spec verbs: put/post/get/head/delete            │
 │  ─ Returns parsed headers (Stream-Next-Offset, -Cursor, -Closed,  │
 │    -Up-To-Date) + raw body Stream<Uint8Array>                     │
@@ -305,7 +305,7 @@ src/contracts/
 
 **Gate**: ✅ `bun run typecheck` clean; ✅ `bun run test:run` 90/90 green; ✅ `bun run build` produces dist.
 
-### Phase 1 — Wire layer (`DurableStreamWire`)
+### Phase 1 — Wire layer (`Wire`)
 
 - [ ] `Context.Service` over `HttpClient`
 - [ ] Methods: `put(streamId, config)`, `post(streamId, body, headers)`, `get(streamId, opts)`, `head(streamId)`, `delete(streamId)`
@@ -378,7 +378,7 @@ This is where v1's `StreamBridgeService` / `LiveStreamService` / `ConsumerStateS
 - **Conformance fixtures source** — the upstream `conformance/` directory feeds our CI (Phase 1 deliverable).
 - **NOT a dependency.** No npm install of `@durable-streams/client` in this package.
 
-If this posture changes in the future (e.g. we want a `DsClientWireLive` adapter as a fallback), it's a **new** wire implementation behind the same `DurableStreamWire` service interface — additive, not retroactive.
+If this posture changes in the future (e.g. we want a `DsClientWireLive` adapter as a fallback), it's a **new** wire implementation behind the same `Wire` service interface — additive, not retroactive.
 
 ---
 
@@ -494,7 +494,7 @@ When we implement Phase 1 `HttpWireLive`, we read their source as a sanity check
 
 ### 10.3 Optional Future: `DsClientWireLive` (NOT planned, stays open)
 
-If a future need surfaces — e.g. users want our Effect-native React surface but the upstream TS client's exact battle-tested HTTP plumbing — we can add `DsClientWireLive` as a *fourth* `DurableStreamWire` implementation. Same `DurableStream` handle, same React/atom surface, different transport.
+If a future need surfaces — e.g. users want our Effect-native React surface but the upstream TS client's exact battle-tested HTTP plumbing — we can add `DsClientWireLive` as a *fourth* `Wire` implementation. Same `DurableStream` handle, same React/atom surface, different transport.
 
 This is purely additive (~150 lines of Promise→Effect bridge + AbortSignal↔Effect interruption) and does not require any architectural change. We mention it here so the door stays open; we do not pre-build it.
 

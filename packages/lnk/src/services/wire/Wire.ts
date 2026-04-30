@@ -1,261 +1,209 @@
 /**
- * Wire — the Durable Streams wire-protocol spec, expressed as an `RpcGroup`.
+ * Wire — the public, transport-agnostic wire interface.
  *
- * This module is the **single source of truth** for:
- *   - Operation tags (`put`, `post`, `get`, `head`, `delete`)
- *   - Payload schemas per operation
- *   - Success schemas per operation
- *   - Error schemas per operation
+ * `Wire` is a `Context.Service` whose shape is **hand-curated**
+ * (deliberately not auto-derived from `RpcClient.From<typeof Protocol>`, which
+ * leaks `AsQueue` / `Discard` generic flags that hand-rolled impls cannot
+ * satisfy — see `spike/wire-shape.spike.ts`).
  *
- * The `DurableStreamWire` Context.Service shape (in `./DurableStreamWire.ts`)
- * is hand-curated to match the operations defined here; a compile-time drift
- * guard ensures the two stay in sync.
+ * Implementations:
+ *   - `InMemoryWire` (Phase 1)   — in-process state store
+ *   - `HttpWire`     (Phase 1.1) — real HTTP via `effect-v4/unstable/http/HttpClient`
+ *   - `NatsBridgeWire` (Phase 5) — server-side adapter onto NATS JetStream
  *
- * # Why RpcGroup, but not RpcClient?
+ * Each implementation is a `Layer<Wire, ..., InternalService>`
+ * that composes a per-impl internal Context.Service (`InMemoryInner`,
+ * `HttpInner`, `NatsBridgeInner`).
  *
- * We use `RpcGroup` and `Rpc.make(...)` for type-level rigor: schemas drive
- * payload/success/error types, tags are discriminators, and the group is
- * a stable spec artifact that future transports (NATS-RPC bridge, Phase 5+)
- * can serve without re-encoding the protocol.
+ * # Drift guard
  *
- * We do **not** use `RpcClient.make()` at runtime, because:
- *   1. The Durable Streams wire format is HTTP-spec-mandated (specific verbs,
- *      headers, paths), not RpcMessage-shaped.
- *   2. `RpcClient.From<typeof Wire>` produces a leaky type with `AsQueue` /
- *      `Discard` generic flags that hand-rolled implementations cannot satisfy
- *      without being `RpcClient.make()`'s actual output (see `spike/`).
- *
- * Implementations satisfy `DurableStreamWireShape` directly, using
- * `typeof <Schema>.Type` extractors over the schemas defined here for their
- * input/output types.
+ * The `_DriftGuard` type below ensures `WireShape`'s method tags
+ * remain a subset of the `Protocol` RpcGroup's Rpc tags. Adding a new Rpc to
+ * `Wire` without adding a corresponding method here will fail to compile.
  *
  * @module @tmnl/lnk/services/wire/Wire
  */
 
-import * as Schema from "effect-v4/Schema"
-import * as Rpc from "effect-v4/unstable/rpc/Rpc"
-import * as RpcGroup from "effect-v4/unstable/rpc/RpcGroup"
+import * as Context from "effect-v4/Context"
+import type * as Effect from "effect-v4/Effect"
+import type * as Scope from "effect-v4/Scope"
+import type * as Stream from "effect-v4/Stream"
+import type * as RpcGroup from "effect-v4/unstable/rpc/RpcGroup"
 
-import { Offset, ReadPosition } from "../../contracts/Offset.js"
-import { StreamId } from "../../contracts/StreamId.js"
-import { ContentType } from "../../contracts/ContentType.js"
-import { ProducerId, Epoch, Seq } from "../../contracts/Producer.js"
 import {
-  FetchError,
-  InvalidOffsetError,
-  RetentionDroppedError,
-  SequenceGapError,
-  StaleEpochError,
-  StreamClosedError,
-  StreamNotFoundError,
+  type Protocol,
+  type PutInput,
+  type PutResult,
+  type PostInput,
+  type PostResult,
+  type GetInput,
+  type GetHeaders,
+  type HeadInput,
+  type HeadResult,
+  type DeleteInput,
+  type DeleteResult,
+} from "./Protocol.js"
+
+import {
+  type FetchError,
+  type StaleEpochError,
+  type SequenceGapError,
+  type StreamClosedError,
+  type StreamNotFoundError,
+  type RetentionDroppedError,
+  type InvalidOffsetError,
 } from "../../contracts/errors.js"
 
-// ─── PUT — create stream ────────────────────────────────────────────────────
+// ─── Type extraction from the Protocol spec ─────────────────────────────────
 
-/** Input: create a new stream with content-type. Idempotent on identical config. */
-export const PutInput = Schema.Struct({
-  streamId: StreamId,
-  contentType: ContentType,
-  /** Optional Stream-TTL header (seconds). */
-  streamTtl: Schema.optional(Schema.Number),
-  /** Optional Stream-Expires-At header. */
-  streamExpiresAt: Schema.optional(Schema.String),
-})
+/** Canonical `Schema.Type` extractor — works on any Wire op schema. */
+type T<S> = S extends { Type: infer X } ? X : never
 
-/** Result: did this PUT actually create the stream, or did it already exist? */
-export const PutResult = Schema.Struct({
-  streamId: StreamId,
-  contentType: ContentType,
-  /** True if the PUT created a new stream; false if it was already present. */
-  created: Schema.Boolean,
-})
+/** Inputs. */
+export type PutInputT = T<typeof PutInput>
+export type PostInputT = T<typeof PostInput>
+export type GetInputT = T<typeof GetInput>
+export type HeadInputT = T<typeof HeadInput>
+export type DeleteInputT = T<typeof DeleteInput>
 
-// ─── POST — append to stream ────────────────────────────────────────────────
+/** Schema'd outputs (the raw header/metadata parts). */
+export type PutResultT = T<typeof PutResult>
+export type PostResultT = T<typeof PostResult>
+export type GetHeadersT = T<typeof GetHeaders>
+export type HeadResultT = T<typeof HeadResult>
+export type DeleteResultT = T<typeof DeleteResult>
 
-/** Producer-idempotency triple, sent as `Producer-{Id,Epoch,Seq}` headers. */
-export const ProducerHeaders = Schema.Struct({
-  producerId: ProducerId,
-  epoch: Epoch,
-  seq: Seq,
-})
-
-/** Input: append payload bytes to a stream, optionally with producer fencing. */
-export const PostInput = Schema.Struct({
-  streamId: StreamId,
-  /** Override the stream's content-type for this append (rare). */
-  contentType: Schema.optional(ContentType),
-  /** Producer idempotency fields. Optional — without them, no fencing/dedup. */
-  producer: Schema.optional(ProducerHeaders),
-  /** Set `Stream-Closed: true` on this POST to close the stream after append. */
-  streamClosed: Schema.optional(Schema.Boolean),
-})
-
-/** Result: the offset assigned to this append, plus duplicate-detection flag. */
-export const PostResult = Schema.Struct({
-  /** Offset assigned to this append. For duplicates, this is the existing offset. */
-  nextOffset: Offset,
-  /** True if the server detected this seq as a duplicate (idempotent return). */
-  duplicate: Schema.Boolean,
-})
-
-// ─── GET — read from stream ─────────────────────────────────────────────────
-
-/** Live mode flag — long-poll waits for data; SSE streams continuously. */
-export const LiveMode = Schema.Literals(["long-poll", "sse"])
+// ─── GetResult — the only op result that extends its schema with a Stream ──
 
 /**
- * Input: read messages starting at a position.
+ * Result of a `get` operation.
  *
- *   - `position`: where to start (an `Offset` or sentinel `"-1"` / `"now"`)
- *   - `limit`:    max bytes/messages (server-defined cap)
- *   - `live`:     optional live mode (long-poll or sse)
- *   - `timeout`:  long-poll timeout in ms (default per server)
- *   - `cursor`:   echoed `Stream-Cursor` for CDN request-collapsing in live mode
- */
-export const GetInput = Schema.Struct({
-  streamId: StreamId,
-  position: ReadPosition,
-  limit: Schema.optional(Schema.Number),
-  live: Schema.optional(LiveMode),
-  timeout: Schema.optional(Schema.Number),
-  cursor: Schema.optional(Schema.String),
-})
-
-/**
- * Headers parsed from a GET response.
+ * Extends the schema-able `GetHeaders` with a non-schema-able `body` field
+ * carrying the raw byte stream. Streams aren't representable in
+ * `Schema.Schema`, so the body sits outside the Rpc spec by design — but
+ * lives in the runtime service shape because byte transport is the whole
+ * point of `get`.
  *
- * The actual response body (`Stream<Uint8Array>`) is NOT part of this schema
- * because Streams aren't schema-able. The full `GetResult` (in
- * `./DurableStreamWire.ts`) extends this struct with a `body` field carrying
- * the raw byte stream.
+ * The body's `Stream` requires `Scope` to drive the underlying transport
+ * (HTTP connection, in-memory iterator). The outer `get(input)` Effect is
+ * therefore returned with `Scope` in its requirements.
  */
-export const GetHeaders = Schema.Struct({
-  /** Next offset to read from (None on 204 long-poll timeout if no progress). */
-  nextOffset: Schema.optional(Offset),
-  /** True when response includes all data available at request time. */
-  upToDate: Schema.Boolean,
-  /** True when the server has signaled end-of-stream. */
-  closed: Schema.Boolean,
-  /** Opaque cursor for CDN collapsing in live mode. */
-  cursor: Schema.optional(Schema.String),
-})
+export interface GetResult extends GetHeadersT {
+  readonly body: Stream.Stream<Uint8Array, FetchError, never>
+}
 
-// ─── HEAD — stream metadata ─────────────────────────────────────────────────
-
-/** Input: query stream metadata without transferring body. */
-export const HeadInput = Schema.Struct({
-  streamId: StreamId,
-})
-
-/** Result: stream's content-type, current tail offset, closure state. */
-export const HeadResult = Schema.Struct({
-  contentType: Schema.optional(ContentType),
-  /** Tail position — the offset at which the next append will land. */
-  nextOffset: Schema.optional(Offset),
-  closed: Schema.Boolean,
-})
-
-// ─── DELETE — remove stream ─────────────────────────────────────────────────
-
-export const DeleteInput = Schema.Struct({
-  streamId: StreamId,
-})
-
-export const DeleteResult = Schema.Struct({
-  /** True if a stream was actually deleted; false if it didn't exist. */
-  deleted: Schema.Boolean,
-})
-
-// ─── Error unions per operation ─────────────────────────────────────────────
+// ─── Hand-curated service shape ─────────────────────────────────────────────
 
 /**
- * Errors visible from `put`. Idempotent re-creation with matching content-type
- * is NOT an error (returns `{ created: false }`). Conflicting content-type
- * surfaces as a server-side conflict; we route it through `FetchError` for
- * Phase 1 simplicity. (Phase 1.1 may introduce `StreamConfigConflictError`.)
- */
-export const PutError = FetchError
-
-export const PostError = Schema.Union([
-  FetchError,
-  StaleEpochError,
-  SequenceGapError,
-  StreamClosedError,
-  StreamNotFoundError,
-])
-
-export const GetError = Schema.Union([
-  FetchError,
-  StreamNotFoundError,
-  RetentionDroppedError,
-  InvalidOffsetError,
-])
-
-export const HeadError = Schema.Union([FetchError, StreamNotFoundError])
-
-export const DeleteError = FetchError
-
-// ─── Rpc definitions ────────────────────────────────────────────────────────
-
-/** PUT /streams/:id — create stream. Idempotent on matching config. */
-export const PutRpc = Rpc.make("put", {
-  payload: PutInput,
-  success: PutResult,
-  error: PutError,
-})
-
-/** POST /streams/:id — append payload bytes. Producer-headers optional. */
-export const PostRpc = Rpc.make("post", {
-  payload: PostInput,
-  success: PostResult,
-  error: PostError,
-})
-
-/**
- * GET /streams/:id?offset=…&live=… — read from a position.
+ * The methods exposed by `Wire`.
  *
- * The Rpc spec carries only the headers (`GetHeaders`); the byte-stream body
- * is conveyed via `DurableStreamWire`'s hand-curated shape, which extends
- * `GetHeaders` with a `body: Stream<Uint8Array>` field. Streams aren't
- * Schema-able, so the byte transport sits outside the Rpc spec by design.
+ * Each method's input/output/error types are extracted from the
+ * corresponding `Rpc.make(...)` schemas in `Wire.ts`. This keeps a single
+ * source of truth (the `Protocol` RpcGroup) while letting us hand-pick the
+ * runtime shape (no `AsQueue` / `Discard` flags).
  */
-export const GetRpc = Rpc.make("get", {
-  payload: GetInput,
-  success: GetHeaders,
-  error: GetError,
-})
+export interface WireShape {
+  /** PUT /streams/:id — create a stream. Idempotent on matching config. */
+  readonly put: (input: PutInputT) => Effect.Effect<PutResultT, FetchError>
 
-/** HEAD /streams/:id — metadata-only. */
-export const HeadRpc = Rpc.make("head", {
-  payload: HeadInput,
-  success: HeadResult,
-  error: HeadError,
-})
+  /** POST /streams/:id — append bytes. Producer headers optional. */
+  readonly post: (
+    input: PostInput_PostBody,
+  ) => Effect.Effect<
+    PostResultT,
+    | FetchError
+    | StaleEpochError
+    | SequenceGapError
+    | StreamClosedError
+    | StreamNotFoundError
+  >
 
-/** DELETE /streams/:id — remove stream and all data. */
-export const DeleteRpc = Rpc.make("delete", {
-  payload: DeleteInput,
-  success: DeleteResult,
-  error: DeleteError,
-})
+  /**
+   * GET /streams/:id?offset=… — read from a position.
+   *
+   * Returns `GetResult = GetHeaders + body Stream<Uint8Array>`. Caller is
+   * responsible for `Effect.scoped(...)`-bounding the operation so the body
+   * stream's transport closes.
+   */
+  readonly get: (
+    input: GetInputT,
+  ) => Effect.Effect<
+    GetResult,
+    | FetchError
+    | StreamNotFoundError
+    | RetentionDroppedError
+    | InvalidOffsetError,
+    Scope.Scope
+  >
 
-// ─── The RpcGroup — one stable spec artifact ────────────────────────────────
+  /** HEAD /streams/:id — metadata-only query. */
+  readonly head: (
+    input: HeadInputT,
+  ) => Effect.Effect<HeadResultT, FetchError | StreamNotFoundError>
+
+  /** DELETE /streams/:id — remove stream. Returns `{ deleted: false }` if absent. */
+  readonly delete: (
+    input: DeleteInputT,
+  ) => Effect.Effect<DeleteResultT, FetchError>
+}
 
 /**
- * The Durable Streams wire spec.
+ * `PostInput` augmented with a runtime-only `body` field.
  *
+ * `body` is a `Uint8Array` payload at the wire level. It's not schema'd into
+ * `PostInput` because Schema doesn't model untyped bytes for the body — the
+ * spec leaves the body as opaque bytes whose framing is governed by the
+ * stream's `Content-Type`.
+ *
+ * Phase 1.1 will introduce a streaming-upload variant `postStream` accepting
+ * a `Stream<Uint8Array>` for large bodies.
+ */
+export interface PostInput_PostBody extends PostInputT {
+  readonly body: Uint8Array
+}
+
+// ─── Compile-time drift guard ───────────────────────────────────────────────
+//
+// The set of method tags in the curated shape MUST be a subset of the set of
+// Rpc tags in the Wire group. Adding an Rpc to Wire without adding a method
+// here triggers a compile error in implementations (which won't satisfy the
+// updated shape). Removing an Rpc but keeping the method here triggers
+// failure in this guard.
+
+type _ProtocolTags = RpcGroup.Rpcs<typeof Protocol>["_tag"]
+type _CuratedTags = keyof WireShape
+
+type _DriftGuard = [_CuratedTags] extends [_ProtocolTags]
+  ? [_ProtocolTags] extends [_CuratedTags]
+    ? true
+    : "FAIL: Protocol has Rpcs not present in WireShape"
+  : "FAIL: WireShape has methods not present in Protocol"
+
+const _driftGuard: _DriftGuard = true
+void _driftGuard
+
+// ─── Service tag ────────────────────────────────────────────────────────────
+
+/**
+ * The wire service. Use `yield* Wire` in `Effect.gen` to access
+ * the methods, then provide a Layer (`InMemoryWire`, `HttpWire`, etc.) at
+ * the runtime boundary.
+ *
+ * @example
  * ```ts
+ * import { Effect, Layer } from "effect-v4"
  * import { Wire } from "@tmnl/lnk/services/wire"
+ * import { InMemoryWire } from "@tmnl/lnk/services/wire/in-memory"
  *
- * // Used as a type-level spec by DurableStreamWire's hand-curated shape
- * type Tags = RpcGroup.Rpcs<typeof Wire>["_tag"]
- * //          ^? "put" | "post" | "get" | "head" | "delete"
+ * const program = Effect.gen(function*() {
+ *   const wire = yield* Wire
+ *   yield* wire.put({ streamId: ..., contentType: ... })
+ * })
+ *
+ * Effect.runPromise(program.pipe(Effect.provide(InMemoryWire.layer)))
  * ```
- *
- * Future-proofing: when an internal RPC transport (e.g. NATS-RPC for inter-
- * service comms) is desired, `RpcServer.layer(Wire)` and `RpcClient.make(Wire)`
- * are available. For the public HTTP wire, implementations satisfy
- * `DurableStreamWire` directly; the wire format is the spec-mandated HTTP,
- * not RpcMessage.
  */
-export class Wire extends RpcGroup.make(PutRpc, PostRpc, GetRpc, HeadRpc, DeleteRpc) {}
+export class Wire extends Context.Service<
+  Wire,
+  WireShape
+>()("@tmnl/lnk/services/wire/Wire") {}

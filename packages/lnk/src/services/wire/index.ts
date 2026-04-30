@@ -2,9 +2,9 @@
  * @tmnl/lnk/services/wire — Wire layer for the Durable Streams protocol.
  *
  * Public surface:
- *   - `DurableStreamWire` — Context.Service interface (transport-agnostic)
- *   - `Wire` — RpcGroup spec (single source of truth for op schemas/tags)
- *   - Per-impl subdirectories (each is a `Layer<DurableStreamWire>`):
+ *   - `Protocol` — RpcGroup spec (single source of truth for op schemas/tags)
+ *   - `Wire`     — Context.Service interface (transport-agnostic)
+ *   - Per-impl subdirectories (each is a `Layer<Wire>`):
  *       - `./in-memory` — `InMemoryWire` (Phase 1)
  *       - (`./http`     — `HttpWire`,        Phase 1.1)
  *       - (`./nats-bridge` — `NatsBridgeWire`, Phase 5)
@@ -12,9 +12,10 @@
  * @module @tmnl/lnk/services/wire
  */
 
+// Service tag + hand-curated shape (consumed by callers).
 export {
-  DurableStreamWire,
-  type DurableStreamWireShape,
+  Wire,
+  type WireShape,
   type GetResult,
   type PostInput_PostBody,
   type PutInputT,
@@ -27,10 +28,11 @@ export {
   type HeadResultT,
   type DeleteInputT,
   type DeleteResultT,
-} from "./DurableStreamWire.js"
+} from "./Wire.js"
 
+// RpcGroup spec + per-op schemas (single source of truth).
 export {
-  Wire,
+  Protocol,
   PutRpc,
   PostRpc,
   GetRpc,
@@ -53,6 +55,6 @@ export {
   GetError,
   HeadError,
   DeleteError,
-} from "./Wire.js"
+} from "./Protocol.js"
 
 export * as InMemory from "./in-memory/index.js"

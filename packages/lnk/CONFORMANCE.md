@@ -263,8 +263,8 @@ correctness-by-types concerns.
 - ✅ `ProducerId`, `Epoch`, `Seq` branded with appropriate refinements.
 - ✅ Trust/decode/parse triad on every contract type — zero-cost hot path + validated boundary.
 - ✅ Errors are `Schema.TaggedErrorClass` (yieldable, schema-validated, tagged-union members).
-- ✅ Drift guard between `Wire` RpcGroup and `DurableStreamWireShape`.
-  - **Where**: `src/services/wire/DurableStreamWire.ts` → `_DriftGuard` type
+- ✅ Drift guard between `Wire` RpcGroup and `WireShape`.
+  - **Where**: `src/services/wire/Wire.ts` → `_DriftGuard` type
 - ✅ `*Wire` impls compose internal `*Inner` services (per ARCHITECTURE.md §5).
 - ✅ kebab-case directories, PascalCase files (matches `effect-smol/src/unstable/...`).
 
@@ -280,7 +280,7 @@ correctness-by-types concerns.
   `InMemoryWire` over HTTP, then run conformance against `http://localhost:N`.
   Most faithful, validates spec compliance end-to-end.
 - **Option B** (Phase 1): Write our **own** transport-agnostic conformance
-  suite that targets `DurableStreamWire` directly. Faster to set up, less
+  suite that targets `Wire` directly. Faster to set up, less
   faithful (skips HTTP-specific concerns like status codes).
 - **Plan**: do both. **Option B** first (Phase 1 — exercises the in-memory
   semantics across all spec-mandated behaviors). **Option A** in Phase 1.1
@@ -303,7 +303,7 @@ correctness-by-types concerns.
 - **Phase 0** (✅ DONE): Wire & type contracts, 90 unit tests
 - **Phase 1** (✅ in-memory complete):
   - ✅ `Wire` RpcGroup spec
-  - ✅ `DurableStreamWire` Context.Service shape
+  - ✅ `Wire` Context.Service shape
   - ✅ `InMemoryWire` + `InMemoryInner` with JSON framing, correct producer dedup, PUT mismatch detection, long-poll empty-on-timeout
   - ✅ Internal conformance suite (Option B from §14) — 32 tests across 7 categories, all passing
 - **Phase 1.1**: `HttpWire` + minimal HTTP server adapter for upstream conformance suite (Option A)

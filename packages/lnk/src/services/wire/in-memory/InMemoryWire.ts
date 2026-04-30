@@ -1,5 +1,5 @@
 /**
- * InMemoryWire — in-process implementation of `DurableStreamWire`.
+ * InMemoryWire — in-process implementation of `Wire`.
  *
  * Composes `InMemoryInner` (the per-message state store) into the public
  * wire shape. This layer is **content-type-aware**: it handles JSON framing
@@ -41,7 +41,7 @@ import {
   InvalidPayloadError,
   StreamNotFoundError,
 } from "../../../contracts/errors.js"
-import { DurableStreamWire } from "../DurableStreamWire.js"
+import { Wire } from "../Wire.js"
 import { InMemoryInner } from "./InMemoryInner.js"
 
 // ─── Body splitting / assembly helpers ──────────────────────────────────────
@@ -133,29 +133,29 @@ const assembleGetBody = (
 
 export class InMemoryWire {
   /**
-   * Self-contained Layer providing `DurableStreamWire` backed by an
+   * Self-contained Layer providing `Wire` backed by an
    * in-process state store.
    *
    * @example
    * ```ts
    * import { Effect, Layer } from "effect-v4"
-   * import { DurableStreamWire } from "@tmnl/lnk/services/wire"
+   * import { Wire } from "@tmnl/lnk/services/wire"
    * import { InMemoryWire } from "@tmnl/lnk/services/wire/in-memory"
    *
    * const program = Effect.gen(function*() {
-   *   const wire = yield* DurableStreamWire
+   *   const wire = yield* Wire
    *   yield* wire.put({ streamId: ..., contentType: ... })
    * })
    *
    * Effect.runPromise(program.pipe(Effect.provide(InMemoryWire.layer)))
    * ```
    */
-  static readonly layer: Layer.Layer<DurableStreamWire> = Layer.effect(
-    DurableStreamWire,
+  static readonly layer: Layer.Layer<Wire> = Layer.effect(
+    Wire,
     Effect.gen(function* () {
       const inner = yield* InMemoryInner
 
-      return DurableStreamWire.of({
+      return Wire.of({
         // ── put ────────────────────────────────────────────────────────────
         put: (input) =>
           Effect.gen(function* () {

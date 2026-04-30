@@ -1,7 +1,7 @@
 /**
  * In-memory wire implementation.
  *
- * Provides `InMemoryWire.layer` (a `Layer<DurableStreamWire>`) backed by
+ * Provides `InMemoryWire.layer` (a `Layer<Wire>`) backed by
  * `InMemoryInner` (an in-process `Ref<Map<StreamId, InternalStream>>`).
  *
  * @module @tmnl/lnk/services/wire/in-memory

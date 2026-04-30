@@ -1,12 +1,12 @@
 /**
- * Internal conformance suite for `DurableStreamWire` implementations.
+ * Internal conformance suite for `Wire` implementations.
  *
- * Parameterized over a `Layer<DurableStreamWire>` so the same suite runs
+ * Parameterized over a `Layer<Wire>` so the same suite runs
  * against any wire impl (`InMemoryWire`, future `HttpWire`, etc.).
  *
  * Categories mirror the upstream
  * `@durable-streams/server-conformance-tests` structure (see CONFORMANCE.md
- * §14) but target our `DurableStreamWire` Effect-native interface directly,
+ * §14) but target our `Wire` Effect-native interface directly,
  * not raw HTTP. This is **Option B** from CONFORMANCE.md §14.1 — faster to
  * set up, validates spec semantics, complements the upstream HTTP-driven
  * suite (Option A) we'll add in Phase 1.1.
@@ -19,7 +19,7 @@ import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 import * as Stream from "effect-v4/Stream"
 
-import { DurableStreamWire } from "../../../src/services/wire/index.js"
+import { Wire } from "../../../src/services/wire/index.js"
 import { trust as trustStreamId } from "../../../src/contracts/StreamId.js"
 import { trust as trustContentType } from "../../../src/contracts/ContentType.js"
 import {
@@ -57,8 +57,8 @@ const collectBody = (body: Stream.Stream<Uint8Array, never, never>): Effect.Effe
 // ─── Conformance runner ─────────────────────────────────────────────────────
 
 export interface ConformanceConfig {
-  /** A layer that provides DurableStreamWire. */
-  readonly wireLayer: Layer.Layer<DurableStreamWire>
+  /** A layer that provides Wire. */
+  readonly wireLayer: Layer.Layer<Wire>
   /** Skip categories that are HTTP-only or not yet implemented. */
   readonly skipCategories?: ReadonlyArray<ConformanceCategory>
 }
@@ -75,7 +75,7 @@ export type ConformanceCategory =
 export const runConformance = (config: ConformanceConfig): void => {
   const skip = new Set(config.skipCategories ?? [])
 
-  const provided = <A, E>(eff: Effect.Effect<A, E, DurableStreamWire>) =>
+  const provided = <A, E>(eff: Effect.Effect<A, E, Wire>) =>
     Effect.runPromise(eff.pipe(Effect.provide(config.wireLayer)) as Effect.Effect<A, E, never>)
 
   // ── Stream Lifecycle ──────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("create-basic")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             const r = yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -101,7 +101,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("create-idempotent")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             const ct = trustContentType("application/octet-stream")
             const r1 = yield* wire.put({ streamId: sid, contentType: ct })
             expect(r1.created).toBe(true)
@@ -115,7 +115,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("create-conflict")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -138,7 +138,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("delete-basic")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -152,7 +152,7 @@ export const runConformance = (config: ConformanceConfig): void => {
       it("DELETE on non-existent stream returns deleted: false (no error)", async () => {
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             const d = yield* wire.delete({ streamId: makeStreamId("delete-missing") })
             expect(d.deleted).toBe(false)
           }),
@@ -162,7 +162,7 @@ export const runConformance = (config: ConformanceConfig): void => {
       it("HEAD on missing stream → StreamNotFoundError", async () => {
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             const r = yield* Effect.exit(
               wire.head({ streamId: makeStreamId("head-missing") }),
             )
@@ -178,7 +178,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("head-basic")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -194,7 +194,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("delete-recreate")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -224,7 +224,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("raw-concat")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -246,7 +246,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("raw-empty")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/octet-stream"),
@@ -272,7 +272,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("json-single")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -296,7 +296,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("json-array-flatten")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -322,7 +322,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("json-nested")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -351,7 +351,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("json-invalid")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -371,7 +371,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("json-empty-array")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -391,7 +391,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("ld-json")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/ld+json"),
@@ -415,7 +415,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("json-empty-range")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("application/json"),
@@ -440,7 +440,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("offset-lex")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -458,7 +458,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("offset-now")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -479,7 +479,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("offset-resume")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -508,7 +508,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("offset-uptodate")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -533,7 +533,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("producer-dup")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -573,7 +573,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("producer-stale")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -612,7 +612,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("producer-gap")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -650,7 +650,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("producer-unfence")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -688,7 +688,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("close-basic")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -708,7 +708,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("close-post-after")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -736,7 +736,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("close-get-after")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -767,7 +767,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("longpoll-immediate")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -796,7 +796,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("longpoll-timeout")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),
@@ -827,7 +827,7 @@ export const runConformance = (config: ConformanceConfig): void => {
         const sid = makeStreamId("longpoll-arrival")
         await provided(
           Effect.gen(function* () {
-            const wire = yield* DurableStreamWire
+            const wire = yield* Wire
             yield* wire.put({
               streamId: sid,
               contentType: trustContentType("text/plain"),

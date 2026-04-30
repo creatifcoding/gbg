@@ -12,7 +12,7 @@ import * as Effect from "effect-v4/Effect"
 
 import { InMemoryWire } from "../../../../src/services/wire/in-memory/index.js"
 import { runConformance } from "../conformance.js"
-import { DurableStreamWire } from "../../../../src/services/wire/index.js"
+import { Wire } from "../../../../src/services/wire/index.js"
 import { trust as trustStreamId } from "../../../../src/contracts/StreamId.js"
 import { trust as trustContentType } from "../../../../src/contracts/ContentType.js"
 
@@ -24,10 +24,10 @@ runConformance({
 // In-memory-specific extras.
 describe("InMemoryWire — impl-specific", () => {
   it("layer is self-contained (no external service deps required)", async () => {
-    // The layer should provide DurableStreamWire without needing any other
+    // The layer should provide Wire without needing any other
     // service to be in context.
     const program = Effect.gen(function* () {
-      const wire = yield* DurableStreamWire
+      const wire = yield* Wire
       const sid = trustStreamId("self-contained-test")
       yield* wire.put({
         streamId: sid,

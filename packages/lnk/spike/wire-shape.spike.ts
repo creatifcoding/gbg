@@ -1,7 +1,7 @@
 /**
  * SPIKE — RpcGroup as type-level spec, hand-curated service shape.
  *
- * First spike (auto-derive via `RpcClient.From<typeof Wire>`) FAILED:
+ * First spike (auto-derive via `RpcClient.From<typeof Protocol>`) FAILED:
  *   - `Discard` and `AsQueue` generic parameters force the impl to be itself
  *     generic over them, returning conditional types based on those flags.
  *   - Hand-rolled impl cannot satisfy that contract; it would have to BE
@@ -97,7 +97,7 @@ const GetRpc = Rpc.make("get", {
   stream: true,
 })
 
-class Wire extends RpcGroup.make(PutRpc, PostRpc, GetRpc) {}
+class Protocol extends RpcGroup.make(PutRpc, PostRpc, GetRpc) {}
 
 // ─── Q-A: Type extractors ──────────────────────────────────────────────────
 //
@@ -192,7 +192,7 @@ type DrainedT = typeof drained // Effect<void, FetchError | RetentionDroppedErro
 // Type-level proof that the curated shape's tags are a subset of Wire's tags
 // (catches drift if we add a Rpc but forget to add a method, etc.).
 
-type WireRpcs = RpcGroup.Rpcs<typeof Wire>
+type WireRpcs = RpcGroup.Rpcs<typeof Protocol>
 type WireRpcTags = WireRpcs["_tag"]
 type CuratedTags = keyof DurableStreamWireOps
 
