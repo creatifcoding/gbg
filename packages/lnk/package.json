@@ -70,9 +70,12 @@
     }
   },
   "devDependencies": {
+    "@durable-streams/client": "0.2.3",
+    "@durable-streams/server-conformance-tests": "0.3.0",
     "@tmnl/stx": "workspace:*",
     "effect-atom-react-v4": "npm:@effect/atom-react@4.0.0-beta.59",
     "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59",
+    "fast-check": "^4.5.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

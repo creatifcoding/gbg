@@ -12,11 +12,14 @@
 > - 🚫 **HTTP-ONLY** — only meaningful in `HttpWire` (Phase 1.1+); skip for `InMemoryWire`
 > - ⏸ **DEFERRED** — out of scope for current phase, queued for later
 >
-> **Last updated**: 2026-04-30 (Phase 1.1 — HttpWire + node:http spec server complete)
-> **Internal conformance tests** (Option B, transport-agnostic): **64 / 64 passing**
->   - 32 / 32 against `InMemoryWire` (`test/services/wire/in-memory/InMemoryWire.test.ts`)
->   - 32 / 32 against `HttpWire` over the `node:http` spec server (`test/services/wire/http/HttpWire.test.ts`)
-> **Upstream conformance tests** (Option A, HTTP-driven via `@durable-streams/server-conformance-tests`): 0 / 232 (queued; needs the upstream package as a dev-dep, blocked by the unrelated `@tmnl/codemode` workspace install issue)
+> **Last updated**: 2026-04-30 (Phase 1.2 — SSE codec, Stream-Cursor, upstream conformance integrated)
+> **Internal conformance tests** (Option B, transport-agnostic): **170 / 170 passing**
+>   - 85 / 85 against `InMemoryWire` (lifecycle, offsets, raw + JSON framing, producer idempotency, stream closure, cursor, long-poll — SSE skipped: no HTTP transit)
+>   - 85 / 85 against `HttpWire` over the `node:http` spec server (same suite, plus SSE)
+> **Upstream conformance tests** (`@durable-streams/server-conformance-tests@0.3.0`): **100 / 299 passing**
+>   See §16 for the failure-category breakdown. Of 199 failures: ~50 are
+>   features we explicitly defer (TTL, ETag, security headers); remainder
+>   are real spec-coverage gaps in the in-memory reference (Phase 1.3+).
 
 ---
 
@@ -281,6 +284,24 @@ correctness-by-types concerns.
 
 ## 14. Conformance test integration plan
 
+### 14.0 Upstream baseline (Phase 1.2 — LANDED)
+
+```
+@durable-streams/server-conformance-tests@0.3.0
+baseUrl: node:http spec server (test/services/wire/http/_spec-server.ts)
+backed by: InMemoryWire
+paths:    v1Paths (/v1/stream/{id})
+
+Result: 100 / 299 passing. Categorized failure backlog in §16.
+```
+
+Driver: `test/conformance/upstream.test.ts`. Run with `bun run test:run`
+(included in the default suite) or in isolation:
+
+```
+bunx vitest run test/conformance/upstream.test.ts
+```
+
 ### 14.1 Strategy for running upstream tests against our wire
 - The upstream suite (`@durable-streams/server-conformance-tests`) drives
   `runConformanceTests({ baseUrl })` via raw `fetch()`.
@@ -307,6 +328,55 @@ correctness-by-types concerns.
 
 ---
 
+## 16. Upstream conformance failure backlog (Phase 1.2 baseline)
+
+From the 100 / 299 baseline (Phase 1.2). Counts are failures-per-category.
+Ranked by phase priority — highest-impact items first.
+
+### Spec-features we don't yet implement (high-priority backlog)
+
+| Failures | Category | Status / Note |
+|---|---|---|
+| 21 | SSE Mode | Server emits SSE per spec, but the suite tests details we don't yet mirror (per-event id, comments, retry hints, edge cases). Phase 1.3. |
+| 16 | Idempotent Producer Operations | Edge cases: zombie writers, out-of-order epoch arrivals, large seq jumps. Phase 1.3. |
+| 12 | Offset Validation and Resumability | Sentinel handling edge cases, offset comparison robustness. Phase 1.3. |
+| 10 | Protocol Edge Cases | Various malformed-input + boundary tests. Phase 1.3. |
+| 10 | HTTP Protocol | Specific status code + header subtleties. Phase 1.3. |
+| 4 | Long-Poll Edge Cases | Concurrent timeouts, client cancellation. Phase 1.3. |
+| 3 | Case-Insensitivity | Header name case handling on the server. Phase 1.3 (one-line fix). |
+| 2 | Read-Your-Writes Consistency | Causal ordering between POST + GET in same client. Phase 1.3. |
+| 2 | Content-Type Validation | Various MIME-type acceptance / rejection rules. Phase 1.3. |
+| 2 | Chunking and Large Payloads | Multi-chunk request bodies, large-body limits. Phase 1.3. |
+| 1 | HEAD Metadata Edge Cases | Single edge case. Phase 1.3. |
+| 1 | Basic Stream Operations | Stream-isolation across delete/recreate. Phase 1.3. |
+| 1 | Append Operations | One specific seq-ordering test. Phase 1.3. |
+
+### Production-server features (deferred to Phase 2+)
+
+| Failures | Category | Status / Note |
+|---|---|---|
+| 11 | TTL Expiration Behavior | No retention reaper yet (CONFORMANCE.md §9.1). Phase 2. |
+| 11 | Property-Based Tests (fast-check) | Concurrent fuzzing tests. Phase 2 (CONFORMANCE.md §12). |
+| 8 | Browser Security Headers | `X-Content-Type-Options`, CORS, etc. (§2 / §11). Production server concern — Phase 5+ HTTP server adapter. |
+| 6 | TTL and Expiry Edge Cases | Same as TTL above. Phase 2. |
+| 4 | Caching and ETag | ETag headers on responses. Production server concern. Phase 5+. |
+| 3 | TTL and Expiry Validation | Same as TTL above. Phase 2. |
+
+### Categories with full-or-near-full coverage (for context)
+
+| Passing / Total | Category |
+|---|---|
+| 16 / 16 | JSON Mode |
+| 8 / 8 | Long-Poll Operations |
+| 4 / 5 | Basic Stream Operations |
+| 3 / 3 | HEAD Metadata |
+| 3 / 3 | Read Operations |
+| 2 / 2 | Append Operations (basic) |
+| 5 / 15 | HTTP Protocol (status codes mostly OK, header edge cases failing) |
+| 8 / 29 | SSE Mode (basic round-trip works; details fail) |
+
+---
+
 ## 15. Phase progression
 
 - **Phase 0** (✅ DONE): Wire & type contracts, 90 unit tests
@@ -322,7 +392,14 @@ correctness-by-types concerns.
   - ✅ Per-spec request headers (Producer-{Id,Epoch,Seq}, Stream-TTL, Stream-Closed)
   - ✅ `node:http` spec server adapter (test-only, in `test/services/wire/http/_spec-server.ts`)
   - ✅ Same parameterized conformance suite runs over HTTP — 64 / 64 across both wires
-- **Phase 1.2**: SSE codec, Stream-Cursor generation, upstream `@durable-streams/server-conformance-tests` integration
+- **Phase 1.2** (✅ closed):
+  - ✅ `InvalidPayloadError` + `StreamConfigMismatchError` surfaced as typed errors on `Wire.{put, post}` (no more `Effect.die`-bridging)
+  - ✅ `Stream-Cursor` generation: interval-based (1s window, 12-digit zero-padded), monotonic, with random jitter when client-echoed cursor is at-or-ahead-of-current. Server emits in live-mode responses on open streams; absent on closed streams per spec.
+  - ✅ SSE codec (`src/services/wire/Sse.ts`): server-side encode (`data:` + `control:` events, base64 for raw / JSON-array for JSON streams) + client-side decode (event-block parser; control metadata lifted into header surface for uniform downstream handling)
+  - ✅ `PathResolver` DRY (`src/services/wire/Paths.ts`): single source of truth for URL-path templates. Built-ins: `defaultPaths` (`/streams/{id}`), `v1Paths` (`/v1/stream/{id}` for upstream conformance), `makePaths(template)` for custom deployments.
+  - ✅ Upstream conformance integrated: `@durable-streams/server-conformance-tests@0.3.0` running against the spec server. Baseline: 100 / 299 passing; failure backlog categorized in §16.
+  - ✅ Workspace install unblocked via `"!packages/codemode-pi"` workspace-negation pattern in root `package.json` (codemode-pi declares a `workspace:*` dep on a missing `@tmnl/codemode` package, blocking the whole monorepo install; negation is surgical — reversible when codemode is restored).
+- **Phase 1.3**: Address the spec-coverage backlog from §16 (zombie producer fencing edge cases, offset-validation robustness, SSE event-id details, header case-insensitivity, etc.)
 - **Phase 2+**: TTL/retention reapers, property-based fuzzing, multi-stream concurrency tests
 - **Phase 5**: NATS-bridge wire + server adapter
 
