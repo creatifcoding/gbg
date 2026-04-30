@@ -122,6 +122,48 @@ export class StreamClosedError extends Schema.TaggedErrorClass<StreamClosedError
 }) {}
 
 /**
+ * Requested stream does not exist on the server. Maps to HTTP `404 Not Found`.
+ *
+ * Returned by POST/GET/HEAD/DELETE against a stream that was never created
+ * or was previously deleted.
+ */
+export class StreamNotFoundError extends Schema.TaggedErrorClass<StreamNotFoundError>(
+  "@tmnl/lnk/StreamNotFoundError",
+)("StreamNotFoundError", {
+  streamId: Schema.String,
+}) {}
+
+/**
+ * PUT was issued against an existing stream whose configuration
+ * (content-type, etc.) doesn't match the request. Maps to HTTP `409 Conflict`.
+ *
+ * Per spec: idempotent re-creation requires identical configuration.
+ */
+export class StreamConfigMismatchError extends Schema.TaggedErrorClass<StreamConfigMismatchError>(
+  "@tmnl/lnk/StreamConfigMismatchError",
+)("StreamConfigMismatchError", {
+  streamId: Schema.String,
+  expectedContentType: Schema.String,
+  receivedContentType: Schema.String,
+}) {}
+
+/**
+ * The POSTed payload is malformed for the stream's content-type.
+ * Maps to HTTP `400 Bad Request`.
+ *
+ * Examples (per spec):
+ *   - JSON stream + invalid JSON body
+ *   - JSON stream + empty array `[]` (must contain at least one message)
+ */
+export class InvalidPayloadError extends Schema.TaggedErrorClass<InvalidPayloadError>(
+  "@tmnl/lnk/InvalidPayloadError",
+)("InvalidPayloadError", {
+  streamId: Schema.String,
+  contentType: Schema.String,
+  reason: Schema.String,
+}) {}
+
+/**
  * Requested offset has been dropped by retention. Maps to HTTP `410 Gone`.
  *
  * Clients should typically treat this as a fatal condition for the affected
@@ -171,8 +213,11 @@ export type DurableStreamError =
   | InvalidStreamIdError
   | InvalidContentTypeError
   | InvalidHeaderError
+  | InvalidPayloadError
   | StaleEpochError
   | SequenceGapError
   | StreamClosedError
+  | StreamNotFoundError
+  | StreamConfigMismatchError
   | RetentionDroppedError
   | FetchError
