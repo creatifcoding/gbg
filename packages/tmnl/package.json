@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "bash scripts/dev.sh",
     "shell:dev": "bash scripts/shell-dev.sh",
+    "prospects:api": "bun run src/lib/prospects/api/server.ts",
+    "prospects:migrate": "bun run src/lib/prospects/migrations/sqlite-to-pg.ts",
+    "prospects:migrate:pg": "bun run src/lib/prospects/migrations/run-migrations.pg.ts",
     "panel:dev": "bash scripts/panel-dev.sh",
     "genifer:migrate": "bun run scripts/genifer-migrate.ts",
     "geoint:migrate": "bun run scripts/geoint-migrate.ts",
@@ -90,6 +93,7 @@
   },
   "dependencies": {
     "@tmnl/datagrid": "workspace:*",
+    "@tmnl/lnk": "workspace:*",
     "@tmnl/stx": "workspace:*",
     "@ai-sdk/anthropic": "^3.0.14",
     "@ai-sdk/react": "^3.0.3",
