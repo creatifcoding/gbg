@@ -58,3 +58,4 @@ export {
 } from "./Protocol.js"
 
 export * as InMemory from "./in-memory/index.js"
+export * as Http from "./http/index.js"
