@@ -1,0 +1,79 @@
+{
+  "name": "@tmnl/lnk",
+  "version": "0.0.1",
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/lnk"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./contracts": {
+      "import": "./dist/contracts/index.js",
+      "types": "./dist/contracts/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "ARCHITECTURE.md"
+  ],
+  "description": "Effect v4-native Durable Streams client + server-adapter library. Spec-faithful implementation of the Durable Streams wire protocol with first-class Yieldable handles, Pull-driven offset tracking, and stx atom integration.",
+  "keywords": [
+    "effect-ts",
+    "effect-v4",
+    "durable-streams",
+    "streaming",
+    "kafka",
+    "append-only-log",
+    "stx",
+    "yieldable"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "effect-v4": "npm:effect@4.0.0-beta.59"
+  },
+  "peerDependencies": {
+    "@tmnl/stx": "workspace:*",
+    "effect-atom-react-v4": "npm:@effect/atom-react@4.0.0-beta.59",
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tmnl/stx": {
+      "optional": true
+    },
+    "effect-atom-react-v4": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tmnl/stx": "workspace:*",
+    "effect-atom-react-v4": "npm:@effect/atom-react@4.0.0-beta.59",
+    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

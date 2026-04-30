@@ -1,0 +1,45 @@
+{
+  "name": "@tmnl/lnk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/lnk/src",
+  "projectType": "library",
+  "tags": ["scope:tmnl", "type:lib", "domain:streaming", "effect:v4"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/lnk"
+      },
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["default", "^default"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/lnk"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "packages/lnk"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run clean",
+        "cwd": "packages/lnk"
+      }
+    }
+  }
+}
