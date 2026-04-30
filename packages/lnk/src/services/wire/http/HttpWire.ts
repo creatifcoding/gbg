@@ -37,8 +37,9 @@ import type * as HttpClient from "effect-v4/unstable/http/HttpClient"
 
 import { trust as trustContentType } from "../../../contracts/ContentType.js"
 import { Wire } from "../Wire.js"
+import { defaultPaths } from "../Paths.js"
 import { HttpInner, HEADERS, type HttpInnerConfig } from "./HttpInner.js"
-import type { FetchError } from "../../../contracts/errors.js"
+import { FetchError } from "../../../contracts/errors.js"
 
 // ─── Layer ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ export class HttpWire {
       Wire,
       Effect.gen(function* () {
         const inner = yield* HttpInner
+        const paths = config.paths ?? defaultPaths
 
         return Wire.of({
           // ── put ────────────────────────────────────────────────────────────
@@ -93,7 +95,7 @@ export class HttpWire {
               }
               const r = yield* inner.sendChecked({
                 method: "PUT",
-                path: `/streams/${encodeURIComponent(input.streamId)}`,
+                path: paths.streamPath(input.streamId as string),
                 headers,
               })
               return {
@@ -102,14 +104,14 @@ export class HttpWire {
                 created: r.status === 201,
               }
             }).pipe(
-              // Surface non-FetchError variants by dying for now (Phase 1.1
-              // catches StreamConfigMismatchError as a spec-aware case in
-              // sendChecked but the Wire shape doesn't expose it on put yet).
+              // PUT can yield FetchError or StreamConfigMismatchError per the
+              // wire shape. Other tagged errors from sendChecked don't apply
+              // to PUT — die on them as defects.
               Effect.catchTags({
                 StreamNotFoundError: (e) => Effect.die(e),
-                StreamConfigMismatchError: (e) => Effect.die(e),
                 StreamClosedError: (e) => Effect.die(e),
                 StaleEpochError: (e) => Effect.die(e),
+                SequenceGapError: (e) => Effect.die(e),
                 RetentionDroppedError: (e) => Effect.die(e),
               }),
             ),
@@ -138,24 +140,23 @@ export class HttpWire {
               }
               const r = yield* inner.sendChecked({
                 method: "POST",
-                path: `/streams/${encodeURIComponent(input.streamId)}`,
+                path: paths.streamPath(input.streamId as string),
                 headers,
                 body: input.body,
               })
               const duplicate = r.status === 204
               if (Option.isNone(r.nextOffset)) {
                 // Server didn't send Stream-Next-Offset — protocol violation.
-                // For now: surface as FetchError; Phase 1.1 may strict-validate.
-                return yield* Effect.fail(
-                  // Fabricate a FetchError; if r is not an error already, this
-                  // path is unusual.
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  ((): FetchError =>
-                    ({} as FetchError))(),
-                )
+                return yield* new FetchError({
+                  status: r.status,
+                  message: `protocol violation: missing Stream-Next-Offset on POST /streams/${input.streamId}`,
+                })
               }
               return { nextOffset: r.nextOffset.value, duplicate }
             }).pipe(
+              // POST can yield FetchError, StaleEpochError, SequenceGapError,
+              // StreamClosedError, StreamNotFoundError, InvalidPayloadError.
+              // Other tagged errors don't apply to POST — die on them.
               Effect.catchTags({
                 RetentionDroppedError: (e) => Effect.die(e),
                 StreamConfigMismatchError: (e) => Effect.die(e),
@@ -176,7 +177,7 @@ export class HttpWire {
               }
               const r = yield* inner.sendChecked({
                 method: "GET",
-                path: `/streams/${encodeURIComponent(input.streamId)}`,
+                path: paths.streamPath(input.streamId as string),
                 query,
               })
               return {
@@ -201,7 +202,7 @@ export class HttpWire {
             Effect.gen(function* () {
               const r = yield* inner.sendChecked({
                 method: "HEAD",
-                path: `/streams/${encodeURIComponent(input.streamId)}`,
+                path: paths.streamPath(input.streamId as string),
               })
               const ct = r.headers.get(HEADERS.H_CONTENT_TYPE)
               return {
@@ -225,7 +226,7 @@ export class HttpWire {
             Effect.gen(function* () {
               const r = yield* inner.send({
                 method: "DELETE",
-                path: `/streams/${encodeURIComponent(input.streamId)}`,
+                path: paths.streamPath(input.streamId as string),
               })
               // 200/204 → deleted; 404 → not found, return deleted:false per
               // our service's contract (consistent with InMemoryWire.delete).

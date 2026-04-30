@@ -29,9 +29,17 @@ import * as HttpClient from "effect-v4/unstable/http/HttpClient"
 import * as HttpClientRequest from "effect-v4/unstable/http/HttpClientRequest"
 import type * as HttpClientResponse from "effect-v4/unstable/http/HttpClientResponse"
 
+import {
+  decodeRawDataPayload,
+  decodeSseStream,
+  SSE_CONTENT_TYPE,
+} from "../Sse.js"
+import { defaultPaths, type PathResolver } from "../Paths.js"
+
 import { trust as trustOffset, type Offset } from "../../../contracts/Offset.js"
 import {
   FetchError,
+  InvalidPayloadError,
   RetentionDroppedError,
   SequenceGapError,
   StaleEpochError,
@@ -90,6 +98,7 @@ export interface HttpInnerShape {
   readonly sendChecked: (input: SendInput) => Effect.Effect<
     ParsedResponse,
     | FetchError
+    | InvalidPayloadError
     | StreamNotFoundError
     | StreamConfigMismatchError
     | StreamClosedError
@@ -104,6 +113,13 @@ export interface HttpInnerShape {
 export interface HttpInnerConfig {
   /** Base URL, e.g. "http://localhost:4437". No trailing slash. */
   readonly baseUrl: string
+  /**
+   * URL path resolver. Defaults to `/streams/<id>`. Override with
+   * `v1Paths` (or `makePaths("/v1/stream/{id}")`) when talking to a
+   * server that uses the `/v1/stream/<id>` convention (e.g. when running
+   * the upstream conformance test suite).
+   */
+  readonly paths?: PathResolver
   /** Retry schedule for transient failures. Default: 3 retries with 100ms-1s exponential backoff. */
   readonly retrySchedule?: Schedule.Schedule<unknown, unknown>
 }
@@ -157,6 +173,7 @@ const make = (
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
     const retry = config.retrySchedule ?? defaultRetrySchedule
+    const paths = config.paths ?? defaultPaths
 
     const send: HttpInnerShape["send"] = (input) =>
       Effect.gen(function* () {
@@ -194,25 +211,108 @@ const make = (
         // Convert effect-v4 HttpClientResponse to our ParsedResponse shape.
         const r = response as HttpClientResponse.HttpClientResponse
         const respHeaders = new globalThis.Headers()
-        // The response headers are a Record<string, string> in v4
         for (const [k, v] of Object.entries(r.headers)) {
           respHeaders.set(k, v as string)
         }
         const spec = parseSpec(respHeaders)
-        // 204 No Content + 304 Not Modified have no body. v4's `r.stream`
-        // getter throws `EmptyBodyError` if accessed; substitute Stream.empty.
-        const body: Stream.Stream<Uint8Array, FetchError, never> =
-          r.status === 204 || r.status === 304
-            ? Stream.empty
-            : r.stream.pipe(
-                Stream.mapError((e: unknown) =>
-                  new FetchError({
-                    message:
-                      e instanceof Error ? e.message : `body stream failed: ${String(e)}`,
-                    cause: e,
-                  }),
-                ),
-              )
+        const ct = (respHeaders.get("content-type") ?? "").toLowerCase()
+        // 204 / 304 have no body. v4's `r.stream` throws EmptyBodyError
+        // if accessed; substitute Stream.empty.
+        if (r.status === 204 || r.status === 304) {
+          return {
+            status: r.status,
+            headers: respHeaders,
+            body: Stream.empty,
+            ...spec,
+          } satisfies ParsedResponse
+        }
+        // SSE responses: parse the event-stream into Data + Control events,
+        // assemble the final byte body + lift control-event metadata into
+        // the spec headers so the rest of the wire layer treats it uniformly.
+        if (ct.startsWith(SSE_CONTENT_TYPE)) {
+          const sseDecoded = decodeSseStream(
+            r.stream.pipe(
+              Stream.mapError(() => undefined as never),
+            ) as Stream.Stream<Uint8Array, never, never>,
+          )
+          // Realize all events synchronously into a Promise-shaped Effect.
+          // (Phase 1.2 is single-shot SSE responses; Phase 2 will switch to
+          // continuous streaming via the Lnk handle.)
+          const all = yield* Stream.runCollect(sseDecoded).pipe(
+            Effect.mapError(
+              (e) =>
+                new FetchError({
+                  message:
+                    e instanceof Error ? e.message : `SSE decode failed: ${String(e)}`,
+                  cause: e,
+                }),
+            ),
+          )
+          // Extract control metadata from the FIRST control event we see.
+          // Concatenate Data events into one body stream.
+          const dataPieces: Uint8Array[] = []
+          let controlNextOffset: string | undefined
+          let controlCursor: string | undefined
+          let controlUpToDate = false
+          let controlClosed = false
+          // For raw streams the data is base64; for JSON streams it's a
+          // JSON-array string. We can't disambiguate from the SSE stream alone
+          // without the stream's content-type — use a pragmatic check:
+          // try base64-decode; fall back to UTF-8 if it round-trips as text.
+          // (The Lnk handle in Phase 2 will distinguish properly via the
+          // configured content-type carried alongside the Stream connection.)
+          // Heuristic for distinguishing JSON-array vs base64 SSE data:
+          // base64 charset is [A-Za-z0-9+/=]. JSON arrays contain `[`, `{`,
+          // `:`, `,`, `"`, etc. which fall outside. (Phase 2 will replace
+          // this heuristic with content-type carried alongside the connection.)
+          const BASE64_CHARSET = /^[A-Za-z0-9+/=\s]*$/
+          for (const ev of all) {
+            if (ev._tag === "Data") {
+              const looksLikeBase64 =
+                ev.payload.length > 0 && BASE64_CHARSET.test(ev.payload)
+              const bytes: Uint8Array = looksLikeBase64
+                ? decodeRawDataPayload(ev.payload)
+                : new TextEncoder().encode(ev.payload)
+              dataPieces.push(bytes)
+            } else if (ev._tag === "Control") {
+              if (ev.payload.streamNextOffset !== undefined && controlNextOffset === undefined)
+                controlNextOffset = ev.payload.streamNextOffset
+              if (ev.payload.streamCursor !== undefined && controlCursor === undefined)
+                controlCursor = ev.payload.streamCursor
+              if (ev.payload.upToDate === true) controlUpToDate = true
+              if (ev.payload.streamClosed === true) controlClosed = true
+            }
+          }
+          // Lift control metadata into headers so downstream parseSpec works.
+          if (controlNextOffset !== undefined)
+            respHeaders.set("Stream-Next-Offset", controlNextOffset)
+          if (controlCursor !== undefined)
+            respHeaders.set("Stream-Cursor", controlCursor)
+          if (controlUpToDate) respHeaders.set("Stream-Up-To-Date", "true")
+          if (controlClosed) respHeaders.set("Stream-Closed", "true")
+          const newSpec = parseSpec(respHeaders)
+          // Concatenate body pieces into a single Stream.
+          const body: Stream.Stream<Uint8Array, FetchError, never> =
+            dataPieces.length === 0
+              ? Stream.empty
+              : Stream.fromIterable(dataPieces)
+          return {
+            status: r.status,
+            headers: respHeaders,
+            body,
+            ...newSpec,
+          } satisfies ParsedResponse
+        }
+        // Non-SSE: pass response.stream through with FetchError mapping.
+        const body: Stream.Stream<Uint8Array, FetchError, never> = r.stream.pipe(
+          Stream.mapError((e: unknown) =>
+            new FetchError({
+              message:
+                e instanceof Error ? e.message : `body stream failed: ${String(e)}`,
+              cause: e,
+            }),
+          ),
+        )
         return {
           status: r.status,
           headers: respHeaders,
@@ -234,14 +334,19 @@ const make = (
     const sendChecked: HttpInnerShape["sendChecked"] = (input) =>
       Effect.gen(function* () {
         const r = yield* send(input)
-        const streamId = (() => {
-          // Path is /streams/<id> — extract id.
-          const m = input.path.match(/\/streams\/([^/?]+)/)
-          return m ? decodeURIComponent(m[1]!) : ""
-        })()
+        const streamId = paths.parseStreamPath(input.path) ?? ""
         if (r.status >= 200 && r.status < 300) return r
         if (r.status === 404) {
           return yield* new StreamNotFoundError({ streamId })
+        }
+        if (r.status === 400) {
+          // Per spec: 400 means malformed payload (invalid JSON, empty array).
+          const ct = input.headers?.[H_CONTENT_TYPE] ?? ""
+          return yield* new InvalidPayloadError({
+            streamId,
+            contentType: ct,
+            reason: `400 Bad Request on ${input.method} ${input.path}`,
+          })
         }
         if (r.status === 410) {
           const requestedOffset = input.query?.offset ?? "?"

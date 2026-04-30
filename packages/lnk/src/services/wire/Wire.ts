@@ -46,10 +46,12 @@ import {
 
 import {
   type FetchError,
+  type InvalidPayloadError,
   type StaleEpochError,
   type SequenceGapError,
   type StreamClosedError,
   type StreamNotFoundError,
+  type StreamConfigMismatchError,
   type RetentionDroppedError,
   type InvalidOffsetError,
 } from "../../contracts/errors.js"
@@ -104,7 +106,9 @@ export interface GetResult extends GetHeadersT {
  */
 export interface WireShape {
   /** PUT /streams/:id — create a stream. Idempotent on matching config. */
-  readonly put: (input: PutInputT) => Effect.Effect<PutResultT, FetchError>
+  readonly put: (
+    input: PutInputT,
+  ) => Effect.Effect<PutResultT, FetchError | StreamConfigMismatchError>
 
   /** POST /streams/:id — append bytes. Producer headers optional. */
   readonly post: (
@@ -112,6 +116,7 @@ export interface WireShape {
   ) => Effect.Effect<
     PostResultT,
     | FetchError
+    | InvalidPayloadError
     | StaleEpochError
     | SequenceGapError
     | StreamClosedError

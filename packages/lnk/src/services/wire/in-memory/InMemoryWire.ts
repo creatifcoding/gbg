@@ -156,7 +156,7 @@ export class InMemoryWire {
       const inner = yield* InMemoryInner
 
       return Wire.of({
-        // ── put ────────────────────────────────────────────────────────────
+        // ── put ─────────────────────────────────────────────────
         put: (input) =>
           Effect.gen(function* () {
             const out = yield* inner.create({
@@ -168,25 +168,19 @@ export class InMemoryWire {
               contentType: out.contentType,
               created: out.created,
             }
-            // NOTE: `StreamConfigMismatchError` from `inner.create` propagates;
-            // currently it's bridged into the `put` error channel as a
-            // FetchError-shaped failure for HttpWire-compat. Phase 1.1 will
-            // wire StreamConfigMismatchError as a discriminated case.
-          }).pipe(
-            Effect.catchTag("StreamConfigMismatchError", (e) =>
-              Effect.die(e),
-            ),
-          ),
+            // `StreamConfigMismatchError` propagates as a typed error in the
+            // wire shape — callers can `Effect.catchTag("StreamConfigMismatchError")`.
+          }),
 
-        // ── post ───────────────────────────────────────────────────────────
+        // ── post ────────────────────────────────────────────────
         post: (input) =>
           Effect.gen(function* () {
             // Look up stream's content-type to decide framing.
             const meta = yield* inner.metadata({ streamId: input.streamId })
             if (Option.isNone(meta.contentType)) {
               // Stream exists but no content-type? Shouldn't happen with our
-              // current Inner; but fall back to raw.
-              const result = yield* inner.append({
+              // current Inner; fall back to raw.
+              return yield* inner.append({
                 streamId: input.streamId,
                 messages: [input.body],
                 ...(input.producer !== undefined ? { producer: input.producer } : {}),
@@ -194,14 +188,13 @@ export class InMemoryWire {
                   ? { streamClosed: input.streamClosed }
                   : {}),
               })
-              return result
             }
             const messages = yield* splitPostBody(
               input.streamId as string,
               meta.contentType.value as string,
               input.body,
             )
-            const result = yield* inner.append({
+            return yield* inner.append({
               streamId: input.streamId,
               messages,
               ...(input.producer !== undefined ? { producer: input.producer } : {}),
@@ -209,13 +202,7 @@ export class InMemoryWire {
                 ? { streamClosed: input.streamClosed }
                 : {}),
             })
-            return result
-          }).pipe(
-            // Promote InvalidPayloadError defects into the error channel via
-            // FetchError-shaped failure for now (Phase 1.1 will surface it as
-            // a discriminated case in the wire shape).
-            Effect.catchTag("InvalidPayloadError", (e) => Effect.die(e)),
-          ),
+          }),
 
         // ── get ────────────────────────────────────────────────────────────
         get: (input) =>
@@ -227,6 +214,9 @@ export class InMemoryWire {
               ...(input.limit !== undefined ? { limit: input.limit } : {}),
               ...(input.live !== undefined ? { live: input.live } : {}),
               ...(input.timeout !== undefined ? { timeoutMs: input.timeout } : {}),
+              ...(input.cursor !== undefined
+                ? { clientCursor: input.cursor }
+                : {}),
             })
             const ct = Option.getOrElse(
               meta.contentType,
