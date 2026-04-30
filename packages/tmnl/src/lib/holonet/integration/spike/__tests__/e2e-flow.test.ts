@@ -19,7 +19,7 @@ import {
   StreamCodecService,
   HEADER_SCHEMA_ID,
   HEADER_CONTENT_TYPE,
-} from '@/lib/holonet/durable-streams/services/StreamCodecService';
+} from '@/lib/holonet/durable-streams/v1/services/StreamCodecService';
 import {
   fromPushSource,
   withHeartbeats,

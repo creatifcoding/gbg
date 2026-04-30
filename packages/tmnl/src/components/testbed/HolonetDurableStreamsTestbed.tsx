@@ -44,7 +44,7 @@ import {
   HolonetDurableStreamsClient,
   HolonetDurableStreamsClientCustom,
 } from '@/lib/holonet/integration/durable-streams-client';
-import type { DurableStreamError } from '@/lib/holonet/durable-streams/schemas/errors';
+import type { DurableStreamError } from '@/lib/holonet/durable-streams/v1/schemas/errors';
 
 import { TestbedHeader } from './shared';
 

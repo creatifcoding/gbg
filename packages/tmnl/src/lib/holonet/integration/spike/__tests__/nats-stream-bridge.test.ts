@@ -22,7 +22,7 @@ import {
   MissingSchemaHeaderError,
   SchemaValidationError,
   HEADER_SCHEMA_ID,
-} from '@/lib/holonet/durable-streams/services/StreamCodecService';
+} from '@/lib/holonet/durable-streams/v1/services/StreamCodecService';
 import { SchemaRegistry, SchemaNotFoundError } from '@/lib/holonet/core/schema';
 
 // =============================================================================

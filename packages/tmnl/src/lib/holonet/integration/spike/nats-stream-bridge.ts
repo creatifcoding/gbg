@@ -25,7 +25,7 @@ import {
   HEADER_SCHEMA_ID,
   extractSchemaId,
   hasSchemaHeaders,
-} from '@/lib/holonet/durable-streams/services/StreamCodecService';
+} from '@/lib/holonet/durable-streams/v1/services/StreamCodecService';
 import { SchemaNotFoundError } from '@/lib/holonet/core/schema';
 import { fromAsyncIterable } from '@/lib/holonet/utils/stream';
 

@@ -6,7 +6,7 @@
  * interruption, and composition with other Effect services.
  *
  * @see Schema definitions in ./schemas.ts
- * @see Error types in @/lib/holonet/durable-streams/schemas/errors.ts
+ * @see Error types in @/lib/holonet/durable-streams/v1/schemas/errors.ts
  */
 
 import { Context, Effect, Layer, Stream, PubSub, Scope, Option, pipe, Match } from 'effect';
@@ -35,7 +35,7 @@ import {
   NatsConnectionError,
   UnexpectedError,
   type DurableStreamError,
-} from '@/lib/holonet/durable-streams/schemas/errors';
+} from '@/lib/holonet/durable-streams/v1/schemas/errors';
 
 // Re-export error types for consumers
 export {
@@ -46,7 +46,7 @@ export {
   NatsConnectionError,
   UnexpectedError,
   type DurableStreamError,
-} from '@/lib/holonet/durable-streams/schemas/errors';
+} from '@/lib/holonet/durable-streams/v1/schemas/errors';
 
 // ============================================================================
 // Error Mapping (HTTP status → Domain Error)
