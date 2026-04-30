@@ -761,6 +761,249 @@ export const runConformance = (config: ConformanceConfig): void => {
   }
 
   // ── Long-poll ─────────────────────────────────────────────────────────────
+  // ── Stream-Cursor ─────────────────────────────────────────────────────────
+  if (!skip.has("stream-cursor")) {
+    describe("conformance > stream-cursor", () => {
+      it("long-poll response includes a cursor when stream is open", async () => {
+        const sid = makeStreamId("cursor-open")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({ streamId: sid, body: TEXT_ENCODER.encode("x") })
+            yield* Effect.scoped(
+              Effect.gen(function* () {
+                const out = yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "long-poll",
+                  timeout: 100,
+                })
+                expect(out.cursor).toBeDefined()
+                expect(typeof out.cursor).toBe("string")
+                expect(out.cursor!.length).toBeGreaterThan(0)
+              }),
+            )
+          }),
+        )
+      })
+
+      it("non-live GET does NOT include a cursor", async () => {
+        const sid = makeStreamId("cursor-non-live")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({ streamId: sid, body: TEXT_ENCODER.encode("x") })
+            yield* Effect.scoped(
+              Effect.gen(function* () {
+                const out = yield* wire.get({ streamId: sid, position: "-1" })
+                expect(out.cursor).toBeUndefined()
+              }),
+            )
+          }),
+        )
+      })
+
+      it("closed stream has no cursor (per spec)", async () => {
+        const sid = makeStreamId("cursor-closed")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({
+              streamId: sid,
+              body: TEXT_ENCODER.encode("final"),
+              streamClosed: true,
+            })
+            yield* Effect.scoped(
+              Effect.gen(function* () {
+                const out = yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "long-poll",
+                  timeout: 100,
+                })
+                expect(out.cursor).toBeUndefined()
+                expect(out.closed).toBe(true)
+              }),
+            )
+          }),
+        )
+      })
+
+      it("echoed cursor at-or-ahead-of-current returns strictly greater (jitter)", async () => {
+        const sid = makeStreamId("cursor-echo")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({ streamId: sid, body: TEXT_ENCODER.encode("x") })
+            // Echo a cursor far in the future (~year 11576 with 1s windows).
+            // Stays within the server's 12-digit cursor width. Bump (1..5)
+            // produces a strictly-greater cursor at the same width, so lex
+            // ordering holds. (Far-far-future cursors at the absolute cap
+            // would overflow the width — not a real-world concern, since
+            // clients only echo cursors the server has issued.)
+            const futureCursor = "300000000000"
+            const out = yield* Effect.scoped(
+              Effect.gen(function* () {
+                return yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "long-poll",
+                  timeout: 50,
+                  cursor: futureCursor,
+                })
+              }),
+            )
+            expect(out.cursor).toBeDefined()
+            expect(out.cursor!.length).toBe(futureCursor.length)
+            expect(out.cursor! > futureCursor).toBe(true)
+          }),
+        )
+      })
+    })
+  }
+
+  // ── SSE ───────────────────────────────────────────────────────────────────
+  //
+  // SSE is the live-mode HTTP framing per spec. The Wire layer abstracts
+  // the framing — callers see the same `body: Stream<Uint8Array>` regardless
+  // of long-poll vs SSE. These tests verify end-to-end behavior over an
+  // HTTP wire that round-trips through the spec server (which encodes SSE
+  // server-side and decodes it client-side via HttpInner).
+  //
+  // Skipped for InMemoryWire (no HTTP transit, so SSE doesn't apply).
+  if (!skip.has("sse")) {
+    describe("conformance > sse", () => {
+      it("?live=sse returns the same body shape as catch-up for raw streams", async () => {
+        const sid = makeStreamId("sse-raw")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({ streamId: sid, body: TEXT_ENCODER.encode("hello") })
+            yield* wire.post({ streamId: sid, body: TEXT_ENCODER.encode(" world") })
+            const body = yield* Effect.scoped(
+              Effect.gen(function* () {
+                const out = yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "sse",
+                  timeout: 100,
+                })
+                return yield* collectBody(out.body)
+              }),
+            )
+            expect(body).toBe("hello world")
+          }),
+        )
+      })
+
+      it("?live=sse for JSON streams returns the JSON-array body", async () => {
+        const sid = makeStreamId("sse-json")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("application/json"),
+            })
+            yield* wire.post({
+              streamId: sid,
+              body: TEXT_ENCODER.encode(JSON.stringify([{ a: 1 }, { b: 2 }])),
+            })
+            const body = yield* Effect.scoped(
+              Effect.gen(function* () {
+                const out = yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "sse",
+                  timeout: 100,
+                })
+                return yield* collectBody(out.body)
+              }),
+            )
+            expect(JSON.parse(body)).toEqual([{ a: 1 }, { b: 2 }])
+          }),
+        )
+      })
+
+      it("SSE response surfaces nextOffset, upToDate, cursor in the result", async () => {
+        const sid = makeStreamId("sse-metadata")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({ streamId: sid, body: TEXT_ENCODER.encode("x") })
+            const out = yield* Effect.scoped(
+              Effect.gen(function* () {
+                return yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "sse",
+                  timeout: 100,
+                })
+              }),
+            )
+            expect(out.nextOffset).toBeDefined()
+            expect(out.upToDate).toBe(true)
+            expect(out.cursor).toBeDefined()
+          }),
+        )
+      })
+
+      it("SSE on closed stream surfaces closed=true and no cursor", async () => {
+        const sid = makeStreamId("sse-closed")
+        await provided(
+          Effect.gen(function* () {
+            const wire = yield* Wire
+            yield* wire.put({
+              streamId: sid,
+              contentType: trustContentType("text/plain"),
+            })
+            yield* wire.post({
+              streamId: sid,
+              body: TEXT_ENCODER.encode("final"),
+              streamClosed: true,
+            })
+            const out = yield* Effect.scoped(
+              Effect.gen(function* () {
+                return yield* wire.get({
+                  streamId: sid,
+                  position: "-1",
+                  live: "sse",
+                  timeout: 100,
+                })
+              }),
+            )
+            expect(out.closed).toBe(true)
+            expect(out.cursor).toBeUndefined()
+          }),
+        )
+      })
+    })
+  }
+
   if (!skip.has("long-poll")) {
     describe("conformance > long-poll", () => {
       it("returns immediately if data is already available", async () => {

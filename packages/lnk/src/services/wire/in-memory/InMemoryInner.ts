@@ -105,6 +105,43 @@ const makeOffset = (seq: number, byteOffset: number): Offset =>
 
 const POLL_INTERVAL_MS = 25
 
+// ─── Stream-Cursor generation ─────────────────────────────────────────────
+//
+// Per spec: cursor encodes an interval number (time / window). MUST never
+// go backwards. If the client provides a cursor >= current interval, the
+// server returns a strictly-greater cursor with random jitter (avoids CDN
+// cache loops where every replica returns the same cursor on a tick boundary).
+//
+// Cursor format: zero-padded interval number as a string, lex-sortable.
+
+const CURSOR_INTERVAL_MS = 1000
+const CURSOR_PAD = 12
+
+/** Compute the current cursor from a wall-clock ms timestamp. */
+const currentCursor = (nowMs: number): string =>
+  String(Math.floor(nowMs / CURSOR_INTERVAL_MS)).padStart(CURSOR_PAD, "0")
+
+/**
+ * Resolve the cursor to emit in a live-mode response, given the client's
+ * echoed cursor (if any). Guarantees:
+ *   - Never returns a value < `clientCursor` (monotonicity).
+ *   - When `clientCursor >= current` interval, jitters by 1..5 to break loops.
+ */
+const resolveCursor = (
+  nowMs: number,
+  clientCursor: string | undefined,
+): string => {
+  const current = currentCursor(nowMs)
+  if (clientCursor === undefined) return current
+  if (clientCursor < current) return current
+  const clientNum = Number(clientCursor)
+  const jitter = 1 + Math.floor(Math.random() * 5)
+  const bumped = Number.isFinite(clientNum)
+    ? clientNum + jitter
+    : Number(current) + jitter
+  return String(bumped).padStart(CURSOR_PAD, "0")
+}
+
 // ─── Inputs/outputs ─────────────────────────────────────────────────────────
 
 export interface CreateInput {
@@ -154,6 +191,8 @@ export interface ReadInput {
   readonly limit?: number
   readonly live?: "long-poll" | "sse"
   readonly timeoutMs?: number
+  /** Echoed client cursor (from prior live response's `Stream-Cursor` header). */
+  readonly clientCursor?: string
 }
 
 export interface ReadOutput {
@@ -382,13 +421,22 @@ const makeImpl = Effect.gen(function* () {
         slice.length === 0
           ? Stream.empty
           : Stream.fromIterable(slice.map((m) => m.bytes))
+      // Cursor: emit only in live mode AND only when the stream is open.
+      // Per spec, omitted from closed-stream responses.
+      const isLive = input.live === "long-poll" || input.live === "sse"
+      const cursor: Option.Option<string> =
+        isLive && !stream.closed
+          ? Option.some(
+              resolveCursor(yield* Clock.currentTimeMillis, input.clientCursor),
+            )
+          : Option.none()
       return {
         body,
         nextOffset:
           lastOffset !== undefined ? Option.some(lastOffset) : Option.none(),
         upToDate,
         closed: stream.closed && upToDate,
-        cursor: Option.none(),
+        cursor,
         timedOut: false,
       }
     })
@@ -413,15 +461,27 @@ const makeImpl = Effect.gen(function* () {
         while (true) {
           const elapsed = (yield* Clock.currentTimeMillis) - startTime
           if (elapsed >= timeoutMs) {
-            // Timeout: return empty body, current tail offset.
-            const tail = initialStream.messages[initialStream.messages.length - 1]?.offset
+            // Timeout: empty body, current tail offset, fresh cursor (open
+            // streams only).
+            const tail =
+              initialStream.messages[initialStream.messages.length - 1]?.offset
+            const isLive = input.live === "long-poll" || input.live === "sse"
+            const cursor: Option.Option<string> =
+              isLive && !initialStream.closed
+                ? Option.some(
+                    resolveCursor(
+                      yield* Clock.currentTimeMillis,
+                      input.clientCursor,
+                    ),
+                  )
+                : Option.none()
             return {
               body: Stream.empty,
               nextOffset:
                 tail !== undefined ? Option.some(tail) : Option.none(),
               upToDate: true,
               closed: initialStream.closed,
-              cursor: Option.none(),
+              cursor,
               timedOut: true,
             } satisfies ReadOutput
           }

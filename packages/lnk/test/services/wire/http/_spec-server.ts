@@ -29,6 +29,14 @@ import * as ManagedRuntime from "effect-v4/ManagedRuntime"
 
 import { Wire } from "../../../../src/services/wire/index.js"
 import { InMemoryWire } from "../../../../src/services/wire/in-memory/index.js"
+import {
+  encodeControl,
+  encodeDataAndControl,
+  encodeRawDataPayload,
+  SSE_CONTENT_TYPE,
+  type ControlPayload,
+} from "../../../../src/services/wire/Sse.js"
+import { defaultPaths, type PathResolver } from "../../../../src/services/wire/Paths.js"
 import { trust as trustStreamId } from "../../../../src/contracts/StreamId.js"
 import { trust as trustContentType } from "../../../../src/contracts/ContentType.js"
 import {
@@ -44,7 +52,15 @@ export interface SpecServerHandle {
   readonly runtime: ManagedRuntime.ManagedRuntime<Wire, never>
 }
 
-const STREAM_PATH_RE = /^\/streams\/([^/?]+)$/
+export interface SpecServerOptions {
+  /**
+   * Path resolver used to extract streamIds from request URLs. Default:
+   * `/streams/<id>` (matches our internal HttpWire client's defaults).
+   * Use `v1Paths` (or `makePaths("/v1/stream/{id}")`) when running the
+   * upstream conformance suite, which uses `/v1/stream/<id>`.
+   */
+  readonly paths?: PathResolver
+}
 
 // ─── HTTP helpers ───────────────────────────────────────────────────────────
 
@@ -109,26 +125,71 @@ const buildGetResponse = async (
     closed: boolean
     cursor?: string
   },
-  contentType?: string,
+  opts: {
+    /** Stream's content-type — affects body framing (used inside SSE for JSON streams). */
+    streamContentType?: string
+    /** Live mode requested by client. SSE emits text/event-stream; long-poll/none emit raw bytes. */
+    live?: "long-poll" | "sse"
+  } = {},
 ): Promise<void> => {
+  // Realize body stream (sufficient for tests).
+  const chunks = await Effect.runPromise(
+    Stream.runCollect(out.body) as Effect.Effect<Iterable<Uint8Array>, unknown, never>,
+  )
+  const arr: Uint8Array[] = []
+  let total = 0
+  for (const c of chunks) {
+    arr.push(c)
+    total += c.length
+  }
+
+  // ── SSE branch ────────────────────────────────────────────────────────────
+  if (opts.live === "sse") {
+    const headers: Record<string, string> = {
+      "Content-Type": SSE_CONTENT_TYPE,
+      // Suggest no caching for SSE responses (live).
+      "Cache-Control": "no-store",
+    }
+    const control: ControlPayload = {
+      ...(out.nextOffset !== undefined ? { streamNextOffset: out.nextOffset } : {}),
+      ...(out.cursor !== undefined ? { streamCursor: out.cursor } : {}),
+      ...(out.upToDate ? { upToDate: true as const } : {}),
+      ...(out.closed ? { streamClosed: true as const } : {}),
+    }
+    if (total === 0) {
+      // No data — just emit a control event (timeout / caught-up).
+      const body = encodeControl(control)
+      writeResponse(res, 200, headers, body)
+      return
+    }
+    // Data + control. JSON streams: body is already a JSON array (assembled by
+    // InMemoryWire's content-type-aware get). Raw streams: base64-encode bytes.
+    const ct = opts.streamContentType ?? "application/octet-stream"
+    const isJson =
+      ct.startsWith("application/json") ||
+      (ct.startsWith("application/") && ct.includes("+json"))
+    const combined = new Uint8Array(total)
+    let off = 0
+    for (const c of arr) {
+      combined.set(c, off)
+      off += c.length
+    }
+    const dataPayload = isJson
+      ? new TextDecoder().decode(combined)
+      : encodeRawDataPayload(combined)
+    const body = encodeDataAndControl(dataPayload, control)
+    writeResponse(res, 200, headers, body)
+    return
+  }
+
+  // ── Non-SSE (catch-up / long-poll) branch ────────────────────────────────
   const headers: Record<string, string> = {}
   if (out.nextOffset !== undefined) headers["Stream-Next-Offset"] = out.nextOffset
   if (out.upToDate) headers["Stream-Up-To-Date"] = "true"
   if (out.closed) headers["Stream-Closed"] = "true"
   if (out.cursor !== undefined) headers["Stream-Cursor"] = out.cursor
-  if (contentType) headers["Content-Type"] = contentType
-  // Realize body stream (sufficient for tests).
-  const chunks = await Effect.runPromise(
-    Stream.runCollect(out.body) as Effect.Effect<Iterable<Uint8Array>, unknown, never>,
-  )
-  let total = 0
-  const arr: Uint8Array[] = []
-  for (const c of chunks) {
-    arr.push(c)
-    total += c.length
-  }
+  if (opts.streamContentType) headers["Content-Type"] = opts.streamContentType
   if (total === 0) {
-    // 204 No Content — long-poll timeout, or empty range.
     writeResponse(res, 204, headers)
     return
   }
@@ -147,11 +208,12 @@ const handle = async (
   req: IncomingMessage,
   res: ServerResponse,
   runtime: ManagedRuntime.ManagedRuntime<Wire, never>,
+  paths: PathResolver,
 ): Promise<void> => {
   const fullUrl = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
-  const m = fullUrl.pathname.match(STREAM_PATH_RE)
-  if (!m) return errorResponse(res, 404, "not a stream path")
-  const streamId = trustStreamId(decodeURIComponent(m[1]!))
+  const parsed = paths.parseStreamPath(fullUrl.pathname)
+  if (parsed === null) return errorResponse(res, 404, "not a stream path")
+  const streamId = trustStreamId(parsed)
 
   // Run an Effect that extracts Wire from context, then calls the right method.
   // Context.Service is yieldable in Effect.gen — but NOT directly assignable to
@@ -219,27 +281,47 @@ const handle = async (
         const liveParam = fullUrl.searchParams.get("live")
         const timeoutParam = fullUrl.searchParams.get("timeout")
         const cursorParam = fullUrl.searchParams.get("cursor")
+        const liveMode =
+          liveParam === "long-poll" || liveParam === "sse" ? liveParam : undefined
+        // Need stream's content-type for response framing (raw vs JSON,
+        // and for SSE we also need it to choose base64 vs JSON-array data).
+        const meta = await withWire((wire) => wire.head({ streamId })).catch(
+          () => ({
+            contentType: undefined,
+            nextOffset: undefined,
+            closed: false,
+          }),
+        )
         const out = await withWire((wire) =>
           Effect.scoped(
             wire.get({
               streamId,
               position: offsetParam as never, // ReadPosition
               ...(limitParam !== null ? { limit: Number(limitParam) } : {}),
-              ...(liveParam === "long-poll" || liveParam === "sse"
-                ? { live: liveParam }
-                : {}),
+              ...(liveMode !== undefined ? { live: liveMode } : {}),
               ...(timeoutParam !== null ? { timeout: Number(timeoutParam) } : {}),
               ...(cursorParam !== null ? { cursor: cursorParam } : {}),
             }),
           ),
         )
-        return await buildGetResponse(res, {
-          body: out.body,
-          ...(out.nextOffset !== undefined ? { nextOffset: out.nextOffset as string } : {}),
-          upToDate: out.upToDate,
-          closed: out.closed,
-          ...(out.cursor !== undefined ? { cursor: out.cursor } : {}),
-        })
+        return await buildGetResponse(
+          res,
+          {
+            body: out.body,
+            ...(out.nextOffset !== undefined
+              ? { nextOffset: out.nextOffset as string }
+              : {}),
+            upToDate: out.upToDate,
+            closed: out.closed,
+            ...(out.cursor !== undefined ? { cursor: out.cursor } : {}),
+          },
+          {
+            ...(meta.contentType !== undefined
+              ? { streamContentType: meta.contentType as string }
+              : {}),
+            ...(liveMode !== undefined ? { live: liveMode } : {}),
+          },
+        )
       }
       case "HEAD": {
         const out = await withWire((wire) => wire.head({ streamId }))
@@ -309,10 +391,13 @@ const handle = async (
 
 // ─── Boot/teardown ──────────────────────────────────────────────────────────
 
-export const startSpecServer = async (): Promise<SpecServerHandle> => {
+export const startSpecServer = async (
+  options: SpecServerOptions = {},
+): Promise<SpecServerHandle> => {
+  const paths = options.paths ?? defaultPaths
   const runtime = ManagedRuntime.make(InMemoryWire.layer satisfies Layer.Layer<Wire>)
   const server = createServer((req, res) => {
-    handle(req, res, runtime).catch((e) => {
+    handle(req, res, runtime, paths).catch((e) => {
       try {
         res.writeHead(500)
         res.end(`internal: ${String(e)}`)
