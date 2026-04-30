@@ -1,6 +1,6 @@
 # @tmnl/lnk — Architecture
 
-> **Status**: 🚧 Phase 0 in progress.
+> **Status**: ✅ Phase 0 complete (90 tests passing) → Phase 1 next.
 > **Author**: Val
 > **Last updated**: 2026-04-30
 > **Package**: `@tmnl/lnk` (workspace package, Effect v4 via `effect-v4` alias)
@@ -224,8 +224,8 @@ We do not reinvent reactive bindings. `@tmnl/stx` already provides exactly the s
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│  DurableStream  (Effectable.Class — yieldable handle)             │
-│  ─ commit() → SubscriptionRef<Option<Message>>.get                │
+│  DurableStream  (Effect.YieldableClass — yieldable handle)        │
+│  ─ asEffect() → Ref<Option<Message>>.get  (or stxLatest atom)     │
 │  ─ read(opts) → Stream<Message> driven by Pull                    │
 │  ─ subscribe(opts) → PubSub-backed Stream<Message>                │
 │  ─ append, appendStream, close → via Codec → Wire                 │
@@ -269,7 +269,7 @@ We do not reinvent reactive bindings. `@tmnl/stx` already provides exactly the s
 
 Each phase ships independently with its own gate (compile, tests, integration check).
 
-### Phase 0 — Wire & type contracts (`src/contracts/`, no I/O)
+### Phase 0 — Wire & type contracts (`src/contracts/`, no I/O) ✅
 
 **Goal**: Lock down the type discipline. Zero runtime, all schemas + brands + pure parsers.
 
@@ -286,24 +286,24 @@ src/contracts/
 └── errors.ts       — Schema.TaggedErrorClass hierarchy
 ```
 
-- [ ] `Offset` — branded `Schema.String`, opaque, lex-sortable, with `Order<Offset>`
-- [ ] `OffsetSentinel = Schema.Literal("-1", "now")` + `ReadPosition` union
-- [ ] `StreamId`, `ProducerId`, `Epoch`, `Seq` brands
-- [ ] `ContentType` — parse + `framingMode(ct): "json" | "raw"`
-- [ ] Header constants & parsers using `Effect.fn("...")` for tracing:
+- [x] `Offset` — branded `Schema.String`, opaque, lex-sortable, with `Order<Offset>`
+- [x] `OffsetSentinel = Schema.Literals(["-1", "now"])` + `ReadPosition` union
+- [x] `StreamId`, `ProducerId`, `Epoch`, `Seq` brands
+- [x] `ContentType` — parse + `framingMode(ct): "json" | "raw"`
+- [x] Header constants & parsers using `Effect.fn("...")` for tracing:
       `Stream-Next-Offset`, `Stream-Cursor`, `Stream-Up-To-Date`, `Stream-Closed`,
       `Stream-TTL`, `Stream-Expires-At`, `Producer-Id`, `Producer-Epoch`, `Producer-Seq`
-- [ ] Error hierarchy via `Schema.TaggedErrorClass`:
-  - `InvalidOffsetError`, `InvalidStreamIdError`, `InvalidHeaderError` (validation)
+- [x] Error hierarchy via `Schema.TaggedErrorClass`:
+  - `InvalidOffsetError`, `InvalidStreamIdError`, `InvalidContentTypeError`, `InvalidHeaderError` (validation)
   - `StaleEpochError` (producer fenced)
   - `SequenceGapError`
   - `StreamClosedError`
   - `RetentionDroppedError` (HTTP 410 Gone)
   - `FetchError` (network/5xx — placeholder, Phase 1 fleshes out)
   - `DurableStreamError` (base union)
-- [ ] Unit tests under `test/contracts/`: lex comparison, sentinel handling, header roundtrip, error tagging
+- [x] Unit tests under `test/contracts/`: 90 passed / 90 — lex comparison, sentinel handling, header roundtrip, error tagging
 
-**Gate**: `bun run typecheck` clean; `bun run test:run` green for `test/contracts/`.
+**Gate**: ✅ `bun run typecheck` clean; ✅ `bun run test:run` 90/90 green; ✅ `bun run build` produces dist.
 
 ### Phase 1 — Wire layer (`DurableStreamWire`)
 
@@ -314,10 +314,10 @@ src/contracts/
 - [ ] `HttpWireLive` + `InMemoryWireLive` implementations
 - [ ] Conformance test against in-memory wire
 
-### Phase 2 — Stream handle (`DurableStream` extends `Effectable.Class`)
+### Phase 2 — Stream handle (`DurableStream` extends `Effect.YieldableClass`)
 
-- [ ] `DurableStream` class extending `Effectable.Class`
-- [ ] Internal `SubscriptionRef<Option<Message>>` for `commit()`
+- [ ] `DurableStream` class extending `Effect.YieldableClass<A, E, R>`
+- [ ] Internal `Ref<Option<Message>>` (or `stxLatest` atom in React contexts) for `asEffect()`
 - [ ] Internal `PubSub<Message>` for fan-out
 - [ ] Driver fiber: `Pull`-driven loop with auto catch-up→live transition on `Stream-Up-To-Date`
 - [ ] `read`, `subscribe`, `append`, `appendStream`, `close`, `head`
@@ -363,6 +363,76 @@ This is where v1's `StreamBridgeService` / `LiveStreamService` / `ConsumerStateS
 
 ---
 
+## 5a. Architectural Posture — Native Rewrite, Library Reference-Only
+
+**Decision**: We do NOT wrap `@durable-streams/client`. We rebuild natively on Effect v4 primitives.
+
+**Why this matters**:
+- The published TS client uses Promises + `ReadableStream` + callbacks. Wrapping it as Effects costs us native cancellation/tracing/`Cause` introspection at every layer boundary.
+- `IdempotentProducer` in their world is a class with mutable epoch/seq; in ours it's a `Sink<CloseResult, AppMessage>` over `Ref<Epoch>` + `Ref<Seq>`. Different model, can't be wrapped.
+- The server-side adapter (NATS-bridge, Phase 5) has to be built either way — their package is client-only.
+- Their conformance test suite IS the safety net (see §10 Interop).
+
+**What `@durable-streams/client` is to us**:
+- **Reference implementation** for behavior (visibility pause/resume, `live` auto-selection, header semantics).
+- **Conformance fixtures source** — the upstream `conformance/` directory feeds our CI (Phase 1 deliverable).
+- **NOT a dependency.** No npm install of `@durable-streams/client` in this package.
+
+If this posture changes in the future (e.g. we want a `DsClientWireLive` adapter as a fallback), it's a **new** wire implementation behind the same `DurableStreamWire` service interface — additive, not retroactive.
+
+---
+
+## 5b. Validation Duality — Three Constructors Per Contract Type
+
+**Codified in Phase 0**. Each branded contract type (`Offset`, `StreamId`, `ProducerId`, `Epoch`, `Seq`, `ContentType`) ships **three constructors** that materialize the cost/safety tradeoff:
+
+| Constructor | Runtime cost | Use at |
+|---|---|---|
+| `trust(value)` | **0ns** — `as` cast (brands are pure type-level in v4) | Server response headers, in-process counters, test fixtures |
+| `decode(unknown)` | ~129–240ns — full `Schema.decodeUnknownEffect` (per `effect-smol/benchmark/schema/filter.ts`) | HTTP body parsing, untyped storage, JSON.parse output |
+| `parse(string)` | ~10–50ns + `Effect.fn` span | Typed input needing a domain-specific error (e.g. wire header parsers fail with `InvalidHeaderError`, not generic `SchemaError`) |
+
+**Rule**: validate ONCE at the trust boundary, then `trust` everywhere downstream. We do not pay schema overhead per message in tight loops.
+
+**Why brands are free**: deepwiki + smol source confirmed `Schema.String.pipe(Schema.brand("X"))` produces a schema whose decode runs *only* the underlying `Schema.String`. The brand is a TypeScript intersection type with `Brand.Brand<"X">` — there is no runtime brand check to skip. `decode()` is genuinely just the underlying-schema cost; `trust()` is genuinely free.
+
+---
+
+## 5c. Verified v4 API Surface (Reference Card)
+
+Learnings from Phase 0 implementation against `effect@4.0.0-beta.59`. Carry these forward to Phase 1+; the migration guide doesn't always spell them out.
+
+| Concept | v3 idiom (wrong in v4) | v4 idiom |
+|---|---|---|
+| Service definition | `Effect.Service<Self>()(id, opts)` / `Context.Tag(id)<...>()` | `Context.Service<Self, Shape>()(id)` |
+| Service constructor | `effect: Effect.gen(...)` + `dependencies: [...]` | `make: Effect.gen(...)`; layer wired via `Layer.effect(this, this.make).pipe(Layer.provide(...))` |
+| Layer naming convention | `Service.Default` / `Service.Live` | `Service.layer` (variants: `layerTest`, `layerConfig`, ...) |
+| Yieldable user type | extend `Effectable.Class` (now internal!) | extend **`Effect.YieldableClass<A, E, R>`**, implement `asEffect()` |
+| Schema annotations | `Schema.annotations({...})` standalone | `.annotate({...})` method on the schema |
+| Schema filter chains | `.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0))` | `.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))` |
+| Schema regex check | `Schema.pattern(regex)` / `Schema.matches(regex)` | `Schema.isPattern(regex)` |
+| Schema literal multi-arg | `Schema.Literal("a", "b")` (rest args) | `Schema.Literals(["a", "b"])` (array) |
+| Schema union | `Schema.Union(a, b)` (rest args) | `Schema.Union([a, b])` (array) |
+| Tagged error | `Schema.TaggedError<Self>()(tag, fields)` | `Schema.TaggedErrorClass<Self>(identifier?)(tag, fields)` |
+| Order instance | `Order.string` (lowercase) | `Order.String` (uppercase singleton) |
+| Order combinators | `Order.lessThan(O)`, `Order.lessThanOrEqual(O)` | `Order.isLessThan(O)`, `Order.isLessThanOrEqualTo(O)` |
+| Subscribing as Effect | `yield* myRef`, `yield* myDeferred` (both subtyped Effect) | `yield* Ref.get(myRef)`, `yield* Deferred.await(myDeferred)` (no longer Effect subtypes) |
+| Reactivity package | `@effect-atom/atom` | `effect/unstable/reactivity` (in core) |
+| EventLog package | `@effect/experimental` | `effect/unstable/eventlog` (in core) |
+| HTTP packages | `@effect/platform` | `effect/unstable/http` and `effect/unstable/httpapi` (in core) |
+
+**Decode helper variants** (all share the same pipeline; differ only in executor):
+
+- `Schema.decodeUnknownEffect(S)` → `Effect<T, SchemaError, R>` (preferred for composition)
+- `Schema.decodeUnknownSync(S)` → `T` or throws (hot-path, no Effect allocation)
+- `Schema.decodeUnknownExit(S)` → `Exit<T, SchemaError>` (sync, returns Exit)
+- `Schema.decodeUnknownOption(S)` → `Option<T>` (sync, errors collapse to None)
+- `Schema.decodeUnknownResult(S)` → `Result<T, Issue>` (sync, structural error)
+
+For in-stream validation where we want zero Effect overhead but typed errors, prefer `decodeUnknownExit`.
+
+---
+
 ## 6. Modules NOT Brought Forward From v1
 
 | Dropped | Replacement |
@@ -394,6 +464,51 @@ This is where v1's `StreamBridgeService` / `LiveStreamService` / `ConsumerStateS
 - Server-side compaction beyond what the spec describes
 - Yjs collaborative-editing transport adapter (separate package)
 - AI SDK transport adapters (separate package)
+
+---
+
+## 10. Interop With `@durable-streams/*` Ecosystem
+
+Three explicit interop angles, none of which require us to depend on the upstream JS packages:
+
+### 10.1 Conformance Test Suite (Phase 1 deliverable)
+
+The `durable-streams/durable-streams` repo ships a conformance test suite (TOC §7.1: "Conformance Testing System" with both server and client conformance tests + a wire-level conformance protocol).
+
+**Plan**:
+- Vendor or fetch the conformance fixtures into `test/conformance/`
+- Run them against our `HttpWireLive` (talking to the upstream reference server) in CI
+- Failure = we've drifted from spec; this is the regression net
+
+This is the *only* place `@durable-streams/*` enters our supply chain — and only as test fixtures, not as runtime deps.
+
+### 10.2 Reference Implementation
+
+The upstream TypeScript client is the de-facto reference for behaviors the spec doesn't fully nail:
+- Visibility-based pause/resume in browsers
+- `live` mode auto-selection (SSE vs long-poll based on content-type)
+- `onError` recovery hooks (e.g. 401 → token refresh → retry)
+- Backoff schedules, jitter strategies
+
+When we implement Phase 1 `HttpWireLive`, we read their source as a sanity check on our behavior — but we re-encode in Effect v4 idioms (`Schedule`, `Effect.withSpan`, `Resource.auto`, etc.).
+
+### 10.3 Optional Future: `DsClientWireLive` (NOT planned, stays open)
+
+If a future need surfaces — e.g. users want our Effect-native React surface but the upstream TS client's exact battle-tested HTTP plumbing — we can add `DsClientWireLive` as a *fourth* `DurableStreamWire` implementation. Same `DurableStream` handle, same React/atom surface, different transport.
+
+This is purely additive (~150 lines of Promise→Effect bridge + AbortSignal↔Effect interruption) and does not require any architectural change. We mention it here so the door stays open; we do not pre-build it.
+
+---
+
+## 11. Decision Log
+
+| When | Decision | Rationale |
+|---|---|---|
+| Initial design | Effect v4-native, not v3 | User directive; v4 retreats from auto-yieldability of `Ref`/`Deferred` etc., which makes `Effect.YieldableClass` opt-in for `DurableStream` *more* meaningful, not less. |
+| Phase 0 verification | `Effect.YieldableClass`, NOT `Effectable.Class` | Deepwiki + smol source confirmed `Effectable.Class` is internal; `Effect.YieldableClass` is the public abstract base for user types. |
+| Phase 0 verification | Native rewrite, library reference-only | User explicit choice ("Native rewrite"). Posture documented in §5a. |
+| Phase 0 verification | Workspace package `@tmnl/lnk` (renamed from `durable-streams`) | User naming preference; isolates v4 alias surface; protocol name "Durable Streams" preserved in description and prose. |
+| Phase 0 verification | Three-constructor duality (`trust` / `decode` / `parse`) per contract | Brands are pure type-level → `trust` is genuinely free → schema overhead lives at boundaries only (~129-240ns/op per upstream benchmark). |
 
 ---
 
