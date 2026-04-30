@@ -88,18 +88,48 @@ const errorResponse = (res: ServerResponse, status: number, message?: string): v
 
 // ─── Wire op → HTTP response builders ───────────────────────────────────────
 
-const buildPutResponse = (res: ServerResponse, out: { created: boolean }): void =>
-  writeResponse(res, out.created ? 201 : 200, {})
+const buildPutResponse = (
+  res: ServerResponse,
+  out: { created: boolean; nextOffset?: string },
+): void => {
+  // Per spec: PUT response should include Stream-Next-Offset so clients can
+  // resume reading from the correct position even after a create-and-append
+  // PUT.
+  const headers: Record<string, string> = {}
+  if (out.nextOffset !== undefined)
+    headers["Stream-Next-Offset"] = out.nextOffset
+  writeResponse(res, out.created ? 201 : 200, headers)
+}
 
 const buildPostResponse = (
   res: ServerResponse,
   out: { nextOffset: string; duplicate: boolean },
-): void =>
-  writeResponse(
-    res,
-    out.duplicate ? 204 : 201,
-    { "Stream-Next-Offset": out.nextOffset },
-  )
+  producer?: {
+    producerId: string
+    epoch: string
+    seq: string
+  },
+): void => {
+  // Per spec status semantics:
+  //   Producer-tracked POST + new      → 200 OK
+  //   Producer-tracked POST + duplicate → 204 No Content
+  //   Generic (non-producer) POST      → 204 No Content
+  // Server echoes Producer-{Id,Epoch,Seq} on every producer-tracked POST
+  // (so the client can confirm what was accepted).
+  const headers: Record<string, string> = {
+    "Stream-Next-Offset": out.nextOffset,
+  }
+  if (producer !== undefined) {
+    headers["Producer-Id"] = producer.producerId
+    headers["Producer-Epoch"] = producer.epoch
+    headers["Producer-Seq"] = producer.seq
+  }
+  const status =
+    producer !== undefined
+      ? (out.duplicate ? 204 : 200)
+      : 204
+  writeResponse(res, status, headers)
+}
 
 const buildHeadResponse = (
   res: ServerResponse,
@@ -189,8 +219,16 @@ const buildGetResponse = async (
   if (out.closed) headers["Stream-Closed"] = "true"
   if (out.cursor !== undefined) headers["Stream-Cursor"] = out.cursor
   if (opts.streamContentType) headers["Content-Type"] = opts.streamContentType
+  // Per spec: 204 No Content is ONLY for long-poll TIMEOUTS (no new data
+  // available within the timeout window). A normal empty range — e.g. GET
+  // immediately after PUT, or GET past the tail — returns 200 OK with empty
+  // body and Stream-Up-To-Date: true so clients can distinguish.
   if (total === 0) {
-    writeResponse(res, 204, headers)
+    if (opts.live === "long-poll") {
+      writeResponse(res, 204, headers)
+    } else {
+      writeResponse(res, 200, headers)
+    }
     return
   }
   const combined = new Uint8Array(total)
@@ -236,12 +274,15 @@ const handle = async (
         const ct = (req.headers["content-type"] as string) ?? "application/octet-stream"
         const ttl = req.headers["stream-ttl"]
         const expires = req.headers["stream-expires-at"]
+        // Per spec: PUT may carry an initial body. Read it; pass to wire.
+        const body = await readRequestBody(req)
         const out = await withWire((wire) =>
           wire.put({
             streamId,
             contentType: trustContentType(ct),
             ...(ttl !== undefined ? { streamTtl: Number(ttl) } : {}),
             ...(expires !== undefined ? { streamExpiresAt: String(expires) } : {}),
+            ...(body.length > 0 ? { body } : {}),
           }),
         )
         return buildPutResponse(res, out)
@@ -270,10 +311,17 @@ const handle = async (
             ...(closed ? { streamClosed: true } : {}),
           }),
         )
-        return buildPostResponse(res, {
-          nextOffset: out.nextOffset as string,
-          duplicate: out.duplicate,
-        })
+        return buildPostResponse(
+          res,
+          {
+            nextOffset: out.nextOffset as string,
+            duplicate: out.duplicate,
+          },
+          // Echo producer headers on duplicates per spec.
+          producer !== undefined && pid !== undefined && pep !== undefined && psq !== undefined
+            ? { producerId: pid, epoch: pep, seq: psq }
+            : undefined,
+        )
       }
       case "GET": {
         const offsetParam = fullUrl.searchParams.get("offset") ?? "-1"

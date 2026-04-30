@@ -41,7 +41,7 @@ import {
   InvalidPayloadError,
   StreamNotFoundError,
 } from "../../../contracts/errors.js"
-import { Wire } from "../Wire.js"
+import { Wire, type PutResultT } from "../Wire.js"
 import { InMemoryInner } from "./InMemoryInner.js"
 
 // ─── Body splitting / assembly helpers ──────────────────────────────────────
@@ -156,21 +156,48 @@ export class InMemoryWire {
       const inner = yield* InMemoryInner
 
       return Wire.of({
-        // ── put ─────────────────────────────────────────────────
+        // ── put ──────────────────────────────────────────────
         put: (input) =>
           Effect.gen(function* () {
             const out = yield* inner.create({
               streamId: input.streamId,
               contentType: input.contentType,
             })
+            // Per spec: PUT may include an initial body that's atomically
+            // appended after creation. Apply content-type framing the same
+            // way as POST.
+            let nextOffset: PutResultT["nextOffset"]
+            if (input.body !== undefined && input.body.length > 0) {
+              const messages = yield* splitPostBody(
+                input.streamId as string,
+                out.contentType as string,
+                input.body,
+              )
+              const append = yield* inner.append({
+                streamId: input.streamId,
+                messages,
+              })
+              nextOffset = append.nextOffset
+            }
             return {
               streamId: input.streamId,
               contentType: out.contentType,
               created: out.created,
+              ...(nextOffset !== undefined ? { nextOffset } : {}),
             }
-            // `StreamConfigMismatchError` propagates as a typed error in the
-            // wire shape — callers can `Effect.catchTag("StreamConfigMismatchError")`.
-          }),
+          }).pipe(
+            // The append path can fail with stream-state errors that don't
+            // apply to PUT contractually. They CAN'T happen in a fresh PUT
+            // (stream just got created and isn't closed, no producer yet),
+            // so die-as-defect on them.
+            Effect.catchTags({
+              StreamClosedError: (e) => Effect.die(e),
+              StaleEpochError: (e) => Effect.die(e),
+              SequenceGapError: (e) => Effect.die(e),
+              StreamNotFoundError: (e) => Effect.die(e),
+              InvalidPayloadError: (e) => Effect.die(e),
+            }),
+          ),
 
         // ── post ────────────────────────────────────────────────
         post: (input) =>

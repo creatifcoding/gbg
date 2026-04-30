@@ -105,9 +105,16 @@ export interface GetResult extends GetHeadersT {
  * runtime shape (no `AsQueue` / `Discard` flags).
  */
 export interface WireShape {
-  /** PUT /streams/:id — create a stream. Idempotent on matching config. */
+  /**
+   * PUT /streams/:id — create a stream. Idempotent on matching config.
+   *
+   * Optionally appends an initial body atomically (per spec: PUT with body
+   * = create-and-append in one round trip). When `body` is supplied, the
+   * `nextOffset` field of the result reflects the offset of the last
+   * appended message.
+   */
   readonly put: (
-    input: PutInputT,
+    input: PutInput_PutBody,
   ) => Effect.Effect<PutResultT, FetchError | StreamConfigMismatchError>
 
   /** POST /streams/:id — append bytes. Producer headers optional. */
@@ -150,6 +157,18 @@ export interface WireShape {
   readonly delete: (
     input: DeleteInputT,
   ) => Effect.Effect<DeleteResultT, FetchError>
+}
+
+/**
+ * `PutInput` augmented with a runtime-only `body` field.
+ *
+ * Per spec, PUT optionally accepts an initial body that is atomically
+ * appended after stream creation. The body is `Schema`-orthogonal (raw bytes
+ * are content-type-driven framing concerns, not part of the metadata schema).
+ */
+export interface PutInput_PutBody extends PutInputT {
+  /** Optional initial body to append atomically with stream creation. */
+  readonly body?: Uint8Array
 }
 
 /**

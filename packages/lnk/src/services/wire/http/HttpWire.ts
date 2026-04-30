@@ -97,11 +97,17 @@ export class HttpWire {
                 method: "PUT",
                 path: paths.streamPath(input.streamId as string),
                 headers,
+                ...(input.body !== undefined && input.body.length > 0
+                  ? { body: input.body }
+                  : {}),
               })
               return {
                 streamId: input.streamId,
                 contentType: input.contentType,
                 created: r.status === 201,
+                ...(Option.isSome(r.nextOffset)
+                  ? { nextOffset: r.nextOffset.value }
+                  : {}),
               }
             }).pipe(
               // PUT can yield FetchError or StreamConfigMismatchError per the
@@ -144,9 +150,13 @@ export class HttpWire {
                 headers,
                 body: input.body,
               })
-              const duplicate = r.status === 204
+              // Per spec POST status semantics:
+              //   Producer-tracked + new      → 200 OK
+              //   Producer-tracked + duplicate → 204 No Content
+              //   Generic                     → 204 No Content
+              // For producer-tracked requests, 204 means duplicate.
+              const duplicate = input.producer !== undefined && r.status === 204
               if (Option.isNone(r.nextOffset)) {
-                // Server didn't send Stream-Next-Offset — protocol violation.
                 return yield* new FetchError({
                   status: r.status,
                   message: `protocol violation: missing Stream-Next-Offset on POST /streams/${input.streamId}`,

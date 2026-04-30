@@ -51,7 +51,15 @@ import {
 
 // ─── PUT — create stream ────────────────────────────────────────────────────
 
-/** Input: create a new stream with content-type. Idempotent on identical config. */
+/**
+ * Input: create a new stream with content-type. Idempotent on identical config.
+ *
+ * Per spec, PUT may include an optional body which is atomically appended
+ * after stream creation (`PUT` with body = create-and-append in one round
+ * trip). The body is conveyed via the runtime-only `PutInput_PutBody` shape
+ * (see `DurableStreamWire.ts`), since `Schema` doesn't model raw bytes inside
+ * struct schemas.
+ */
 export const PutInput = Schema.Struct({
   streamId: StreamId,
   contentType: ContentType,
@@ -67,6 +75,12 @@ export const PutResult = Schema.Struct({
   contentType: ContentType,
   /** True if the PUT created a new stream; false if it was already present. */
   created: Schema.Boolean,
+  /**
+   * Offset of the last appended message if the PUT included a body; `None`
+   * otherwise. Servers SHOULD include `Stream-Next-Offset` on PUT responses
+   * even if the body was empty (so clients can use it as a starting point).
+   */
+  nextOffset: Schema.optional(Offset),
 })
 
 // ─── POST — append to stream ────────────────────────────────────────────────
