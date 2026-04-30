@@ -12,9 +12,11 @@
 > - 🚫 **HTTP-ONLY** — only meaningful in `HttpWire` (Phase 1.1+); skip for `InMemoryWire`
 > - ⏸ **DEFERRED** — out of scope for current phase, queued for later
 >
-> **Last updated**: 2026-04-30 (Phase 1 in-memory complete)
-> **Internal conformance tests** (Option B, transport-agnostic): **32 / 32 passing** for `InMemoryWire` (`test/services/wire/conformance.ts`)
-> **Upstream conformance tests** (Option A, HTTP-driven): 0 / 232 (deferred to Phase 1.1 with `HttpWire` + HTTP server adapter)
+> **Last updated**: 2026-04-30 (Phase 1.1 — HttpWire + node:http spec server complete)
+> **Internal conformance tests** (Option B, transport-agnostic): **64 / 64 passing**
+>   - 32 / 32 against `InMemoryWire` (`test/services/wire/in-memory/InMemoryWire.test.ts`)
+>   - 32 / 32 against `HttpWire` over the `node:http` spec server (`test/services/wire/http/HttpWire.test.ts`)
+> **Upstream conformance tests** (Option A, HTTP-driven via `@durable-streams/server-conformance-tests`): 0 / 232 (queued; needs the upstream package as a dev-dep, blocked by the unrelated `@tmnl/codemode` workspace install issue)
 
 ---
 
@@ -54,25 +56,31 @@ adds the implementation. Drift between this checklist and reality is a bug.
 
 ---
 
-## 2. HTTP Protocol & Headers (🚫 HttpWire-only)
+## 2. HTTP Protocol & Headers
 
-These obligations are HTTP-specific and only apply to `HttpWire` (Phase 1.1+).
-The `InMemoryWire` does not transit HTTP — it returns typed Effects directly.
+Validated end-to-end via `HttpWire` (client) → `node:http` spec server (server) → `InMemoryWire` (storage).
 
-- 🚫 PUT response: `201 Created` (new) vs `200 OK` (idempotent match) vs `409 Conflict` (mismatch)
-- 🚫 POST response: `201 Created` (success) vs `204 No Content` (producer dup) vs `400 Bad Request` (bad JSON) vs `403 Forbidden` (stale epoch) vs `409 Conflict` (seq gap, stream closed)
-- 🚫 GET response: `200 OK` (data) vs `204 No Content` (long-poll timeout) vs `404 Not Found` vs `410 Gone` (retention)
-- 🚫 HEAD response: `200 OK` with metadata headers, no body
-- 🚫 DELETE response: `200 OK` (deleted) or equivalent
-- 🚫 `Stream-Next-Offset` response header on every read response
-- 🚫 `Stream-Up-To-Date: true` header when caught up
-- 🚫 `Stream-Closed: true` header on closed-stream responses
-- 🚫 `Stream-Cursor` response header in live mode (when stream open)
-- 🚫 `Content-Type` echo on read responses
-- 🚫 `Cache-Control: no-store` on dynamic responses
-- 🚫 `X-Content-Type-Options: nosniff` security header
-- 🚫 CORS headers (configurable origins)
-- 🚫 `ETag` headers (where applicable)
+- ✅ PUT response: `201 Created` (new) vs `200 OK` (idempotent match) vs `409 Conflict` (mismatch)
+  - **Where (client)**: `src/services/wire/http/HttpInner.ts` → `sendChecked`
+  - **Where (server)**: `test/services/wire/http/_spec-server.ts` → `buildPutResponse`
+- ✅ POST response: `201 Created` (success) vs `204 No Content` (producer dup) vs `403 Forbidden` (stale epoch) vs `409 Conflict` (seq gap, stream closed)
+  - 400 Bad Request for invalid payloads is **partial**: server emits 400, client surfaces as `FetchError` rather than discriminated `InvalidPayloadError` (Phase 1.2).
+- ✅ GET response: `200 OK` (data) vs `204 No Content` (long-poll timeout) vs `404 Not Found`
+  - 410 Gone (retention) is wired but untested (no retention impl yet — see §9.2)
+- ✅ HEAD response: `200 OK` with metadata headers, no body
+- ✅ DELETE response: `204 No Content` (deleted) or `404 Not Found` (translated to `deleted: false`)
+- ✅ `Stream-Next-Offset` response header on every read response
+- ✅ `Stream-Up-To-Date: true` header when caught up
+- ✅ `Stream-Closed: true` header on closed-stream responses
+- ✅ `Producer-Expected-Seq` + `Producer-Received-Seq` headers on 409 sequence-gap (allows client to distinguish from stream-closed)
+- ✅ `Producer-Epoch` header on 403 stale-epoch (client can update its epoch)
+- ✅ `Stream-Expected-Content-Type` header on 409 config-mismatch (client distinguishes from stream-closed)
+- ⚠ `Stream-Cursor` response header in live mode — not yet generated (§10)
+- ⚠ `Content-Type` echo on read responses — server has the data but doesn't echo yet
+- 🚫 `Cache-Control: no-store` on dynamic responses (production server concern)
+- 🚫 `X-Content-Type-Options: nosniff` (production server concern)
+- 🚫 CORS headers (production server concern)
+- 🚫 `ETag` headers (production server concern)
 
 ---
 
@@ -142,19 +150,20 @@ The `InMemoryWire` does not transit HTTP — it returns typed Effects directly.
 
 ---
 
-## 6. SSE Mode (`?live=sse`) — 🚫 HttpWire-only
+## 6. SSE Mode (`?live=sse`) — ⏸ deferred to Phase 1.2
 
-> SSE format is HTTP-specific (text/event-stream content type). InMemoryWire
-> does not implement SSE — there's no equivalent in-process abstraction.
-> HttpWire (Phase 1.1) will format the underlying message stream as SSE.
+HttpWire passes the `?live=sse` query param through to the server, but our
+test spec server does NOT yet emit SSE-formatted responses. Real Durable
+Streams servers do; we'll implement SSE serialization (server) +
+deserialization (client) once we add a streaming-body assembler.
 
-- 🚫 SSE event format: `data:` events containing message bytes.
-- 🚫 For raw streams: data payload is base64-encoded.
-- 🚫 For JSON streams: multiple messages may be batched into one `data:` event as a JSON array.
-- 🚫 `control:` event after every `data:` event, JSON-encoded.
-- 🚫 Control event fields: `streamNextOffset`, `streamCursor` (when open), `upToDate: true` (when caught up), `streamClosed: true` (when closed).
-- 🚫 Offset lives in `control` event (not in SSE `id:` field).
-- 🚫 Heartbeat / keep-alive (per server discretion).
+- ⏸ SSE event format: `data:` events containing message bytes.
+- ⏸ For raw streams: data payload is base64-encoded.
+- ⏸ For JSON streams: multiple messages may be batched into one `data:` event as a JSON array.
+- ⏸ `control:` event after every `data:` event, JSON-encoded.
+- ⏸ Control event fields: `streamNextOffset`, `streamCursor` (when open), `upToDate: true` (when caught up), `streamClosed: true` (when closed).
+- ⏸ Offset lives in `control` event (not in SSE `id:` field).
+- ⏸ Heartbeat / keep-alive (per server discretion).
 
 ---
 
@@ -302,13 +311,20 @@ correctness-by-types concerns.
 
 - **Phase 0** (✅ DONE): Wire & type contracts, 90 unit tests
 - **Phase 1** (✅ in-memory complete):
-  - ✅ `Wire` RpcGroup spec
+  - ✅ `Protocol` RpcGroup spec
   - ✅ `Wire` Context.Service shape
   - ✅ `InMemoryWire` + `InMemoryInner` with JSON framing, correct producer dedup, PUT mismatch detection, long-poll empty-on-timeout
   - ✅ Internal conformance suite (Option B from §14) — 32 tests across 7 categories, all passing
-- **Phase 1.1**: `HttpWire` + minimal HTTP server adapter for upstream conformance suite (Option A)
+- **Phase 1.1** (✅ HttpWire + spec-server complete):
+  - ✅ `HttpWire` + `HttpInner` (client-side, HttpClient + FetchHttpClient-based)
+  - ✅ Spec status-code mapping (201/200/204/404/403/409/410)
+  - ✅ Discriminator headers on 409 responses (Stream-Closed, Stream-Expected-Content-Type, Producer-Expected-Seq + Producer-Received-Seq)
+  - ✅ Per-spec request headers (Producer-{Id,Epoch,Seq}, Stream-TTL, Stream-Closed)
+  - ✅ `node:http` spec server adapter (test-only, in `test/services/wire/http/_spec-server.ts`)
+  - ✅ Same parameterized conformance suite runs over HTTP — 64 / 64 across both wires
+- **Phase 1.2**: SSE codec, Stream-Cursor generation, upstream `@durable-streams/server-conformance-tests` integration
 - **Phase 2+**: TTL/retention reapers, property-based fuzzing, multi-stream concurrency tests
-- **Phase 5**: NATS-bridge wire + server adapter (compatible with HttpWire's HTTP server adapter)
+- **Phase 5**: NATS-bridge wire + server adapter
 
 ---
 
