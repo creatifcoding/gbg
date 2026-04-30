@@ -19,8 +19,8 @@
 // Phase 0 — wire & type contracts
 export * as Contracts from './contracts/index.js'
 
-// Phase 1 exports (forthcoming):
-//   export * from './wire/index.js';
+// Phase 1 — wire layer
+export * as Services from './services/index.js'
 
 // Phase 2 exports (forthcoming):
 //   export * from './client/index.js';
