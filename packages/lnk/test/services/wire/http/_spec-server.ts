@@ -106,18 +106,22 @@ const buildPutResponse = (
     closed: boolean
     nextOffset?: string
     contentType?: string
+    location?: string
   },
 ): void => {
   // Per spec: PUT response includes:
   //   - Stream-Next-Offset (so clients can resume reading)
   //   - Stream-Closed: true if the stream is closed
-  //   - Content-Type echoed back (so clients can confirm what was registered)
+  //   - Content-Type echoed back (so clients can confirm registration)
+  //   - Location header on 201 (canonical URL of the new resource)
   const headers: Record<string, string> = {}
   if (out.nextOffset !== undefined)
     headers["Stream-Next-Offset"] = out.nextOffset
   if (out.closed) headers["Stream-Closed"] = "true"
   if (out.contentType !== undefined)
     headers["Content-Type"] = out.contentType
+  if (out.created && out.location !== undefined)
+    headers["Location"] = out.location
   writeResponse(res, out.created ? 201 : 200, headers)
 }
 
@@ -164,12 +168,16 @@ const buildHeadResponse = (
     contentType?: string
     nextOffset?: string
     closed: boolean
+    ttl?: number
+    expiresAt?: string
   },
 ): void => {
   const headers: Record<string, string> = {}
   if (out.contentType !== undefined) headers["Content-Type"] = out.contentType
   if (out.nextOffset !== undefined) headers["Stream-Next-Offset"] = out.nextOffset
   if (out.closed) headers["Stream-Closed"] = "true"
+  if (out.ttl !== undefined) headers["Stream-TTL"] = String(out.ttl)
+  if (out.expiresAt !== undefined) headers["Stream-Expires-At"] = out.expiresAt
   writeResponse(res, 200, headers)
 }
 
@@ -209,8 +217,12 @@ const buildGetResponse = async (
       // CDNs/proxies neither cache nor revalidate.
       "Cache-Control": "no-cache, no-store",
     }
+    // Per spec: SSE control events always include streamNextOffset, even
+    // for empty streams. Use the canonical zero offset as a starting point.
+    const sseNextOffset =
+      out.nextOffset ?? `${"0".repeat(20)}_${"0".repeat(20)}`
     const control: ControlPayload = {
-      ...(out.nextOffset !== undefined ? { streamNextOffset: out.nextOffset } : {}),
+      streamNextOffset: sseNextOffset,
       ...(out.cursor !== undefined ? { streamCursor: out.cursor } : {}),
       ...(out.upToDate ? { upToDate: true as const } : {}),
       ...(out.closed ? { streamClosed: true as const } : {}),
@@ -344,10 +356,15 @@ const handle = async (
             ...(body.length > 0 ? { body } : {}),
           }),
         )
+        // Per spec: 201 responses include a Location header pointing to
+        // the canonical URL of the created resource.
+        const host = req.headers.host ?? "localhost"
+        const location = `http://${host}${fullUrl.pathname}`
         return buildPutResponse(res, {
           created: out.created,
           closed: out.closed,
           contentType: out.contentType as string,
+          location,
           ...(out.nextOffset !== undefined
             ? { nextOffset: out.nextOffset as string }
             : {}),
@@ -500,6 +517,8 @@ const handle = async (
             ? { nextOffset: out.nextOffset as string }
             : {}),
           closed: out.closed,
+          ...(out.ttl !== undefined ? { ttl: out.ttl } : {}),
+          ...(out.expiresAt !== undefined ? { expiresAt: out.expiresAt } : {}),
         })
       }
       case "DELETE": {

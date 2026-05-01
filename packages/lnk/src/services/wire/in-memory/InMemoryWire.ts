@@ -185,6 +185,10 @@ export class InMemoryWire {
               ...(input.streamClosed === true && !hasBody
                 ? { streamClosed: true }
                 : {}),
+              ...(input.streamTtl !== undefined ? { ttl: input.streamTtl } : {}),
+              ...(input.streamExpiresAt !== undefined
+                ? { expiresAt: input.streamExpiresAt }
+                : {}),
             })
             let nextOffset: PutResultT["nextOffset"]
             let closed = out.closed
@@ -338,6 +342,10 @@ export class InMemoryWire {
                 ? { nextOffset: out.nextOffset.value }
                 : {}),
               closed: out.closed,
+              ...(Option.isSome(out.ttl) ? { ttl: out.ttl.value } : {}),
+              ...(Option.isSome(out.expiresAt)
+                ? { expiresAt: out.expiresAt.value }
+                : {}),
             }
           }),
 

@@ -75,6 +75,10 @@ interface InternalStream {
   readonly createdAt: number
   readonly messages: ReadonlyArray<InternalMessage>
   readonly closed: boolean
+  /** TTL in seconds (Stream-TTL on PUT). `null` = no TTL. */
+  readonly ttl: number | null
+  /** Expires-At timestamp string (ISO-8601, Stream-Expires-At on PUT). */
+  readonly expiresAt: string | null
   /**
    * Last accepted Stream-Seq value (lex-ordered string). Subsequent POSTs
    * carrying `Stream-Seq` must be lexicographically greater. `null` means
@@ -98,6 +102,8 @@ const emptyStream = (contentType: ContentType, now: number): InternalStream => (
   nextSeq: 0,
   producers: new Map(),
   lastStreamSeq: null,
+  ttl: null,
+  expiresAt: null,
 })
 
 // ─── Offset generation — zero-padded lex-sortable ───────────────────────────
@@ -161,6 +167,10 @@ export interface CreateInput {
    * stream, the stream is closed transitionally (no error).
    */
   readonly streamClosed?: boolean
+  /** Optional Stream-TTL value (seconds). */
+  readonly ttl?: number
+  /** Optional Stream-Expires-At value (ISO-8601). */
+  readonly expiresAt?: string
 }
 
 export interface CreateOutput {
@@ -245,6 +255,8 @@ export interface ReadOutput {
 
 export interface MetadataOutput {
   readonly contentType: Option.Option<ContentType>
+  readonly ttl: Option.Option<number>
+  readonly expiresAt: Option.Option<string>
   readonly nextOffset: Option.Option<Offset>
   readonly closed: boolean
 }
@@ -326,6 +338,24 @@ const makeImpl = Effect.gen(function* () {
             receivedContentType: input.contentType as string,
           })
         }
+        // Per spec: idempotent re-PUT with different TTL or Expires-At is a
+        // config mismatch. Compare normalized values (treat undefined as
+        // equivalent to existing absence).
+        const newTtl = input.ttl ?? null
+        const newExpiresAt = input.expiresAt ?? null
+        if (
+          (newTtl !== null && existing.ttl !== null && newTtl !== existing.ttl) ||
+          (newTtl !== null && existing.ttl === null) ||
+          (newExpiresAt !== null && existing.expiresAt !== null &&
+            newExpiresAt !== existing.expiresAt) ||
+          (newExpiresAt !== null && existing.expiresAt === null)
+        ) {
+          return yield* new StreamConfigMismatchError({
+            streamId: input.streamId,
+            expectedContentType: existing.contentType as string,
+            receivedContentType: input.contentType as string,
+          })
+        }
         // Idempotent re-PUT with `Stream-Closed: true` on an open stream
         // transitions to closed (per spec).
         if (input.streamClosed === true && !existing.closed) {
@@ -349,6 +379,8 @@ const makeImpl = Effect.gen(function* () {
       next.set(input.streamId, {
         ...emptyStream(input.contentType, now),
         closed: initialClosed,
+        ttl: input.ttl ?? null,
+        expiresAt: input.expiresAt ?? null,
       })
       yield* Ref.set(stateRef, next)
       return {
@@ -636,6 +668,11 @@ const makeImpl = Effect.gen(function* () {
         contentType: Option.some(stream.contentType),
         nextOffset: tail !== undefined ? Option.some(tail) : Option.none(),
         closed: stream.closed,
+        ttl: stream.ttl !== null ? Option.some(stream.ttl) : Option.none(),
+        expiresAt:
+          stream.expiresAt !== null
+            ? Option.some(stream.expiresAt)
+            : Option.none(),
       }
     })
 

@@ -190,6 +190,10 @@ export const HeadResult = Schema.Struct({
   /** Tail position — the offset at which the next append will land. */
   nextOffset: Schema.optional(Offset),
   closed: Schema.Boolean,
+  /** Stream-TTL value (seconds), if configured. */
+  ttl: Schema.optional(Schema.Number),
+  /** Stream-Expires-At value (ISO-8601), if configured. */
+  expiresAt: Schema.optional(Schema.String),
 })
 
 // ─── DELETE — remove stream ─────────────────────────────────────────────────
