@@ -450,9 +450,23 @@ When starting Phase 4 (server runtime) or Phase 5 (Fork):
   - ✅ `PathResolver` DRY (`src/services/wire/Paths.ts`): single source of truth for URL-path templates. Built-ins: `defaultPaths` (`/streams/{id}`), `v1Paths` (`/v1/stream/{id}` for upstream conformance), `makePaths(template)` for custom deployments.
   - ✅ Upstream conformance integrated: `@durable-streams/server-conformance-tests@0.3.0` running against the spec server. Baseline: 100 / 299 passing; failure backlog categorized in §16.
   - ✅ Workspace install unblocked via `"!packages/codemode-pi"` workspace-negation pattern in root `package.json` (codemode-pi declares a `workspace:*` dep on a missing `@tmnl/codemode` package, blocking the whole monorepo install; negation is surgical — reversible when codemode is restored).
-- **Phase 1.3**: Address the spec-coverage backlog from §16 (zombie producer fencing edge cases, offset-validation robustness, SSE event-id details, header case-insensitivity, etc.)
-- **Phase 2+**: TTL/retention reapers, property-based fuzzing, multi-stream concurrency tests
-- **Phase 5**: NATS-bridge wire + server adapter
+- **Phase 1.3** (✅ CLOSED — see §16): Wire-layer correctness + HTTP-adapter
+  protocol mapping for all upstream conformance tests in scope. Lifted
+  validation from spec-server into contracts. 241/299 passing, 0 in-scope
+  failures.
+- **Phase 2** (→ NEXT): `Lnk` handle — user-facing reactive API as
+  `Effect.YieldableClass<A, E, R>`. Integrates `@tmnl/stx` materializers
+  (`stxLatest`, `stxPull`, `stxFeed`, `stxShared`, `stxDuplex`). Builds on
+  the closed Phase 1 wire.
+- **Phase 3** (later): NATS-bridge wire — repurpose v1's
+  `StreamBridgeService`/`LiveStreamService`/`ConsumerStateService` against
+  the new `Wire` shape.
+- **Phase 4** (deferred from §16): Production HTTP server adapter — TTL
+  reaper, ETag/304, browser security headers, long-poll edge cases. ~24
+  upstream tests gated here.
+- **Phase 5** (deferred from §16): Fork — server feature for branching
+  streams at offset, with refcount/cascade GC. ~37 upstream tests gated
+  here.
 
 ---
 
