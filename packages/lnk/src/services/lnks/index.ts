@@ -15,6 +15,7 @@
  */
 
 export { Lnk, type LnkAppendOptions, type LnkMakeOptions } from "./Lnk.js"
+export { Lnks, type LnksConfig, type LnksShape } from "./Lnks.js"
 export {
   Message,
   fromBytes as messageFromBytes,
