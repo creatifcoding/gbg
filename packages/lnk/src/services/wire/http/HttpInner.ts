@@ -256,22 +256,16 @@ const make = (
           let controlCursor: string | undefined
           let controlUpToDate = false
           let controlClosed = false
-          // For raw streams the data is base64; for JSON streams it's a
-          // JSON-array string. We can't disambiguate from the SSE stream alone
-          // without the stream's content-type — use a pragmatic check:
-          // try base64-decode; fall back to UTF-8 if it round-trips as text.
-          // (The Lnk handle in Phase 2 will distinguish properly via the
-          // configured content-type carried alongside the Stream connection.)
-          // Heuristic for distinguishing JSON-array vs base64 SSE data:
-          // base64 charset is [A-Za-z0-9+/=]. JSON arrays contain `[`, `{`,
-          // `:`, `,`, `"`, etc. which fall outside. (Phase 2 will replace
-          // this heuristic with content-type carried alongside the connection.)
-          const BASE64_CHARSET = /^[A-Za-z0-9+/=\s]*$/
+          // Per spec: the `Stream-SSE-Data-Encoding` response header signals
+          // when data payloads are base64-encoded (binary content). When
+          // absent, payloads are either JSON-array strings (JSON streams)
+          // or raw text (text/* streams) — in both cases UTF-8 bytes.
+          const sseEncoding =
+            respHeaders.get("Stream-SSE-Data-Encoding")?.toLowerCase()
+          const isBase64 = sseEncoding === "base64"
           for (const ev of all) {
             if (ev._tag === "Data") {
-              const looksLikeBase64 =
-                ev.payload.length > 0 && BASE64_CHARSET.test(ev.payload)
-              const bytes: Uint8Array = looksLikeBase64
+              const bytes: Uint8Array = isBase64
                 ? decodeRawDataPayload(ev.payload)
                 : new TextEncoder().encode(ev.payload)
               dataPieces.push(bytes)

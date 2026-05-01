@@ -33,6 +33,7 @@ import {
   encodeControl,
   encodeDataAndControl,
   encodeRawDataPayload,
+  sseEncoding,
   SSE_CONTENT_TYPE,
   type ControlPayload,
 } from "../../../../src/services/wire/Sse.js"
@@ -210,21 +211,26 @@ const buildGetResponse = async (
       writeResponse(res, 200, headers, body)
       return
     }
-    // Data + control. JSON streams: body is already a JSON array (assembled by
-    // InMemoryWire's content-type-aware get). Raw streams: base64-encode bytes.
+    // Data + control. Encoding depends on content-type:
+    //   JSON   → body is already JSON-array (assembled by InMemoryWire)
+    //   text/* → emit raw text via multi-data lines (CRLF-injection-safe
+    //              via splitting on newlines into separate `data:` fields)
+    //   other  → base64-encode bytes; set Stream-SSE-Data-Encoding: base64
     const ct = opts.streamContentType ?? "application/octet-stream"
-    const isJson =
-      ct.startsWith("application/json") ||
-      (ct.startsWith("application/") && ct.includes("+json"))
+    const encoding = sseEncoding(ct)
     const combined = new Uint8Array(total)
     let off = 0
     for (const c of arr) {
       combined.set(c, off)
       off += c.length
     }
-    const dataPayload = isJson
-      ? new TextDecoder().decode(combined)
-      : encodeRawDataPayload(combined)
+    let dataPayload: string
+    if (encoding === "json" || encoding === "text") {
+      dataPayload = new TextDecoder().decode(combined)
+    } else {
+      dataPayload = encodeRawDataPayload(combined)
+      headers["Stream-SSE-Data-Encoding"] = "base64"
+    }
     const body = encodeDataAndControl(dataPayload, control)
     writeResponse(res, 200, headers, body)
     return

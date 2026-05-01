@@ -48,8 +48,11 @@ const TEXT_DECODER = new TextDecoder()
  * Encode a single message batch as a `data:` event followed by a `control:`
  * event. Per spec: control event after every data event.
  *
- * For RAW framing: data payload is base64-encoded raw bytes.
- * For JSON framing: data payload is a JSON array (caller already assembled).
+ * `data` is the already-encoded payload string (caller decides framing):
+ *   - JSON framing: pass JSON-array string
+ *   - text/*    framing: pass raw text — newlines are split into multiple
+ *                       `data:` fields within the same event (per RFC 6202)
+ *   - binary    framing: pass base64-encoded string (caller pre-encoded)
  *
  * Returns the wire bytes (UTF-8) of `event: data\ndata: <p>\n\n` +
  * `event: control\ndata: <c>\n\n`.
@@ -60,16 +63,36 @@ export const encodeDataAndControl = (
 ): Uint8Array => {
   const lines: string[] = []
   lines.push("event: data")
-  // SSE allows multi-line payloads via repeated `data:` lines; we keep it
-  // simple by stripping any embedded \n into a single line. For binary
-  // (base64) and JSON-array payloads this is safe.
-  lines.push(`data: ${data.replace(/\n/g, "")}`)
-  lines.push("") // blank line terminates event
+  // SSE supports multi-line payloads via repeated `data:` lines. Newlines
+  // (\n, \r\n, \r) inside the payload are split into separate `data:`
+  // fields within the same event, which prevents CRLF/LF injection of
+  // synthetic events into the response stream.
+  for (const line of data.split(/\r\n|\n|\r/)) {
+    lines.push(`data: ${line}`)
+  }
+  lines.push("") // blank line terminates the data event
   lines.push("event: control")
   lines.push(`data: ${JSON.stringify(control)}`)
   lines.push("")
   lines.push("")
   return TEXT_ENCODER.encode(lines.join("\n"))
+}
+
+/**
+ * Determine SSE encoding mode from a content-type.
+ *
+ *   - JSON streams (application/json, application/<x>+json): "json"
+ *   - text streams (text/*): "text" — emit raw text via multi-data lines
+ *   - everything else (binary, application/octet-stream, image/*, etc.):
+ *     "base64" — emit base64 + Stream-SSE-Data-Encoding header
+ */
+export type SseEncoding = "json" | "text" | "base64"
+export const sseEncoding = (contentType: string): SseEncoding => {
+  const mt = contentType.toLowerCase().split(";")[0]?.trim() ?? ""
+  if (mt === "application/json") return "json"
+  if (mt.startsWith("application/") && mt.endsWith("+json")) return "json"
+  if (mt.startsWith("text/")) return "text"
+  return "base64"
 }
 
 /** Encode a control-only event (e.g. heartbeat, end-of-stream signal). */
