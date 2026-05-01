@@ -133,6 +133,16 @@ export const PostResult = Schema.Struct({
   duplicate: Schema.Boolean,
   /** Whether the stream is closed after this POST. */
   closed: Schema.Boolean,
+  /**
+   * Server's view of the producer's highest accepted (epoch, seq) AFTER
+   * this POST. Present when the request carried producer headers.
+   *
+   * For duplicates, this is the highest accepted state — NOT the request's
+   * seq. Per spec: duplicate responses echo the highest accepted seq so
+   * clients learn the server's actual position.
+   */
+  producerEpoch: Schema.optional(Epoch),
+  producerSeq: Schema.optional(Seq),
 })
 
 // ─── GET — read from stream ─────────────────────────────────────────────────

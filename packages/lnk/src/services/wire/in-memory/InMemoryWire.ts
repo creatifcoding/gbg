@@ -216,9 +216,14 @@ export class InMemoryWire {
               // Per spec: response includes Stream-Next-Offset so clients
               // can resume reading. Use the tail (or canonical zero offset).
               const meta = yield* inner.metadata({ streamId: input.streamId })
+              // For fresh empty streams (no tail offset), return a lex-less
+              // sentinel that's strictly less than any real offset so a
+              // subsequent GET ?offset=<this> returns all messages.
+              // ASCII `-` (45) < `0` (48), and our real offsets always
+              // start with a digit (zero-padded seq).
               nextOffset = Option.getOrElse(
                 meta.nextOffset,
-                () => trustOffset(`${"0".repeat(20)}_${"0".repeat(20)}`),
+                () => trustOffset("-"),
               )
             }
             return {

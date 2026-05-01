@@ -220,7 +220,7 @@ const buildGetResponse = async (
     // Per spec: SSE control events always include streamNextOffset, even
     // for empty streams. Use the canonical zero offset as a starting point.
     const sseNextOffset =
-      out.nextOffset ?? `${"0".repeat(20)}_${"0".repeat(20)}`
+      out.nextOffset ?? "-"
     const control: ControlPayload = {
       streamNextOffset: sseNextOffset,
       ...(out.cursor !== undefined ? { streamCursor: out.cursor } : {}),
@@ -259,8 +259,15 @@ const buildGetResponse = async (
   }
 
   // ── Non-SSE (catch-up / long-poll) branch ────────────────────────────────
-  const headers: Record<string, string> = {}
-  if (out.nextOffset !== undefined) headers["Stream-Next-Offset"] = out.nextOffset
+  const headers: Record<string, string> = {
+    // GET responses MUST advise no caching — reads are dynamic and the
+    // tail-of-stream changes between requests.
+    "Cache-Control": "no-store",
+  }
+  // Always include Stream-Next-Offset, even on empty range — use canonical
+  // zero offset for fresh empty streams so clients can advance from start.
+  headers["Stream-Next-Offset"] =
+    out.nextOffset ?? "-"
   if (out.upToDate) headers["Stream-Up-To-Date"] = "true"
   if (out.closed) headers["Stream-Closed"] = "true"
   if (out.cursor !== undefined) headers["Stream-Cursor"] = out.cursor
@@ -419,6 +426,19 @@ const handle = async (
             ...(closed ? { streamClosed: true } : {}),
           }),
         )
+        // Per spec: producer-tracked POSTs echo Producer-{Id,Epoch,Seq} on
+        // the response. For DUPLICATES specifically, the server's HIGHEST
+        // accepted seq is echoed (not the request's seq) so clients learn
+        // the actual position. For successful new appends, the request's
+        // seq is echoed (matches the server's new highest).
+        const echoEpoch =
+          out.producerEpoch !== undefined
+            ? String(out.producerEpoch as number)
+            : pep
+        const echoSeq =
+          out.producerSeq !== undefined
+            ? String(out.producerSeq as number)
+            : psq
         return buildPostResponse(
           res,
           {
@@ -427,8 +447,8 @@ const handle = async (
             closed: out.closed,
             hasBody: body.length > 0,
           },
-          producer !== undefined && pid !== undefined && pep !== undefined && psq !== undefined
-            ? { producerId: pid, epoch: pep, seq: psq }
+          producer !== undefined && pid !== undefined && echoEpoch !== undefined && echoSeq !== undefined
+            ? { producerId: pid, epoch: echoEpoch, seq: echoSeq }
             : undefined,
         )
       }

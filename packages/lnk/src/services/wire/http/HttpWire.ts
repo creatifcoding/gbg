@@ -173,7 +173,19 @@ export class HttpWire {
               }
               const closed =
                 (r.headers.get(HEADERS.H_CLOSED) ?? "").toLowerCase() === "true"
-              return { nextOffset: r.nextOffset.value, duplicate, closed }
+              const producerEpochRaw = r.headers.get(HEADERS.H_PRODUCER_EPOCH)
+              const producerSeqRaw = r.headers.get(HEADERS.H_PRODUCER_SEQ)
+              return {
+                nextOffset: r.nextOffset.value,
+                duplicate,
+                closed,
+                ...(producerEpochRaw !== null
+                  ? { producerEpoch: Number(producerEpochRaw) as never }
+                  : {}),
+                ...(producerSeqRaw !== null
+                  ? { producerSeq: Number(producerSeqRaw) as never }
+                  : {}),
+              }
             }).pipe(
               // POST can yield FetchError, StaleEpochError, SequenceGapError,
               // StreamClosedError, StreamNotFoundError, InvalidPayloadError.

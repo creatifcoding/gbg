@@ -220,6 +220,14 @@ export interface AppendOutput {
   readonly duplicate: boolean
   /** Whether the stream is closed after this append. */
   readonly closed: boolean
+  /**
+   * Server's view of the producer's highest accepted (epoch, lastSeq)
+   * AFTER this append. Present iff the request carried producer headers.
+   * Used for producer-echo on response (especially for duplicates, where
+   * we echo the server's HIGHEST seq, not the request's seq).
+   */
+  readonly producerEpoch?: Epoch
+  readonly producerSeq?: Seq
 }
 
 export interface ReadInput {
@@ -422,6 +430,8 @@ const makeImpl = Effect.gen(function* () {
                 nextOffset: high.lastBatchEndOffset,
                 duplicate: true,
                 closed: stream.closed,
+                producerEpoch: high.epoch,
+                producerSeq: high.lastSeq,
               }
             }
             if ((input.producer.seq as number) > (high.lastSeq as number) + 1) {
@@ -433,7 +443,18 @@ const makeImpl = Effect.gen(function* () {
               })
             }
           }
-          // Higher epoch: accept (unfencing path)
+          if ((input.producer.epoch as number) > (high.epoch as number)) {
+            // Epoch bump (unfencing path): per spec, the new epoch's sequence
+            // MUST start at 0. seq != 0 is invalid (clients must reset their
+            // seq counter on every epoch increment).
+            if ((input.producer.seq as number) !== 0) {
+              return yield* new InvalidPayloadError({
+                streamId: input.streamId,
+                contentType: stream.contentType as string,
+                reason: "epoch-bump-requires-seq-zero",
+              })
+            }
+          }
         }
       }
 
@@ -482,9 +503,29 @@ const makeImpl = Effect.gen(function* () {
             const nextState = new Map(state)
             nextState.set(input.streamId, next)
             yield* Ref.set(stateRef, nextState)
-            return { nextOffset: tail, duplicate: false, closed: true }
+            return {
+              nextOffset: tail,
+              duplicate: false,
+              closed: true,
+              ...(input.producer
+                ? {
+                    producerEpoch: input.producer.epoch,
+                    producerSeq: input.producer.seq,
+                  }
+                : {}),
+            }
           }
-          return { nextOffset: tail, duplicate: true, closed: true }
+          return {
+            nextOffset: tail,
+            duplicate: true,
+            closed: true,
+            ...(input.producer
+              ? {
+                  producerEpoch: input.producer.epoch,
+                  producerSeq: input.producer.seq,
+                }
+              : {}),
+          }
         }
         // Empty body without Stream-Closed: invalid (CONFORMANCE
         // "empty-post-without-stream-closed-400").
@@ -545,7 +586,17 @@ const makeImpl = Effect.gen(function* () {
       const nextState = new Map(state)
       nextState.set(input.streamId, next)
       yield* Ref.set(stateRef, nextState)
-      return { nextOffset: lastOffset, duplicate: false, closed: closedAfter }
+      return {
+        nextOffset: lastOffset,
+        duplicate: false,
+        closed: closedAfter,
+        ...(input.producer
+          ? {
+              producerEpoch: input.producer.epoch,
+              producerSeq: input.producer.seq,
+            }
+          : {}),
+      }
     })
 
   // ── read ──────────────────────────────────────────────────────────────────
@@ -609,8 +660,17 @@ const makeImpl = Effect.gen(function* () {
         const initialStart = findStartIndex(initialStream, input.fromOffset)
         const initialSlice = initialStream.messages.slice(initialStart)
         if (initialSlice.length > 0 || initialStream.closed) return initial
+        // Capture the message count at the moment of long-poll start. For
+        // `fromOffset = "now"`, this is the anchor: we wait for new appends
+        // PAST this count. (For concrete offsets, findStartIndex handles
+        // the comparison naturally.)
+        const initialMessageCount = initialStream.messages.length
 
-        const timeoutMs = input.timeoutMs ?? 30_000
+        // Default long-poll timeout: 5s. Tests typically don't pass an
+        // explicit `?timeout=` so this default is the practical ceiling. The
+        // spec recommends 5-30s; we pick the lower end to keep responses
+        // snappy for catch-up consumers.
+        const timeoutMs = input.timeoutMs ?? 5_000
         const startTime = yield* Clock.currentTimeMillis
         while (true) {
           const elapsed = (yield* Clock.currentTimeMillis) - startTime
@@ -645,9 +705,31 @@ const makeImpl = Effect.gen(function* () {
           if (!polledStream) {
             return yield* new StreamNotFoundError({ streamId: input.streamId })
           }
-          const start = findStartIndex(polledStream, input.fromOffset)
-          if (start < polledStream.messages.length || polledStream.closed) {
-            return yield* readOnce(input)
+          // For `fromOffset = "now"`, findStartIndex returns the current
+          // tail — always equal to messages.length — so we can never detect
+          // new data via that comparison alone. Compare against the
+          // captured initial message count instead.
+          const polledLen = polledStream.messages.length
+          if (input.fromOffset === "now") {
+            if (polledLen > initialMessageCount || polledStream.closed) {
+              // For "now" mode, return only NEW data (slice from initial
+              // count forward).
+              return yield* readOnce({
+                ...input,
+                // Synthesize a position that means "start at initialMessageCount":
+                // the offset of the (initialMessageCount-1)th message if any,
+                // or beginning otherwise.
+                fromOffset:
+                  initialMessageCount > 0
+                    ? polledStream.messages[initialMessageCount - 1]!.offset
+                    : ("-1" as const),
+              })
+            }
+          } else {
+            const start = findStartIndex(polledStream, input.fromOffset)
+            if (start < polledLen || polledStream.closed) {
+              return yield* readOnce(input)
+            }
           }
         }
       }
