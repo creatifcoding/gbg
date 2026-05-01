@@ -39,6 +39,7 @@ import * as Stream from "effect-v4/Stream"
 import { framingMode } from "../../../contracts/ContentType.js"
 import {
   InvalidPayloadError,
+  StreamConfigMismatchError,
   StreamNotFoundError,
 } from "../../../contracts/errors.js"
 import { Wire, type PutResultT } from "../Wire.js"
@@ -215,24 +216,48 @@ export class InMemoryWire {
         post: (input) =>
           Effect.gen(function* () {
             const meta = yield* inner.metadata({ streamId: input.streamId })
-            const ct =
+            const streamCt =
               Option.getOrUndefined(meta.contentType) ??
               "application/octet-stream"
-            // Empty body: always pass `messages: []` to inner regardless of
+            // Per spec: if POST carries a Content-Type that differs from the
+            // stream's registered content-type AND has a non-empty body,
+            // fail with 409 mismatch.
+            //
+            // `application/octet-stream` is treated as "no preference" —
+            // HTTP transports (e.g. effect-v4's bodyUint8Array) auto-apply
+            // it as a default when the caller doesn't specify, so it
+            // shouldn't be interpreted as a content-type assertion.
+            const explicitClientCt =
+              input.contentType !== undefined &&
+              (input.contentType as string) !== "application/octet-stream"
+                ? (input.contentType as string)
+                : undefined
+            if (
+              explicitClientCt !== undefined &&
+              input.body.length > 0 &&
+              explicitClientCt !== (streamCt as string)
+            ) {
+              return yield* new StreamConfigMismatchError({
+                streamId: input.streamId as string,
+                expectedContentType: streamCt as string,
+                receivedContentType: explicitClientCt,
+              })
+            }
+            // Empty body: pass `messages: []` to inner regardless of
             // content-type. Inner handles close-only-vs-invalid-empty.
-            // Non-empty: split per content-type framing.
             const messages =
               input.body.length === 0
                 ? ([] as ReadonlyArray<Uint8Array>)
                 : yield* splitPostBody(
                     input.streamId as string,
-                    ct as string,
+                    streamCt as string,
                     input.body,
                   )
             return yield* inner.append({
               streamId: input.streamId,
               messages,
               ...(input.producer !== undefined ? { producer: input.producer } : {}),
+              ...(input.streamSeq !== undefined ? { streamSeq: input.streamSeq } : {}),
               ...(input.streamClosed !== undefined
                 ? { streamClosed: input.streamClosed }
                 : {}),

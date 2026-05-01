@@ -75,6 +75,12 @@ interface InternalStream {
   readonly createdAt: number
   readonly messages: ReadonlyArray<InternalMessage>
   readonly closed: boolean
+  /**
+   * Last accepted Stream-Seq value (lex-ordered string). Subsequent POSTs
+   * carrying `Stream-Seq` must be lexicographically greater. `null` means
+   * none accepted yet (any value is allowed).
+   */
+  readonly lastStreamSeq: string | null
   /** Cumulative byte offset of the next append. */
   readonly nextByteOffset: number
   /** Seq of the next message. */
@@ -91,6 +97,7 @@ const emptyStream = (contentType: ContentType, now: number): InternalStream => (
   nextByteOffset: 0,
   nextSeq: 0,
   producers: new Map(),
+  lastStreamSeq: null,
 })
 
 // ─── Offset generation — zero-padded lex-sortable ───────────────────────────
@@ -179,6 +186,12 @@ export interface AppendInput {
     readonly epoch: Epoch
     readonly seq: Seq
   }
+  /**
+   * Optional `Stream-Seq` header value. Lexicographic monotonic order is
+   * enforced (`<= lastStreamSeq` → SequenceGapError). Independent of
+   * producer-tracked dedup.
+   */
+  readonly streamSeq?: string
   readonly streamClosed?: boolean
 }
 
@@ -388,6 +401,23 @@ const makeImpl = Effect.gen(function* () {
         }
       }
 
+      // ── Stream-Seq monotonic check (independent of Producer-Seq) ───────
+      // Lex-ordered: each POST's streamSeq MUST be > lastStreamSeq.
+      // Equal-or-less = duplicate or out-of-order = SequenceGapError.
+      if (input.streamSeq !== undefined && input.streamSeq !== "") {
+        if (
+          stream.lastStreamSeq !== null &&
+          input.streamSeq <= stream.lastStreamSeq
+        ) {
+          return yield* new SequenceGapError({
+            streamId: input.streamId,
+            producerId: "stream-seq",
+            expectedSeq: 0,
+            receivedSeq: 0,
+          })
+        }
+      }
+
       // ── Empty-body branch (close-only / invalid-empty) ──────────────────
       if (input.messages.length === 0) {
         if (input.streamClosed === true) {
@@ -463,6 +493,10 @@ const makeImpl = Effect.gen(function* () {
       }
 
       const closedAfter = stream.closed || (input.streamClosed ?? false)
+      const newLastStreamSeq =
+        input.streamSeq !== undefined && input.streamSeq !== ""
+          ? input.streamSeq
+          : stream.lastStreamSeq
       const next: InternalStream = {
         ...stream,
         messages: [...stream.messages, ...newMessages],
@@ -470,6 +504,7 @@ const makeImpl = Effect.gen(function* () {
         nextSeq: seq,
         closed: closedAfter,
         producers: newProducers,
+        lastStreamSeq: newLastStreamSeq,
       }
       const nextState = new Map(state)
       nextState.set(input.streamId, next)

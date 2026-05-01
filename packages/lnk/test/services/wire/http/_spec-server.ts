@@ -304,6 +304,7 @@ const handle = async (
         const pid = req.headers["producer-id"] as string | undefined
         const pep = req.headers["producer-epoch"] as string | undefined
         const psq = req.headers["producer-seq"] as string | undefined
+        const streamSeq = req.headers["stream-seq"] as string | undefined
         const closed = ((req.headers["stream-closed"] as string | undefined) ?? "").toLowerCase() === "true"
         const producer =
           pid !== undefined && pep !== undefined && psq !== undefined
@@ -319,6 +320,9 @@ const handle = async (
             body,
             ...(ct !== undefined ? { contentType: trustContentType(ct) } : {}),
             ...(producer !== undefined ? { producer } : {}),
+            ...(streamSeq !== undefined && streamSeq !== ""
+              ? { streamSeq }
+              : {}),
             ...(closed ? { streamClosed: true } : {}),
           }),
         )

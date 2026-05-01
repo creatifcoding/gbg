@@ -146,6 +146,9 @@ export class HttpWire {
                       ),
                     }
                   : {}),
+                ...(input.streamSeq !== undefined
+                  ? { [HEADERS.H_STREAM_SEQ]: input.streamSeq }
+                  : {}),
                 ...(input.streamClosed === true
                   ? { [HEADERS.H_CLOSED]: "true" }
                   : {}),
@@ -177,7 +180,6 @@ export class HttpWire {
               // Other tagged errors don't apply to POST — die on them.
               Effect.catchTags({
                 RetentionDroppedError: (e) => Effect.die(e),
-                StreamConfigMismatchError: (e) => Effect.die(e),
               }),
             ),
 

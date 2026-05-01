@@ -128,6 +128,7 @@ export interface WireShape {
     | SequenceGapError
     | StreamClosedError
     | StreamNotFoundError
+    | StreamConfigMismatchError
   >
 
   /**

@@ -42,10 +42,12 @@ import { ProducerId, Epoch, Seq } from "../../contracts/Producer.js"
 import {
   FetchError,
   InvalidOffsetError,
+  InvalidPayloadError,
   RetentionDroppedError,
   SequenceGapError,
   StaleEpochError,
   StreamClosedError,
+  StreamConfigMismatchError,
   StreamNotFoundError,
 } from "../../contracts/errors.js"
 
@@ -105,10 +107,20 @@ export const ProducerHeaders = Schema.Struct({
 /** Input: append payload bytes to a stream, optionally with producer fencing. */
 export const PostInput = Schema.Struct({
   streamId: StreamId,
-  /** Override the stream's content-type for this append (rare). */
+  /**
+   * Content-type of the POST body. If it differs from the stream's
+   * registered content-type, the request fails with `StreamConfigMismatch`.
+   */
   contentType: Schema.optional(ContentType),
   /** Producer idempotency fields. Optional — without them, no fencing/dedup. */
   producer: Schema.optional(ProducerHeaders),
+  /**
+   * Optional `Stream-Seq` header. A stream-level monotonic sequence string
+   * (lexicographic). Each POST's `streamSeq` MUST be lexicographically
+   * greater than the previously accepted one or the request fails with
+   * `SequenceGap`. Independent of producer-tracked `Producer-Seq`.
+   */
+  streamSeq: Schema.optional(Schema.String),
   /** Set `Stream-Closed: true` on this POST to close the stream after append. */
   streamClosed: Schema.optional(Schema.Boolean),
 })
@@ -207,6 +219,8 @@ export const PostError = Schema.Union([
   SequenceGapError,
   StreamClosedError,
   StreamNotFoundError,
+  StreamConfigMismatchError,
+  InvalidPayloadError,
 ])
 
 export const GetError = Schema.Union([

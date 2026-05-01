@@ -62,6 +62,7 @@ const H_PRODUCER_RECEIVED_SEQ = "Producer-Received-Seq"
 const H_CONTENT_TYPE = "Content-Type"
 const H_STREAM_TTL = "Stream-TTL"
 const H_STREAM_EXPIRES_AT = "Stream-Expires-At"
+const H_STREAM_SEQ = "Stream-Seq"
 
 // ─── Service shape ──────────────────────────────────────────────────────────
 
@@ -440,6 +441,7 @@ export const HEADERS = {
   H_PRODUCER_ID,
   H_PRODUCER_EPOCH,
   H_PRODUCER_SEQ,
+  H_STREAM_SEQ,
   H_PRODUCER_EXPECTED_SEQ,
   H_PRODUCER_RECEIVED_SEQ,
   H_CONTENT_TYPE,
