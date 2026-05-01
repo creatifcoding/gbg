@@ -90,20 +90,21 @@ const errorResponse = (res: ServerResponse, status: number, message?: string): v
 
 const buildPutResponse = (
   res: ServerResponse,
-  out: { created: boolean; nextOffset?: string },
+  out: { created: boolean; closed: boolean; nextOffset?: string },
 ): void => {
-  // Per spec: PUT response should include Stream-Next-Offset so clients can
-  // resume reading from the correct position even after a create-and-append
-  // PUT.
+  // Per spec: PUT response includes Stream-Next-Offset (so clients can
+  // resume reading) AND Stream-Closed: true if the stream is closed (whether
+  // it was created already-closed or transitioned via Stream-Closed: true).
   const headers: Record<string, string> = {}
   if (out.nextOffset !== undefined)
     headers["Stream-Next-Offset"] = out.nextOffset
+  if (out.closed) headers["Stream-Closed"] = "true"
   writeResponse(res, out.created ? 201 : 200, headers)
 }
 
 const buildPostResponse = (
   res: ServerResponse,
-  out: { nextOffset: string; duplicate: boolean },
+  out: { nextOffset: string; duplicate: boolean; closed: boolean },
   producer?: {
     producerId: string
     epoch: string
@@ -114,8 +115,8 @@ const buildPostResponse = (
   //   Producer-tracked POST + new      → 200 OK
   //   Producer-tracked POST + duplicate → 204 No Content
   //   Generic (non-producer) POST      → 204 No Content
-  // Server echoes Producer-{Id,Epoch,Seq} on every producer-tracked POST
-  // (so the client can confirm what was accepted).
+  // Server echoes Producer-{Id,Epoch,Seq} on every producer-tracked POST.
+  // Stream-Closed: true is echoed if the stream became closed.
   const headers: Record<string, string> = {
     "Stream-Next-Offset": out.nextOffset,
   }
@@ -124,6 +125,7 @@ const buildPostResponse = (
     headers["Producer-Epoch"] = producer.epoch
     headers["Producer-Seq"] = producer.seq
   }
+  if (out.closed) headers["Stream-Closed"] = "true"
   const status =
     producer !== undefined
       ? (out.duplicate ? 204 : 200)
@@ -274,7 +276,9 @@ const handle = async (
         const ct = (req.headers["content-type"] as string) ?? "application/octet-stream"
         const ttl = req.headers["stream-ttl"]
         const expires = req.headers["stream-expires-at"]
-        // Per spec: PUT may carry an initial body. Read it; pass to wire.
+        const closedHdr = (req.headers["stream-closed"] as string | undefined) ?? ""
+        const streamClosed = closedHdr.toLowerCase() === "true"
+        // Per spec: PUT may carry an initial body AND Stream-Closed: true.
         const body = await readRequestBody(req)
         const out = await withWire((wire) =>
           wire.put({
@@ -282,10 +286,17 @@ const handle = async (
             contentType: trustContentType(ct),
             ...(ttl !== undefined ? { streamTtl: Number(ttl) } : {}),
             ...(expires !== undefined ? { streamExpiresAt: String(expires) } : {}),
+            ...(streamClosed ? { streamClosed: true } : {}),
             ...(body.length > 0 ? { body } : {}),
           }),
         )
-        return buildPutResponse(res, out)
+        return buildPutResponse(res, {
+          created: out.created,
+          closed: out.closed,
+          ...(out.nextOffset !== undefined
+            ? { nextOffset: out.nextOffset as string }
+            : {}),
+        })
       }
       case "POST": {
         const body = await readRequestBody(req)
@@ -316,8 +327,8 @@ const handle = async (
           {
             nextOffset: out.nextOffset as string,
             duplicate: out.duplicate,
+            closed: out.closed,
           },
-          // Echo producer headers on duplicates per spec.
           producer !== undefined && pid !== undefined && pep !== undefined && psq !== undefined
             ? { producerId: pid, epoch: pep, seq: psq }
             : undefined,

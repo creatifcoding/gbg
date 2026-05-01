@@ -92,6 +92,9 @@ export class HttpWire {
                 ...(input.streamExpiresAt !== undefined
                   ? { [HEADERS.H_STREAM_EXPIRES_AT]: input.streamExpiresAt }
                   : {}),
+                ...(input.streamClosed === true
+                  ? { [HEADERS.H_CLOSED]: "true" }
+                  : {}),
               }
               const r = yield* inner.sendChecked({
                 method: "PUT",
@@ -105,6 +108,9 @@ export class HttpWire {
                 streamId: input.streamId,
                 contentType: input.contentType,
                 created: r.status === 201,
+                closed:
+                  (r.headers.get(HEADERS.H_CLOSED) ?? "").toLowerCase() ===
+                  "true",
                 ...(Option.isSome(r.nextOffset)
                   ? { nextOffset: r.nextOffset.value }
                   : {}),
@@ -162,7 +168,9 @@ export class HttpWire {
                   message: `protocol violation: missing Stream-Next-Offset on POST /streams/${input.streamId}`,
                 })
               }
-              return { nextOffset: r.nextOffset.value, duplicate }
+              const closed =
+                (r.headers.get(HEADERS.H_CLOSED) ?? "").toLowerCase() === "true"
+              return { nextOffset: r.nextOffset.value, duplicate, closed }
             }).pipe(
               // POST can yield FetchError, StaleEpochError, SequenceGapError,
               // StreamClosedError, StreamNotFoundError, InvalidPayloadError.

@@ -47,6 +47,7 @@ import type { ContentType } from "../../../contracts/ContentType.js"
 import type { Epoch, ProducerId, Seq } from "../../../contracts/Producer.js"
 import type { StreamId } from "../../../contracts/StreamId.js"
 import {
+  InvalidPayloadError,
   SequenceGapError,
   StaleEpochError,
   StreamClosedError,
@@ -147,12 +148,20 @@ const resolveCursor = (
 export interface CreateInput {
   readonly streamId: StreamId
   readonly contentType: ContentType
+  /**
+   * Optional `Stream-Closed: true`. When set on a NEW PUT, the stream is
+   * created already-closed. When set on an idempotent re-PUT of an open
+   * stream, the stream is closed transitionally (no error).
+   */
+  readonly streamClosed?: boolean
 }
 
 export interface CreateOutput {
   /** True if a new stream was created; false if it already existed (with matching config). */
   readonly created: boolean
   readonly contentType: ContentType
+  /** Whether the stream is closed after this create call. */
+  readonly closed: boolean
 }
 
 export interface AppendInput {
@@ -180,8 +189,14 @@ export interface AppendOutput {
    * True iff this batch was a producer-seq duplicate (already-seen
    * `(producerId, epoch, seq)`); the original batch's `nextOffset` is
    * returned for idempotent compatibility.
+   *
+   * Also `true` when an idempotent close (Stream-Closed: true with empty
+   * body) is applied to an already-closed stream — second close is a no-op
+   * and reuses the original tail offset.
    */
   readonly duplicate: boolean
+  /** Whether the stream is closed after this append. */
+  readonly closed: boolean
 }
 
 export interface ReadInput {
@@ -232,7 +247,11 @@ export interface InMemoryInnerShape {
     input: AppendInput,
   ) => Effect.Effect<
     AppendOutput,
-    StaleEpochError | SequenceGapError | StreamClosedError | StreamNotFoundError
+    | StaleEpochError
+    | SequenceGapError
+    | StreamClosedError
+    | StreamNotFoundError
+    | InvalidPayloadError
   >
 
   readonly read: (input: ReadInput) => Effect.Effect<ReadOutput, StreamNotFoundError>
@@ -290,12 +309,36 @@ const makeImpl = Effect.gen(function* () {
             receivedContentType: input.contentType as string,
           })
         }
-        return { created: false, contentType: existing.contentType }
+        // Idempotent re-PUT with `Stream-Closed: true` on an open stream
+        // transitions to closed (per spec).
+        if (input.streamClosed === true && !existing.closed) {
+          const next = new Map(state)
+          next.set(input.streamId, { ...existing, closed: true })
+          yield* Ref.set(stateRef, next)
+          return {
+            created: false,
+            contentType: existing.contentType,
+            closed: true,
+          }
+        }
+        return {
+          created: false,
+          contentType: existing.contentType,
+          closed: existing.closed,
+        }
       }
+      const initialClosed = input.streamClosed === true
       const next = new Map(state)
-      next.set(input.streamId, emptyStream(input.contentType, now))
+      next.set(input.streamId, {
+        ...emptyStream(input.contentType, now),
+        closed: initialClosed,
+      })
       yield* Ref.set(stateRef, next)
-      return { created: true, contentType: input.contentType }
+      return {
+        created: true,
+        contentType: input.contentType,
+        closed: initialClosed,
+      }
     })
 
   // ── append ────────────────────────────────────────────────────────────────
@@ -307,30 +350,15 @@ const makeImpl = Effect.gen(function* () {
       if (!stream) {
         return yield* new StreamNotFoundError({ streamId: input.streamId })
       }
-      if (stream.closed) {
-        const last = stream.messages[stream.messages.length - 1]?.offset
-        return yield* new StreamClosedError({
-          streamId: input.streamId,
-          ...(last !== undefined ? { lastOffset: last } : {}),
-        })
-      }
-      if (input.messages.length === 0) {
-        // Caller MUST split content before calling. Empty batch is a programming
-        // error, not a runtime user-facing one. Treat as no-op: return current tail.
-        const tail = stream.messages[stream.messages.length - 1]?.offset
-        return {
-          nextOffset: tail ?? makeOffset(0, 0),
-          duplicate: false,
-        }
-      }
 
-      // ── Producer fencing + dedup ────────────────────────────────────────
-      let producers: ReadonlyMap<string, ProducerHigh> = stream.producers
+      // ── Producer fencing + dedup (BEFORE closed-check) ──────────────────
+      // Duplicate producer-seq POSTs always succeed idempotently — even if
+      // the stream is now closed (per spec "close-with-different-body-dedup":
+      // a retried close with same producer tuple wins on the original body).
       if (input.producer) {
         const pid = input.producer.producerId as string
-        const high = producers.get(pid)
+        const high = stream.producers.get(pid)
         if (high) {
-          // Stale epoch → fence
           if ((input.producer.epoch as number) < (high.epoch as number)) {
             return yield* new StaleEpochError({
               streamId: input.streamId,
@@ -340,11 +368,13 @@ const makeImpl = Effect.gen(function* () {
             })
           }
           if ((input.producer.epoch as number) === (high.epoch as number)) {
-            // Duplicate: seq <= lastSeq → return original batch's end offset
             if ((input.producer.seq as number) <= (high.lastSeq as number)) {
-              return { nextOffset: high.lastBatchEndOffset, duplicate: true }
+              return {
+                nextOffset: high.lastBatchEndOffset,
+                duplicate: true,
+                closed: stream.closed,
+              }
             }
-            // Sequence gap: seq > lastSeq + 1
             if ((input.producer.seq as number) > (high.lastSeq as number) + 1) {
               return yield* new SequenceGapError({
                 streamId: input.streamId,
@@ -354,8 +384,58 @@ const makeImpl = Effect.gen(function* () {
               })
             }
           }
-          // Higher epoch: accept (epoch increment is the unfencing path)
+          // Higher epoch: accept (unfencing path)
         }
+      }
+
+      // ── Empty-body branch (close-only / invalid-empty) ──────────────────
+      if (input.messages.length === 0) {
+        if (input.streamClosed === true) {
+          // Idempotent close: closing a closed stream is a no-op (returns
+          // existing tail + duplicate=true). Closing an open stream transitions.
+          const tail =
+            stream.messages[stream.messages.length - 1]?.offset ??
+            makeOffset(0, 0)
+          if (!stream.closed) {
+            let newProducers: ReadonlyMap<string, ProducerHigh> =
+              stream.producers
+            if (input.producer) {
+              const mut = new Map(stream.producers)
+              mut.set(input.producer.producerId as string, {
+                epoch: input.producer.epoch,
+                lastSeq: input.producer.seq,
+                lastBatchEndOffset: tail,
+              })
+              newProducers = mut
+            }
+            const next: InternalStream = {
+              ...stream,
+              closed: true,
+              producers: newProducers,
+            }
+            const nextState = new Map(state)
+            nextState.set(input.streamId, next)
+            yield* Ref.set(stateRef, nextState)
+            return { nextOffset: tail, duplicate: false, closed: true }
+          }
+          return { nextOffset: tail, duplicate: true, closed: true }
+        }
+        // Empty body without Stream-Closed: invalid (CONFORMANCE
+        // "empty-post-without-stream-closed-400").
+        return yield* new InvalidPayloadError({
+          streamId: input.streamId,
+          contentType: stream.contentType as string,
+          reason: "empty-body-without-stream-closed",
+        })
+      }
+
+      // ── Closed-stream guard (after dedup, after empty-branch) ───────────
+      if (stream.closed) {
+        const last = stream.messages[stream.messages.length - 1]?.offset
+        return yield* new StreamClosedError({
+          streamId: input.streamId,
+          ...(last !== undefined ? { lastOffset: last } : {}),
+        })
       }
 
       // ── Append the batch atomically ─────────────────────────────────────
@@ -382,18 +462,19 @@ const makeImpl = Effect.gen(function* () {
         newProducers = mut
       }
 
+      const closedAfter = stream.closed || (input.streamClosed ?? false)
       const next: InternalStream = {
         ...stream,
         messages: [...stream.messages, ...newMessages],
         nextByteOffset: byteOffset,
         nextSeq: seq,
-        closed: stream.closed || (input.streamClosed ?? false),
+        closed: closedAfter,
         producers: newProducers,
       }
       const nextState = new Map(state)
       nextState.set(input.streamId, next)
       yield* Ref.set(stateRef, nextState)
-      return { nextOffset: lastOffset, duplicate: false }
+      return { nextOffset: lastOffset, duplicate: false, closed: closedAfter }
     })
 
   // ── read ──────────────────────────────────────────────────────────────────
@@ -435,7 +516,9 @@ const makeImpl = Effect.gen(function* () {
         nextOffset:
           lastOffset !== undefined ? Option.some(lastOffset) : Option.none(),
         upToDate,
-        closed: stream.closed && upToDate,
+        // Per spec: Stream-Closed: true is echoed whenever stream is closed,
+        // regardless of caught-up state. Stream-Up-To-Date is the caught-up flag.
+        closed: stream.closed,
         cursor,
         timedOut: false,
       }

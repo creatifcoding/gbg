@@ -67,6 +67,14 @@ export const PutInput = Schema.Struct({
   streamTtl: Schema.optional(Schema.Number),
   /** Optional Stream-Expires-At header. */
   streamExpiresAt: Schema.optional(Schema.String),
+  /**
+   * Optional `Stream-Closed: true` header on PUT.
+   *
+   * When `true` AND no body is supplied: creates an already-closed empty
+   * stream. When `true` AND a body is supplied: creates the stream, appends
+   * the body atomically, and closes — "create-final" in one round trip.
+   */
+  streamClosed: Schema.optional(Schema.Boolean),
 })
 
 /** Result: did this PUT actually create the stream, or did it already exist? */
@@ -81,6 +89,8 @@ export const PutResult = Schema.Struct({
    * even if the body was empty (so clients can use it as a starting point).
    */
   nextOffset: Schema.optional(Offset),
+  /** Whether the stream is closed after this PUT. */
+  closed: Schema.Boolean,
 })
 
 // ─── POST — append to stream ────────────────────────────────────────────────
@@ -109,6 +119,8 @@ export const PostResult = Schema.Struct({
   nextOffset: Offset,
   /** True if the server detected this seq as a duplicate (idempotent return). */
   duplicate: Schema.Boolean,
+  /** Whether the stream is closed after this POST. */
+  closed: Schema.Boolean,
 })
 
 // ─── GET — read from stream ─────────────────────────────────────────────────

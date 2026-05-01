@@ -156,33 +156,45 @@ export class InMemoryWire {
       const inner = yield* InMemoryInner
 
       return Wire.of({
-        // ── put ──────────────────────────────────────────────
+        // ── put ───────────────────────────────────────────────────────
         put: (input) =>
           Effect.gen(function* () {
+            // Strategy:
+            //   - body absent + streamClosed=true       → create-closed
+            //   - body present + streamClosed=true       → create-open, then
+            //                                              append-and-close
+            //   - body present, no streamClosed          → create-open, then
+            //                                              append
+            //   - body absent, no streamClosed           → create-open
+            const hasBody = input.body !== undefined && input.body.length > 0
             const out = yield* inner.create({
               streamId: input.streamId,
               contentType: input.contentType,
+              ...(input.streamClosed === true && !hasBody
+                ? { streamClosed: true }
+                : {}),
             })
-            // Per spec: PUT may include an initial body that's atomically
-            // appended after creation. Apply content-type framing the same
-            // way as POST.
             let nextOffset: PutResultT["nextOffset"]
-            if (input.body !== undefined && input.body.length > 0) {
+            let closed = out.closed
+            if (hasBody) {
               const messages = yield* splitPostBody(
                 input.streamId as string,
                 out.contentType as string,
-                input.body,
+                input.body!,
               )
               const append = yield* inner.append({
                 streamId: input.streamId,
                 messages,
+                ...(input.streamClosed === true ? { streamClosed: true } : {}),
               })
               nextOffset = append.nextOffset
+              closed = append.closed
             }
             return {
               streamId: input.streamId,
               contentType: out.contentType,
               created: out.created,
+              closed,
               ...(nextOffset !== undefined ? { nextOffset } : {}),
             }
           }).pipe(
@@ -199,28 +211,24 @@ export class InMemoryWire {
             }),
           ),
 
-        // ── post ────────────────────────────────────────────────
+        // ── post ──────────────────────────────────────────────────────
         post: (input) =>
           Effect.gen(function* () {
-            // Look up stream's content-type to decide framing.
             const meta = yield* inner.metadata({ streamId: input.streamId })
-            if (Option.isNone(meta.contentType)) {
-              // Stream exists but no content-type? Shouldn't happen with our
-              // current Inner; fall back to raw.
-              return yield* inner.append({
-                streamId: input.streamId,
-                messages: [input.body],
-                ...(input.producer !== undefined ? { producer: input.producer } : {}),
-                ...(input.streamClosed !== undefined
-                  ? { streamClosed: input.streamClosed }
-                  : {}),
-              })
-            }
-            const messages = yield* splitPostBody(
-              input.streamId as string,
-              meta.contentType.value as string,
-              input.body,
-            )
+            const ct =
+              Option.getOrUndefined(meta.contentType) ??
+              "application/octet-stream"
+            // Empty body: always pass `messages: []` to inner regardless of
+            // content-type. Inner handles close-only-vs-invalid-empty.
+            // Non-empty: split per content-type framing.
+            const messages =
+              input.body.length === 0
+                ? ([] as ReadonlyArray<Uint8Array>)
+                : yield* splitPostBody(
+                    input.streamId as string,
+                    ct as string,
+                    input.body,
+                  )
             return yield* inner.append({
               streamId: input.streamId,
               messages,
