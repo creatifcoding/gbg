@@ -90,15 +90,23 @@ const errorResponse = (res: ServerResponse, status: number, message?: string): v
 
 const buildPutResponse = (
   res: ServerResponse,
-  out: { created: boolean; closed: boolean; nextOffset?: string },
+  out: {
+    created: boolean
+    closed: boolean
+    nextOffset?: string
+    contentType?: string
+  },
 ): void => {
-  // Per spec: PUT response includes Stream-Next-Offset (so clients can
-  // resume reading) AND Stream-Closed: true if the stream is closed (whether
-  // it was created already-closed or transitioned via Stream-Closed: true).
+  // Per spec: PUT response includes:
+  //   - Stream-Next-Offset (so clients can resume reading)
+  //   - Stream-Closed: true if the stream is closed
+  //   - Content-Type echoed back (so clients can confirm what was registered)
   const headers: Record<string, string> = {}
   if (out.nextOffset !== undefined)
     headers["Stream-Next-Offset"] = out.nextOffset
   if (out.closed) headers["Stream-Closed"] = "true"
+  if (out.contentType !== undefined)
+    headers["Content-Type"] = out.contentType
   writeResponse(res, out.created ? 201 : 200, headers)
 }
 
@@ -185,8 +193,10 @@ const buildGetResponse = async (
   if (opts.live === "sse") {
     const headers: Record<string, string> = {
       "Content-Type": SSE_CONTENT_TYPE,
-      // Suggest no caching for SSE responses (live).
-      "Cache-Control": "no-store",
+      // Per spec: SSE responses MUST instruct clients NOT to cache. The
+      // canonical directive set is `no-cache, no-store` so intermediary
+      // CDNs/proxies neither cache nor revalidate.
+      "Cache-Control": "no-cache, no-store",
     }
     const control: ControlPayload = {
       ...(out.nextOffset !== undefined ? { streamNextOffset: out.nextOffset } : {}),
@@ -325,6 +335,7 @@ const handle = async (
         return buildPutResponse(res, {
           created: out.created,
           closed: out.closed,
+          contentType: out.contentType as string,
           ...(out.nextOffset !== undefined
             ? { nextOffset: out.nextOffset as string }
             : {}),
@@ -414,20 +425,15 @@ const handle = async (
       }
       case "GET": {
         // Per spec: reject malformed `offset` query parameters.
-        // Multiple `offset=` params: getAll() length > 1.
         const offsetParams = fullUrl.searchParams.getAll("offset")
         if (offsetParams.length > 1) {
           return errorResponse(res, 400, "multiple offset parameters")
         }
         const rawOffset = fullUrl.searchParams.get("offset")
         if (rawOffset !== null) {
-          // Empty offset → invalid.
           if (rawOffset === "") {
             return errorResponse(res, 400, "empty offset parameter")
           }
-          // Sentinels are valid as-is. Otherwise: must be opaque token
-          // (no whitespace, no commas, no semicolons). Servers don't parse
-          // structure, but they DO reject obviously malformed values.
           if (rawOffset !== "-1" && rawOffset !== "now") {
             if (/[\s,;]/.test(rawOffset)) {
               return errorResponse(res, 400, "malformed offset parameter")
@@ -437,6 +443,20 @@ const handle = async (
         const offsetParam = rawOffset ?? "-1"
         const limitParam = fullUrl.searchParams.get("limit")
         const liveParam = fullUrl.searchParams.get("live")
+
+        // Per spec: live modes (long-poll, sse) REQUIRE an explicit `offset`
+        // query parameter. The client must commit to a starting position;
+        // otherwise the server has no way to know where the client is.
+        if (
+          (liveParam === "long-poll" || liveParam === "sse") &&
+          rawOffset === null
+        ) {
+          return errorResponse(
+            res,
+            400,
+            `${liveParam} mode requires offset parameter`,
+          )
+        }
         const timeoutParam = fullUrl.searchParams.get("timeout")
         const cursorParam = fullUrl.searchParams.get("cursor")
         const liveMode =
