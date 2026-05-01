@@ -454,10 +454,20 @@ When starting Phase 4 (server runtime) or Phase 5 (Fork):
   protocol mapping for all upstream conformance tests in scope. Lifted
   validation from spec-server into contracts. 241/299 passing, 0 in-scope
   failures.
-- **Phase 2** (→ NEXT): `Lnk` handle — user-facing reactive API as
-  `Effect.YieldableClass<A, E, R>`. Integrates `@tmnl/stx` materializers
-  (`stxLatest`, `stxPull`, `stxFeed`, `stxShared`, `stxDuplex`). Builds on
-  the closed Phase 1 wire.
+- **Phase 2** (⚠ IN PROGRESS): `Lnk` handle — user-facing reactive API as
+  `Effect.YieldableClass<A, E, R>`.
+  - **Phase 2.0** (✅ DONE): `Lnk` class with driver fiber, PubSub-backed
+    `subscribe()`, one-shot `read()`, `append()`/`close()`/`head()`
+    delegation, content-type-aware message decoding (raw vs JSON).
+    5 tests, 175/175 internal green.
+  - **Phase 2.1** (next): `Lnks` factory — `RcMap`-cached multi-stream
+    client. `Lnks.connect(streamId, opts)` reuses existing handles by id;
+    refcount + scope-bound disposal.
+  - **Phase 2.2** (next): `IdempotentProducer` Sink with `lingerMs` +
+    `maxBatchBytes` aggregation, `restart()` + `autoClaim` epoch bump.
+  - **Phase 2.3** (next): `@tmnl/stx` materializer integration
+    (`stxLatest`, `stxPull`, `stxFeed`, `stxShared`, `stxDuplex`).
+  - **Phase 2.4** (next): React surface via `AtomRuntime.pull` integration.
 - **Phase 3** (later): NATS-bridge wire — repurpose v1's
   `StreamBridgeService`/`LiveStreamService`/`ConsumerStateService` against
   the new `Wire` shape.
