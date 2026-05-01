@@ -21,3 +21,8 @@ export {
   fromBytes as messageFromBytes,
   fromBytesWithOffset as messageFromBytesWithOffset,
 } from "./Message.js"
+
+// Optional @tmnl/stx integration. Re-exported for callers that have
+// @tmnl/stx installed (peer dep). If not installed, importing these names
+// is a TS error — the rest of the module remains usable.
+export { lnkLatest, lnkFeed } from "./Stx.js"
