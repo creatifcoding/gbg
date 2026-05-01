@@ -280,10 +280,36 @@ const handle = async (
     switch (req.method) {
       case "PUT": {
         const ct = (req.headers["content-type"] as string) ?? "application/octet-stream"
-        const ttl = req.headers["stream-ttl"]
-        const expires = req.headers["stream-expires-at"]
+        const ttl = req.headers["stream-ttl"] as string | undefined
+        const expires = req.headers["stream-expires-at"] as string | undefined
         const closedHdr = (req.headers["stream-closed"] as string | undefined) ?? ""
         const streamClosed = closedHdr.toLowerCase() === "true"
+
+        // Per spec: TTL and Expires-At are mutually exclusive. Setting
+        // both is an invalid request.
+        if (ttl !== undefined && expires !== undefined) {
+          return errorResponse(
+            res,
+            400,
+            "Stream-TTL and Stream-Expires-At are mutually exclusive",
+          )
+        }
+
+        // Per spec: TTL MUST be a positive non-zero integer (no decimals,
+        // no plus signs, no scientific notation, no leading zeros, no
+        // negative). Strict integer regex — `^[1-9][0-9]*$`.
+        if (ttl !== undefined && !/^[1-9][0-9]*$/.test(ttl)) {
+          return errorResponse(res, 400, "invalid Stream-TTL")
+        }
+
+        // Per spec: Expires-At MUST be a valid ISO-8601/RFC3339 timestamp.
+        if (expires !== undefined) {
+          const parsedDate = Date.parse(expires)
+          if (Number.isNaN(parsedDate)) {
+            return errorResponse(res, 400, "invalid Stream-Expires-At")
+          }
+        }
+
         // Per spec: PUT may carry an initial body AND Stream-Closed: true.
         const body = await readRequestBody(req)
         const out = await withWire((wire) =>
@@ -312,14 +338,55 @@ const handle = async (
         const psq = req.headers["producer-seq"] as string | undefined
         const streamSeq = req.headers["stream-seq"] as string | undefined
         const closed = ((req.headers["stream-closed"] as string | undefined) ?? "").toLowerCase() === "true"
-        const producer =
+
+        // Per spec: producer headers MUST be either ALL three present or
+        // ALL three absent. Partial sets are invalid (400).
+        const someProducerHeaders =
+          pid !== undefined || pep !== undefined || psq !== undefined
+        const allProducerHeaders =
           pid !== undefined && pep !== undefined && psq !== undefined
-            ? {
-                producerId: trustProducerId(pid),
-                epoch: trustEpoch(Number(pep)),
-                seq: trustSeq(Number(psq)),
-              }
-            : undefined
+        if (someProducerHeaders && !allProducerHeaders) {
+          return errorResponse(res, 400, "incomplete producer headers")
+        }
+
+        // Per spec: POSTs MUST carry a Content-Type header (or the request
+        // is invalid). Exception: close-only POSTs (empty body with
+        // Stream-Closed: true) MAY omit Content-Type since they're not
+        // appending bytes.
+        if (ct === undefined && !(closed && body.length === 0)) {
+          return errorResponse(res, 400, "missing Content-Type on POST")
+        }
+
+        // Validate producer header formats:
+        //   - Producer-Id MUST be a non-empty string
+        //   - Producer-Epoch and Producer-Seq MUST be non-negative integers
+        //     (no decimals, no negatives, no scientific notation)
+        if (allProducerHeaders) {
+          if (pid!.length === 0) {
+            return errorResponse(res, 400, "empty Producer-Id")
+          }
+          if (!/^[0-9]+$/.test(pep!)) {
+            return errorResponse(res, 400, "invalid Producer-Epoch format")
+          }
+          if (!/^[0-9]+$/.test(psq!)) {
+            return errorResponse(res, 400, "invalid Producer-Seq format")
+          }
+          // Per spec: when a producer increases its epoch, the new epoch's
+          // sequence MUST start at 0. seq != 0 with a fresh epoch is
+          // invalid (clients must reset seq counter on epoch bump).
+          // We don't have access to prior state here; let the wire detect
+          // it. But for the simple case where epoch is supplied with
+          // seq != 0 on a brand-new producer, the wire's StaleEpochError /
+          // SequenceGapError will surface. Fall through.
+        }
+
+        const producer = allProducerHeaders
+          ? {
+              producerId: trustProducerId(pid!),
+              epoch: trustEpoch(Number(pep!)),
+              seq: trustSeq(Number(psq!)),
+            }
+          : undefined
         const out = await withWire((wire) =>
           wire.post({
             streamId,
@@ -346,7 +413,28 @@ const handle = async (
         )
       }
       case "GET": {
-        const offsetParam = fullUrl.searchParams.get("offset") ?? "-1"
+        // Per spec: reject malformed `offset` query parameters.
+        // Multiple `offset=` params: getAll() length > 1.
+        const offsetParams = fullUrl.searchParams.getAll("offset")
+        if (offsetParams.length > 1) {
+          return errorResponse(res, 400, "multiple offset parameters")
+        }
+        const rawOffset = fullUrl.searchParams.get("offset")
+        if (rawOffset !== null) {
+          // Empty offset → invalid.
+          if (rawOffset === "") {
+            return errorResponse(res, 400, "empty offset parameter")
+          }
+          // Sentinels are valid as-is. Otherwise: must be opaque token
+          // (no whitespace, no commas, no semicolons). Servers don't parse
+          // structure, but they DO reject obviously malformed values.
+          if (rawOffset !== "-1" && rawOffset !== "now") {
+            if (/[\s,;]/.test(rawOffset)) {
+              return errorResponse(res, 400, "malformed offset parameter")
+            }
+          }
+        }
+        const offsetParam = rawOffset ?? "-1"
         const limitParam = fullUrl.searchParams.get("limit")
         const liveParam = fullUrl.searchParams.get("live")
         const timeoutParam = fullUrl.searchParams.get("timeout")

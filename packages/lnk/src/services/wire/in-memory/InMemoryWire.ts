@@ -52,6 +52,16 @@ const TEXT_DECODER = new TextDecoder()
 const TEXT_ENCODER = new TextEncoder()
 
 /**
+ * Detect if a body is the JSON empty-array literal (with optional whitespace).
+ * Used to special-case PUT-with-`[]` for JSON streams: spec treats this as
+ * "create empty stream" (not as an invalid empty payload).
+ */
+const isEmptyArrayBytes = (body: Uint8Array): boolean => {
+  const decoded = TEXT_DECODER.decode(body).trim()
+  return decoded === "[]"
+}
+
+/**
  * Split a POST body into per-message byte arrays based on stream's framing.
  *
  *   - JSON array `[a, b, c]`  → 3 elements, each a JSON-encoded value
@@ -178,7 +188,13 @@ export class InMemoryWire {
             })
             let nextOffset: PutResultT["nextOffset"]
             let closed = out.closed
-            if (hasBody) {
+            // Per spec: PUT with body `[]` on a JSON stream creates an empty
+            // stream (not invalid). Skip the append in that case.
+            const isEmptyJsonArray =
+              hasBody &&
+              framingMode(out.contentType as string) === "json" &&
+              isEmptyArrayBytes(input.body!)
+            if (hasBody && !isEmptyJsonArray) {
               const messages = yield* splitPostBody(
                 input.streamId as string,
                 out.contentType as string,
@@ -192,10 +208,9 @@ export class InMemoryWire {
               nextOffset = append.nextOffset
               closed = append.closed
             } else {
-              // Per spec: PUT response always includes Stream-Next-Offset so
-              // clients can resume reading at the correct position. For
-              // empty PUTs (no body, fresh stream), use the canonical zero
-              // offset — the offset the next POST would land at.
+              // Empty PUT (no body, JSON empty array, or close-only).
+              // Per spec: response includes Stream-Next-Offset so clients
+              // can resume reading. Use the tail (or canonical zero offset).
               const meta = yield* inner.metadata({ streamId: input.streamId })
               nextOffset = Option.getOrElse(
                 meta.nextOffset,
