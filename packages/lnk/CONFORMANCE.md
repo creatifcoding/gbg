@@ -12,14 +12,16 @@
 > - 🚫 **HTTP-ONLY** — only meaningful in `HttpWire` (Phase 1.1+); skip for `InMemoryWire`
 > - ⏸ **DEFERRED** — out of scope for current phase, queued for later
 >
-> **Last updated**: 2026-04-30 (Phase 1.2 — SSE codec, Stream-Cursor, upstream conformance integrated)
+> **Last updated**: 2026-04-30 (Phase 1.3 — in-scope conformance closed; validation lifted to contracts)
 > **Internal conformance tests** (Option B, transport-agnostic): **170 / 170 passing**
 >   - 85 / 85 against `InMemoryWire` (lifecycle, offsets, raw + JSON framing, producer idempotency, stream closure, cursor, long-poll — SSE skipped: no HTTP transit)
 >   - 85 / 85 against `HttpWire` over the `node:http` spec server (same suite, plus SSE)
-> **Upstream conformance tests** (`@durable-streams/server-conformance-tests@0.3.0`): **100 / 299 passing**
->   See §16 for the failure-category breakdown. Of 199 failures: ~50 are
->   features we explicitly defer (TTL, ETag, security headers); remainder
->   are real spec-coverage gaps in the in-memory reference (Phase 1.3+).
+> **Upstream conformance tests** (`@durable-streams/server-conformance-tests@0.3.0`): **241 / 299 passing**
+>   - +141 tests vs Phase 1.2 baseline (100/299).
+>   - **Zero in-scope failures remaining**. All 58 remaining failures are
+>     in explicitly deferred categories (Fork = 30, TTL Expiration = 9,
+>     Browser Security Headers = 8, Long-Poll Edge Cases = 4, Caching/ETag
+>     = 3, Property-Based fuzzing = 2, Fork TTL = 2). See §16.
 
 ---
 
