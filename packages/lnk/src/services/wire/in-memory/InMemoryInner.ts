@@ -315,7 +315,11 @@ const makeImpl = Effect.gen(function* () {
       if (existing) {
         // Idempotent: matching config → succeeds with `created: false`.
         // Mismatching content-type → 409 Conflict per spec.
-        if (existing.contentType !== input.contentType) {
+        // Per spec: content-type comparison is case-insensitive.
+        if (
+          (existing.contentType as string).toLowerCase() !==
+          (input.contentType as string).toLowerCase()
+        ) {
           return yield* new StreamConfigMismatchError({
             streamId: input.streamId,
             expectedContentType: existing.contentType as string,

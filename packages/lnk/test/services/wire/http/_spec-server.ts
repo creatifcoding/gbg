@@ -104,7 +104,12 @@ const buildPutResponse = (
 
 const buildPostResponse = (
   res: ServerResponse,
-  out: { nextOffset: string; duplicate: boolean; closed: boolean },
+  out: {
+    nextOffset: string
+    duplicate: boolean
+    closed: boolean
+    hasBody: boolean
+  },
   producer?: {
     producerId: string
     epoch: string
@@ -112,9 +117,10 @@ const buildPostResponse = (
   },
 ): void => {
   // Per spec status semantics:
-  //   Producer-tracked POST + new      → 200 OK
-  //   Producer-tracked POST + duplicate → 204 No Content
-  //   Generic (non-producer) POST      → 204 No Content
+  //   Producer-tracked POST + body + new        → 200 OK
+  //   Producer-tracked POST + body + duplicate   → 204 No Content
+  //   Producer-tracked POST + close-only         → 204 No Content (always)
+  //   Generic (non-producer) POST                → 204 No Content
   // Server echoes Producer-{Id,Epoch,Seq} on every producer-tracked POST.
   // Stream-Closed: true is echoed if the stream became closed.
   const headers: Record<string, string> = {
@@ -127,7 +133,7 @@ const buildPostResponse = (
   }
   if (out.closed) headers["Stream-Closed"] = "true"
   const status =
-    producer !== undefined
+    producer !== undefined && out.hasBody
       ? (out.duplicate ? 204 : 200)
       : 204
   writeResponse(res, status, headers)
@@ -332,6 +338,7 @@ const handle = async (
             nextOffset: out.nextOffset as string,
             duplicate: out.duplicate,
             closed: out.closed,
+            hasBody: body.length > 0,
           },
           producer !== undefined && pid !== undefined && pep !== undefined && psq !== undefined
             ? { producerId: pid, epoch: pep, seq: psq }

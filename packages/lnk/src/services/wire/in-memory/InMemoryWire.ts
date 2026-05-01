@@ -37,6 +37,7 @@ import * as Option from "effect-v4/Option"
 import * as Stream from "effect-v4/Stream"
 
 import { framingMode } from "../../../contracts/ContentType.js"
+import { trust as trustOffset } from "../../../contracts/Offset.js"
 import {
   InvalidPayloadError,
   StreamConfigMismatchError,
@@ -190,6 +191,16 @@ export class InMemoryWire {
               })
               nextOffset = append.nextOffset
               closed = append.closed
+            } else {
+              // Per spec: PUT response always includes Stream-Next-Offset so
+              // clients can resume reading at the correct position. For
+              // empty PUTs (no body, fresh stream), use the canonical zero
+              // offset — the offset the next POST would land at.
+              const meta = yield* inner.metadata({ streamId: input.streamId })
+              nextOffset = Option.getOrElse(
+                meta.nextOffset,
+                () => trustOffset(`${"0".repeat(20)}_${"0".repeat(20)}`),
+              )
             }
             return {
               streamId: input.streamId,
@@ -235,7 +246,9 @@ export class InMemoryWire {
             if (
               explicitClientCt !== undefined &&
               input.body.length > 0 &&
-              explicitClientCt !== (streamCt as string)
+              // Per spec: content-type comparison is case-insensitive.
+              explicitClientCt.toLowerCase() !==
+                (streamCt as string).toLowerCase()
             ) {
               return yield* new StreamConfigMismatchError({
                 streamId: input.streamId as string,
