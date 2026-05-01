@@ -330,52 +330,101 @@ bunx vitest run test/conformance/upstream.test.ts
 
 ---
 
-## 16. Upstream conformance failure backlog (Phase 1.2 baseline)
+## 16. Upstream conformance status (Phase 1.3 — closed)
 
-From the 100 / 299 baseline (Phase 1.2). Counts are failures-per-category.
-Ranked by phase priority — highest-impact items first.
+Current: **241 / 299** passing. **Zero in-scope failures**. All 58 remaining
+failures are deferred to a later phase, categorized below with phase
+assignment and rationale.
 
-### Spec-features we don't yet implement (high-priority backlog)
+### Phase 1.3 — in-scope work (CLOSED ✅)
 
-| Failures | Category | Status / Note |
+The Phase 1.2 baseline had 199 failures across 22 categories. After Phase
+1.3, every failure traceable to **wire-layer correctness or HTTP-adapter
+protocol mapping** is fixed:
+
+  - PUT-with-body atomic create-and-append
+  - Stream-Closed lifecycle (close-only, idempotent close, dedup-before-
+    closed-check, PUT-with-Stream-Closed)
+  - Stream-Seq lex-monotonic header
+  - Producer-tracked POST status (200 new / 204 dup / 204 generic)
+  - Producer-Epoch / -Seq echo (highest-accepted on duplicates)
+  - Epoch-bump-requires-seq-zero validation
+  - Content-Type case-insensitive matching + mismatch on POST
+  - Empty-body POST validation (400 unless close-only)
+  - PUT-with-`[]` JSON empty-array creates empty stream
+  - SSE encoding: text/* multi-data (CRLF-injection-safe), binary base64,
+    JSON unchanged; `Stream-SSE-Data-Encoding: base64` response header
+  - Long-poll with `offset=now` (capture initial msg count anchor)
+  - Long-poll default timeout 5s
+  - Lex-less canonical zero offset ("-") for empty streams
+  - GET response: always Stream-Next-Offset, Cache-Control, Content-Type
+  - PUT 201: Location header
+  - HEAD: Stream-TTL / Stream-Expires-At echo
+  - Idempotent PUT with different TTL/Expires-At → 409
+  - Server-side input validation (lifted to contracts: TTL canonical
+    decimal, Expires-At ISO-8601, Producer-Id non-empty, Producer-{Epoch,
+    Seq} canonical decimal, Stream-Seq whitespace rejection, offset
+    forbidden-character rejection)
+
+### Deferred backlog (58 failures, by phase)
+
+#### ⏸ Phase 4 — server runtime (TTL reaper, ETag, security middleware)
+
+These require a real production HTTP server with background tasks,
+caching middleware, and security-policy enforcement. The wire layer is
+transport-agnostic; these are server-adapter concerns.
+
+| # | Category | Phase 4 work |
 |---|---|---|
-| 21 | SSE Mode | Server emits SSE per spec, but the suite tests details we don't yet mirror (per-event id, comments, retry hints, edge cases). Phase 1.3. |
-| 16 | Idempotent Producer Operations | Edge cases: zombie writers, out-of-order epoch arrivals, large seq jumps. Phase 1.3. |
-| 12 | Offset Validation and Resumability | Sentinel handling edge cases, offset comparison robustness. Phase 1.3. |
-| 10 | Protocol Edge Cases | Various malformed-input + boundary tests. Phase 1.3. |
-| 10 | HTTP Protocol | Specific status code + header subtleties. Phase 1.3. |
-| 4 | Long-Poll Edge Cases | Concurrent timeouts, client cancellation. Phase 1.3. |
-| 3 | Case-Insensitivity | Header name case handling on the server. Phase 1.3 (one-line fix). |
-| 2 | Read-Your-Writes Consistency | Causal ordering between POST + GET in same client. Phase 1.3. |
-| 2 | Content-Type Validation | Various MIME-type acceptance / rejection rules. Phase 1.3. |
-| 2 | Chunking and Large Payloads | Multi-chunk request bodies, large-body limits. Phase 1.3. |
-| 1 | HEAD Metadata Edge Cases | Single edge case. Phase 1.3. |
-| 1 | Basic Stream Operations | Stream-isolation across delete/recreate. Phase 1.3. |
-| 1 | Append Operations | One specific seq-ordering test. Phase 1.3. |
+| 9 | TTL Expiration Behavior | Background reaper that evicts streams past TTL/Expires-At; subsequent ops return 404 |
+| 8 | Browser Security Headers | Server middleware: `X-Content-Type-Options: nosniff`, `Cross-Origin-Resource-Policy`, `Cache-Control: no-store` on HEAD, security headers on error responses |
+| 3 | Caching and ETag | Server-side: generate ETag on GET, 304 on `If-None-Match`, regenerate on data change |
+| 4 | Long-Poll Edge Cases | Concurrent timeouts, client cancellation race, abort handling — fiber-interruption / runtime concerns |
 
-### Production-server features (deferred to Phase 2+)
+#### ⏸ Phase 5 — Fork (substantial server feature)
 
-| Failures | Category | Status / Note |
+Fork is a spec extension: branching streams at a specific offset to create
+independent sub-streams that share inherited bytes. Requires copy-on-fork
+or refcount-based shared-data state, recursive lifecycle, soft-delete (410)
+on sources with living forks, cascade GC, and propagation of TTL / closed /
+JSON-framing across boundaries.
+
+| # | Sub-category | Phase 5 work |
 |---|---|---|
-| 11 | TTL Expiration Behavior | No retention reaper yet (CONFORMANCE.md §9.1). Phase 2. |
-| 11 | Property-Based Tests (fast-check) | Concurrent fuzzing tests. Phase 2 (CONFORMANCE.md §12). |
-| 8 | Browser Security Headers | `X-Content-Type-Options`, CORS, etc. (§2 / §11). Production server concern — Phase 5+ HTTP server adapter. |
-| 6 | TTL and Expiry Edge Cases | Same as TTL above. Phase 2. |
-| 4 | Caching and ETag | ETag headers on responses. Production server concern. Phase 5+. |
-| 3 | TTL and Expiry Validation | Same as TTL above. Phase 2. |
+| 10 | Fork - Deletion and Lifecycle | Soft-delete sources with living forks (410), cascade GC, fork-from-deleted (409), content-type mismatch on fork (409) |
+| 5 | Fork - Reading | Cross-boundary reads, inherited-portion reads, fork-only reads, post-fork-source-append isolation |
+| 4 | Fork - Creation | PUT with `Source-Stream` + `Source-Offset` headers; fork-at-head / fork-mid-stream; 404 nonexistent source; 400 offset > length |
+| 4 | Fork - TTL and Expiry | Source-with-living-forks → 410 (not 404); fork TTL releases refcount; TTL inheritance; fork outliving source via TTL renewal |
+| 3 | Fork - Appending | Append to fork stays fork-local; idempotent producer scoped to fork; source-append after fork doesn't leak into fork |
+| 3 | Fork - Recursive | Fork-of-fork at mid-point; three-level chain reads; independent appends at each level |
+| 3 | Fork - Live Modes | Long-poll on fork returns inherited data immediately; SSE includes inherited bytes; long-poll handover at fork boundary |
+| 3 | Fork - Edge Cases | Fork-then-immediately-delete source (ephemeral); 10-fork stress; fork-at-every-position |
+| 2 | Fork - JSON Mode | JSON framing preserved across fork boundary in body assembly |
+| **37** | **Fork total** | |
 
-### Categories with full-or-near-full coverage (for context)
+#### ⏸ Phase 1.4 (cheap, optional) — fuzz refinement
 
-| Passing / Total | Category |
-|---|---|
-| 16 / 16 | JSON Mode |
-| 8 / 8 | Long-Poll Operations |
-| 4 / 5 | Basic Stream Operations |
-| 3 / 3 | HEAD Metadata |
-| 3 / 3 | Read Operations |
-| 2 / 2 | Append Operations (basic) |
-| 5 / 15 | HTTP Protocol (status codes mostly OK, header edge cases failing) |
-| 8 / 29 | SSE Mode (basic round-trip works; details fail) |
+| # | Category | Notes |
+|---|---|---|
+| 1 | Property-Based Tests (fast-check) | Generative offset-character fuzzing; needs `Schema.check(isPattern(...))` refinement on `Offset` brand. Cheap one-line fix if revisited |
+
+### How to revisit
+
+When starting Phase 4 (server runtime) or Phase 5 (Fork):
+  1. Re-run upstream: `bunx vitest run test/conformance/upstream.test.ts`
+  2. Filter failures by category prefix to scope work:
+     ```bash
+     bunx vitest run test/conformance/upstream.test.ts -t "Fork - "
+     bunx vitest run test/conformance/upstream.test.ts -t "TTL Expiration"
+     ```
+  3. Target one sub-category at a time; each is independent.
+  4. **Phase 4** (TTL / ETag / security / long-poll edge): can be done in
+     parallel with Phase 5 — they touch the spec-server adapter, not the
+     Wire.
+  5. **Phase 5** (Fork): touches `Wire.put` (new optional
+     `sourceStream` / `sourceOffset` inputs), `InternalStream` (refcount +
+     parent pointer), `inner.read` (cross-boundary slice assembly),
+     `inner.delete` (soft-delete with living-fork detection).
 
 ---
 
