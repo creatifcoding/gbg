@@ -230,6 +230,31 @@ export const parseProducerHeaders = Effect.fn(
     })
   }
 
+  // Per spec: Producer-Id MUST be a non-empty string.
+  if (id.length === 0) {
+    return yield* new InvalidHeaderError({
+      name: PRODUCER_ID,
+      value: id,
+      reason: "empty",
+    })
+  }
+
+  // Per spec: Producer-Epoch / -Seq MUST be canonical decimal non-negative
+  // integer strings: `^[0-9]+$`. This rejects:
+  //   - leading zeros           ("00", "007")
+  //   - plus signs              ("+1")
+  //   - signs                   ("-1")
+  //   - decimal points          ("1.0")
+  //   - scientific notation     ("1e5")
+  //   - whitespace              ("1 ", " 1")
+  // Note: `Number()` would accept "1e5" and `"01"` silently.
+  if (!/^[0-9]+$/.test(epochRaw)) {
+    return yield* new InvalidHeaderError({
+      name: PRODUCER_EPOCH,
+      value: epochRaw,
+      reason: "expected-canonical-decimal-non-negative-integer",
+    })
+  }
   const epoch = Number(epochRaw)
   if (!Number.isInteger(epoch) || epoch < 0) {
     return yield* new InvalidHeaderError({
@@ -239,6 +264,13 @@ export const parseProducerHeaders = Effect.fn(
     })
   }
 
+  if (!/^[0-9]+$/.test(seqRaw)) {
+    return yield* new InvalidHeaderError({
+      name: PRODUCER_SEQ,
+      value: seqRaw,
+      reason: "expected-canonical-decimal-non-negative-integer",
+    })
+  }
   const seq = Number(seqRaw)
   if (!Number.isInteger(seq) || seq < 0) {
     return yield* new InvalidHeaderError({
@@ -253,6 +285,109 @@ export const parseProducerHeaders = Effect.fn(
     epoch: epoch as EpochT,
     seq: seq as SeqT,
   })
+})
+
+// ─── Stream-Seq (request side) ────────────────────────────────────
+
+/** `Stream-Seq` — stream-level lex-monotonic sequence header. */
+export const STREAM_SEQ = "Stream-Seq" as const
+
+/**
+ * Parse the `Stream-Seq` request header.
+ *
+ * Per spec: opaque lex-ordered string. Server enforces strict-greater-than
+ * the previously accepted Stream-Seq. Empty string is treated as absent.
+ * Returns `Option<string>` — None when missing or empty.
+ */
+export const parseStreamSeq = Effect.fn(
+  "@tmnl/lnk/Headers.parseStreamSeq",
+)(function* (source: HeaderSource) {
+  const v = getHeader(source, STREAM_SEQ)
+  if (v === null || v === "") return Option.none<string>()
+  // Reject whitespace — servers MUST NOT accept Stream-Seq values that
+  // contain whitespace (would be ambiguous with HTTP token rules).
+  if (/\s/.test(v)) {
+    return yield* new InvalidHeaderError({
+      name: STREAM_SEQ,
+      value: v,
+      reason: "contains-whitespace",
+    })
+  }
+  return Option.some(v)
+})
+
+// ─── Stream-TTL (request side, PUT) ───────────────────────────────
+
+/**
+ * Parse the `Stream-TTL` request header.
+ *
+ * Per spec: positive non-zero integer (seconds). MUST match `^[1-9][0-9]*$`.
+ * This rejects all of:
+ *   - leading zeros          ("01", "007")
+ *   - plus signs             ("+1")
+ *   - negatives              ("-1")
+ *   - zero                   ("0")
+ *   - decimals               ("1.0")
+ *   - scientific notation    ("1e5")
+ *   - whitespace             ("1 ")
+ *
+ * Returns `Option<number>` — None when absent.
+ */
+export const parseStreamTtl = Effect.fn(
+  "@tmnl/lnk/Headers.parseStreamTtl",
+)(function* (source: HeaderSource) {
+  const v = getHeader(source, STREAM_TTL)
+  if (v === null) return Option.none<number>()
+  if (!/^[1-9][0-9]*$/.test(v)) {
+    return yield* new InvalidHeaderError({
+      name: STREAM_TTL,
+      value: v,
+      reason: "expected-canonical-decimal-positive-integer",
+    })
+  }
+  return Option.some(Number(v))
+})
+
+// ─── Stream-Expires-At (request side, PUT) ───────────────────────
+
+/**
+ * Parse the `Stream-Expires-At` request header.
+ *
+ * Per spec: ISO-8601 / RFC3339 timestamp. We round-trip via `Date.parse`
+ * to validate. Returns `Option<string>` (the original string) when present.
+ */
+export const parseStreamExpiresAt = Effect.fn(
+  "@tmnl/lnk/Headers.parseStreamExpiresAt",
+)(function* (source: HeaderSource) {
+  const v = getHeader(source, STREAM_EXPIRES_AT)
+  if (v === null) return Option.none<string>()
+  const ts = Date.parse(v)
+  if (Number.isNaN(ts)) {
+    return yield* new InvalidHeaderError({
+      name: STREAM_EXPIRES_AT,
+      value: v,
+      reason: "unparseable-iso8601",
+    })
+  }
+  return Option.some(v)
+})
+
+/**
+ * Parse the (Stream-TTL, Stream-Expires-At) pair, enforcing mutual
+ * exclusivity. Per spec: a PUT MUST set at most one of these.
+ */
+export const parseStreamTtlOrExpiresAt = Effect.fn(
+  "@tmnl/lnk/Headers.parseStreamTtlOrExpiresAt",
+)(function* (source: HeaderSource) {
+  const ttl = yield* parseStreamTtl(source)
+  const expiresAt = yield* parseStreamExpiresAt(source)
+  if (Option.isSome(ttl) && Option.isSome(expiresAt)) {
+    return yield* new InvalidHeaderError({
+      name: `${STREAM_TTL}+${STREAM_EXPIRES_AT}`,
+      reason: "mutually-exclusive",
+    })
+  }
+  return { ttl, expiresAt }
 })
 
 // ─── Content-Type ───────────────────────────────────────────────────────────

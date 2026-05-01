@@ -124,14 +124,27 @@ export const trust = (s: string): Offset => s as Offset
 export const decode = Schema.decodeUnknownEffect(Offset)
 
 /**
+ * Pattern characters explicitly forbidden in an offset URL parameter.
+ *
+ * Per spec, offsets are opaque, but practically:
+ *   - whitespace, commas, semicolons would be ambiguous with URL encodings
+ *     and HTTP header punctuation
+ *   - control characters & nulls are invalid in URLs
+ *
+ * Servers MUST reject malformed values so clients can't smuggle injection
+ * vectors via offset query params.
+ */
+const FORBIDDEN_OFFSET_CHARS = /[\s,;\u0000-\u001f]/
+
+/**
  * **Validation path + defensive sentinel check.** Validate a string as a
- * real `Offset`, rejecting sentinels and empty strings.
+ * real `Offset`, rejecting sentinels, empty strings, and malformed values.
  *
  * Use defensively when you want to *guarantee* you have a server-generated
  * offset and not a sentinel value. Most clients should use `trust` at the
  * wire boundary instead and never call `parse`.
  *
- * Fails with `InvalidOffsetError` on sentinel or empty input.
+ * Fails with `InvalidOffsetError` on sentinel, empty, or malformed input.
  */
 export const parse = Effect.fn("@tmnl/lnk/Offset.parse")(
   function* (s: string) {
@@ -147,9 +160,41 @@ export const parse = Effect.fn("@tmnl/lnk/Offset.parse")(
         reason: "sentinel-not-offset" as const,
       })
     }
+    if (FORBIDDEN_OFFSET_CHARS.test(s)) {
+      return yield* new InvalidOffsetError({
+        value: s,
+        reason: "forbidden-characters" as const,
+      })
+    }
     return s as Offset
   },
 )
+
+/**
+ * Validate a URL query-parameter value as a `ReadPosition` (offset OR
+ * sentinel). Sentinels `"-1"` / `"now"` are accepted as-is. Empty strings
+ * and malformed-character offsets are rejected.
+ *
+ * Use this at the HTTP boundary when decoding `?offset=...`.
+ */
+export const parsePositionParam = Effect.fn(
+  "@tmnl/lnk/Offset.parsePositionParam",
+)(function* (s: string) {
+  if (s.length === 0) {
+    return yield* new InvalidOffsetError({
+      value: s,
+      reason: "empty" as const,
+    })
+  }
+  if (isSentinel(s)) return s as Offset | OffsetSentinel
+  if (FORBIDDEN_OFFSET_CHARS.test(s)) {
+    return yield* new InvalidOffsetError({
+      value: s,
+      reason: "forbidden-characters" as const,
+    })
+  }
+  return s as Offset | OffsetSentinel
+})
 
 // ─── Order & Equivalence ────────────────────────────────────────────────────
 

@@ -45,6 +45,16 @@ import {
   trustEpoch,
   trustSeq,
 } from "../../../../src/contracts/Producer.js"
+import {
+  parseProducerHeaders,
+  parseStreamSeq,
+  parseStreamTtlOrExpiresAt,
+  parseStreamClosed,
+  parseContentTypeHeader,
+} from "../../../../src/contracts/Headers.js"
+import { parsePositionParam } from "../../../../src/contracts/Offset.js"
+import { InvalidHeaderError, InvalidOffsetError } from "../../../../src/contracts/errors.js"
+import * as Option from "effect-v4/Option"
 
 export interface SpecServerHandle {
   readonly baseUrl: string
@@ -292,48 +302,44 @@ const handle = async (
       ),
     )
 
+  // HeaderSource adapter: req.headers (Node IncomingHttpHeaders) —
+  // case-insensitive lookups (Node lowercases keys; we lookup lowercased).
+  const headerSource = {
+    get: (name: string): string | null => {
+      const v = req.headers[name.toLowerCase()]
+      if (v === undefined) return null
+      return Array.isArray(v) ? v[0]! : v
+    },
+  }
+
   try {
     switch (req.method) {
       case "PUT": {
-        const ct = (req.headers["content-type"] as string) ?? "application/octet-stream"
-        const ttl = req.headers["stream-ttl"] as string | undefined
-        const expires = req.headers["stream-expires-at"] as string | undefined
-        const closedHdr = (req.headers["stream-closed"] as string | undefined) ?? ""
-        const streamClosed = closedHdr.toLowerCase() === "true"
-
-        // Per spec: TTL and Expires-At are mutually exclusive. Setting
-        // both is an invalid request.
-        if (ttl !== undefined && expires !== undefined) {
-          return errorResponse(
-            res,
-            400,
-            "Stream-TTL and Stream-Expires-At are mutually exclusive",
-          )
-        }
-
-        // Per spec: TTL MUST be a positive non-zero integer (no decimals,
-        // no plus signs, no scientific notation, no leading zeros, no
-        // negative). Strict integer regex — `^[1-9][0-9]*$`.
-        if (ttl !== undefined && !/^[1-9][0-9]*$/.test(ttl)) {
-          return errorResponse(res, 400, "invalid Stream-TTL")
-        }
-
-        // Per spec: Expires-At MUST be a valid ISO-8601/RFC3339 timestamp.
-        if (expires !== undefined) {
-          const parsedDate = Date.parse(expires)
-          if (Number.isNaN(parsedDate)) {
-            return errorResponse(res, 400, "invalid Stream-Expires-At")
-          }
-        }
-
-        // Per spec: PUT may carry an initial body AND Stream-Closed: true.
+        // All header validation is done via contract-level parsers from
+        // Headers.ts; format errors surface as InvalidHeaderError → 400.
+        const ctOpt = await runtime.runPromise(
+          parseContentTypeHeader(headerSource),
+        )
+        const ct = Option.isSome(ctOpt)
+          ? (ctOpt.value as string)
+          : "application/octet-stream"
+        const ttlOrExpires = await runtime.runPromise(
+          parseStreamTtlOrExpiresAt(headerSource),
+        )
+        const streamClosed = await runtime.runPromise(
+          parseStreamClosed(headerSource),
+        )
         const body = await readRequestBody(req)
         const out = await withWire((wire) =>
           wire.put({
             streamId,
             contentType: trustContentType(ct),
-            ...(ttl !== undefined ? { streamTtl: Number(ttl) } : {}),
-            ...(expires !== undefined ? { streamExpiresAt: String(expires) } : {}),
+            ...(Option.isSome(ttlOrExpires.ttl)
+              ? { streamTtl: ttlOrExpires.ttl.value }
+              : {}),
+            ...(Option.isSome(ttlOrExpires.expiresAt)
+              ? { streamExpiresAt: ttlOrExpires.expiresAt.value }
+              : {}),
             ...(streamClosed ? { streamClosed: true } : {}),
             ...(body.length > 0 ? { body } : {}),
           }),
@@ -349,61 +355,41 @@ const handle = async (
       }
       case "POST": {
         const body = await readRequestBody(req)
-        const ct = req.headers["content-type"] as string | undefined
-        const pid = req.headers["producer-id"] as string | undefined
-        const pep = req.headers["producer-epoch"] as string | undefined
-        const psq = req.headers["producer-seq"] as string | undefined
-        const streamSeq = req.headers["stream-seq"] as string | undefined
-        const closed = ((req.headers["stream-closed"] as string | undefined) ?? "").toLowerCase() === "true"
+        // All header parsing/validation lives in the contracts. Format
+        // errors surface as InvalidHeaderError → 400 in the catch below.
+        const ctOpt = await runtime.runPromise(
+          parseContentTypeHeader(headerSource),
+        )
+        const producerOpt = await runtime.runPromise(
+          parseProducerHeaders(headerSource),
+        )
+        const streamSeqOpt = await runtime.runPromise(
+          parseStreamSeq(headerSource),
+        )
+        const closed = await runtime.runPromise(
+          parseStreamClosed(headerSource),
+        )
+        const ct = Option.getOrUndefined(ctOpt) as string | undefined
+        const streamSeq = Option.getOrUndefined(streamSeqOpt)
 
-        // Per spec: producer headers MUST be either ALL three present or
-        // ALL three absent. Partial sets are invalid (400).
-        const someProducerHeaders =
-          pid !== undefined || pep !== undefined || psq !== undefined
-        const allProducerHeaders =
-          pid !== undefined && pep !== undefined && psq !== undefined
-        if (someProducerHeaders && !allProducerHeaders) {
-          return errorResponse(res, 400, "incomplete producer headers")
-        }
-
-        // Per spec: POSTs MUST carry a Content-Type header (or the request
-        // is invalid). Exception: close-only POSTs (empty body with
-        // Stream-Closed: true) MAY omit Content-Type since they're not
-        // appending bytes.
+        // Per spec: POSTs MUST carry a Content-Type header. Exception:
+        // close-only POSTs (empty body with Stream-Closed: true) MAY omit
+        // since they're not appending bytes.
         if (ct === undefined && !(closed && body.length === 0)) {
           return errorResponse(res, 400, "missing Content-Type on POST")
         }
 
-        // Validate producer header formats:
-        //   - Producer-Id MUST be a non-empty string
-        //   - Producer-Epoch and Producer-Seq MUST be non-negative integers
-        //     (no decimals, no negatives, no scientific notation)
-        if (allProducerHeaders) {
-          if (pid!.length === 0) {
-            return errorResponse(res, 400, "empty Producer-Id")
-          }
-          if (!/^[0-9]+$/.test(pep!)) {
-            return errorResponse(res, 400, "invalid Producer-Epoch format")
-          }
-          if (!/^[0-9]+$/.test(psq!)) {
-            return errorResponse(res, 400, "invalid Producer-Seq format")
-          }
-          // Per spec: when a producer increases its epoch, the new epoch's
-          // sequence MUST start at 0. seq != 0 with a fresh epoch is
-          // invalid (clients must reset seq counter on epoch bump).
-          // We don't have access to prior state here; let the wire detect
-          // it. But for the simple case where epoch is supplied with
-          // seq != 0 on a brand-new producer, the wire's StaleEpochError /
-          // SequenceGapError will surface. Fall through.
-        }
-
-        const producer = allProducerHeaders
-          ? {
-              producerId: trustProducerId(pid!),
-              epoch: trustEpoch(Number(pep!)),
-              seq: trustSeq(Number(psq!)),
-            }
-          : undefined
+        const producer = Option.getOrUndefined(producerOpt)
+        const pid =
+          producer !== undefined ? (producer.producerId as string) : undefined
+        const pep =
+          producer !== undefined
+            ? String(producer.epoch as number)
+            : undefined
+        const psq =
+          producer !== undefined
+            ? String(producer.seq as number)
+            : undefined
         const out = await withWire((wire) =>
           wire.post({
             streamId,
@@ -430,29 +416,26 @@ const handle = async (
         )
       }
       case "GET": {
-        // Per spec: reject malformed `offset` query parameters.
+        // Multiple `offset=` query params: HTTP-protocol concern (legitimate
+        // spec-server validation; no Wire-layer equivalent).
         const offsetParams = fullUrl.searchParams.getAll("offset")
         if (offsetParams.length > 1) {
           return errorResponse(res, 400, "multiple offset parameters")
         }
         const rawOffset = fullUrl.searchParams.get("offset")
+        // Validate offset string via the contract-level parser (rejects
+        // empty, sentinel-when-not-allowed, and forbidden characters).
         if (rawOffset !== null) {
-          if (rawOffset === "") {
-            return errorResponse(res, 400, "empty offset parameter")
-          }
-          if (rawOffset !== "-1" && rawOffset !== "now") {
-            if (/[\s,;]/.test(rawOffset)) {
-              return errorResponse(res, 400, "malformed offset parameter")
-            }
-          }
+          await runtime.runPromise(parsePositionParam(rawOffset))
         }
         const offsetParam = rawOffset ?? "-1"
         const limitParam = fullUrl.searchParams.get("limit")
         const liveParam = fullUrl.searchParams.get("live")
 
-        // Per spec: live modes (long-poll, sse) REQUIRE an explicit `offset`
-        // query parameter. The client must commit to a starting position;
-        // otherwise the server has no way to know where the client is.
+        // Per spec: live modes require an explicit `offset` query param
+        // (HTTP-protocol concern — the wire layer's GetInput requires a
+        // position, but the URL→input mapping needs the explicit signal
+        // for live modes).
         if (
           (liveParam === "long-poll" || liveParam === "sse") &&
           rawOffset === null
@@ -531,6 +514,15 @@ const handle = async (
     // Per spec: 409 responses must carry discriminator headers so the client
     // can distinguish stream-closed vs sequence-gap vs config-mismatch.
     switch (tag) {
+      case "InvalidHeaderError": {
+        const name = (e as InvalidHeaderError).name as unknown as string
+        const reason = (e as InvalidHeaderError).reason
+        return errorResponse(res, 400, `invalid header ${name}: ${reason}`)
+      }
+      case "InvalidOffsetError": {
+        const reason = (e as InvalidOffsetError).reason
+        return errorResponse(res, 400, `invalid offset: ${reason}`)
+      }
       case "StreamNotFoundError":
         return errorResponse(res, 404, "stream not found")
       case "StreamClosedError": {

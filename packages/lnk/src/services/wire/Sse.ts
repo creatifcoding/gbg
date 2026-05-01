@@ -67,12 +67,16 @@ export const encodeDataAndControl = (
   // (\n, \r\n, \r) inside the payload are split into separate `data:`
   // fields within the same event, which prevents CRLF/LF injection of
   // synthetic events into the response stream.
+  //
+  // Per RFC 6202: leading whitespace after the colon is stripped by the
+  // EventSource parser. We omit the space (`data:value` not `data: value`)
+  // for compactness; both forms produce identical decoded values.
   for (const line of data.split(/\r\n|\n|\r/)) {
-    lines.push(`data: ${line}`)
+    lines.push(`data:${line}`)
   }
   lines.push("") // blank line terminates the data event
   lines.push("event: control")
-  lines.push(`data: ${JSON.stringify(control)}`)
+  lines.push(`data:${JSON.stringify(control)}`)
   lines.push("")
   lines.push("")
   return TEXT_ENCODER.encode(lines.join("\n"))
@@ -98,7 +102,7 @@ export const sseEncoding = (contentType: string): SseEncoding => {
 /** Encode a control-only event (e.g. heartbeat, end-of-stream signal). */
 export const encodeControl = (control: ControlPayload): Uint8Array => {
   const text =
-    `event: control\n` + `data: ${JSON.stringify(control)}\n` + `\n`
+    `event: control\n` + `data:${JSON.stringify(control)}\n` + `\n`
   return TEXT_ENCODER.encode(text)
 }
 

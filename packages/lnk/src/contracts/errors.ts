@@ -25,6 +25,7 @@ import * as Schema from "effect-v4/Schema"
 export const InvalidOffsetReason = Schema.Literals([
   "empty",
   "sentinel-not-offset",
+  "forbidden-characters",
 ])
 export type InvalidOffsetReason = typeof InvalidOffsetReason.Type
 
