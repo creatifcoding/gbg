@@ -559,6 +559,134 @@ CLI is implemented as Effect v4 `Command` values, fully typed, with auto-complet
 
 ---
 
+## Implementation: composition surface
+
+`pct` is implemented as a set of Effect `Layer`s, not as a self-contained server. A single host process MUST be able to serve `pct` alongside other protocols (`lnk`, future ones, observability endpoints, admin tools) by composing each protocol's layers into one HTTP server.
+
+### The HttpLayerRouter pattern
+
+The canonical pattern is `HttpLayerRouter` from `@effect/platform` (v3 and onward; v4 backport pending in effect-smol as of HEAD 2026-04-28). Each protocol module ships **a layer that adds routes to a shared router service**. The host's server is just `HttpLayerRouter.serve(Layer.mergeAll(...))` over all protocol layers.
+
+Key APIs (from `@effect/platform/HttpLayerRouter`):
+
+```ts
+// Route registration (these all return Layer<never, never, HttpRouter | ...>)
+HttpLayerRouter.add(method, path, handler)             // single route
+HttpLayerRouter.addAll(routes)                          // many routes
+HttpLayerRouter.use((router) => Effect.gen(...))        // imperative add
+
+// Middleware (per-route or global)
+HttpLayerRouter.middleware(middlewareFn)                // returns a Layer
+
+// Mounting an HttpApi
+HttpLayerRouter.addHttpApi(api)                         // also a Layer
+
+// Serve the merged layer
+HttpLayerRouter.serve(appLayer)                         // returns Layer<HttpServer>
+```
+
+### What each protocol module exports
+
+A `pct` implementation MUST export a `Layer` that adds the protocol's routes to the shared router. The reference TypeScript impl will export:
+
+```ts
+// @tmnl/pct exports
+export const PctRoutes = (config?: PctConfig): Layer<
+  never,
+  never,
+  HttpLayerRouter.HttpRouter | Pact.Registry
+>
+
+// @tmnl/lnk exports (the parallel for the lnk wire protocol)
+export const LnkRoutes = (config?: LnkConfig): Layer<
+  never,
+  never,
+  HttpLayerRouter.HttpRouter | Wire
+>
+```
+
+Each config MAY accept a path prefix for namespace isolation:
+
+```ts
+PctRoutes({ prefix: "/v1/pct" })   // routes mounted under /v1/pct/...
+LnkRoutes({ prefix: "/v1/lnk" })   // routes mounted under /v1/lnk/...
+```
+
+With default config (no prefix), routes mount at:
+- `pct`: `/rpc/*`, `/schemas/*`, `/capabilities`, `/snapshots/*`, `/publish`, `/federation/*`
+- `lnk`: `/streams/*`
+
+These top-level path namespaces MUST NOT collide. Future protocols SHOULD claim their own top-level namespace (or accept a configurable prefix).
+
+### Unified server example
+
+```ts
+import { Effect, Layer } from "effect-v4"
+import { HttpLayerRouter } from "@effect/platform"          // pending v4 port
+import { NodeHttpServer } from "@effect/platform-node"
+import { LnkRoutes } from "@tmnl/lnk"
+import { PctRoutes } from "@tmnl/pct"
+import { Wire, InMemoryWire } from "@tmnl/lnk"
+import { Pact } from "@tmnl/pct"
+
+// Each protocol contributes its routes via Layer
+const Routes = Layer.mergeAll(
+  LnkRoutes(),                                              // /streams/*
+  PctRoutes(),                                              // /rpc/*, /schemas/*, ...
+)
+
+// Compose with backing services + transport
+const Server = HttpLayerRouter.serve(Routes).pipe(
+  Layer.provide(InMemoryWire.layer),                        // backs LnkRoutes
+  Layer.provide(Pact.Registry.layerMemory),                 // backs PctRoutes
+  Layer.provide(NodeHttpServer.layer({ port: 8080 })),
+)
+
+Layer.launch(Server).pipe(NodeRuntime.runMain)
+```
+
+A single server, two protocols, clean separation. Adding a third protocol is one more entry in `Layer.mergeAll`.
+
+### Middleware composition
+
+Middleware (auth, rate limiting, observability, CORS) is also a Layer. It composes with the same `Layer.mergeAll`:
+
+```ts
+const ServerWithAuth = HttpLayerRouter.serve(
+  Layer.mergeAll(
+    LnkRoutes(),
+    PctRoutes(),
+    AuthMiddleware.bearerToken({ verify: ... }),            // global middleware
+    HttpLayerRouter.cors({ origin: "*" }),
+    Metrics.layer({ path: "/metrics" }),                    // adds /metrics route
+  )
+).pipe(
+  Layer.provide(InMemoryWire.layer),
+  Layer.provide(Pact.Registry.layerMemory),
+  Layer.provide(NodeHttpServer.layer({ port: 8080 })),
+)
+```
+
+Protocol layers, middleware layers, and infra layers all compose the same way. **There is no "PCT server" type as a top-level concept** — there are only layers that contribute routes/middleware/services to a host.
+
+### Conformance implications
+
+- `pct` implementations MUST be implementable as a Layer (or set of Layers) that adds routes to a host router. Self-contained servers that can't be embedded in a multi-protocol host are non-conforming.
+- `pct` route paths MUST NOT exceed the protocol's documented namespace. New endpoints added in future spec versions MUST keep within the namespace.
+- `pct` middleware (when published as part of the spec — e.g., signed-snapshot verification) MUST be expressible as composable middleware layers, not as wrapping framework code.
+
+### v4 substrate notes
+
+`HttpLayerRouter` is presently in `@effect/platform` (v3). In effect-smol (v4) the equivalent will live under `effect/unstable/http/HttpLayerRouter` once ported. Until that backport lands, implementations have three options, in order of preference:
+
+1. Use `@effect/platform` v3 alongside `effect-v4` (mixed-version interop; most modules round-trip fine, but Layer composition across version boundaries needs validation).
+2. Implement a minimal `HttpLayerRouter` equivalent in `@tmnl/http-layer-router` against `effect-v4/unstable/http/HttpRouter`. The API surface above is small and well-defined; ~200-400 LOC.
+3. Wait for the upstream backport. Defensible if the timeline is short; otherwise blocks development.
+
+The protocol spec is agnostic to which option an implementation chooses — it commits only to the **layer-composable shape**, not to a specific module path.
+
+---
+
 ## Substrate (informative)
 
 The reference implementation uses these Effect v4 primitives:
@@ -572,7 +700,10 @@ The reference implementation uses these Effect v4 primitives:
 | Federation | `EventLogRemote` | `effect-v4/unstable/eventlog/EventLogRemote` |
 | Encryption / signing | `EventLogEncryption` | `effect-v4/unstable/eventlog/EventLogEncryption` |
 | RPC contract authoring | `RpcGroup`, `Rpc.make` | `effect-v4/unstable/rpc/` |
-| HTTP server | `HttpApi`, `HttpApiBuilder` | `effect-v4/unstable/httpapi/` |
+| HTTP base routing | `HttpRouter` | `effect-v4/unstable/http/HttpRouter` |
+| Layer-first routing | `HttpLayerRouter` | `@effect/platform/HttpLayerRouter` (v3); v4 port pending |
+| HTTP server | `HttpServer`, `NodeHttpServer` | `effect-v4/unstable/http/`, `@effect/platform-node` |
+| HttpApi declarative builder | `HttpApi`, `HttpApiBuilder` | `effect-v4/unstable/httpapi/` |
 | CLI | `Command`, `Flag`, `Param` | `effect-v4/unstable/cli/` |
 | (Future v2 capabilities) | `Entity`, `Sharding` | `effect-v4/unstable/cluster/` |
 
@@ -583,6 +714,7 @@ The reference implementation uses these Effect v4 primitives:
 - **Q1.** Snapshot format. JSON is the obvious default but can be large. Can we use CBOR for snapshots? *Tentative: JSON for v1, CBOR companion spec post-1.0.*
 - **Q2.** Capability handles. v2 binding via `Entity`? *Defer until use case emerges. Cluster's substrate makes it cheap when needed.*
 - **Q3.** Schema authorship beyond `pact publish`. Some teams want git-merged YAML/JSON schemas as the source-of-truth, with publish as a CI step. Should the spec mandate any particular authoring workflow, or is `pact publish ./specs/*` sufficient guidance? *Tentative: spec mandates the wire shape; workflow is informational.*
+- **Q4.** `HttpLayerRouter` v4 port timeline. The pattern is committed; the implementation path depends on whether we wait, mix versions, or reimplement. *Tentative: implement a minimal `@tmnl/http-layer-router` against effect-v4 as a hedge; swap to upstream when the backport lands.*
 
 ---
 
