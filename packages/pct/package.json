@@ -69,8 +69,12 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist reports"
   },
+  "bin": {
+    "pact": "./bin/pact.ts"
+  },
   "dependencies": {
     "effect-v4": "npm:effect@4.0.0-beta.59",
+    "@effect/platform-bun": "4.0.0-beta.59",
     "@tmnl/lnk": "workspace:*"
   },
   "devDependencies": {
