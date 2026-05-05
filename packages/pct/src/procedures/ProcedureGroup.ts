@@ -1,0 +1,98 @@
+/**
+ * ProcedureGroup — a typed record of procedures.
+ *
+ * Per `PCT.md` §5, groups are records: composition is just object literals.
+ * The group is what gets published to the registry and what the client
+ * proxy is built from.
+ *
+ * @module @tmnl/pct/procedures/ProcedureGroup
+ */
+
+import type { Procedure } from "./Procedure.js"
+
+// ─── Type ───────────────────────────────────────────────────────────────────
+
+/**
+ * A ProcedureGroup is a typed record whose keys are procedure names and
+ * whose values are Procedures.
+ *
+ * The phantom type parameter `P` carries the tuple of procedure types so
+ * that handler/client surfaces can derive precise types per name.
+ */
+export interface ProcedureGroup<
+  out P extends ReadonlyArray<Procedure> = ReadonlyArray<Procedure>,
+> {
+  readonly procedures: P
+  /** Group identifier — used for namespacing and human-readable docs. */
+  readonly name: string
+  /** The collective version of this group (loose semver of group state). */
+  readonly version?: string
+  /** Human-readable description; flows to OpenAPI export. */
+  readonly description?: string
+}
+
+// ─── Constructors ───────────────────────────────────────────────────────────
+
+/**
+ * Construct a ProcedureGroup from a tuple of Procedures plus metadata.
+ *
+ * @example
+ * ```ts
+ * const Orders = ProcedureGroup.make({
+ *   name: "orders",
+ *   version: "2.1.4",
+ * }, calculateTax, createOrder, watchOrders)
+ * ```
+ */
+export const make = <const P extends ReadonlyArray<Procedure>>(
+  metadata: {
+    readonly name: string
+    readonly version?: string
+    readonly description?: string
+  },
+  ...procedures: P
+): ProcedureGroup<P> => ({
+  procedures,
+  name: metadata.name,
+  ...(metadata.version !== undefined ? { version: metadata.version } : {}),
+  ...(metadata.description !== undefined
+    ? { description: metadata.description }
+    : {}),
+})
+
+/** Quick constructor when you don't need metadata yet. */
+export const of = <const P extends ReadonlyArray<Procedure>>(
+  ...procedures: P
+): ProcedureGroup<P> => ({ procedures, name: "" })
+
+// ─── Lookup ─────────────────────────────────────────────────────────────────
+
+/**
+ * Find a procedure within a group by name. Returns `undefined` if absent.
+ */
+export const findByName = <P extends ReadonlyArray<Procedure>>(
+  group: ProcedureGroup<P>,
+  name: string,
+): Procedure | undefined =>
+  group.procedures.find((p): p is Procedure => p.name === name)
+
+/**
+ * Find a procedure by `{name}@{version}` Schema-Id. Returns `undefined`
+ * if absent.
+ */
+export const findBySchemaId = <P extends ReadonlyArray<Procedure>>(
+  group: ProcedureGroup<P>,
+  schemaId: string,
+): Procedure | undefined =>
+  group.procedures.find(
+    (p): p is Procedure => `${p.name}@${p.version}` === schemaId,
+  )
+
+/** Map of `{name}@{version}` → Procedure for O(1) lookup. */
+export const toMap = <P extends ReadonlyArray<Procedure>>(
+  group: ProcedureGroup<P>,
+): ReadonlyMap<string, Procedure> => {
+  const m = new Map<string, Procedure>()
+  for (const p of group.procedures) m.set(`${p.name}@${p.version}`, p)
+  return m
+}

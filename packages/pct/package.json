@@ -1,0 +1,80 @@
+{
+  "name": "@tmnl/pct",
+  "version": "0.0.1",
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/pct"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./procedures": {
+      "import": "./dist/procedures/index.js",
+      "types": "./dist/procedures/index.d.ts"
+    },
+    "./registry": {
+      "import": "./dist/registry/index.js",
+      "types": "./dist/registry/index.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "types": "./dist/server/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "types": "./dist/client/index.d.ts"
+    },
+    "./identity": {
+      "import": "./dist/identity/index.js",
+      "types": "./dist/identity/index.d.ts"
+    },
+    "./federation": {
+      "import": "./dist/federation/index.js",
+      "types": "./dist/federation/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "PCT.md"
+  ],
+  "description": "Pact Protocol — schema-first wire protocol with event-sourced federated registry. The reference implementation in TypeScript on Effect v4.",
+  "keywords": [
+    "effect-ts",
+    "effect-v4",
+    "pact",
+    "pct",
+    "schema-first",
+    "rpc",
+    "registry",
+    "event-sourced",
+    "federated"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports"
+  },
+  "dependencies": {
+    "effect-v4": "npm:effect@4.0.0-beta.59",
+    "@tmnl/lnk": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
