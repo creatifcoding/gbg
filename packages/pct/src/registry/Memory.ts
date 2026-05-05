@@ -63,6 +63,8 @@ const handlerLayer = (stateRef: Ref.Ref<RegistryState>) =>
 
 const makeImpl = (stateRef: Ref.Ref<RegistryState>) =>
   Registry.of({
+    snapshot: Ref.get(stateRef),
+
     getSchema: (schemaId) =>
       Effect.map(Ref.get(stateRef), (s) => s.schemas.get(schemaId)),
 
@@ -70,41 +72,49 @@ const makeImpl = (stateRef: Ref.Ref<RegistryState>) =>
       Effect.map(Ref.get(stateRef), (s) => s.operations.get(schemaId)),
 
     listSchemas: (filter) =>
-      Effect.map(Ref.get(stateRef), (s) => {
-        const all = Array.from(s.schemas.values())
-        return all.filter((entry) => {
-          if (filter?.schemaId !== undefined && entry.schemaId !== filter.schemaId) {
-            return false
-          }
-          if (
-            filter?.includeDeprecated !== true &&
-            entry.deprecated !== null
-          ) {
-            return false
-          }
-          return true
-        })
-      }),
+      Effect.map(Ref.get(stateRef), (s) => filterSchemas(s, filter)),
 
     listOperations: (filter) =>
-      Effect.map(Ref.get(stateRef), (s) => {
-        const all = Array.from(s.operations.values())
-        return all.filter((entry) => {
-          if (filter?.name !== undefined && entry.name !== filter.name) {
-            return false
-          }
-          if (
-            filter?.includeDeprecated !== true &&
-            entry.deprecated !== null
-          ) {
-            return false
-          }
-          return true
-        })
-      }),
+      Effect.map(Ref.get(stateRef), (s) => filterOperations(s, filter)),
 
     revision: Effect.map(Ref.get(stateRef), (s) => s.revision),
   })
+
+const filterSchemas = (
+  state: RegistryState,
+  filter: { schemaId?: string; includeDeprecated?: boolean } | undefined,
+): ReadonlyArray<
+  RegistryState["schemas"] extends ReadonlyMap<string, infer V> ? V : never
+> => {
+  const all = Array.from(state.schemas.values())
+  return all.filter((entry) => {
+    if (filter?.schemaId !== undefined && entry.schemaId !== filter.schemaId) {
+      return false
+    }
+    if (filter?.includeDeprecated !== true && entry.deprecated !== null) {
+      return false
+    }
+    return true
+  })
+}
+
+const filterOperations = (
+  state: RegistryState,
+  filter: { name?: string; includeDeprecated?: boolean } | undefined,
+): ReadonlyArray<
+  RegistryState["operations"] extends ReadonlyMap<string, infer V> ? V : never
+> => {
+  const all = Array.from(state.operations.values())
+  return all.filter((entry) => {
+    if (filter?.name !== undefined && entry.name !== filter.name) {
+      return false
+    }
+    if (filter?.includeDeprecated !== true && entry.deprecated !== null) {
+      return false
+    }
+    return true
+  })
+}
 
 // ─── Layers ────────────────────────────────────────────────────────────────
 

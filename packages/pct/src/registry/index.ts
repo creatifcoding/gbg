@@ -11,15 +11,18 @@
 export { Registry, type RegistryShape } from "./Registry.js"
 
 export {
-  type OperationEntry,
   type RegistryState,
-  type SchemaEntry,
+  Deprecation,
+  OperationEntry,
+  SchemaEntry,
   empty as emptyRegistryState,
   onOperationDeprecated,
   onOperationRegistered,
   onSchemaDeprecated,
   onSchemaRegistered,
 } from "./RegistryState.js"
+
+export type { Deprecation as DeprecationType } from "./RegistryState.js"
 
 export {
   OperationDeprecatedPayload,

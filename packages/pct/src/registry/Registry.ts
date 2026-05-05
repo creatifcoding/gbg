@@ -12,10 +12,19 @@
  *   ├── EventLog        ← write surface (effect/unstable/eventlog)
  *   ├── EventJournal    ← persistence (memory or SQL)
  *   ├── Identity        ← node identity for federation/signing
- *   └── EventLogRemote  ← peer sync (federated registries)
+ *   └── EventLogRemote  ← peer sync (federated registries; Phase 3.6)
  *
  * Implementations are provided by per-storage layer modules
  * (`Registry.layerMemory`, `Registry.layerSqlite` (future)).
+ *
+ * # Consistency
+ *
+ * `snapshot` is the authoritative read for cross-cutting state — it
+ * returns the entire `RegistryState` atomically (one Ref.get). Use it
+ * when you need a coherent view across schemas + operations + revision
+ * (e.g. constructing a Manifest). The per-method getters
+ * (`getSchema`, `listSchemas`, etc.) each do their own read; concurrent
+ * mutations between calls may surface inconsistent data.
  *
  * @module @tmnl/pct/registry/Registry
  */
@@ -23,11 +32,24 @@
 import * as Context from "effect-v4/Context"
 import type * as Effect from "effect-v4/Effect"
 
-import type { OperationEntry, SchemaEntry } from "./RegistryState.js"
+import type {
+  OperationEntry,
+  RegistryState,
+  SchemaEntry,
+} from "./RegistryState.js"
 
 // ─── Service shape ──────────────────────────────────────────────────────────
 
 export interface RegistryShape {
+  /**
+   * Atomic snapshot of the entire registry state. Single read; coherent
+   * across schemas, operations, revision, and asOf.
+   *
+   * Prefer `snapshot` over per-method reads when you need cross-cutting
+   * consistency (manifests, federation diff, etc.).
+   */
+  readonly snapshot: Effect.Effect<RegistryState>
+
   /**
    * Look up a schema by Schema-Id (`{schemaId}@{version}`). Returns
    * `undefined` if not registered.
@@ -63,15 +85,6 @@ export interface RegistryShape {
    * conditional fetches via `If-Revision` (informative).
    */
   readonly revision: Effect.Effect<number>
-
-  /**
-   * Subscribe to live registry changes. Returns a Stream of registry
-   * events as they're applied; useful for clients implementing
-   * `/capabilities/stream` or hot-reloading SDKs.
-   *
-   * (Wired in a later pass — currently a stub returning empty stream.)
-   */
-  // readonly changes: Stream.Stream<RegistryChange, never, Scope.Scope>
 }
 
 // ─── Service tag ────────────────────────────────────────────────────────────

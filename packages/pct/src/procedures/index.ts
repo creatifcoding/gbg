@@ -36,3 +36,12 @@ export {
   of as groupOf,
   toMap,
 } from "./ProcedureGroup.js"
+
+export {
+  type ProcedureDocument,
+  type ProcedureGroupDocument,
+  fromDocument,
+  fromGroupDocument,
+  toDocument,
+  toGroupDocument,
+} from "./Document.js"

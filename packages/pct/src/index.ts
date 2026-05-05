@@ -21,3 +21,5 @@
 
 export * as Procedures from "./procedures/index.js"
 export * as Registry from "./registry/index.js"
+export * as Manifest from "./manifest/index.js"
+export * as Publish from "./publish/index.js"

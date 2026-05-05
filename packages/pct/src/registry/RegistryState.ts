@@ -1,49 +1,78 @@
 /**
  * RegistryState — the materialized view folded from RegistryEvents.
  *
- * This is the **live** registry view. It's a pure data structure (no
- * effects) so callers can introspect it cheaply: handlers update a
- * `Ref<RegistryState>` from event handlers, and read paths just call
- * `Ref.get`.
+ * # Schema discipline
+ *
+ * Per the project's AGENTS.md: entities that flow through the system are
+ * `Schema.TaggedStruct`. `SchemaEntry`, `OperationEntry`, and the
+ * `Deprecation` substructure are all tagged so that:
+ *
+ *   - They round-trip through JSON cleanly (Schema-encodable).
+ *   - Wire receivers can pattern-match on `_tag` without out-of-band info.
+ *   - Equal/Hash work across collections.
+ *
+ * Event payloads (in `RegistryEvents.ts`) stay `Schema.Struct` because
+ * the EventGroup tag is one level up (matches Effect's canonical
+ * `EventLog.test.ts` idiom).
+ *
+ * # Federation conflict resolution (the precedence rule)
+ *
+ * Registry state is materialized from an event log that may receive
+ * concurrent writes from multiple federated nodes. To converge to a
+ * deterministic state regardless of arrival order, **folders apply a
+ * total ordering** on conflicting events:
+ *
+ *   1. **Wallclock first**: the event with later `registeredAt` /
+ *      `deprecatedAt` wins.
+ *   2. **NodeId tiebreak**: when timestamps tie (same millisecond, e.g.
+ *      coordinated batch publishes), lex-greater `originNodeId` wins.
+ *
+ * Folders SKIP events whose precedence is lower than the existing
+ * entry's. This preserves the audit trail (the journal still has both
+ * events) while guaranteeing deterministic state convergence.
  *
  * @module @tmnl/pct/registry/RegistryState
  */
 
-// ─── Materialized entry types ───────────────────────────────────────────────
+import * as Schema from "effect-v4/Schema"
 
-export interface SchemaEntry {
-  readonly schemaId: string
-  readonly version: string
+// ─── Tagged sub-structure: Deprecation flag ─────────────────────────────────
+
+export const Deprecation = Schema.TaggedStruct("Deprecation", {
+  at: Schema.Number,
+  successor: Schema.NullOr(Schema.String),
+  reason: Schema.String,
+  originNodeId: Schema.String,
+})
+export type Deprecation = typeof Deprecation.Type
+
+// ─── Materialized entries ───────────────────────────────────────────────────
+
+export const SchemaEntry = Schema.TaggedStruct("SchemaEntry", {
+  schemaId: Schema.String,
+  version: Schema.String,
   /** SchemaRepresentation.Document JSON; reconstruct via toSchema. */
-  readonly schemaDocument: unknown
-  readonly registeredAt: number
-  readonly originNodeId: string
-  readonly description?: string
-  readonly deprecated: {
-    readonly at: number
-    readonly successor: string | null
-    readonly reason: string
-    readonly originNodeId: string
-  } | null
-}
+  schemaDocument: Schema.Unknown,
+  registeredAt: Schema.Number,
+  originNodeId: Schema.String,
+  description: Schema.optional(Schema.String),
+  deprecated: Schema.NullOr(Deprecation),
+})
+export type SchemaEntry = typeof SchemaEntry.Type
 
-export interface OperationEntry {
-  readonly name: string
-  readonly version: string
-  readonly kind: "pure" | "query" | "mutation" | "stream" | "duplex"
-  readonly inputSchemaId: string
-  readonly outputSchemaId: string
-  readonly errorSchemaIds: ReadonlyArray<string>
-  readonly registeredAt: number
-  readonly originNodeId: string
-  readonly description?: string
-  readonly deprecated: {
-    readonly at: number
-    readonly successor: string | null
-    readonly reason: string
-    readonly originNodeId: string
-  } | null
-}
+export const OperationEntry = Schema.TaggedStruct("OperationEntry", {
+  name: Schema.String,
+  version: Schema.String,
+  kind: Schema.Literals(["pure", "query", "mutation", "stream", "duplex"]),
+  inputSchemaId: Schema.String,
+  outputSchemaId: Schema.String,
+  errorSchemaIds: Schema.Array(Schema.String),
+  registeredAt: Schema.Number,
+  originNodeId: Schema.String,
+  description: Schema.optional(Schema.String),
+  deprecated: Schema.NullOr(Deprecation),
+})
+export type OperationEntry = typeof OperationEntry.Type
 
 // ─── Aggregate state ────────────────────────────────────────────────────────
 
@@ -54,23 +83,53 @@ export interface RegistryState {
   readonly operations: ReadonlyMap<string, OperationEntry>
   /** Monotonic revision counter, bumped on every applied event. */
   readonly revision: number
-  /** ISO-8601 timestamp of the last applied event. */
-  readonly asOf: string | null
+  /**
+   * Wall-clock millis of the most recent applied event. `null` for an
+   * empty registry. Read-side translates to ISO-8601 on demand.
+   */
+  readonly asOfMs: number | null
 }
 
 export const empty = (): RegistryState => ({
   schemas: new Map(),
   operations: new Map(),
   revision: 0,
-  asOf: null,
+  asOfMs: null,
 })
+
+// ─── Precedence (federation conflict resolution) ────────────────────────────
+
+/**
+ * Compare two `(timestamp, originNodeId)` pairs using the registry's
+ * total order: timestamp first, lex `originNodeId` as tiebreak.
+ *
+ * Returns positive when `a` outranks `b`, negative when `b` outranks
+ * `a`, zero on full tie. Folders apply incoming events only when the
+ * incoming pair STRICTLY OUTRANKS the existing entry's; ties result in
+ * idempotent no-op (existing wins).
+ */
+const comparePrecedence = (
+  a: { readonly at: number; readonly nodeId: string },
+  b: { readonly at: number; readonly nodeId: string },
+): number => {
+  if (a.at !== b.at) return a.at - b.at
+  // Lex compare. localeCompare returns -1/0/1 (in modern engines).
+  return a.nodeId.localeCompare(b.nodeId)
+}
+
+/** True iff incoming should overwrite existing per precedence rule. */
+const shouldApply = (
+  existing: { readonly at: number; readonly nodeId: string } | null,
+  incoming: { readonly at: number; readonly nodeId: string },
+): boolean =>
+  existing === null ? true : comparePrecedence(incoming, existing) > 0
 
 // ─── Folders (event payload → next state) ───────────────────────────────────
 
 /**
- * Apply a SchemaRegistered payload to state. Idempotent on duplicate
- * primary key (last-writer-wins: subsequent registrations of the same
- * (schemaId, version) overwrite the entry, preserving deprecation flags).
+ * Apply a SchemaRegistered payload. Skips out-of-order events per the
+ * precedence rule. Preserves any existing deprecation marker (so a late
+ * re-registration after deprecation doesn't un-deprecate).
  */
 export const onSchemaRegistered = (
   state: RegistryState,
@@ -85,23 +144,37 @@ export const onSchemaRegistered = (
 ): RegistryState => {
   const key = `${payload.schemaId}@${payload.version}`
   const existing = state.schemas.get(key)
+  const existingPrec = existing
+    ? { at: existing.registeredAt, nodeId: existing.originNodeId }
+    : null
+  if (
+    !shouldApply(existingPrec, {
+      at: payload.registeredAt,
+      nodeId: payload.originNodeId,
+    })
+  ) {
+    return state
+  }
   const next = new Map(state.schemas)
-  next.set(key, {
-    schemaId: payload.schemaId,
-    version: payload.version,
-    schemaDocument: payload.schemaDocument,
-    registeredAt: payload.registeredAt,
-    originNodeId: payload.originNodeId,
-    ...(payload.description !== undefined
-      ? { description: payload.description }
-      : {}),
-    deprecated: existing?.deprecated ?? null,
-  })
+  next.set(
+    key,
+    SchemaEntry.make({
+      schemaId: payload.schemaId,
+      version: payload.version,
+      schemaDocument: payload.schemaDocument,
+      registeredAt: payload.registeredAt,
+      originNodeId: payload.originNodeId,
+      ...(payload.description !== undefined
+        ? { description: payload.description }
+        : {}),
+      deprecated: existing?.deprecated ?? null,
+    }),
+  )
   return {
     ...state,
     schemas: next,
     revision: state.revision + 1,
-    asOf: new Date(payload.registeredAt).toISOString(),
+    asOfMs: Math.max(state.asOfMs ?? 0, payload.registeredAt),
   }
 }
 
@@ -119,21 +192,36 @@ export const onSchemaDeprecated = (
   const key = `${payload.schemaId}@${payload.version}`
   const existing = state.schemas.get(key)
   if (existing === undefined) return state
-  const next = new Map(state.schemas)
-  next.set(key, {
-    ...existing,
-    deprecated: {
+  // Only apply if this deprecation is newer than any existing one.
+  const existingPrec = existing.deprecated
+    ? { at: existing.deprecated.at, nodeId: existing.deprecated.originNodeId }
+    : null
+  if (
+    !shouldApply(existingPrec, {
       at: payload.deprecatedAt,
-      successor: payload.successor,
-      reason: payload.reason,
-      originNodeId: payload.originNodeId,
-    },
-  })
+      nodeId: payload.originNodeId,
+    })
+  ) {
+    return state
+  }
+  const next = new Map(state.schemas)
+  next.set(
+    key,
+    SchemaEntry.make({
+      ...existing,
+      deprecated: Deprecation.make({
+        at: payload.deprecatedAt,
+        successor: payload.successor,
+        reason: payload.reason,
+        originNodeId: payload.originNodeId,
+      }),
+    }),
+  )
   return {
     ...state,
     schemas: next,
     revision: state.revision + 1,
-    asOf: new Date(payload.deprecatedAt).toISOString(),
+    asOfMs: Math.max(state.asOfMs ?? 0, payload.deprecatedAt),
   }
 }
 
@@ -153,26 +241,40 @@ export const onOperationRegistered = (
 ): RegistryState => {
   const key = `${payload.name}@${payload.version}`
   const existing = state.operations.get(key)
+  const existingPrec = existing
+    ? { at: existing.registeredAt, nodeId: existing.originNodeId }
+    : null
+  if (
+    !shouldApply(existingPrec, {
+      at: payload.registeredAt,
+      nodeId: payload.originNodeId,
+    })
+  ) {
+    return state
+  }
   const next = new Map(state.operations)
-  next.set(key, {
-    name: payload.name,
-    version: payload.version,
-    kind: payload.kind,
-    inputSchemaId: payload.inputSchemaId,
-    outputSchemaId: payload.outputSchemaId,
-    errorSchemaIds: payload.errorSchemaIds,
-    registeredAt: payload.registeredAt,
-    originNodeId: payload.originNodeId,
-    ...(payload.description !== undefined
-      ? { description: payload.description }
-      : {}),
-    deprecated: existing?.deprecated ?? null,
-  })
+  next.set(
+    key,
+    OperationEntry.make({
+      name: payload.name,
+      version: payload.version,
+      kind: payload.kind,
+      inputSchemaId: payload.inputSchemaId,
+      outputSchemaId: payload.outputSchemaId,
+      errorSchemaIds: payload.errorSchemaIds,
+      registeredAt: payload.registeredAt,
+      originNodeId: payload.originNodeId,
+      ...(payload.description !== undefined
+        ? { description: payload.description }
+        : {}),
+      deprecated: existing?.deprecated ?? null,
+    }),
+  )
   return {
     ...state,
     operations: next,
     revision: state.revision + 1,
-    asOf: new Date(payload.registeredAt).toISOString(),
+    asOfMs: Math.max(state.asOfMs ?? 0, payload.registeredAt),
   }
 }
 
@@ -190,20 +292,44 @@ export const onOperationDeprecated = (
   const key = `${payload.name}@${payload.version}`
   const existing = state.operations.get(key)
   if (existing === undefined) return state
-  const next = new Map(state.operations)
-  next.set(key, {
-    ...existing,
-    deprecated: {
+  const existingPrec = existing.deprecated
+    ? { at: existing.deprecated.at, nodeId: existing.deprecated.originNodeId }
+    : null
+  if (
+    !shouldApply(existingPrec, {
       at: payload.deprecatedAt,
-      successor: payload.successor,
-      reason: payload.reason,
-      originNodeId: payload.originNodeId,
-    },
-  })
+      nodeId: payload.originNodeId,
+    })
+  ) {
+    return state
+  }
+  const next = new Map(state.operations)
+  next.set(
+    key,
+    OperationEntry.make({
+      ...existing,
+      deprecated: Deprecation.make({
+        at: payload.deprecatedAt,
+        successor: payload.successor,
+        reason: payload.reason,
+        originNodeId: payload.originNodeId,
+      }),
+    }),
+  )
   return {
     ...state,
     operations: next,
     revision: state.revision + 1,
-    asOf: new Date(payload.deprecatedAt).toISOString(),
+    asOfMs: Math.max(state.asOfMs ?? 0, payload.deprecatedAt),
   }
 }
+
+// ─── Read helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Translate the registry's `asOfMs` to ISO-8601 (or null for empty).
+ *
+ * Allocates one Date per call; cache at higher layers if hot.
+ */
+export const asOfIso = (state: RegistryState): string | null =>
+  state.asOfMs === null ? null : new Date(state.asOfMs).toISOString()
