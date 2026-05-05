@@ -8,9 +8,12 @@
  */
 
 export {
+  type DeprecateOptions,
   type PublishedProcedure,
   type PublishOptions,
   type PublishResult,
+  deprecateOperation,
+  deprecateSchema,
   publish,
   publishProcedure,
 } from "./Publish.js"

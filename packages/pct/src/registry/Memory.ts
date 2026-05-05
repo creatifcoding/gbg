@@ -119,38 +119,54 @@ const filterOperations = (
 // ─── Layers ────────────────────────────────────────────────────────────────
 
 /**
- * Identity layer: a freshly-generated keypair via WebCrypto.
- * Suitable for tests and ephemeral nodes; production should use a
- * persistent identity layer.
- */
-const identityLayer = Layer.effect(EventLog.Identity, EventLog.makeIdentity).pipe(
-  Layer.provide(EventLogEncryption.layerSubtle),
-)
-
-/**
- * The full Registry layer backed by an in-memory event journal and a
- * fresh identity. Provides:
- *   - `Registry` (read surface — what consumers `yield*`)
- *   - `EventLog.EventLog` (write surface — what publishers use)
- *   - `EventLog.Registry` (EventLog's internal handler registry)
- *   - `EventLog.Identity` (this node's identity)
+ * Registry layer requiring external journal + identity.
  *
- * Consumers that need to write events (e.g. the publish endpoint)
- * `yield* EventLog.EventLog` and call `log.write({ schema, event, payload })`.
- * Consumers that need to read state `yield* Registry` and call
- * `getSchema`, `listOperations`, etc.
+ * Provides:
+ *   - `Registry`            — read surface (snapshot, getSchema, list*)
+ *   - `EventLog.EventLog`   — write surface (used by publish helpers)
  *
- * The provided-types union is left to inference so additional services
- * required by EventLog (Identity, internal Registry) flow through cleanly.
+ * Requires (from outside):
+ *   - `EventLog.Identity`        — the node's keypair
+ *   - `EventJournal.EventJournal` — the persistence substrate
+ *
+ * Use this for production composition, where the identity is shared
+ * with `Pact.Identity` (so Notary's `originNodeId` matches the
+ * cryptographic identity that signs events).
+ *
+ * Typical composition:
+ *
+ *   ```ts
+ *   const App = SomeServiceLayer.pipe(
+ *     Layer.provide(Registry.layer),                  // Registry + EventLog
+ *     Layer.provide(EventJournal.layerMemory),        // Journal substrate
+ *     Layer.provide(Identity.layerEphemeral),         // Pact.Identity + EventLog.Identity
+ *   )
+ *   ```
  */
-export const layerMemory = Layer.unwrap(
+export const layer = Layer.unwrap(
   Effect.gen(function* () {
     const stateRef = yield* Ref.make<RegistryState>(empty())
     const registryLayer = Layer.succeed(Registry, makeImpl(stateRef))
-    const logLayer = EventLog.layer(schema, handlerLayer(stateRef)).pipe(
-      Layer.provide(EventJournal.layerMemory),
-      Layer.provide(identityLayer),
-    )
+    const logLayer = EventLog.layer(schema, handlerLayer(stateRef))
     return Layer.merge(registryLayer, logLayer)
   }),
+)
+
+/**
+ * Self-contained Registry layer for tests. Provides Registry +
+ * EventLog with a fresh internal `EventLog.Identity` and an
+ * in-memory `EventJournal`.
+ *
+ * Use this when the caller doesn't need Pact.Identity (e.g. low-level
+ * EventLog.write tests). For production composition or Notary tests,
+ * use `Registry.layer` + provide identity/journal externally.
+ */
+const internalIdentityLayer = Layer.effect(
+  EventLog.Identity,
+  EventLog.makeIdentity,
+).pipe(Layer.provide(EventLogEncryption.layerSubtle))
+
+export const layerMemory = layer.pipe(
+  Layer.provide(EventJournal.layerMemory),
+  Layer.provide(internalIdentityLayer),
 )

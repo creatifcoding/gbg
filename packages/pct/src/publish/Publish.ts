@@ -209,3 +209,73 @@ export const publish = (
       publishedAt,
     }
   })
+
+// ─── Deprecation helpers ────────────────────────────────────────────────────
+
+export interface DeprecateOptions {
+  readonly successor?: string | null
+  readonly reason: string
+  readonly originNodeId?: string
+  readonly deprecatedAt?: number
+}
+
+/**
+ * Mark a schema version as deprecated. The entry remains queryable;
+ * deprecation is a flag, not a removal.
+ */
+export const deprecateSchema = (
+  schemaName: string,
+  version: string,
+  options: DeprecateOptions,
+): Effect.Effect<
+  void,
+  EventJournal.EventJournalError,
+  EventLog.EventLog
+> =>
+  Effect.gen(function* () {
+    const log = yield* EventLog.EventLog
+    const originNodeId = options.originNodeId ?? "self"
+    const deprecatedAt =
+      options.deprecatedAt ?? (yield* Clock.currentTimeMillis)
+    yield* log.write({
+      schema,
+      event: "SchemaDeprecated",
+      payload: {
+        schemaId: schemaName,
+        version,
+        successor: options.successor ?? null,
+        deprecatedAt,
+        reason: options.reason,
+        originNodeId,
+      },
+    })
+  })
+
+/** Mark an operation version as deprecated. */
+export const deprecateOperation = (
+  operationName: string,
+  version: string,
+  options: DeprecateOptions,
+): Effect.Effect<
+  void,
+  EventJournal.EventJournalError,
+  EventLog.EventLog
+> =>
+  Effect.gen(function* () {
+    const log = yield* EventLog.EventLog
+    const originNodeId = options.originNodeId ?? "self"
+    const deprecatedAt =
+      options.deprecatedAt ?? (yield* Clock.currentTimeMillis)
+    yield* log.write({
+      schema,
+      event: "OperationDeprecated",
+      payload: {
+        name: operationName,
+        version,
+        successor: options.successor ?? null,
+        deprecatedAt,
+        reason: options.reason,
+        originNodeId,
+      },
+    })
+  })
