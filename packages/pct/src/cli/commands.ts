@@ -41,6 +41,7 @@ import { type Manifest } from "../manifest/Manifest.js"
 import { PactClient, layer as pactClientLayer } from "../client/PactClient.js"
 import { type Procedure } from "../procedures/Procedure.js"
 import { type ProcedureGroup } from "../procedures/ProcedureGroup.js"
+import { serveCommand } from "./serve.js"
 
 // ─── Global flags ───────────────────────────────────────────────────────────
 
@@ -305,7 +306,7 @@ export const pact = Command.make("pact").pipe(
   Command.withDescription(
     "PCT — Pact Protocol CLI: author, publish, and inspect schemas",
   ),
-  Command.withSubcommands([registryCommand, publishCommand]),
+  Command.withSubcommands([registryCommand, publishCommand, serveCommand]),
 )
 
 export { pactClientLayer }
