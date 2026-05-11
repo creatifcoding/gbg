@@ -5,9 +5,13 @@
  *   - `Protocol` — RpcGroup spec (single source of truth for op schemas/tags)
  *   - `Wire`     — Context.Service interface (transport-agnostic)
  *   - Per-impl subdirectories (each is a `Layer<Wire>`):
- *       - `./in-memory` — `InMemoryWire` (Phase 1)
- *       - (`./http`     — `HttpWire`,        Phase 1.1)
- *       - (`./nats-bridge` — `NatsBridgeWire`, Phase 5)
+ *       - `./in-memory`     — `InMemoryWire`   (Phase 1.0, ✅)
+ *       - `./http`           — `HttpWire` client + `Routes` Layer for
+ *                              the server (Phase 1.0 client / 1.4 routes, ✅)
+ *       - `./nats-bridge`    — `NatsBridgeWire` (Phase 5, planned;
+ *                              ports the legacy v1 NATS-JetStream-backed
+ *                              StreamBridgeService / LiveStreamService /
+ *                              ConsumerStateService onto v4)
  *
  * @module @tmnl/lnk/services/wire
  */

@@ -27,23 +27,31 @@
  * )
  * ```
  *
- * Phase status:
- *   - Phase 0 (contracts)           : ✅ done
- *   - Phase 1 (wire layer)          : ✅ done — InMemoryWire + HttpWire
- *                                     against 241/299 upstream conformance
- *                                     tests, 0 in-scope failures
- *   - Phase 2 (Lnk handle)          : ✅ done (2.0 + 2.1 + 2.3)
- *     - 2.0: Lnk yieldable handle   : ✅
- *     - 2.1: Lnks factory (RcMap)   : ✅
- *     - 2.2: Producer Sink          : (deferred)
- *     - 2.3: @tmnl/stx integration  : ✅
- *     - 2.4: React surface          : (covered by stx hooks)
- *   - Phase 3 (NATS-bridge)         : not started
- *   - Phase 4 (server runtime)      : not started — TTL reaper, ETag,
- *                                     security headers (~24 conformance
- *                                     tests gated here)
- *   - Phase 5 (Fork)                : not started — branching streams
- *                                     (~37 conformance tests gated here)
+ * Phase status (canonical sequence per ARCHITECTURE.md):
+ *   - Phase 0 (contracts)             : ✅ done
+ *   - Phase 1 (wire layer)            : ✅ done
+ *     - 1.0: in-memory + HttpWire     : ✅  (241/299 upstream conformance,
+ *                                            0 in-scope failures)
+ *     - 1.4: HttpRoutes Layer         : ✅  (production server routes,
+ *                                            composes with Pact on one host)
+ *     - 1.5: SSE / HEAD / DELETE      : (deferred; covered by spec-server)
+ *   - Phase 2 (Lnk handle)            : ✅ done (2.0 + 2.1 + 2.3)
+ *     - 2.0: Lnk yieldable handle     : ✅
+ *     - 2.1: Lnks factory (RcMap)     : ✅
+ *     - 2.2: Producer Sink            : (deferred)
+ *     - 2.3: @tmnl/stx integration    : ✅
+ *     - 2.4: React surface            : (covered by stx hooks)
+ *     - 2.5: schema auto-bind         : (in progress)
+ *   - Phase 3 (production runtime)    : not started — TTL reaper, ETag,
+ *                                       security headers (~24 conformance
+ *                                       tests gated here)
+ *   - Phase 4 (Fork)                  : not started — branching streams
+ *                                       (~37 conformance tests gated here)
+ *   - Phase 5 (NATS-bridge)           : not started — ports / corrects the
+ *                                       legacy v1 NATS bridge from
+ *                                       tmnl/src/lib/holonet/durable-streams/v1/
+ *                                       onto v4 + the new spec-faithful
+ *                                       Wire shape
  *
  * @module
  */
