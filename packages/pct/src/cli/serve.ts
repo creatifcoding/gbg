@@ -39,11 +39,13 @@ import { Command, Flag } from "effect-v4/unstable/cli"
 import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
 import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
 
+import { Services as LnkServices } from "@tmnl/lnk"
+
 import * as Config from "../config/index.js"
 import * as IdentityLayers from "../identity/Layers.js"
 import * as NotaryDefault from "../notary/Default.js"
 import * as RegistryMemory from "../registry/Memory.js"
-import { Routes } from "../server/Routes.js"
+import { Routes as PactRoutes } from "../server/Routes.js"
 
 // ─── Server runtime detection ───────────────────────────────────────────────
 
@@ -61,12 +63,15 @@ const maybeBun = (): BunRuntime | undefined => {
 }
 
 /**
- * Bind the (Request) → Promise<Response> handler to a TCP port.
- * Returns a teardown function. Uses Bun.serve when available, else
- * falls back to node:http.
+ * Bind the handler to a TCP port. Returns a teardown function.
+ * Uses Bun.serve when available, else falls back to node:http.
+ *
+ * The handler signature accepts an optional Context arg; we ignore
+ * the second slot since toWebHandler's emitted handler accepts being
+ * called with just `(request)`.
  */
 const bindServer = (
-  handler: (request: Request) => Promise<Response>,
+  handler: (request: Request, ctx?: never) => Promise<Response>,
   options: { port: number; host: string },
 ): Effect.Effect<{ readonly close: () => void; readonly url: string }> =>
   Effect.sync(() => {
@@ -156,11 +161,20 @@ export const serveCommand = Command.make(
         ? hostOverride.value
         : config.server.host
 
-      // Build the full app layer: routes on top of services
-      const AppLayer = Routes.pipe(
+      // Build the full app layer:
+      //   PactRoutes        → /capabilities, /schemas/:id, /publish
+      //   LnkServices.Wire.Http.Routes → /streams/:streamId (PUT, POST, GET)
+      // Both compose onto the single HttpRouter that toWebHandler
+      // builds, demonstrating the architectural commitment from PCT.md
+      // §6: "lnk + pct served on one HTTP host."
+      const AppLayer = Layer.mergeAll(
+        PactRoutes,
+        LnkServices.Wire.Http.Routes,
+      ).pipe(
         Layer.provideMerge(NotaryDefault.Default),
         Layer.provideMerge(RegistryMemory.layer),
         Layer.provideMerge(IdentityLayers.layerEphemeral),
+        Layer.provideMerge(LnkServices.Wire.InMemory.InMemoryWire.layer),
         Layer.provideMerge(EventJournal.layerMemory),
       )
 
@@ -169,11 +183,11 @@ export const serveCommand = Command.make(
       const server = yield* bindServer(handler, { port, host })
 
       yield* Console.log(``)
-      yield* Console.log(`  PCT server running.`)
+      yield* Console.log(`  PCT + Lnk server running.`)
       yield* Console.log(`  ┃ ${server.url}`)
-      yield* Console.log(`  ┃ GET  /capabilities`)
-      yield* Console.log(`  ┃ GET  /schemas/:schemaId`)
-      yield* Console.log(`  ┃ POST /publish`)
+      yield* Console.log(`  ┃`)
+      yield* Console.log(`  ┃ PCT  /capabilities, /schemas/:id, /publish`)
+      yield* Console.log(`  ┃ Lnk  /streams/:streamId  (PUT POST GET)`)
       yield* Console.log(``)
 
       // Wait for SIGINT / SIGTERM to shut down cleanly.

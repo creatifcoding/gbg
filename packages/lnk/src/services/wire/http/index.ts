@@ -14,3 +14,4 @@
 
 export { HttpWire } from "./HttpWire.js"
 export { HttpInner, HEADERS, type HttpInnerConfig } from "./HttpInner.js"
+export { Routes } from "./HttpRoutes.js"
