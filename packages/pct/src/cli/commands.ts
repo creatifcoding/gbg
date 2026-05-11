@@ -39,8 +39,8 @@ import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
 import * as Config from "../config/index.js"
 import { type Manifest } from "../manifest/Manifest.js"
 import { PactClient, layer as pactClientLayer } from "../client/PactClient.js"
-import { type Procedure } from "../procedures/Procedure.js"
-import { type ProcedureGroup } from "../procedures/ProcedureGroup.js"
+import { isProcedure } from "../procedures/Procedure.js"
+import { isProcedureGroup } from "../procedures/ProcedureGroup.js"
 import { serveCommand } from "./serve.js"
 
 // ─── Global flags ───────────────────────────────────────────────────────────
@@ -156,18 +156,12 @@ const renderManifest = (manifest: Manifest): string => {
 
 // ─── Type guards on imported user spec exports ──────────────────────────────
 
-const isProcedure = (v: unknown): v is Procedure =>
-  typeof v === "object" &&
-  v !== null &&
-  "_tag" in v &&
-  (v as { _tag: unknown })._tag === "Procedure"
-
-const isProcedureGroup = (v: unknown): v is ProcedureGroup =>
-  typeof v === "object" &&
-  v !== null &&
-  "_tag" in v &&
-  (v as { _tag: unknown })._tag === "ProcedureGroup"
-
+/**
+ * Detector for raw Effect Schema instances exported standalone (not
+ * inside a Procedure). Used when `pact publish` is scanning module
+ * exports — a schema with no procedure context gets registered under
+ * the export name + a default version.
+ */
 const isSchema = (v: unknown): v is Schema.Top =>
   typeof v === "object" &&
   v !== null &&

@@ -10,20 +10,49 @@
  *   - `output`   — Effect.Schema describing the success payload
  *   - `errors`   — array of Effect.Schemas describing typed errors
  *
- * A Procedure carries enough information to:
- *   - Serialize to a `Procedure.Document` (schemas as
- *     `SchemaRepresentation.Document`, plus metadata)
- *   - Be published to a registry (becomes one or more SchemaRegistered
- *     events plus an OperationRegistered event)
- *   - Be bound to a handler implementation
- *   - Drive a typed client surface
+ * # Modeling — schema-carrying record, not schema-validated data
+ *
+ * `Procedure` is a domain value that *carries* Effect Schemas in its
+ * fields (input/output/errors). It's not a data record that needs
+ * runtime validation of its own structure — instances are built from
+ * trusted code via the factory functions below.
+ *
+ * The canonical Effect-TS pattern for this shape (as used by `Rpc.Rpc`,
+ * `DurableDeferred`, `HttpApiEndpoint`) is:
+ *
+ *   1. A `TypeId` string brand for identity at the type-system layer
+ *   2. A function-typed value with a shared `Proto` for `instanceof`
+ *      / `Predicate.hasProperty` guards (analogous to `isRpc`)
+ *   3. Schema fields stored directly as `Schema.Top` instances
+ *      (no `Schema.Unknown` wrapping; no TaggedStruct)
+ *   4. `Pipeable` for chainable transforms
+ *
+ * Pattern matching on Procedure values uses `isProcedure(u)` (TypeId
+ * brand check). For pattern matching on procedure-by-name, callers
+ * use the `name` field directly (it's the per-instance identity, just
+ * like `Rpc.Rpc`'s `_tag` field).
+ *
+ * Deep wire-form serialization (Schema instances → `SchemaRepresentation
+ * .Document`) lives separately in `Document.ts` — that's a transform
+ * over the surface representation, not a property of the surface itself.
  *
  * @module @tmnl/pct/procedures/Procedure
  */
 
+import { type Pipeable, pipeArguments } from "effect-v4/Pipeable"
+import * as Predicate from "effect-v4/Predicate"
 import type * as Schema from "effect-v4/Schema"
 
 import type { ProcedureKind } from "./ProcedureKind.js"
+
+// ─── Brand ──────────────────────────────────────────────────────────────────
+
+/**
+ * Identity brand for Procedure values. Stored as a property key so
+ * `Predicate.hasProperty(u, TypeId)` is the runtime guard.
+ */
+export const TypeId: unique symbol = Symbol.for("@tmnl/pct/Procedure")
+export type TypeId = typeof TypeId
 
 // ─── Type-level helpers ─────────────────────────────────────────────────────
 
@@ -37,7 +66,7 @@ export type SchemaTypes<Ss> = Ss extends ReadonlyArray<infer S>
     : never
   : never
 
-// ─── Procedure ──────────────────────────────────────────────────────────────
+// ─── Procedure shape ────────────────────────────────────────────────────────
 
 /**
  * A single procedure spec value.
@@ -55,7 +84,12 @@ export interface Procedure<
   out Input extends Schema.Top = Schema.Top,
   out Output extends Schema.Top = Schema.Top,
   out Errors extends ReadonlyArray<Schema.Top> = ReadonlyArray<Schema.Top>,
-> {
+> extends Pipeable {
+  // Phantom constructor signature: lets TS treat the value as a class-like
+  // construct for `instanceof` purposes without ever permitting `new`.
+  new (_: never): {}
+
+  readonly [TypeId]: TypeId
   readonly name: Name
   readonly version: string
   readonly kind: Kind
@@ -63,6 +97,56 @@ export interface Procedure<
   readonly output: Output
   readonly errors: Errors
   readonly description?: string
+}
+
+// ─── Guard ──────────────────────────────────────────────────────────────────
+
+/**
+ * Runtime brand check. Returns `true` iff `u` is a Procedure value
+ * (carries the TypeId property). Used for dispatchers that scan
+ * unknown values (CLI module exports, handler binding tables, etc.).
+ */
+export const isProcedure = (u: unknown): u is Procedure =>
+  Predicate.hasProperty(u, TypeId)
+
+// ─── Proto + factory ────────────────────────────────────────────────────────
+
+/**
+ * Shared prototype for Procedure values. Holds the brand and the
+ * Pipeable.pipe method. Per-instance fields (name, kind, schemas, etc.)
+ * are assigned by `makeProto`.
+ */
+const Proto = {
+  [TypeId]: TypeId,
+  pipe(this: Procedure) {
+    // eslint-disable-next-line prefer-rest-params
+    return pipeArguments(this, arguments)
+  },
+} as const
+
+const makeProto = <
+  Name extends string,
+  Kind extends ProcedureKind,
+  Input extends Schema.Top,
+  Output extends Schema.Top,
+  Errors extends ReadonlyArray<Schema.Top>,
+>(fields: {
+  readonly name: Name
+  readonly kind: Kind
+  readonly version: string
+  readonly input: Input
+  readonly output: Output
+  readonly errors: Errors
+  readonly description?: string
+}): Procedure<Name, Kind, Input, Output, Errors> => {
+  // Plain object with Proto-chained prototype. Object.create is used
+  // instead of `function Procedure() {}` (which `Rpc.Rpc` uses) because
+  // our fields include a `name` property that conflicts with the
+  // function value's read-only `.name`. Rpc doesn't hit this because
+  // it carries `_tag`/`key` rather than a free `name` field.
+  const instance = Object.create(Proto)
+  Object.assign(instance, fields)
+  return instance as Procedure<Name, Kind, Input, Output, Errors>
 }
 
 // ─── Constructors per kind ──────────────────────────────────────────────────
@@ -84,6 +168,9 @@ export interface ProcedureOptions<
  * Construct a procedure of arbitrary kind. The kind-specific constructors
  * below (`pure`, `query`, `mutation`, `stream`, `duplex`) wrap this with
  * the correct kind tag.
+ *
+ * Built via `makeProto` so the result carries the `TypeId` brand and
+ * passes `isProcedure(value)` checks.
  */
 export const make = <
   Name extends string,
@@ -95,17 +182,18 @@ export const make = <
   name: Name,
   kind: Kind,
   options: ProcedureOptions<Input, Output, Errors>,
-): Procedure<Name, Kind, Input, Output, Errors> => ({
-  name,
-  kind,
-  version: options.version,
-  input: options.input,
-  output: options.output,
-  errors: (options.errors ?? ([] as unknown)) as Errors,
-  ...(options.description !== undefined
-    ? { description: options.description }
-    : {}),
-})
+): Procedure<Name, Kind, Input, Output, Errors> =>
+  makeProto({
+    name,
+    kind,
+    version: options.version,
+    input: options.input,
+    output: options.output,
+    errors: (options.errors ?? ([] as unknown)) as Errors,
+    ...(options.description !== undefined
+      ? { description: options.description }
+      : {}),
+  })
 
 /** Construct a `pure` procedure (stateless, deterministic, cacheable). */
 export const pure = <

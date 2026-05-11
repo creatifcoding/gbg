@@ -19,7 +19,9 @@ export {
   type ProcedureOptions,
   type SchemaType,
   type SchemaTypes,
+  TypeId as ProcedureTypeId,
   duplex,
+  isProcedure,
   make,
   mutation,
   pure,
@@ -30,8 +32,10 @@ export {
 
 export {
   type ProcedureGroup,
+  TypeId as ProcedureGroupTypeId,
   findByName,
   findBySchemaId,
+  isProcedureGroup,
   make as makeGroup,
   of as groupOf,
   toMap,
