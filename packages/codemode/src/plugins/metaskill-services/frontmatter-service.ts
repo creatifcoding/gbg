@@ -11,7 +11,7 @@
 
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { FileSystem } from "effect-v4/FileSystem"
 import { join, relative } from "node:path"
 import { SkillConfig } from "./skill-config.js"
@@ -31,7 +31,7 @@ export interface FrontmatterServiceShape {
 
 // ── Service ──────────────────────────────────────────────────────
 
-export class FrontmatterService extends ServiceMap.Service<FrontmatterService, FrontmatterServiceShape>()(
+export class FrontmatterService extends Context.Service<FrontmatterService, FrontmatterServiceShape>()(
   "@gbg/codemode-metaskill/FrontmatterService"
 ) {}
 

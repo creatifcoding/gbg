@@ -10,7 +10,7 @@
 
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { FileSystem } from "effect-v4/FileSystem"
 import { join, relative } from "node:path"
 import { SkillConfig } from "./skill-config.js"
@@ -26,7 +26,7 @@ export interface SkillDiscoveryShape {
 
 // ── Service ──────────────────────────────────────────────────────
 
-export class SkillDiscovery extends ServiceMap.Service<SkillDiscovery, SkillDiscoveryShape>()(
+export class SkillDiscovery extends Context.Service<SkillDiscovery, SkillDiscoveryShape>()(
   "@gbg/codemode-metaskill/SkillDiscovery"
 ) {}
 

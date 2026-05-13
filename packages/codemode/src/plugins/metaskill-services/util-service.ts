@@ -11,7 +11,7 @@
 
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { FileSystem } from "effect-v4/FileSystem"
 import { join } from "node:path"
 import { execSync } from "node:child_process"
@@ -28,7 +28,7 @@ export interface UtilServiceShape {
 
 // ── Service ──────────────────────────────────────────────────────
 
-export class UtilService extends ServiceMap.Service<UtilService, UtilServiceShape>()(
+export class UtilService extends Context.Service<UtilService, UtilServiceShape>()(
   "@gbg/codemode-metaskill/UtilService"
 ) {}
 

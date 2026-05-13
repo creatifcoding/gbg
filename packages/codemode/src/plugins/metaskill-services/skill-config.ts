@@ -8,7 +8,7 @@
  */
 
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { join } from "node:path"
 
 // ── Shape ────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ export interface SkillConfigShape {
 
 // ── Service ──────────────────────────────────────────────────────
 
-export class SkillConfig extends ServiceMap.Service<SkillConfig, SkillConfigShape>()(
+export class SkillConfig extends Context.Service<SkillConfig, SkillConfigShape>()(
   "@gbg/codemode-metaskill/SkillConfig"
 ) {}
 

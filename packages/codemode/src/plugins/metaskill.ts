@@ -3,7 +3,7 @@
  *
  * Metaskill domain plugin — skill governance codemod operations.
  *
- * Backed by 8 Effect v4 ServiceMap.Service classes with FileSystem DI.
+ * Backed by 8 Effect v4 Context.Service classes with FileSystem DI.
  * The plugin owns a ManagedRuntime that services resolve through.
  * Methods are async (Effect.runPromise at the boundary).
  *

@@ -1,7 +1,7 @@
 /**
  * @module plugins/metaskill-services
  *
- * Effect v4 ServiceMap.Service decomposition of the metaskill domain.
+ * Effect v4 Context.Service decomposition of the metaskill domain.
  *
  * 8 services + 1 layer composition:
  *
