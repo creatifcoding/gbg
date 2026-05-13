@@ -15,7 +15,7 @@
  */
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import * as Scope from "effect-v4/Scope"
 import * as Semaphore from "effect-v4/Semaphore"
 import * as Stream from "effect-v4/Stream"
@@ -124,7 +124,7 @@ export const layer = (config: SqliteNodeConfig): Layer.Layer<SqlClient> => {
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore: any) => {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),
@@ -143,9 +143,9 @@ export const layer = (config: SqliteNodeConfig): Layer.Layer<SqlClient> => {
     })
   })
 
-  return Layer.effectServices(
+  return Layer.effectContext(
     Effect.map(makeClient, (client: any) =>
-      ServiceMap.make(SqlClient, client)
+      Context.make(SqlClient, client)
     )
   ).pipe(Layer.provide(ReactivityNoop))
 }

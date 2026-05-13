@@ -1,7 +1,7 @@
 /**
  * @module service
  *
- * RLM Store v2 — Effect v4 ServiceMap.Service for knowledge persistence.
+ * RLM Store v2 — Effect v4 Context.Service for knowledge persistence.
  * Uses unstable/sql SqlClient for database operations.
  * Validates namespaces, keys, and _meta via Schema.
  *
@@ -14,7 +14,7 @@
  */
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { SqlClient } from "effect-v4/unstable/sql/SqlClient"
 import {
   validateNamespace,
@@ -93,7 +93,7 @@ export interface RlmStoreShape {
 
 // ── Service Tag ──────────────────────────────────────────────────
 
-export class RlmStore extends ServiceMap.Service<RlmStore, RlmStoreShape>()(
+export class RlmStore extends Context.Service<RlmStore, RlmStoreShape>()(
   "@tmnl/rlm/Store"
 ) {}
 

@@ -8,7 +8,7 @@
  */
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { RlmStore } from "./service.js"
 import { validateDomainConfig, type DomainConfig } from "./schemas.js"
 
@@ -36,7 +36,7 @@ export interface DomainRegistryShape {
 
 // ── Service Tag ──────────────────────────────────────────────────
 
-export class DomainRegistry extends ServiceMap.Service<DomainRegistry, DomainRegistryShape>()(
+export class DomainRegistry extends Context.Service<DomainRegistry, DomainRegistryShape>()(
   "@tmnl/rlm/DomainRegistry"
 ) {}
 

@@ -24,7 +24,7 @@
 
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { SqlClient } from "effect-v4/unstable/sql/SqlClient"
 import * as Migrator from "effect-v4/unstable/sql/Migrator"
 
@@ -35,7 +35,7 @@ export interface MigrationsCompleteShape {
   readonly _tag: "MigrationsComplete"
 }
 
-export class MigrationsComplete extends ServiceMap.Service<MigrationsComplete, MigrationsCompleteShape>()(
+export class MigrationsComplete extends Context.Service<MigrationsComplete, MigrationsCompleteShape>()(
   "@tmnl/rlm/MigrationsComplete"
 ) {}
 

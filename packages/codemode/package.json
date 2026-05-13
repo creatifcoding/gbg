@@ -1,7 +1,7 @@
 {
   "name": "@tmnl/codemode",
   "version": "0.0.1",
-  "description": "Domain SDK — persistent knowledge, procedures, plugin system, eval sandbox",
+  "description": "Domain SDK \u2014 persistent knowledge, procedures, plugin system, eval sandbox",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -91,13 +91,13 @@
     "prepublishOnly": "bun run clean && bun run build"
   },
   "dependencies": {
-    "effect-v4": "npm:effect@4.0.0-beta.23",
+    "effect-v4": "npm:effect@4.0.0-beta.66",
     "flexsearch": "^0.8.212"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
-    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.23"
+    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.66"
   },
   "publishConfig": {
     "access": "public"

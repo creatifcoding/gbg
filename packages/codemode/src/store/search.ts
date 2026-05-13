@@ -24,7 +24,7 @@
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 import * as Ref from "effect-v4/Ref"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { SqlClient } from "effect-v4/unstable/sql/SqlClient"
 import { Document } from "flexsearch"
 import { namespaceMatchesGlob } from "./schemas.js"
@@ -106,7 +106,7 @@ export interface SearchIndexShape {
 
 // ── Service Tag ──────────────────────────────────────────────────
 
-export class SearchIndex extends ServiceMap.Service<SearchIndex, SearchIndexShape>()(
+export class SearchIndex extends Context.Service<SearchIndex, SearchIndexShape>()(
   "@tmnl/rlm/SearchIndex"
 ) {}
 

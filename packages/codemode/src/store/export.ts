@@ -32,7 +32,7 @@
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 import * as Schema from "effect-v4/Schema"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import { FileSystem } from "effect-v4/FileSystem"
 import { RlmStore, type StoredObject } from "./service.js"
 import { namespaceMatchesGlob } from "./schemas.js"
@@ -239,7 +239,7 @@ export interface ExportServiceShape {
   readonly removeProfile: (name: string) => Effect.Effect<{ removed: number; collections: string[] }, Error>
 }
 
-export class ExportService extends ServiceMap.Service<ExportService, ExportServiceShape>()(
+export class ExportService extends Context.Service<ExportService, ExportServiceShape>()(
   "@tmnl/rlm/ExportService"
 ) {}
 

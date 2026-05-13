@@ -9,7 +9,7 @@
  *   pipeline()   — sequence: ordered stages with lineage tracking
  *
  * Architecture:
- *   Effect v4 services internally (ServiceMap.Service, Ref, Schema.TaggedStruct)
+ *   Effect v4 services internally (Context.Service, Ref, Schema.TaggedStruct)
  *   Plain async functions externally (eval sandbox / ms.*)
  *   DI seam: Layer<SqlClient> injected at construction
  *
@@ -17,7 +17,7 @@
  */
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Context from "effect-v4/Context"
 import * as Schema from "effect-v4/Schema"
 import * as Ref from "effect-v4/Ref"
 import * as ManagedRuntime from "effect-v4/ManagedRuntime"
@@ -84,7 +84,7 @@ interface CollectionFactoryShape {
   make: (config: CollectionConfig) => CollectionHandle
 }
 
-class CollectionFactory extends ServiceMap.Service<CollectionFactory, CollectionFactoryShape>()(
+class CollectionFactory extends Context.Service<CollectionFactory, CollectionFactoryShape>()(
   "@tmnl/rlm/CollectionFactory"
 ) {}
 
@@ -163,7 +163,7 @@ interface DomainFactoryShape {
   ) => Effect.Effect<DomainHandle, any>
 }
 
-class DomainFactory extends ServiceMap.Service<DomainFactory, DomainFactoryShape>()(
+class DomainFactory extends Context.Service<DomainFactory, DomainFactoryShape>()(
   "@tmnl/rlm/DomainFactory"
 ) {}
 
@@ -262,7 +262,7 @@ interface PipelineFactoryShape {
   define: (name: string, stageNames: readonly string[]) => Effect.Effect<PipelineDefHandle, any>
 }
 
-class PipelineFactory extends ServiceMap.Service<PipelineFactory, PipelineFactoryShape>()(
+class PipelineFactory extends Context.Service<PipelineFactory, PipelineFactoryShape>()(
   "@tmnl/rlm/PipelineFactory"
 ) {}
 
