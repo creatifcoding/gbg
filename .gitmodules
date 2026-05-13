@@ -160,3 +160,6 @@
 [submodule "submodules/restty"]
 	path = submodules/restty
 	url = https://github.com/wiedymi/restty
+[submodule "submodules/synadia-agents"]
+	path = submodules/synadia-agents
+	url = https://github.com/synadia-ai/synadia-agents.git
