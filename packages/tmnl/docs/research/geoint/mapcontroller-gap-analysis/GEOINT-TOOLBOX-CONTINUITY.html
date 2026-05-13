@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GEOINT Toolbox Continuity Map</title>
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --panel: #111923;
+        --panel-2: #0f1620;
+        --text: #d7e3f4;
+        --muted: #8ca0b8;
+        --ok: #2ecc71;
+        --warn: #f1c40f;
+        --bad: #e74c3c;
+        --accent: #5dade2;
+        --line: #223244;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(1200px 800px at 20% -10%, #1a2a3c 0%, var(--bg) 45%) no-repeat;
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 28px 20px 48px;
+      }
+      h1 { margin: 0 0 8px; font-size: 30px; }
+      .sub { color: var(--muted); margin-bottom: 20px; font-size: 14px; }
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .card {
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .kpi { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+      .label { color: var(--muted); font-size: 13px; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid transparent;
+      }
+      .ok { color: #b8f5d0; background: rgba(46, 204, 113, 0.16); border-color: rgba(46, 204, 113, 0.5); }
+      .warn { color: #ffe9a7; background: rgba(241, 196, 15, 0.16); border-color: rgba(241, 196, 15, 0.5); }
+      .bad { color: #ffc2bb; background: rgba(231, 76, 60, 0.16); border-color: rgba(231, 76, 60, 0.5); }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .node {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: rgba(255,255,255,0.02);
+        min-height: 88px;
+      }
+      .node h4 { margin: 0 0 6px; font-size: 13px; color: #bdd7ff; }
+      .node p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.35; }
+      h2 { font-size: 18px; margin: 20px 0 10px; }
+      ul { margin: 8px 0 0 20px; }
+      li { margin: 6px 0; }
+      .critical li strong { color: #ffd2cc; }
+      .method {
+        display: grid;
+        grid-template-columns: 210px 1fr;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px dashed #203247;
+      }
+      .method:last-child { border-bottom: none; }
+      .name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #cfe3ff; }
+      .note { color: var(--muted); font-size: 12px; }
+      .footer-note { margin-top: 16px; color: #9fb5ce; font-size: 12px; }
+      @media (max-width: 1024px) {
+        .grid.cols-3 { grid-template-columns: 1fr; }
+        .flow { grid-template-columns: 1fr 1fr; }
+        .method { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>GEOINT Toolbox Continuity Map</h1>
+      <div class="sub">
+        Hard-mode audit: assume failure unless continuity is proven from operator intent → visible map outcome.
+      </div>
+
+      <div class="grid cols-3">
+        <div class="card">
+          <div class="kpi">Strong</div>
+          <div class="label">Control-plane continuity (contracts + panel atoms + tests)</div>
+        </div>
+        <div class="card">
+          <div class="kpi">Partial</div>
+          <div class="label">Visual continuity (many Wave 2/3 methods are state-only)</div>
+        </div>
+        <div class="card">
+          <div class="kpi">Fragile</div>
+          <div class="label">Operator continuity (discoverability and visible payoff still uneven)</div>
+        </div>
+      </div>
+
+      <h2>Canonical continuity chain (must be unbroken)</h2>
+      <div class="flow">
+        <div class="node">
+          <h4>1) Intent</h4>
+          <p>Operator action/hotkey/request (e.g. fly, corridor, alert).</p>
+        </div>
+        <div class="node">
+          <h4>2) Contract</h4>
+          <p>Effect Schema validates input/state shape (no raw drift).</p>
+        </div>
+        <div class="node">
+          <h4>3) Control</h4>
+          <p><code>MapController</code> applies deterministic mutation or compute path.</p>
+        </div>
+        <div class="node">
+          <h4>4) State</h4>
+          <p>Panel-scoped atoms updated (isolated by <code>panelId</code>).</p>
+        </div>
+        <div class="node">
+          <h4>5) Render</h4>
+          <p>GeointMap/DeckGL consumes atom state and emits visible layer change.</p>
+        </div>
+        <div class="node">
+          <h4>6) Feedback</h4>
+          <p>User sees outcome; tests verify no cross-panel bleed and no race regressions.</p>
+        </div>
+      </div>
+
+      <h2>Method continuity statuses (badge model)</h2>
+      <div class="card">
+        <div class="method">
+          <div class="name">flyTo / cancelAnimation</div>
+          <div><span class="pill ok">LIVE · renderer-wired</span> <span class="note">Panel atoms consumed by GeointMap; integration tests cover sync/race/fallback.</span></div>
+        </div>
+        <div class="method">
+          <div class="name">addBufferZone / addDifferenceLayer / route snap</div>
+          <div><span class="pill ok">LIVE · compute-ready</span> <span class="note">Turf adapter executes real geometry math; test-backed.</span></div>
+        </div>
+        <div class="method">
+          <div class="name">setTemporalWindow / timeline controls</div>
+          <div><span class="pill warn">LATENT BADGE · state-strong</span> <span class="note">State is deterministic and tested; visible timeline UX still uneven.</span></div>
+        </div>
+        <div class="method">
+          <div class="name">Wave 2/3 overlays (hypothesis, CAP, change, frustum, zones)</div>
+          <div><span class="pill warn">LATENT BADGE · state-only</span> <span class="note">Contracts + atoms exist; many not yet emitted as DeckGL layers.</span></div>
+        </div>
+        <div class="method">
+          <div class="name">addMarker / startDrawing</div>
+          <div><span class="pill bad">STUB</span> <span class="note">Explicit Phase-2 placeholders, no operational behavior.</span></div>
+        </div>
+      </div>
+
+      <h2>Critical fail points (scrutinize first)</h2>
+      <div class="card critical">
+        <ul>
+          <li><strong>Split-brain visibility:</strong> <code>MapController.layerVisibilityAtom</code> and GeointMap instance <code>visibilityAtom</code> are not a single continuity path.</li>
+          <li><strong>Map style continuity gap:</strong> <code>mapStyleAtom</code> mutations are not yet a guaranteed GeointMap style source-of-truth in the render path.</li>
+          <li><strong>Latent method drift risk:</strong> Wave 2/3 methods can pass tests while still delivering no visible operator outcome.</li>
+          <li><strong>API shape pressure:</strong> method count is high; without status badges + grouping, operator mental model degrades quickly.</li>
+        </ul>
+      </div>
+
+      <h2>Continuity hardening sequence (failure-first)</h2>
+      <div class="card">
+        <ul>
+          <li><strong>Gate A:</strong> unify render source for style + visibility (controller state must drive map output directly).</li>
+          <li><strong>Gate B:</strong> wire 3 latent methods to visible DeckGL layers (recommend: air corridor, uncertainty, CAP alerts).</li>
+          <li><strong>Gate C:</strong> attach latent badges in operator UI/docs for all non-rendered methods.</li>
+          <li><strong>Gate D:</strong> add per-method integration assertions: intent → atom → rendered layer diff.</li>
+        </ul>
+      </div>
+
+      <div class="footer-note">
+        This is a continuity artifact, not a marketing sheet. If a method cannot be traced through all 6 chain stages, treat it as non-continuous until proven otherwise.
+      </div>
+    </div>
+  </body>
+</html>
