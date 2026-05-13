@@ -78,14 +78,10 @@ export const loadCuratedPatternDocuments = (targetPath: string): ReadonlyArray<C
     const text = fs.readFileSync(filePath, 'utf-8')
 
     let entries: ReadonlyArray<unknown> = []
-    try {
-      if (ext === '.json') {
-        entries = parseJsonDocument(text)
-      } else {
-        entries = parseMarkdownDocument(text)
-      }
-    } catch {
-      entries = []
+    if (ext === '.json') {
+      entries = parseJsonDocument(text)
+    } else {
+      entries = parseMarkdownDocument(text)
     }
 
     if (entries.length > 0) {

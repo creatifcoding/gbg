@@ -1,7 +1,13 @@
-import * as fs from 'node:fs'
-import * as path from 'node:path'
-import { Database } from 'bun:sqlite'
+/**
+ * PatternRegistryStore — Effect.Service backed by @effect/sql.
+ *
+ * Service depends on the abstract SqlClient. The concrete driver
+ * (SqliteNode, SqliteBun, etc.) is provided at the composition root
+ * in index.ts — never imported here.
+ */
+
 import { Data, Effect, Schema } from 'effect'
+import { SqlClient } from '@effect/sql'
 import {
   AnnotationRecord,
   DiscoveryLedgerEntry,
@@ -17,97 +23,7 @@ import {
   PatternSearchFilter,
 } from '../schema.ts'
 
-const MIGRATIONS = [
-  `
-  CREATE TABLE IF NOT EXISTS pattern_registry_patterns (
-    pattern_id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL,
-    title TEXT NOT NULL,
-    summary TEXT NOT NULL,
-    lifecycle TEXT NOT NULL,
-    tags_json TEXT NOT NULL,
-    pattern_json TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
-  `,
-  `
-  CREATE TABLE IF NOT EXISTS pattern_registry_discoveries (
-    event_id TEXT PRIMARY KEY,
-    pattern_id TEXT NOT NULL,
-    metadata_json TEXT NOT NULL,
-    tags_json TEXT NOT NULL,
-    note TEXT,
-    payload_json TEXT,
-    discovered_at TEXT NOT NULL,
-    FOREIGN KEY(pattern_id) REFERENCES pattern_registry_patterns(pattern_id) ON DELETE CASCADE
-  );
-  `,
-  `
-  CREATE TABLE IF NOT EXISTS pattern_registry_annotations (
-    annotation_id TEXT PRIMARY KEY,
-    event_id TEXT NOT NULL,
-    pattern_id TEXT NOT NULL,
-    author TEXT NOT NULL,
-    status TEXT NOT NULL,
-    labels_json TEXT NOT NULL,
-    annotation_json TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
-    FOREIGN KEY(event_id) REFERENCES pattern_registry_discoveries(event_id) ON DELETE CASCADE,
-    FOREIGN KEY(pattern_id) REFERENCES pattern_registry_patterns(pattern_id) ON DELETE CASCADE
-  );
-  `,
-  `
-  CREATE TABLE IF NOT EXISTS pattern_registry_merge_runs (
-    run_id TEXT PRIMARY KEY,
-    created_at TEXT NOT NULL,
-    dry_run INTEGER NOT NULL,
-    total_groups INTEGER NOT NULL,
-    merged_count INTEGER NOT NULL,
-    conflict_count INTEGER NOT NULL,
-    payload_json TEXT
-  );
-  `,
-  `
-  CREATE TABLE IF NOT EXISTS pattern_registry_merge_decisions (
-    decision_id TEXT PRIMARY KEY,
-    run_id TEXT NOT NULL,
-    canonical_key TEXT NOT NULL,
-    winner_pattern_id TEXT NOT NULL,
-    merged_pattern_id TEXT NOT NULL,
-    source_rank REAL NOT NULL,
-    score REAL NOT NULL,
-    reason TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    payload_json TEXT,
-    FOREIGN KEY(run_id) REFERENCES pattern_registry_merge_runs(run_id) ON DELETE CASCADE
-  );
-  `,
-  `
-  CREATE TABLE IF NOT EXISTS pattern_registry_merge_conflicts (
-    conflict_id TEXT PRIMARY KEY,
-    run_id TEXT NOT NULL,
-    canonical_key TEXT NOT NULL,
-    winner_pattern_id TEXT NOT NULL,
-    contender_pattern_id TEXT NOT NULL,
-    reason TEXT NOT NULL,
-    status TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    resolved_at TEXT,
-    payload_json TEXT,
-    FOREIGN KEY(run_id) REFERENCES pattern_registry_merge_runs(run_id) ON DELETE CASCADE
-  );
-  `,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_patterns_kind ON pattern_registry_patterns(kind);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_patterns_lifecycle ON pattern_registry_patterns(lifecycle);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_discoveries_pattern ON pattern_registry_discoveries(pattern_id);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_discoveries_discovered_at ON pattern_registry_discoveries(discovered_at);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_annotations_event ON pattern_registry_annotations(event_id);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_merge_decisions_run ON pattern_registry_merge_decisions(run_id);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_merge_conflicts_run ON pattern_registry_merge_conflicts(run_id);`,
-  `CREATE INDEX IF NOT EXISTS idx_pattern_registry_merge_conflicts_status ON pattern_registry_merge_conflicts(status);`,
-]
+// ── Error ────────────────────────────────────────────────────────────────────
 
 export class PatternRegistryStoreError extends Data.TaggedError('PatternRegistryStoreError')<{
   readonly message: string
@@ -115,11 +31,7 @@ export class PatternRegistryStoreError extends Data.TaggedError('PatternRegistry
   readonly cause?: unknown
 }> {}
 
-const defaultDbPath = (): string => {
-  const envPath = process.env.PATTERN_REGISTRY_DB_PATH
-  if (envPath && envPath.trim().length > 0) return envPath
-  return path.resolve(process.cwd(), '.pi/extensions/pattern-registry/state/pattern-registry.sqlite')
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 const parseJson = <A>(raw: string | null | undefined, fallback: A): A => {
   if (typeof raw !== 'string' || raw.length === 0) return fallback
@@ -130,15 +42,12 @@ const parseJson = <A>(raw: string | null | undefined, fallback: A): A => {
   }
 }
 
-const tryStore = <A>(operation: string, run: () => A): Effect.Effect<A, PatternRegistryStoreError> =>
-  Effect.try({
-    try: run,
-    catch: (cause) => new PatternRegistryStoreError({
-      message: `${operation} failed`,
-      operation,
-      cause,
-    }),
-  })
+const tryStore = <A>(operation: string, effect: Effect.Effect<A, unknown>): Effect.Effect<A, PatternRegistryStoreError> =>
+  effect.pipe(
+    Effect.catchAll((cause) =>
+      Effect.fail(new PatternRegistryStoreError({ message: `${operation} failed`, operation, cause })),
+    ),
+  )
 
 const decodePattern = Schema.decodeUnknownSync(Pattern)
 const encodePattern = Schema.encodeUnknownSync(Pattern)
@@ -158,6 +67,8 @@ const decodeMergeConflictFilter = Schema.decodeUnknownSync(MergeConflictFilter)
 
 const hasAllTags = (actual: ReadonlyArray<string>, requested: ReadonlyArray<string>): boolean =>
   requested.every((tag) => actual.includes(tag))
+
+// ── Store API ────────────────────────────────────────────────────────────────
 
 export interface PatternRegistryStoreApi {
   readonly migrate: Effect.Effect<void, PatternRegistryStoreError>
@@ -181,44 +92,133 @@ export interface PatternRegistryStoreApi {
   readonly listMergeConflicts: (filter: MergeConflictFilter) => Effect.Effect<MergeConflictQueryResult, PatternRegistryStoreError>
 }
 
+// ── Service ──────────────────────────────────────────────────────────────────
+
 export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()(
   'pattern-registry/PatternRegistryStore',
   {
     scoped: Effect.gen(function* () {
-      const dbPath = defaultDbPath()
+      const sql = yield* SqlClient.SqlClient
 
-      const db = yield* Effect.acquireRelease(
-        Effect.sync(() => {
-          fs.mkdirSync(path.dirname(dbPath), { recursive: true })
-          const sqlite = new Database(dbPath)
-          sqlite.exec('PRAGMA foreign_keys = ON;')
-          return sqlite
-        }),
-        (sqlite) => Effect.sync(() => sqlite.close()),
-      )
+      // ── Migrations ───────────────────────────────────────────────────────
 
-      const migrate = tryStore('migrate', () => {
-        for (const statement of MIGRATIONS) db.exec(statement)
-      })
+      const migrate = tryStore('migrate', Effect.gen(function* () {
+        yield* sql`PRAGMA foreign_keys = ON`
 
-      const upsertPattern = (pattern: Pattern) => tryStore('upsertPattern', () => {
+        yield* sql`
+          CREATE TABLE IF NOT EXISTS pattern_registry_patterns (
+            pattern_id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            title TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            lifecycle TEXT NOT NULL,
+            tags_json TEXT NOT NULL,
+            pattern_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          )
+        `
+        yield* sql`
+          CREATE TABLE IF NOT EXISTS pattern_registry_discoveries (
+            event_id TEXT PRIMARY KEY,
+            pattern_id TEXT NOT NULL,
+            metadata_json TEXT NOT NULL,
+            tags_json TEXT NOT NULL,
+            note TEXT,
+            payload_json TEXT,
+            discovered_at TEXT NOT NULL,
+            FOREIGN KEY(pattern_id) REFERENCES pattern_registry_patterns(pattern_id) ON DELETE CASCADE
+          )
+        `
+        yield* sql`
+          CREATE TABLE IF NOT EXISTS pattern_registry_annotations (
+            annotation_id TEXT PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            pattern_id TEXT NOT NULL,
+            author TEXT NOT NULL,
+            status TEXT NOT NULL,
+            labels_json TEXT NOT NULL,
+            annotation_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT,
+            FOREIGN KEY(event_id) REFERENCES pattern_registry_discoveries(event_id) ON DELETE CASCADE,
+            FOREIGN KEY(pattern_id) REFERENCES pattern_registry_patterns(pattern_id) ON DELETE CASCADE
+          )
+        `
+        yield* sql`
+          CREATE TABLE IF NOT EXISTS pattern_registry_merge_runs (
+            run_id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            dry_run INTEGER NOT NULL,
+            total_groups INTEGER NOT NULL,
+            merged_count INTEGER NOT NULL,
+            conflict_count INTEGER NOT NULL,
+            payload_json TEXT
+          )
+        `
+        yield* sql`
+          CREATE TABLE IF NOT EXISTS pattern_registry_merge_decisions (
+            decision_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            canonical_key TEXT NOT NULL,
+            winner_pattern_id TEXT NOT NULL,
+            merged_pattern_id TEXT NOT NULL,
+            source_rank REAL NOT NULL,
+            score REAL NOT NULL,
+            reason TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            payload_json TEXT,
+            FOREIGN KEY(run_id) REFERENCES pattern_registry_merge_runs(run_id) ON DELETE CASCADE
+          )
+        `
+        yield* sql`
+          CREATE TABLE IF NOT EXISTS pattern_registry_merge_conflicts (
+            conflict_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            canonical_key TEXT NOT NULL,
+            winner_pattern_id TEXT NOT NULL,
+            contender_pattern_id TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            payload_json TEXT,
+            FOREIGN KEY(run_id) REFERENCES pattern_registry_merge_runs(run_id) ON DELETE CASCADE
+          )
+        `
+
+        // Indexes
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_patterns_kind ON pattern_registry_patterns(kind)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_patterns_lifecycle ON pattern_registry_patterns(lifecycle)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_discoveries_pattern ON pattern_registry_discoveries(pattern_id)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_discoveries_discovered_at ON pattern_registry_discoveries(discovered_at)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_annotations_event ON pattern_registry_annotations(event_id)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_merge_decisions_run ON pattern_registry_merge_decisions(run_id)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_merge_conflicts_run ON pattern_registry_merge_conflicts(run_id)`
+        yield* sql`CREATE INDEX IF NOT EXISTS idx_pattern_registry_merge_conflicts_status ON pattern_registry_merge_conflicts(status)`
+      }))
+
+      // ── Patterns ─────────────────────────────────────────────────────────
+
+      const upsertPattern = (pattern: Pattern) => tryStore('upsertPattern', Effect.gen(function* () {
         const decoded = decodePattern(pattern)
         const now = new Date().toISOString()
         const encoded = encodePattern(decoded)
         const tags = JSON.stringify(decoded.tags)
         const patternJson = JSON.stringify(encoded)
 
-        const existing = db
-          .prepare('SELECT created_at FROM pattern_registry_patterns WHERE pattern_id = ?')
-          .get(decoded.patternId) as { created_at?: string } | undefined
+        const existing = yield* sql<{ created_at: string }>`
+          SELECT created_at FROM pattern_registry_patterns WHERE pattern_id = ${decoded.patternId} LIMIT 1
+        `
+        const createdAt = existing[0]?.created_at ?? decoded.createdAt ?? now
 
-        const createdAt = existing?.created_at ?? decoded.createdAt ?? now
-
-        db.prepare(
-          `
+        yield* sql`
           INSERT INTO pattern_registry_patterns (
             pattern_id, kind, title, summary, lifecycle, tags_json, pattern_json, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (
+            ${decoded.patternId}, ${decoded.kind}, ${decoded.title}, ${decoded.summary},
+            ${decoded.lifecycle}, ${tags}, ${patternJson}, ${createdAt}, ${now}
+          )
           ON CONFLICT(pattern_id) DO UPDATE SET
             kind = excluded.kind,
             title = excluded.title,
@@ -227,65 +227,53 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
             tags_json = excluded.tags_json,
             pattern_json = excluded.pattern_json,
             updated_at = excluded.updated_at
-          `,
-        ).run(
-          decoded.patternId,
-          decoded.kind,
-          decoded.title,
-          decoded.summary,
-          decoded.lifecycle,
-          tags,
-          patternJson,
-          createdAt,
-          now,
-        )
-      })
+        `
+      }))
 
-      const getPattern = (patternId: string) => tryStore('getPattern', () => {
-        const row = db
-          .prepare('SELECT pattern_json FROM pattern_registry_patterns WHERE pattern_id = ? LIMIT 1')
-          .get(patternId) as { pattern_json?: string } | undefined
+      const getPattern = (patternId: string) => tryStore('getPattern', Effect.gen(function* () {
+        const rows = yield* sql<{ pattern_json: string }>`
+          SELECT pattern_json FROM pattern_registry_patterns WHERE pattern_id = ${patternId} LIMIT 1
+        `
+        if (rows.length === 0) return null
+        return decodePattern(parseJson(rows[0].pattern_json, {}))
+      }))
 
-        if (!row?.pattern_json) return null
-        return decodePattern(parseJson(row.pattern_json, {}))
-      })
-
-      const listAllPatterns = tryStore('listAllPatterns', () => {
-        const rows = db
-          .prepare('SELECT pattern_json FROM pattern_registry_patterns ORDER BY updated_at DESC')
-          .all() as Array<{ pattern_json: string }>
-
+      const listAllPatterns = tryStore('listAllPatterns', Effect.gen(function* () {
+        const rows = yield* sql<{ pattern_json: string }>`
+          SELECT pattern_json FROM pattern_registry_patterns ORDER BY updated_at DESC
+        `
         return rows.map((row) => decodePattern(parseJson(row.pattern_json, {})))
-      })
+      }))
 
-      const searchPatterns = (filter: PatternSearchFilter) => tryStore('searchPatterns', () => {
+      const searchPatterns = (filter: PatternSearchFilter) => tryStore('searchPatterns', Effect.gen(function* () {
         const f = decodePatternSearchFilter(filter)
-        const where: string[] = []
-        const params: Array<any> = []
+
+        // Build dynamic WHERE with sql.unsafe for the parts that need dynamic composition.
+        // Tag filtering and pagination happen in JS (same as before) since they operate on JSON arrays.
+        const conditions: string[] = []
+        const params: unknown[] = []
 
         if (f.kind) {
-          where.push('kind = ?')
+          conditions.push('kind = ?')
           params.push(f.kind)
         }
-
         if (f.lifecycle) {
-          where.push('lifecycle = ?')
+          conditions.push('lifecycle = ?')
           params.push(f.lifecycle)
         }
-
         if (f.query && f.query.trim().length > 0) {
-          where.push('(title LIKE ? OR summary LIKE ? OR pattern_json LIKE ?)')
+          conditions.push('(title LIKE ? OR summary LIKE ? OR pattern_json LIKE ?)')
           const q = `%${f.query.trim()}%`
           params.push(q, q, q)
         }
 
-        const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
-        const rows = db
-          .prepare(`SELECT pattern_json, tags_json FROM pattern_registry_patterns ${whereSql} ORDER BY updated_at DESC`)
-          .all(...params) as Array<{ pattern_json: string; tags_json: string }>
+        const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+        const rows = yield* sql.unsafe<{ pattern_json: string; tags_json: string }>(
+          `SELECT pattern_json, tags_json FROM pattern_registry_patterns ${whereSql} ORDER BY updated_at DESC`,
+          params as ReadonlyArray<any>,
+        )
 
-        let patterns = rows
-          .map((row) => decodePattern(parseJson(row.pattern_json, {})))
+        let patterns = rows.map((row) => decodePattern(parseJson(row.pattern_json, {})))
 
         if (f.tags && f.tags.length > 0) {
           patterns = patterns.filter((pattern) => hasAllTags(pattern.tags, f.tags))
@@ -296,24 +284,27 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
         const end = start + Math.max(0, f.limit)
         const paged = patterns.slice(start, end)
 
-        return {
-          patterns: paged,
-          total,
-          limit: f.limit,
-          offset: f.offset,
-          hasMore: end < total,
-        }
-      })
+        return { patterns: paged, total, limit: f.limit, offset: f.offset, hasMore: end < total }
+      }))
 
-      const logDiscoveryEvent = (event: DiscoveredPatternEvent) => tryStore('logDiscoveryEvent', () => {
+      // ── Discoveries ──────────────────────────────────────────────────────
+
+      const logDiscoveryEvent = (event: DiscoveredPatternEvent) => tryStore('logDiscoveryEvent', Effect.gen(function* () {
         const decoded = decodeDiscovery(event)
         const encoded = encodeDiscovery(decoded)
 
-        db.prepare(
-          `
+        const metadataJson = JSON.stringify(decoded.metadata)
+        const tagsJson = JSON.stringify(decoded.tags)
+        const note = decoded.note ?? null
+        const payloadJson = decoded.payload === undefined ? null : JSON.stringify(decoded.payload)
+
+        yield* sql`
           INSERT INTO pattern_registry_discoveries (
             event_id, pattern_id, metadata_json, tags_json, note, payload_json, discovered_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (
+            ${decoded.eventId}, ${decoded.patternId}, ${metadataJson},
+            ${tagsJson}, ${note}, ${payloadJson}, ${decoded.metadata.discoveredAt}
+          )
           ON CONFLICT(event_id) DO UPDATE SET
             pattern_id = excluded.pattern_id,
             metadata_json = excluded.metadata_json,
@@ -321,38 +312,30 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
             note = excluded.note,
             payload_json = excluded.payload_json,
             discovered_at = excluded.discovered_at
-          `,
-        ).run(
-          decoded.eventId,
-          decoded.patternId,
-          JSON.stringify(decoded.metadata),
-          JSON.stringify(decoded.tags),
-          decoded.note ?? null,
-          decoded.payload === undefined ? null : JSON.stringify(decoded.payload),
-          decoded.metadata.discoveredAt,
-        )
+        `
 
-        // keep full payload for replay fidelity
-        db.prepare(
-          `
+        // Keep full payload for replay fidelity
+        const fullPayloadJson = JSON.stringify(encoded.payload ?? null)
+        yield* sql`
           UPDATE pattern_registry_discoveries
-          SET payload_json = COALESCE(payload_json, ?)
-          WHERE event_id = ?
-          `,
-        ).run(JSON.stringify(encoded.payload ?? null), decoded.eventId)
-      })
+          SET payload_json = COALESCE(payload_json, ${fullPayloadJson})
+          WHERE event_id = ${decoded.eventId}
+        `
+      }))
 
-      const listDiscoveryEvents = tryStore('listDiscoveryEvents', () => {
-        const rows = db
-          .prepare('SELECT event_id, pattern_id, metadata_json, tags_json, note, payload_json FROM pattern_registry_discoveries ORDER BY discovered_at DESC')
-          .all() as Array<{
-            event_id: string
-            pattern_id: string
-            metadata_json: string
-            tags_json: string
-            note: string | null
-            payload_json: string | null
-          }>
+      const listDiscoveryEvents = tryStore('listDiscoveryEvents', Effect.gen(function* () {
+        const rows = yield* sql<{
+          event_id: string
+          pattern_id: string
+          metadata_json: string
+          tags_json: string
+          note: string | null
+          payload_json: string | null
+        }>`
+          SELECT event_id, pattern_id, metadata_json, tags_json, note, payload_json
+          FROM pattern_registry_discoveries
+          ORDER BY discovered_at DESC
+        `
 
         return rows.map((row) => decodeDiscovery({
           eventId: row.event_id,
@@ -362,17 +345,24 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
           note: row.note ?? undefined,
           payload: parseJson<unknown>(row.payload_json, undefined),
         }))
-      })
+      }))
 
-      const addAnnotation = (annotation: AnnotationRecord) => tryStore('addAnnotation', () => {
+      // ── Annotations ──────────────────────────────────────────────────────
+
+      const addAnnotation = (annotation: AnnotationRecord) => tryStore('addAnnotation', Effect.gen(function* () {
         const decoded = decodeAnnotation(annotation)
         const encoded = encodeAnnotation(decoded)
+        const labelsJson = JSON.stringify(decoded.labels)
+        const annotationJson = JSON.stringify(encoded)
 
-        db.prepare(
-          `
+        yield* sql`
           INSERT INTO pattern_registry_annotations (
             annotation_id, event_id, pattern_id, author, status, labels_json, annotation_json, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (
+            ${decoded.annotationId}, ${decoded.eventId}, ${decoded.patternId},
+            ${decoded.author}, ${decoded.status}, ${labelsJson},
+            ${annotationJson}, ${decoded.createdAt}, ${decoded.updatedAt ?? null}
+          )
           ON CONFLICT(annotation_id) DO UPDATE SET
             event_id = excluded.event_id,
             pattern_id = excluded.pattern_id,
@@ -381,33 +371,26 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
             labels_json = excluded.labels_json,
             annotation_json = excluded.annotation_json,
             updated_at = excluded.updated_at
-          `,
-        ).run(
-          decoded.annotationId,
-          decoded.eventId,
-          decoded.patternId,
-          decoded.author,
-          decoded.status,
-          JSON.stringify(decoded.labels),
-          JSON.stringify(encoded),
-          decoded.createdAt,
-          decoded.updatedAt ?? null,
-        )
-      })
+        `
+      }))
 
-      const queryDiscoveries = (filter: DiscoveryQueryFilter) => tryStore('queryDiscoveries', () => {
+      // ── Discovery Queries ────────────────────────────────────────────────
+
+      const queryDiscoveries = (filter: DiscoveryQueryFilter) => tryStore('queryDiscoveries', Effect.gen(function* () {
         const f = decodeDiscoveryQueryFilter(filter)
 
-        const rows = db
-          .prepare('SELECT event_id, pattern_id, metadata_json, tags_json, note, payload_json FROM pattern_registry_discoveries ORDER BY discovered_at DESC')
-          .all() as Array<{
-            event_id: string
-            pattern_id: string
-            metadata_json: string
-            tags_json: string
-            note: string | null
-            payload_json: string | null
-          }>
+        const rows = yield* sql<{
+          event_id: string
+          pattern_id: string
+          metadata_json: string
+          tags_json: string
+          note: string | null
+          payload_json: string | null
+        }>`
+          SELECT event_id, pattern_id, metadata_json, tags_json, note, payload_json
+          FROM pattern_registry_discoveries
+          ORDER BY discovered_at DESC
+        `
 
         const events = rows
           .map((row) => {
@@ -440,17 +423,16 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
         const start = Math.max(0, f.offset)
         const end = start + Math.max(0, f.limit)
 
-        const entries: Array<DiscoveryLedgerEntry> = events.slice(start, end).map((event) => {
-          const annotationRows = db
-            .prepare('SELECT annotation_json FROM pattern_registry_annotations WHERE event_id = ? ORDER BY created_at ASC')
-            .all(event.eventId) as Array<{ annotation_json: string }>
-
+        const entries: Array<DiscoveryLedgerEntry> = []
+        for (const event of events.slice(start, end)) {
+          const annotationRows = yield* sql<{ annotation_json: string }>`
+            SELECT annotation_json FROM pattern_registry_annotations
+            WHERE event_id = ${event.eventId}
+            ORDER BY created_at ASC
+          `
           const annotations = annotationRows.map((row) => decodeAnnotation(parseJson(row.annotation_json, {})))
-          return new DiscoveryLedgerEntry({
-            event,
-            annotations,
-          })
-        })
+          entries.push(new DiscoveryLedgerEntry({ event, annotations }))
+        }
 
         return new DiscoveryQueryResult({
           entries,
@@ -459,17 +441,22 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
           offset: f.offset,
           hasMore: end < total,
         })
-      })
+      }))
 
-      const saveMergeRun = (run: MergeRunRecord) => tryStore('saveMergeRun', () => {
+      // ── Merge Runs ───────────────────────────────────────────────────────
+
+      const saveMergeRun = (run: MergeRunRecord) => tryStore('saveMergeRun', Effect.gen(function* () {
         const decoded = decodeMergeRunRecord(run)
         const encoded = encodeMergeRunRecord(decoded)
+        const payloadJson = encoded.payload === undefined ? null : JSON.stringify(encoded.payload)
 
-        db.prepare(
-          `
+        yield* sql`
           INSERT INTO pattern_registry_merge_runs (
             run_id, created_at, dry_run, total_groups, merged_count, conflict_count, payload_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (
+            ${decoded.runId}, ${decoded.createdAt}, ${decoded.dryRun ? 1 : 0},
+            ${decoded.totalGroups}, ${decoded.mergedCount}, ${decoded.conflictCount}, ${payloadJson}
+          )
           ON CONFLICT(run_id) DO UPDATE SET
             created_at = excluded.created_at,
             dry_run = excluded.dry_run,
@@ -477,27 +464,26 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
             merged_count = excluded.merged_count,
             conflict_count = excluded.conflict_count,
             payload_json = excluded.payload_json
-          `,
-        ).run(
-          decoded.runId,
-          decoded.createdAt,
-          decoded.dryRun ? 1 : 0,
-          decoded.totalGroups,
-          decoded.mergedCount,
-          decoded.conflictCount,
-          encoded.payload === undefined ? null : JSON.stringify(encoded.payload),
-        )
-      })
+        `
+      }))
 
-      const saveMergeDecision = (decision: MergeDecisionRecord) => tryStore('saveMergeDecision', () => {
+      // ── Merge Decisions ──────────────────────────────────────────────────
+
+      const saveMergeDecision = (decision: MergeDecisionRecord) => tryStore('saveMergeDecision', Effect.gen(function* () {
         const decoded = decodeMergeDecisionRecord(decision)
         const encoded = encodeMergeDecisionRecord(decoded)
+        const payloadJson = encoded.payload === undefined ? null : JSON.stringify(encoded.payload)
 
-        db.prepare(
-          `
+        yield* sql`
           INSERT INTO pattern_registry_merge_decisions (
-            decision_id, run_id, canonical_key, winner_pattern_id, merged_pattern_id, source_rank, score, reason, created_at, payload_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            decision_id, run_id, canonical_key, winner_pattern_id, merged_pattern_id,
+            source_rank, score, reason, created_at, payload_json
+          ) VALUES (
+            ${decoded.decisionId}, ${decoded.runId}, ${decoded.canonicalKey},
+            ${decoded.winnerPatternId}, ${decoded.mergedPatternId},
+            ${decoded.sourceRank}, ${decoded.score}, ${decoded.reason},
+            ${decoded.createdAt}, ${payloadJson}
+          )
           ON CONFLICT(decision_id) DO UPDATE SET
             run_id = excluded.run_id,
             canonical_key = excluded.canonical_key,
@@ -508,30 +494,26 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
             reason = excluded.reason,
             created_at = excluded.created_at,
             payload_json = excluded.payload_json
-          `,
-        ).run(
-          decoded.decisionId,
-          decoded.runId,
-          decoded.canonicalKey,
-          decoded.winnerPatternId,
-          decoded.mergedPatternId,
-          decoded.sourceRank,
-          decoded.score,
-          decoded.reason,
-          decoded.createdAt,
-          encoded.payload === undefined ? null : JSON.stringify(encoded.payload),
-        )
-      })
+        `
+      }))
 
-      const saveMergeConflict = (conflict: MergeConflictRecord) => tryStore('saveMergeConflict', () => {
+      // ── Merge Conflicts ──────────────────────────────────────────────────
+
+      const saveMergeConflict = (conflict: MergeConflictRecord) => tryStore('saveMergeConflict', Effect.gen(function* () {
         const decoded = decodeMergeConflictRecord(conflict)
         const encoded = encodeMergeConflictRecord(decoded)
+        const payloadJson = encoded.payload === undefined ? null : JSON.stringify(encoded.payload)
 
-        db.prepare(
-          `
+        yield* sql`
           INSERT INTO pattern_registry_merge_conflicts (
-            conflict_id, run_id, canonical_key, winner_pattern_id, contender_pattern_id, reason, status, created_at, resolved_at, payload_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            conflict_id, run_id, canonical_key, winner_pattern_id, contender_pattern_id,
+            reason, status, created_at, resolved_at, payload_json
+          ) VALUES (
+            ${decoded.conflictId}, ${decoded.runId}, ${decoded.canonicalKey},
+            ${decoded.winnerPatternId}, ${decoded.contenderPatternId},
+            ${decoded.reason}, ${decoded.status}, ${decoded.createdAt},
+            ${decoded.resolvedAt ?? null}, ${payloadJson}
+          )
           ON CONFLICT(conflict_id) DO UPDATE SET
             run_id = excluded.run_id,
             canonical_key = excluded.canonical_key,
@@ -542,37 +524,29 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
             created_at = excluded.created_at,
             resolved_at = excluded.resolved_at,
             payload_json = excluded.payload_json
-          `,
-        ).run(
-          decoded.conflictId,
-          decoded.runId,
-          decoded.canonicalKey,
-          decoded.winnerPatternId,
-          decoded.contenderPatternId,
-          decoded.reason,
-          decoded.status,
-          decoded.createdAt,
-          decoded.resolvedAt ?? null,
-          encoded.payload === undefined ? null : JSON.stringify(encoded.payload),
-        )
-      })
+        `
+      }))
 
-      const listMergeConflicts = (filter: MergeConflictFilter) => tryStore('listMergeConflicts', () => {
+      const listMergeConflicts = (filter: MergeConflictFilter) => tryStore('listMergeConflicts', Effect.gen(function* () {
         const f = decodeMergeConflictFilter(filter)
-        const rows = db
-          .prepare('SELECT conflict_id, run_id, canonical_key, winner_pattern_id, contender_pattern_id, reason, status, created_at, resolved_at, payload_json FROM pattern_registry_merge_conflicts ORDER BY created_at DESC')
-          .all() as Array<{
-            conflict_id: string
-            run_id: string
-            canonical_key: string
-            winner_pattern_id: string
-            contender_pattern_id: string
-            reason: string
-            status: string
-            created_at: string
-            resolved_at: string | null
-            payload_json: string | null
-          }>
+
+        const rows = yield* sql<{
+          conflict_id: string
+          run_id: string
+          canonical_key: string
+          winner_pattern_id: string
+          contender_pattern_id: string
+          reason: string
+          status: string
+          created_at: string
+          resolved_at: string | null
+          payload_json: string | null
+        }>`
+          SELECT conflict_id, run_id, canonical_key, winner_pattern_id, contender_pattern_id,
+                 reason, status, created_at, resolved_at, payload_json
+          FROM pattern_registry_merge_conflicts
+          ORDER BY created_at DESC
+        `
 
         const conflicts = rows
           .map((row) => decodeMergeConflictRecord({
@@ -605,9 +579,10 @@ export class PatternRegistryStore extends Effect.Service<PatternRegistryStore>()
           offset: f.offset,
           hasMore: end < total,
         })
-      })
+      }))
 
-      // Ensure migration run for every scoped instantiation
+      // ── Init: run migrations on scope entry ────────────────────────────
+
       yield* migrate
 
       const api: PatternRegistryStoreApi = {

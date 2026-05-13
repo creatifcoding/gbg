@@ -89,34 +89,6 @@ export const DEFAULT_SIGNATURES: ReadonlyArray<AstPatternSignature> = [
     regex: /Effect\.withSpan\s*\(/g,
     tags: ['effect', 'observability'],
   },
-  {
-    id: 'stream-core',
-    title: 'Stream Core Operations',
-    summary: 'Stream transformations and constructors (map/filter/flatMap/fromIterable)',
-    regex: /Stream\.(map|filter|flatMap|fromIterable|fromChunk|concat|merge|debounce|throttle)\s*\(/g,
-    tags: ['effect', 'stream', 'core'],
-  },
-  {
-    id: 'stream-run',
-    title: 'Stream.run* Execution',
-    summary: 'Stream run APIs for materializing/evaluating streams',
-    regex: /Stream\.run[A-Za-z0-9_]*\s*\(/g,
-    tags: ['effect', 'stream', 'execution'],
-  },
-  {
-    id: 'stream-with-span',
-    title: 'Stream.withSpan Observability',
-    summary: 'Stream span instrumentation for traced stream pipelines',
-    regex: /Stream\.withSpan\s*\(/g,
-    tags: ['effect', 'stream', 'observability'],
-  },
-  {
-    id: 'stream-interop',
-    title: 'Effect ↔ Stream Interop',
-    summary: 'Interop edges between Effect and Stream (fromEffect/unwrapping/effectful stream creation)',
-    regex: /Stream\.(fromEffect|unwrap|unwrapScoped|unwrapEffect)\s*\(/g,
-    tags: ['effect', 'stream', 'interop'],
-  },
 ]
 
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts'])
