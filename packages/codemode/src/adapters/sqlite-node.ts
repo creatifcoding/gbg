@@ -124,7 +124,7 @@ export const layer = (config: SqliteNodeConfig): Layer.Layer<SqlClient> => {
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore: any) => {
       const fiber = Fiber.getCurrent()!
-      const scope = Context.getUnsafe(fiber.services, Scope.Scope)
+      const scope = Context.getUnsafe(fiber.context, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),
