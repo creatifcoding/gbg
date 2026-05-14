@@ -105,8 +105,8 @@ const impl = FS.make({
   copyFile: (from, to) =>
     tryFs("copyFile", () => { NFS.copyFileSync(from, to) }),
 
-  readDirectory: (path) =>
-    tryFs("readDirectory", () => NFS.readdirSync(path)),
+  readDirectory: (path, opts) =>
+    tryFs("readDirectory", () => NFS.readdirSync(path, { recursive: opts?.recursive ?? false }) as string[]),
 
   rename: (from, to) =>
     tryFs("rename", () => { NFS.renameSync(from, to) }),
