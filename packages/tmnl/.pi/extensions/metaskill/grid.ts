@@ -207,7 +207,7 @@ function colorValue(text: string, raw: unknown, theme: Theme): string {
   if (raw === false) return theme.fg('error', text)
 
   // Numbers
-  if (typeof raw === 'number') return theme.fg('info', text)
+  if (typeof raw === 'number') return theme.fg('syntaxNumber', text)
 
   // Status-like strings
   if (typeof raw === 'string') {
