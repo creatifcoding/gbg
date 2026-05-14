@@ -62,6 +62,21 @@ export function gridLines(data: unknown, width: number, theme: Theme): string[] 
 
 // ─── Table (array of objects) ────────────────────────────
 
+/** Collect all unique keys across rows in first-seen order */
+function orderedKeys(rows: Record<string, unknown>[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!seen.has(key)) {
+        seen.add(key)
+        result.push(key)
+      }
+    }
+  }
+  return result
+}
+
 function renderTable(rows: Record<string, unknown>[], width: number, theme: Theme): string[] {
   if (rows.length === 0) return []
 
