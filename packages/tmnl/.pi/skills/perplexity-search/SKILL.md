@@ -1,3 +1,8 @@
+---
+name: perplexity-search
+description: AI-powered web search and research via Perplexity API.
+---
+
 # Perplexity Search
 
 AI-powered web search, reasoning, and real-time research via Perplexity's API.

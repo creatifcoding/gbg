@@ -1,3 +1,8 @@
+---
+name: effect-v4-schema
+description: Effect v4 Schema patterns — defining, validating, transforming, and serializing data with Schema. Covers v4 API, v3→v4 migration, classes, structs, unions, collections, transformations.
+---
+
 # effect-v4-schema
 
 > prereqs: none

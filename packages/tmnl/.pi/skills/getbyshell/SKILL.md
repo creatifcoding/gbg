@@ -1,3 +1,8 @@
+---
+name: getbyshell
+description: GetByShell desktop shell — niri WM integration, panel system, calendar widget, popover components, modal patterns, and Nix-based configuration.
+---
+
 # getbyshell
 
 > prereqs: none

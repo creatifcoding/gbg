@@ -1,3 +1,8 @@
+---
+name: metaskill
+description: Skill governance codemod — create, inspect, update, delete, adopt, and dogfood skills. The meta-skill that governs all skills with CRUD protocols, verification utils, and self-referential governance.
+---
+
 # metaskill
 
 > prereqs: none

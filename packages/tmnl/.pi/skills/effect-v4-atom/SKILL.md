@@ -1,3 +1,8 @@
+---
+name: effect-v4-atom
+description: Effect v4 Atom patterns — reactive state management with effect-atom. Atom.make, Atom.family, Registry, runtime atoms, and React integration via useAtomValue.
+---
+
 # Effect v4 Atom API — Canonical Reference
 
 > Source of truth: `submodules/effect-smol/packages/effect/src/unstable/reactivity/Atom.ts`

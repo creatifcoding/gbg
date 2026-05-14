@@ -1,3 +1,8 @@
+---
+name: nx-workspace
+description: NX workspace architecture — monorepo structure, generators, plugins, boundaries, Effect v4 isolation, dependency constraints, and workspace-map navigation.
+---
+
 # NX Workspace
 
 > prereqs: none

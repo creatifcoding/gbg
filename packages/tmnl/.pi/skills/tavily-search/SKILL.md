@@ -1,3 +1,8 @@
+---
+name: tavily-search
+description: Web search via Tavily API for research and fact-finding.
+---
+
 # Tavily Search
 
 Web search, content extraction, and deep research via Tavily MCP.

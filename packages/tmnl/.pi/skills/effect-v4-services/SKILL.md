@@ -1,3 +1,8 @@
+---
+name: effect-v4-services
+description: Effect v4 Service patterns — Context.Service, Layer composition, ManagedRuntime, dependency injection, and service testing with @effect/vitest.
+---
+
 # Effect v4 ServiceMap.Service — Canonical Reference
 
 > Source of truth: `submodules/effect-smol/packages/effect/src/ServiceMap.ts`
