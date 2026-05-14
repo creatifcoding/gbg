@@ -28,8 +28,7 @@ import { Type } from '@sinclair/typebox'
 
 // ── @tmnl/codemode SDK imports ──────────────────────────────
 import { createCodemode, type CodemodeInstance } from '@tmnl/codemode'
-// PI runs on Bun — use bun:sqlite adapter, not node:sqlite
-import { layer as sqliteBunLayer } from '@tmnl/codemode/adapters/sqlite-bun'
+import { layer as sqliteNodeLayer } from '@tmnl/codemode/adapters/sqlite-node'
 import { NodeFileSystemLayer } from '@tmnl/codemode/adapters/filesystem-node'
 import { metaskillPlugin } from '@tmnl/codemode/plugins/metaskill'
 
@@ -100,7 +99,7 @@ export default function metaskillExtension(pi: ExtensionAPI) {
       // overlay loading (metaskillPlugin) is the only async part.
       // We eagerly create it and let the first tool call await the init.
       const initPromise = createCodemode({
-        sqlLayer: sqliteBunLayer({ filename: dbPath }),
+        sqlLayer: sqliteNodeLayer({ filename: dbPath }),
         overlays: [metaskillPlugin(cwd, NodeFileSystemLayer)],
         cwd,
       })
@@ -128,7 +127,7 @@ export default function metaskillExtension(pi: ExtensionAPI) {
     const dbPath = join(rlmDir, 'store.db')
 
     _codemode = await createCodemode({
-      sqlLayer: sqliteBunLayer({ filename: dbPath }),
+      sqlLayer: sqliteNodeLayer({ filename: dbPath }),
       overlays: [metaskillPlugin(cwd, NodeFileSystemLayer)],
       cwd,
     })

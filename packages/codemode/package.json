@@ -91,7 +91,6 @@
     "prepublishOnly": "bun run clean && bun run build"
   },
   "dependencies": {
-    "effect-v4": "npm:effect@4.0.0-beta.66",
     "flexsearch": "^0.8.212"
   },
   "devDependencies": {
@@ -108,5 +107,8 @@
     "effect-ts",
     "effect-v4",
     "codemode"
-  ]
+  ],
+  "peerDependencies": {
+    "effect-v4": "npm:effect@4.0.0-beta.66"
+  }
 }
