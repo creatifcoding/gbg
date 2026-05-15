@@ -13,12 +13,6 @@ Schema.Array(Schema.String)           // readonly string[]
 Schema.NonEmptyArray(Schema.String)   // readonly [string, ...string[]]
 ```
 
-### Unique Arrays
-
-```ts
-const UniqueStrings = Schema.Array(Schema.String, { unique: true })
-```
-
 ### Array with length constraint
 
 ```ts

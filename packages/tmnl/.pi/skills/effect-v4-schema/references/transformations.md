@@ -2,11 +2,11 @@
 
 > up: INDEX.md
 > prereqs: elementary.md, structs.md
-> provides: decode, decodeTo, schema-transformation, schema-getter, composition, optional-key-transforms
+> provides: transform, decodeTo, schema-transformation, schema-getter, composition, optional-key-transforms
 
 ⚠️ **v4: Transformations are standalone objects, NOT inline in schemas.**
 
-The v3 pattern `Schema.transform(Source, Target, { decode, encode })` is gone. In v4, transformations are **first-class values** you compose with schemas via `Schema.decode` / `Schema.decodeTo`.
+The v3 pattern `Schema.transform(Source, Target, { decode, encode })` is gone. In v4, transformations are **first-class values** you compose with schemas via `Schema.decodeTo`.
 
 ## The Three Modules
 
@@ -14,7 +14,7 @@ The v3 pattern `Schema.transform(Source, Target, { decode, encode })` is gone. I
 |---|---|---|
 | `SchemaTransformation` | Reusable decode+encode pairs | The transformation itself |
 | `SchemaGetter` | One-direction functions (decode OR encode) | Half a transformation |
-| `Schema.decode` / `Schema.decodeTo` | Attach a transformation to a schema | The wiring |
+| `Schema.decodeTo` | Attach a transformation to a schema | The wiring |
 
 ## SchemaTransformation — First-Class {#first-class}
 
@@ -51,7 +51,7 @@ const trimToLower = SchemaTransformation.trim().compose(SchemaTransformation.toL
 // encode: passthrough (both sides)
 ```
 
-## Schema.decode — Same Schema, Apply Transform
+## Schema.transform — Same Schema, Apply Transform
 
 When source and target schemas are the same type:
 
@@ -59,7 +59,7 @@ When source and target schemas are the same type:
 import { Schema, SchemaTransformation } from "effect"
 
 const TrimmedString = Schema.String.pipe(
-  Schema.decode(SchemaTransformation.trim())
+  Schema.transform(SchemaTransformation.trim())
 )
 // Decodes: "  hello  " → "hello"
 // Encodes: "hello" → "hello" (passthrough)
@@ -83,14 +83,14 @@ If target's encoded type matches source's type, omit the transformation:
 
 ```ts
 const KmFromMeters = Schema.Finite.pipe(
-  Schema.decode(SchemaTransformation.transform({
+  Schema.transform(SchemaTransformation.transform({
     decode: (m) => m / 1000,
     encode: (km) => km * 1000
   }))
 )
 
 const MilesFromKm = Schema.Finite.pipe(
-  Schema.decode(SchemaTransformation.transform({
+  Schema.transform(SchemaTransformation.transform({
     decode: (km) => km * 0.621371,
     encode: (mi) => mi / 0.621371
   }))

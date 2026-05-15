@@ -77,9 +77,9 @@ String transforms (via SchemaTransformation):
 ```ts
 import { SchemaTransformation } from "effect"
 
-Schema.String.decode(SchemaTransformation.trim())
-Schema.String.decode(SchemaTransformation.toLowerCase())
-Schema.String.decode(SchemaTransformation.toUpperCase())
+Schema.String.transform(SchemaTransformation.trim())
+Schema.String.transform(SchemaTransformation.toLowerCase())
+Schema.String.transform(SchemaTransformation.toUpperCase())
 ```
 
 ## Number Checks

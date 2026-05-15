@@ -17,7 +17,7 @@ Effect v4 Schema — the canonical reference for defining, validating, transform
 - Writing or reviewing any `Schema.*` code targeting Effect v4
 - Defining domain types (Structs, Classes, TaggedClass, Opaque)
 - Adding validation (`.check()`, filters, brands, refinements)
-- Transforming data (`Schema.decode`, `Schema.decodeTo`, `SchemaTransformation`)
+- Transforming data (`Schema.transform`, `Schema.decodeTo`, `SchemaTransformation`)
 - Serializing to JSON, FormData, URLSearchParams, XML
 - Migrating v3 Schema code to v4
 - Wiring schemas with Effect services, EventLog, or atoms
