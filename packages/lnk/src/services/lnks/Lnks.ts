@@ -48,11 +48,13 @@ import * as Duration from "effect-v4/Duration"
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 import * as RcMap from "effect-v4/RcMap"
+import type * as Schema from "effect-v4/Schema"
 import type * as Scope from "effect-v4/Scope"
 
 import type { ContentType } from "../../contracts/ContentType.js"
 import type { FetchError } from "../../contracts/errors.js"
 import type { StreamId } from "../../contracts/StreamId.js"
+import { JSON_CONTENT_TYPE, TypedLnk, withSchema } from "./TypedLnk.js"
 import { Wire } from "../wire/Wire.js"
 import { Lnk, type LnkMakeOptions } from "./Lnk.js"
 
@@ -109,6 +111,29 @@ export interface LnksShape {
     contentType: ContentType,
     options?: LnkMakeOptions,
   ) => Effect.Effect<Lnk, FetchError | Cause.ExceededCapacityError, Scope.Scope>
+
+  /**
+   * Schema-aware connect. Returns a typed handle that validates and
+   * encodes outgoing values, and decodes incoming bytes via the supplied
+   * schema. Default content-type is `application/json`.
+   *
+   * Lifecycle is identical to `connect`: the underlying raw `Lnk` is
+   * ref-counted in the factory's `RcMap`, so multiple `connectTyped`
+   * calls for the same streamId (with possibly different schemas)
+   * share the same wire connection. Each call returns a distinct
+   * lightweight `TypedLnk<A>` view.
+   *
+   * Phase 2.5. Underlying framing is JSON; binary framings come later.
+   */
+  readonly connectTyped: <A>(
+    streamId: StreamId,
+    schema: Schema.Schema<A>,
+    options?: LnkMakeOptions,
+  ) => Effect.Effect<
+    TypedLnk<A>,
+    FetchError | Cause.ExceededCapacityError,
+    Scope.Scope
+  >
 }
 
 // ─── Service tag + Layer ────────────────────────────────────────────────────
@@ -206,7 +231,20 @@ export class Lnks extends Context.Service<Lnks, LnksShape>()(
           >
         }
 
-        return { connect }
+        const connectTyped: LnksShape["connectTyped"] = (
+          streamId,
+          schema,
+          options,
+        ) =>
+          // Reuse `connect` (ref-counted, JSON content-type) and wrap with
+          // the supplied schema. The returned `TypedLnk` is a lightweight
+          // schema-bound view; the wire connection is owned by the underlying
+          // ref-counted raw `Lnk`.
+          Effect.map(connect(streamId, JSON_CONTENT_TYPE, options), (raw) =>
+            withSchema(raw, schema),
+          )
+
+        return { connect, connectTyped }
       }),
     )
 

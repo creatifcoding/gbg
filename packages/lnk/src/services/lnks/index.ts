@@ -17,6 +17,12 @@
 export { Lnk, type LnkAppendOptions, type LnkMakeOptions } from "./Lnk.js"
 export { Lnks, type LnksConfig, type LnksShape } from "./Lnks.js"
 export {
+  JSON_CONTENT_TYPE,
+  TypedLnk,
+  make as typedLnkMake,
+  withSchema as withLnkSchema,
+} from "./TypedLnk.js"
+export {
   Message,
   fromBytes as messageFromBytes,
   fromBytesWithOffset as messageFromBytesWithOffset,
