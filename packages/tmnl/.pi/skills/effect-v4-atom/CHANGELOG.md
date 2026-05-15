@@ -1,6 +1,10 @@
 # effect-v4-atom Changelog
 
 > up: SKILL.md
+> prereqs: none
+> provides: change-history
+> children: none
+> meta: true
 > update-status: current
 
 ## 2026-03-04 — Initial Governance

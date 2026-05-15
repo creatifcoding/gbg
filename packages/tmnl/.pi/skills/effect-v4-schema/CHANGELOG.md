@@ -1,6 +1,9 @@
 # effect-v4-schema — Changelog
 
 > up: SKILL.md
+> prereqs: none
+> provides: change-history
+> children: none
 > meta: true
 
 ## [0.1.0] — 2026-03-02

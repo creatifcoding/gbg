@@ -5,6 +5,7 @@ description: Effect v4 Schema patterns — defining, validating, transforming, a
 
 # effect-v4-schema
 
+> up: none
 > prereqs: none
 > provides: effect-v4-schema-patterns, v3-to-v4-migration, schema-validation, schema-serialization, schema-classes
 > children: CHANGELOG.md, GRAPH.md, references/INDEX.md

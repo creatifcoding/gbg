@@ -1,61 +1,61 @@
 ---
 name: effect-v4-services
 description: Effect v4 Service patterns — Context.Service, Layer composition, ManagedRuntime, dependency injection, and service testing with @effect/vitest.
+governed-by: metaskill
 ---
 
-# Effect v4 ServiceMap.Service — Canonical Reference
+# Effect v4 Context.Service — Canonical Reference
 
-> Source of truth: `submodules/effect-smol/packages/effect/src/ServiceMap.ts`
+> up: none
+> prereqs: none
+> provides: services, layers, dependency-injection, managed-runtime, testing
+> children: CHANGELOG.md
+> governed-by: metaskill
+>
+> Source of truth: `submodules/effect-smol/packages/effect/src/Context.ts`
 > Migration guide: `submodules/effect-smol/MIGRATION.md`
 
 ## Import
 
 ```ts
-import { ServiceMap, Effect, Layer } from "effect"
+import { Context, Effect, Layer, ManagedRuntime } from "effect"
 ```
+
+## When to Load
+
+- Defining an Effect service (dependency injection)
+- Creating Layers (wiring services)
+- Composing layers (provide, merge, provideMerge)
+- Running programs with ManagedRuntime
+- Testing services with @effect/vitest
 
 ## Defining Services
 
-### Function-style (simple, no class)
+### Class-style (canonical pattern in v4)
 
 ```ts
-const Database = ServiceMap.Service<{
-  query: (sql: string) => Effect.Effect<Array<unknown>>
-}>("myapp/Database")
-
-// Usage
-const program = Effect.gen(function*() {
-  const db = yield* Database
-  return yield* db.query("SELECT * FROM users")
-})
-```
-
-### Class-style (with make)
-
-```ts
-class Database extends ServiceMap.Service<Database, {
+class Database extends Context.Service<Database, {
   readonly query: (sql: string) => Effect.Effect<Array<unknown>, DatabaseError>
 }>()(
   "myapp/db/Database"
-) {}
-
-// Create layer
-const DatabaseLive = Layer.effect(
-  Database,
-  Effect.gen(function*() {
-    const query = Effect.fn("Database.query")(function*(sql: string) {
-      yield* Effect.log("Executing:", sql)
-      return [{ id: 1, name: "Alice" }]
+) {
+  static readonly layer = Layer.effect(
+    Database,
+    Effect.gen(function*() {
+      const query = Effect.fn("Database.query")(function*(sql: string) {
+        yield* Effect.log("Executing:", sql)
+        return [{ id: 1, name: "Alice" }]
+      })
+      return Database.of({ query })
     })
-    return Database.of({ query })
-  })
-)
+  )
+}
 ```
 
-### Class-style with inline make
+### Class-style with inline make + dependencies
 
 ```ts
-class Database extends ServiceMap.Service<Database, {
+class Database extends Context.Service<Database, {
   readonly query: (sql: string) => Effect.Effect<Array<unknown>, DatabaseError>
 }>()(
   "myapp/db/Database",
@@ -71,29 +71,36 @@ class Database extends ServiceMap.Service<Database, {
     })
   }
 ) {}
+```
 
-// When make is defined, layer can be created from it:
-static readonly layer = Layer.effect(Database, Database.make).pipe(
-  Layer.provide(ConnectionPool.layer)
-)
+### Function-style (simple, no class)
+
+```ts
+const Database = Context.Service<{
+  query: (sql: string) => Effect.Effect<Array<unknown>>
+}>("myapp/Database")
 ```
 
 ## Key Differences from v3
 
 | v3 | v4 |
 |---|---|
-| `class Foo extends Context.Tag("Foo")<Foo, Shape>() {}` | `class Foo extends ServiceMap.Service<Foo, Shape>()("Foo") {}` |
-| `class Foo extends Effect.Service<Foo>()("Foo", { ... })` | `class Foo extends ServiceMap.Service<Foo, Shape>()("Foo", { make: ... }) {}` |
+| `class Foo extends Context.Tag("Foo")<Foo, Shape>() {}` | `class Foo extends Context.Service<Foo, Shape>()("Foo") {}` |
+| `class Foo extends Effect.Service<Foo>()("Foo", { ... })` | `class Foo extends Context.Service<Foo, Shape>()("Foo", { make: ... }) {}` |
 | Auto-generated `.Default` layer | No auto `.Default`. Define `.layer` manually. |
-| `Effect.Service` with `scoped` + `dependencies` | `ServiceMap.Service` with `make`. Use `Layer.provide` for deps. |
-| `Context.Tag` as marker | `ServiceMap.Service` IS the tag/key |
-| `Runtime<R>` type | REMOVED. Use `ServiceMap<R>` |
-| `Effect.provideService(Tag, impl)` | `Effect.provide(Layer.succeed(Tag)(impl))` or `Effect.provide(Tag.serviceMap(impl))` |
+| `Effect.Service` with `scoped` + `dependencies` | `Context.Service` with `make`. Use `Layer.provide` for deps. |
+| `Context.Tag` as marker | `Context.Service` IS the tag/key |
+| `Runtime<R>` type | REMOVED. Use `Context<R>` directly |
+| `Effect.provideService(Tag, impl)` | `Effect.provide(Layer.succeed(Tag)(impl))` |
+| `Layer.scoped` | `Layer.effect` (scoped semantics folded in) |
+| `Layer.scopedDiscard` | `Layer.effectDiscard` |
+| `ServiceMap.*` (beta.23) | `Context.*` (renamed in beta.44) |
+| `fiber.services` | `fiber.context` (renamed in beta.44) |
 
 ## Creating Layers
 
 ```ts
-// Effectful construction
+// Effectful construction (replaces Layer.scoped from v3)
 const layer = Layer.effect(
   Database,
   Effect.gen(function*() {
@@ -111,13 +118,16 @@ const layer = Layer.succeed(Database)({
   query: (sql) => Effect.succeed([])
 })
 
-// Dynamic (choose at runtime)
-const layer = Layer.unwrap(
+// Multiple services from one effect (replaces Layer.effectServices)
+const layer = Layer.effectContext(
   Effect.gen(function*() {
-    const config = yield* Config.boolean("USE_MOCK")
-    return config ? Database.layerMock : Database.layerLive
+    const impl = { query: ... }
+    return Context.make(Database, impl)
   })
 )
+
+// Lazy layer (evaluated once, shared)
+const layer = Layer.suspend(() => conditionalLayer)
 ```
 
 ## Composing Layers
@@ -144,55 +154,56 @@ const InfraLayer = Layer.mergeAll(
 ## Consuming Services
 
 ```ts
-// yield* in Effect.gen
+// yield* in Effect.gen (most common)
 const program = Effect.gen(function*() {
   const db = yield* Database
   const cache = yield* Cache
-  // ...
+  return yield* db.query("SELECT 1")
 })
-
-// .use() method
-Database.use((db) => db.query("SELECT 1"))
-
-// .useSync() method
-Database.useSync((db) => db.someValue)
 
 // Provide and run
 Effect.runPromise(
   program.pipe(Effect.provide(AppLayer))
 )
 
-// Effect.runSyncWith for synchronous execution with services
+// Effect.runSyncWith for synchronous with services
 const result = Effect.runSyncWith(services)(program)
 
 // Effect.runForkWith for forking with services
 const fiber = Effect.runForkWith(services)(program)
 ```
 
-## ServiceMap Data Structure
+## Context Data Structure
 
 ```ts
 // Create
-const map = ServiceMap.make(Database, dbImpl)
+const ctx = Context.make(Database, dbImpl)
 
-// Combine
-const combined = ServiceMap.merge(map1, map2)
+// Add more services
+const ctx2 = Context.add(ctx, Cache, cacheImpl)
 
-// Access
-const db = ServiceMap.get(map, Database)
+// Access (unsafe)
+const db = Context.getUnsafe(ctx, Database)
+
+// Merge
+const combined = Context.merge(ctx1, ctx2)
 
 // Check
-ServiceMap.isServiceMap(value)
-ServiceMap.isKey(Database)  // true
+Context.isContext(value)
 ```
 
-## ManagedRuntime (still exists in v4)
+## ManagedRuntime
 
 ```ts
 import { ManagedRuntime } from "effect"
 
+// Build a runtime from layers (for app edge / extension entry)
 const runtime = ManagedRuntime.make(AppLayer)
+
+// Run programs
 await runtime.runPromise(program)
+
+// Dispose (runs finalizers)
 await runtime.dispose()
 ```
 
@@ -201,18 +212,25 @@ await runtime.dispose()
 Use package + path for uniqueness:
 ```ts
 "@tmnl/stx/StxFactory"
-"@tmnl/stx/FermionRegistry"
+"@tmnl/codemode-metaskill/SkillDiscovery"
 "myapp/db/Database"
 ```
 
-## Layer Naming Convention
+## Testing with @effect/vitest
 
 ```ts
-// v3: .Default, .Live, .Test
-// v4: .layer, .layerTest, .layerDev
+import { describe, it } from "@effect/vitest"
+import { Effect, Layer } from "effect"
 
-class Database extends ServiceMap.Service<...>()("Database") {
-  static readonly layer = Layer.effect(this, this.make)
-  static readonly layerTest = Layer.succeed(this)({ ... })
-}
+describe("Database", () => {
+  it.effect("queries successfully", () =>
+    Effect.gen(function*() {
+      const db = yield* Database
+      const rows = yield* db.query("SELECT 1")
+      expect(rows).toHaveLength(1)
+    }).pipe(
+      Effect.provide(Database.layerTest)
+    )
+  )
+})
 ```
