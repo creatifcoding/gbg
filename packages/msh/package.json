@@ -1,0 +1,49 @@
+{
+  "name": "@tmnl/msh",
+  "version": "0.0.1",
+  "description": "MSH — NATS Effect services for TMNL (Effect v4)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "@nats-io/jwt": "^0.0.10-5",
+    "@nats-io/nkeys": "^2.0.3",
+    "effect-v4": "npm:effect@4.0.0-beta.59",
+    "nats.ws": "^1.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "GBG",
+  "keywords": [
+    "effect-ts",
+    "effect-v4",
+    "msh"
+  ]
+}

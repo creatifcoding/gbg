@@ -22,13 +22,4 @@ export {
   StreamNotFoundError,
 } from './stream-processor';
 
-export {
-  HolonetDurableStreamsClient,
-  HolonetDurableStreamsClientLive,
-  HolonetDurableStreamsClientDefault,
-  HolonetDurableStreamsClientCustom,
-  HolonetDurableStreamsConfigSchema,
-  HolonetDurableStreamsConfigTag,
-  type HolonetDurableStreamsConfig,
-  type HolonetDurableStreamsConfigInput,
-} from './durable-streams-client';
+// durable-streams-client removed — consumers should use @tmnl/msh StreamProcessor
