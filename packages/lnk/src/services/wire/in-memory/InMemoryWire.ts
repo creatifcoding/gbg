@@ -189,6 +189,9 @@ export class InMemoryWire {
               ...(input.streamExpiresAt !== undefined
                 ? { expiresAt: input.streamExpiresAt }
                 : {}),
+              ...(input.schemaId !== undefined
+                ? { schemaId: input.schemaId }
+                : {}),
             })
             let nextOffset: PutResultT["nextOffset"]
             let closed = out.closed
@@ -350,6 +353,9 @@ export class InMemoryWire {
               ...(Option.isSome(out.ttl) ? { ttl: out.ttl.value } : {}),
               ...(Option.isSome(out.expiresAt)
                 ? { expiresAt: out.expiresAt.value }
+                : {}),
+              ...(Option.isSome(out.schemaId)
+                ? { schemaId: out.schemaId.value }
                 : {}),
             }
           }),

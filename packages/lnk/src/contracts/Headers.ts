@@ -78,6 +78,18 @@ export const PRODUCER_SEQ = "Producer-Seq" as const
 /** `Content-Type` — framing mode driver. */
 export const CONTENT_TYPE = "Content-Type" as const
 
+/**
+ * `Schema-Id` — stream metadata: opaque identifier of the payload schema
+ * registered with a Pact registry. Set by the producer on PUT, echoed
+ * by the server on HEAD/GET. Enables `Lnks.connectTyped(streamId)` to
+ * auto-resolve a typed handle without the caller supplying the schema.
+ *
+ * Per PCT.md §6, format is opaque to clients (typically `name@semver`).
+ * Empty / absent header is valid — streams without a schema reference
+ * remain accessible via untyped `connect()` (raw bytes).
+ */
+export const SCHEMA_ID = "Schema-Id" as const
+
 /** All canonical header names known to this contract. */
 export const ALL_HEADERS = [
   STREAM_NEXT_OFFSET,
@@ -90,6 +102,7 @@ export const ALL_HEADERS = [
   PRODUCER_EPOCH,
   PRODUCER_SEQ,
   CONTENT_TYPE,
+  SCHEMA_ID,
 ] as const
 export type HeaderName = (typeof ALL_HEADERS)[number]
 
@@ -196,6 +209,26 @@ export const parseStreamCursor = Effect.fn(
 )(function* (source: HeaderSource) {
   const v = getHeader(source, STREAM_CURSOR)
   return v === null ? Option.none<string>() : Option.some(v)
+})
+
+/**
+ * Parse the `Schema-Id` header.
+ *
+ * Used:
+ *   - On PUT (request): producer declares the payload schema id
+ *   - On HEAD/GET (response): server echoes the stored value
+ *
+ * Empty string is treated as absent. The value itself is opaque
+ * (the registry decides the format; default is `name@semver`), so
+ * no further validation happens here — callers MUST treat it as
+ * an opaque token.
+ */
+export const parseSchemaId = Effect.fn(
+  "@tmnl/lnk/Headers.parseSchemaId",
+)(function* (source: HeaderSource) {
+  const v = getHeader(source, SCHEMA_ID)
+  if (v === null || v === "") return Option.none<string>()
+  return Option.some(v)
 })
 
 // ─── Producer-Id / Epoch / Seq (request side) ───────────────────────────────

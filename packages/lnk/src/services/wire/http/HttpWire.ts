@@ -95,6 +95,9 @@ export class HttpWire {
                 ...(input.streamClosed === true
                   ? { [HEADERS.H_CLOSED]: "true" }
                   : {}),
+                ...(input.schemaId !== undefined
+                  ? { [HEADERS.H_SCHEMA_ID]: input.schemaId }
+                  : {}),
               }
               const r = yield* inner.sendChecked({
                 method: "PUT",
@@ -237,12 +240,14 @@ export class HttpWire {
                 path: paths.streamPath(input.streamId as string),
               })
               const ct = r.headers.get(HEADERS.H_CONTENT_TYPE)
+              const sid = r.headers.get(HEADERS.H_SCHEMA_ID)
               return {
                 ...(ct !== null ? { contentType: trustContentType(ct) } : {}),
                 ...(Option.isSome(r.nextOffset)
                   ? { nextOffset: r.nextOffset.value }
                   : {}),
                 closed: r.closed,
+                ...(sid !== null && sid !== "" ? { schemaId: sid } : {}),
               }
             }).pipe(
               Effect.catchTags({

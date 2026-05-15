@@ -63,6 +63,7 @@ const H_CONTENT_TYPE = "Content-Type"
 const H_STREAM_TTL = "Stream-TTL"
 const H_STREAM_EXPIRES_AT = "Stream-Expires-At"
 const H_STREAM_SEQ = "Stream-Seq"
+const H_SCHEMA_ID = "Schema-Id"
 
 // ─── Service shape ──────────────────────────────────────────────────────────
 
@@ -441,4 +442,5 @@ export const HEADERS = {
   H_CONTENT_TYPE,
   H_STREAM_TTL,
   H_STREAM_EXPIRES_AT,
+  H_SCHEMA_ID,
 } as const

@@ -13,3 +13,7 @@ export {
   layer,
   make,
 } from "./PactClient.js"
+export {
+  layer as schemaResolverLayer,
+  layerFromPactClient as schemaResolverLayerFromPactClient,
+} from "./SchemaResolverLayer.js"

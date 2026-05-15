@@ -22,6 +22,11 @@ export * as StreamId from "./StreamId.js"
 export * as Producer from "./Producer.js"
 export * as ContentType from "./ContentType.js"
 export * as Headers from "./Headers.js"
+export {
+  SchemaResolver,
+  SchemaResolverNotFound,
+  type SchemaResolverShape,
+} from "./SchemaResolver.js"
 
 // Errors are exported as concrete classes (so callers can `new` them and
 // `Effect.catchTag("...")` on them), not under a namespace.
@@ -38,6 +43,7 @@ export {
   InvalidPayloadError,
   RetentionDroppedError,
   FetchError,
+  MissingStreamSchemaError,
   type DurableStreamError,
   type InvalidOffsetReason,
 } from "./errors.js"

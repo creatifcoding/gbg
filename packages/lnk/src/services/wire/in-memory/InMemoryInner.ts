@@ -80,6 +80,12 @@ interface InternalStream {
   /** Expires-At timestamp string (ISO-8601, Stream-Expires-At on PUT). */
   readonly expiresAt: string | null
   /**
+   * Opaque payload schema-id (Schema-Id header on PUT). `null` when
+   * the producer didn't supply one. Echoed by HEAD/GET responses;
+   * consumed by `Lnks.connectTyped(streamId)` for auto-resolution.
+   */
+  readonly schemaId: string | null
+  /**
    * Last accepted Stream-Seq value (lex-ordered string). Subsequent POSTs
    * carrying `Stream-Seq` must be lexicographically greater. `null` means
    * none accepted yet (any value is allowed).
@@ -104,6 +110,7 @@ const emptyStream = (contentType: ContentType, now: number): InternalStream => (
   lastStreamSeq: null,
   ttl: null,
   expiresAt: null,
+  schemaId: null,
 })
 
 // ─── Offset generation — zero-padded lex-sortable ───────────────────────────
@@ -171,6 +178,12 @@ export interface CreateInput {
   readonly ttl?: number
   /** Optional Stream-Expires-At value (ISO-8601). */
   readonly expiresAt?: string
+  /**
+   * Optional `Schema-Id` value. Persisted with the stream's metadata
+   * and echoed by HEAD/GET responses. Drives `Lnks.connectTyped(streamId)`
+   * auto-resolution.
+   */
+  readonly schemaId?: string
 }
 
 export interface CreateOutput {
@@ -267,6 +280,8 @@ export interface MetadataOutput {
   readonly expiresAt: Option.Option<string>
   readonly nextOffset: Option.Option<Offset>
   readonly closed: boolean
+  /** Stored schema-id from PUT (or None if the producer didn't supply one). */
+  readonly schemaId: Option.Option<string>
 }
 
 // ─── Service shape ──────────────────────────────────────────────────────────
@@ -389,6 +404,7 @@ const makeImpl = Effect.gen(function* () {
         closed: initialClosed,
         ttl: input.ttl ?? null,
         expiresAt: input.expiresAt ?? null,
+        schemaId: input.schemaId ?? null,
       })
       yield* Ref.set(stateRef, next)
       return {
@@ -754,6 +770,10 @@ const makeImpl = Effect.gen(function* () {
         expiresAt:
           stream.expiresAt !== null
             ? Option.some(stream.expiresAt)
+            : Option.none(),
+        schemaId:
+          stream.schemaId !== null
+            ? Option.some(stream.schemaId)
             : Option.none(),
       }
     })

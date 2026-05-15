@@ -91,6 +91,7 @@ const putHandler = Effect.gen(function* () {
     : "application/octet-stream"
   const ttlOrExpires = yield* Headers.parseStreamTtlOrExpiresAt(headerSource)
   const streamClosed = yield* Headers.parseStreamClosed(headerSource)
+  const schemaIdOpt = yield* Headers.parseSchemaId(headerSource)
 
   // Body (optional initial append)
   const bodyArr = yield* request.arrayBuffer.pipe(
@@ -109,6 +110,7 @@ const putHandler = Effect.gen(function* () {
       ? { streamExpiresAt: ttlOrExpires.expiresAt.value }
       : {}),
     ...(streamClosed ? { streamClosed: true } : {}),
+    ...(Option.isSome(schemaIdOpt) ? { schemaId: schemaIdOpt.value } : {}),
     ...(body.length > 0 ? { body } : {}),
   })
 
@@ -336,8 +338,49 @@ const getHandler = Effect.gen(function* () {
  * )
  * ```
  */
+// ─── HEAD /streams/:streamId ───────────────────────────────────────────
+
+/**
+ * Stream metadata-only query. Echoes the producer-supplied
+ * `Schema-Id`, the stream's `Content-Type`, the next-offset cursor,
+ * and the closed state. Consumed by `Wire.head(streamId)` which
+ * feeds `Lnks.connectTyped(streamId)` auto-resolution.
+ */
+const headHandler = Effect.gen(function* () {
+  const streamId = yield* getStreamIdParam
+  if (streamId === null) {
+    return errorResponse(400, "missing or empty streamId path parameter")
+  }
+  const wire = yield* Wire
+  const out = yield* wire.head({ streamId })
+
+  const headers: Record<string, string> = {}
+  if (out.contentType !== undefined) headers["Content-Type"] = String(out.contentType)
+  if (out.nextOffset !== undefined)
+    headers[Headers.STREAM_NEXT_OFFSET] = String(out.nextOffset)
+  if (out.closed) headers[Headers.STREAM_CLOSED] = "true"
+  if (out.schemaId !== undefined) headers[Headers.SCHEMA_ID] = String(out.schemaId)
+  // Optional ttl/expiresAt echoes — present when configured
+  if ((out as { ttl?: number }).ttl !== undefined)
+    headers[Headers.STREAM_TTL] = String((out as { ttl?: number }).ttl)
+  if ((out as { expiresAt?: string }).expiresAt !== undefined)
+    headers[Headers.STREAM_EXPIRES_AT] = String(
+      (out as { expiresAt?: string }).expiresAt,
+    )
+
+  return HttpServerResponse.empty({ status: 200, headers })
+}).pipe(
+  Effect.catchTag("StreamNotFoundError", (err) =>
+    Effect.succeed(errorResponse(404, String(err))),
+  ),
+  Effect.catchCause(() =>
+    Effect.succeed(errorResponse(500, "internal error")),
+  ),
+)
+
 export const Routes = HttpRouter.addAll([
   HttpRouter.route("PUT", "/streams/:streamId", putHandler),
   HttpRouter.route("POST", "/streams/:streamId", postHandler),
   HttpRouter.route("GET", "/streams/:streamId", getHandler),
+  HttpRouter.route("HEAD", "/streams/:streamId", headHandler),
 ])

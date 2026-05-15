@@ -199,6 +199,24 @@ export class FetchError extends Schema.TaggedErrorClass<FetchError>(
   cause: Schema.optional(Schema.Defect),
 }) {}
 
+/**
+ * Stream has no `Schema-Id` metadata; cannot resolve a typed handle
+ * via `Lnks.connectTyped(streamId)` without an explicit schema.
+ *
+ * Producers attach a Schema-Id at PUT time (passing `schemaId` to
+ * `Wire.put`). Streams created without one remain accessible via the
+ * raw `Lnks.connect` path or the explicit `connectTyped(streamId, schema)`
+ * overload. This error fires only when:
+ *
+ *   - caller invokes the 1-arg `connectTyped(streamId)` (auto-fetch)
+ *   - the stream's HEAD response has no Schema-Id header
+ */
+export class MissingStreamSchemaError extends Schema.TaggedErrorClass<MissingStreamSchemaError>(
+  "@tmnl/lnk/MissingStreamSchemaError",
+)("MissingStreamSchemaError", {
+  streamId: Schema.String,
+}) {}
+
 // ─── Discriminated union ────────────────────────────────────────────────────
 
 /**
@@ -220,5 +238,6 @@ export type DurableStreamError =
   | StreamClosedError
   | StreamNotFoundError
   | StreamConfigMismatchError
+  | MissingStreamSchemaError
   | RetentionDroppedError
   | FetchError

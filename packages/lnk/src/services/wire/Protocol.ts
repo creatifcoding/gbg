@@ -77,6 +77,13 @@ export const PutInput = Schema.Struct({
    * the body atomically, and closes — "create-final" in one round trip.
    */
   streamClosed: Schema.optional(Schema.Boolean),
+  /**
+   * Optional `Schema-Id` header on PUT. Opaque identifier of the
+   * payload schema (typically `name@semver`). Persisted with stream
+   * metadata; echoed by HEAD/GET responses; consumed by
+   * `Lnks.connectTyped(streamId)` to auto-resolve a typed handle.
+   */
+  schemaId: Schema.optional(Schema.String),
 })
 
 /** Result: did this PUT actually create the stream, or did it already exist? */
@@ -204,6 +211,11 @@ export const HeadResult = Schema.Struct({
   ttl: Schema.optional(Schema.Number),
   /** Stream-Expires-At value (ISO-8601), if configured. */
   expiresAt: Schema.optional(Schema.String),
+  /**
+   * Opaque schema-id from the stream's metadata (set at PUT time).
+   * Absent when the stream was created without a Schema-Id header.
+   */
+  schemaId: Schema.optional(Schema.String),
 })
 
 // ─── DELETE — remove stream ─────────────────────────────────────────────────

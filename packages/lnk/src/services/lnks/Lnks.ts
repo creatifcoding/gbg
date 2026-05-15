@@ -52,7 +52,15 @@ import type * as Schema from "effect-v4/Schema"
 import type * as Scope from "effect-v4/Scope"
 
 import type { ContentType } from "../../contracts/ContentType.js"
-import type { FetchError } from "../../contracts/errors.js"
+import {
+  type FetchError,
+  MissingStreamSchemaError,
+  type StreamNotFoundError,
+} from "../../contracts/errors.js"
+import {
+  SchemaResolver,
+  type SchemaResolverNotFound,
+} from "../../contracts/SchemaResolver.js"
 import type { StreamId } from "../../contracts/StreamId.js"
 import { JSON_CONTENT_TYPE, TypedLnk, withSchema } from "./TypedLnk.js"
 import { Wire } from "../wire/Wire.js"
@@ -123,7 +131,7 @@ export interface LnksShape {
    * share the same wire connection. Each call returns a distinct
    * lightweight `TypedLnk<A>` view.
    *
-   * Phase 2.5. Underlying framing is JSON; binary framings come later.
+   * Phase 2.5a. Underlying framing is JSON; binary framings come later.
    */
   readonly connectTyped: <A>(
     streamId: StreamId,
@@ -133,6 +141,34 @@ export interface LnksShape {
     TypedLnk<A>,
     FetchError | Cause.ExceededCapacityError,
     Scope.Scope
+  >
+
+  /**
+   * Auto-resolving typed connect (Phase 2.5b).
+   *
+   * Reads the stream's `Schema-Id` metadata via `Wire.head`, fetches
+   * the schema from the configured `SchemaResolver` (PCT registry in
+   * production; stub in tests), and returns a typed handle.
+   *
+   * The result is `TypedLnk<A>` where `A` defaults to `unknown` if
+   * not supplied at the call site — callers assert their expected
+   * type: `lnks.connectTypedById<HeartRate>(id)`.
+   *
+   * Fails with `MissingStreamSchemaError` if the stream has no
+   * Schema-Id header, or `SchemaResolverNotFound` if the resolver
+   * can't find the named schema.
+   */
+  readonly connectTypedById: <A = unknown>(
+    streamId: StreamId,
+    options?: LnkMakeOptions,
+  ) => Effect.Effect<
+    TypedLnk<A>,
+    | FetchError
+    | Cause.ExceededCapacityError
+    | MissingStreamSchemaError
+    | SchemaResolverNotFound
+    | StreamNotFoundError,
+    Scope.Scope | SchemaResolver
   >
 }
 
@@ -244,7 +280,57 @@ export class Lnks extends Context.Service<Lnks, LnksShape>()(
             withSchema(raw, schema),
           )
 
-        return { connect, connectTyped }
+        /**
+         * Auto-resolving typed connect (Phase 2.5b).
+         *
+         * Sequence (matches the diagram in
+         *  ~/.agent/diagrams/pct-lnk-phase-2.5b-schema-autobind.html):
+         *   1. Discovery: wire.head(streamId) -> read Schema-Id
+         *   2. Resolution: resolver.fetchSchema(schemaId) -> Schema.Top
+         *   3. Handle: connect(streamId, JSON_CONTENT_TYPE) -> raw Lnk
+         *   4. Compose: TypedLnk.withSchema(raw, schema)
+         */
+        const connectTypedById: LnksShape["connectTypedById"] = <
+          A = unknown,
+        >(
+          streamId: StreamId,
+          options?: import("./Lnk.js").LnkMakeOptions,
+        ): Effect.Effect<
+          TypedLnk<A>,
+          | FetchError
+          | Cause.ExceededCapacityError
+          | MissingStreamSchemaError
+          | SchemaResolverNotFound
+          | StreamNotFoundError,
+          Scope.Scope | SchemaResolver
+        > =>
+          Effect.gen(function* () {
+            // 1. DISCOVERY
+            const meta = yield* wire.head({ streamId })
+            if (meta.schemaId === undefined || meta.schemaId === "") {
+              return yield* Effect.fail(
+                new MissingStreamSchemaError({
+                  streamId: streamId as string,
+                }),
+              )
+            }
+
+            // 2. RESOLUTION
+            const resolver = yield* SchemaResolver
+            const schema = yield* resolver.fetchSchema(meta.schemaId)
+
+            // 3. HANDLE
+            const raw = yield* connect(
+              streamId,
+              JSON_CONTENT_TYPE,
+              options,
+            )
+
+            // 4. COMPOSE
+            return withSchema(raw, schema as Schema.Schema<A>)
+          })
+
+        return { connect, connectTyped, connectTypedById }
       }),
     )
 
