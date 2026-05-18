@@ -200,7 +200,7 @@ export class MshAuthService extends Context.Service<
           if (!authMode) return undefined;
 
           const current = yield* Ref.get(stateRef);
-          if (current === 'unconfigured') {
+          if (current === 'unconfigured' || current === 'failed') {
             yield* transition('loading_credentials');
           }
 

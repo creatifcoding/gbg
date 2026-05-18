@@ -16,7 +16,10 @@ import {
   CredsEnv,
   CredsAuth,
   MshAuthService,
+  MshJwtService,
+  MshJwtServiceLive,
   TokenAuth,
+  UserJwtRequest,
 } from '../src/auth';
 
 const baseConfig = {
@@ -114,5 +117,47 @@ describe('MshAuthService behavior', () => {
 
     expect(result.load._tag).toBe('Failure');
     expect(result.state).toBe('failed');
+  });
+
+  it('recovers from failed credential loading when credentials become available', async () => {
+    const variable = `MSH_AUTH_TEST_RETRY_CREDS_${Date.now()}`;
+    delete process.env[variable];
+
+    try {
+      const result = await Effect.runPromise(
+        Effect.gen(function* () {
+          const jwt = yield* MshJwtService;
+          const account = yield* jwt.createAccountKeyPair;
+          const user = yield* jwt.createUserKeyPair;
+          const userJwt = yield* jwt.encodeUser(new UserJwtRequest({
+            name: 'Retry User',
+            user,
+            issuer: account,
+          }));
+          const creds = yield* jwt.formatCreds(userJwt, user);
+          const auth = yield* MshAuthService;
+
+          const first = yield* auth.getAuthenticator.pipe(Effect.result);
+          const afterFirst = yield* auth.state;
+          process.env[variable] = new TextDecoder().decode(creds);
+          const second = yield* auth.getAuthenticator.pipe(Effect.result);
+          const afterSecond = yield* auth.state;
+
+          return { first, afterFirst, second, afterSecond };
+        }).pipe(
+          Effect.provide(Layer.mergeAll(
+            authLayer(new CredsAuth({ source: new CredsEnv({ variable }) })),
+            MshJwtServiceLive,
+          )),
+        ),
+      );
+
+      expect(result.first._tag).toBe('Failure');
+      expect(result.afterFirst).toBe('failed');
+      expect(result.second._tag).toBe('Success');
+      expect(result.afterSecond).toBe('ready');
+    } finally {
+      delete process.env[variable];
+    }
   });
 });
