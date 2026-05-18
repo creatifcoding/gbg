@@ -110,9 +110,11 @@ Regression added: a failed `CredsEnv` load can recover after the variable become
 
 ### 6. `SubjectSpec.matches` treats literal dots as regex wildcards
 
+Status: remediated. Subject matching/extraction now compares token-by-token: full-token placeholders capture one non-empty subject token, and literal tokens must match exactly.
+
 File: `src/subject/schemas.ts`
 
-`matches()` builds a regex directly from the subject pattern and only replaces placeholders. Literal `.` characters are not escaped.
+`matches()` built a regex directly from the subject pattern and only replaced placeholders. Literal `.` characters were not escaped.
 
 Probe:
 
@@ -124,6 +126,14 @@ new SubjectSpec({ pattern: "foo.bar.{id}", ... }).matches("fooXbar.1")
 Impact: subject registry matching can authorize/route subjects that do not match the tokenized NATS pattern.
 
 Recommended fix: match token-by-token instead of building a raw regex, or escape all literal pattern tokens before placeholder expansion.
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/subject-registry.test.ts test/property.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: literal-token mutations such as `geointXflight.ABC123.position` no longer match `geoint.flight.{icao24}.position`, and property coverage exercises generated literal/placeholder boundaries.
 
 ## Medium-priority findings
 
