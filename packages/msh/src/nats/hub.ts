@@ -101,7 +101,8 @@ export class NatsHubService extends Context.Service<
   NatsHubService,
   NatsHubServiceShape
 >()('@tmnl/msh/nats/Hub') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires NatsInnerService. */
+  static readonly layerFromInner = Layer.effect(
     NatsHubService,
     Effect.gen(function* () {
       const inner = yield* NatsInnerService;
@@ -286,7 +287,11 @@ export class NatsHubService extends Context.Service<
 
       return NatsHubService.of({ subscribe, publish, activePatterns, flush });
     }),
-  ).pipe(Layer.provide(NatsInnerService.layer));
+  );
+
+  static readonly layer = NatsHubService.layerFromInner.pipe(
+    Layer.provide(NatsInnerService.layer),
+  );
 }
 
 export const NatsHubServiceLive = NatsHubService.layer;

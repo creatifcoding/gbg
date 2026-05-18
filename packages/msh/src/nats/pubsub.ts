@@ -88,7 +88,8 @@ export class NatsPubSubService extends Context.Service<
   NatsPubSubService,
   NatsPubSubServiceShape
 >()('@tmnl/msh/nats/PubSub') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires NatsInnerService + NatsHubService. */
+  static readonly layerFromServices = Layer.effect(
     NatsPubSubService,
     Effect.gen(function* () {
       const inner = yield* NatsInnerService;
@@ -180,7 +181,9 @@ export class NatsPubSubService extends Context.Service<
         flush: () => flush().pipe(Effect.withSpan(MshSpan.PubSub.flush)),
       });
     }),
-  ).pipe(
+  );
+
+  static readonly layer = NatsPubSubService.layerFromServices.pipe(
     Layer.provide(NatsInnerService.layer),
     Layer.provide(NatsHubService.layer),
   );

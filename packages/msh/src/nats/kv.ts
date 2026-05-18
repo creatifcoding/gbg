@@ -112,6 +112,9 @@ export class NatsKVService extends Context.Service<
           })),
         );
 
+      const hasPutValue = (entry: KvEntry | null): entry is KvEntry =>
+        entry !== null && entry.operation === 'PUT' && entry.value.length > 0;
+
       const collectAsync = <T>(iter: AsyncIterable<T>): Effect.Effect<T[]> =>
         Effect.promise(async () => { const r: T[] = []; for await (const i of iter) r.push(i); return r; });
 
@@ -119,7 +122,7 @@ export class NatsKVService extends Context.Service<
         Effect.gen(function* () {
           const bucket = yield* getBucket(bucketName);
           const entry = yield* inner.kv.get(bucketName, bucket, key);
-          if (!entry || !entry.value)
+          if (!hasPutValue(entry))
             return yield* Effect.fail(new KVErrors.NotFoundError({ bucketName, key }));
           return yield* NatsCodec.decodeJson(schema, { subject: `kv.${bucketName}.${key}` })(entry.value);
         });
@@ -128,7 +131,7 @@ export class NatsKVService extends Context.Service<
         Effect.gen(function* () {
           const bucket = yield* getBucket(bucketName);
           const entry = yield* inner.kv.get(bucketName, bucket, key);
-          if (!entry || !entry.value) return null;
+          if (!hasPutValue(entry)) return null;
           return yield* NatsCodec.decodeJson(schema, { subject: `kv.${bucketName}.${key}` })(entry.value);
         });
 
@@ -182,7 +185,7 @@ export class NatsKVService extends Context.Service<
           const entries: TypedKVEntry<any>[] = [];
           for (const key of allKeys) {
             const entry = yield* inner.kv.get(bucketName, b, key);
-            if (entry?.value) entries.push(yield* decodeEntry(entry, schema, bucketName));
+            if (hasPutValue(entry)) entries.push(yield* decodeEntry(entry, schema, bucketName));
           }
           return entries;
         });
@@ -193,7 +196,7 @@ export class NatsKVService extends Context.Service<
           const iter = yield* inner.kv.history(b, key);
           const all = yield* collectAsync(iter);
           const entries: TypedKVEntry<any>[] = [];
-          for (const e of all) { if (e.value) entries.push(yield* decodeEntry(e, schema, bucketName)); }
+          for (const e of all) { if (hasPutValue(e)) entries.push(yield* decodeEntry(e, schema, bucketName)); }
           return entries;
         });
 
