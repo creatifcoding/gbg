@@ -12,9 +12,12 @@
  * @module @tmnl/msh/auth/service
  */
 
+import * as Config from 'effect-v4/Config';
+import * as ConfigProvider from 'effect-v4/ConfigProvider';
 import * as Context from 'effect-v4/Context';
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
+import * as Option from 'effect-v4/Option';
 import * as Ref from 'effect-v4/Ref';
 import * as Redacted from 'effect-v4/Redacted';
 import {
@@ -31,6 +34,8 @@ import {
   type MshAuthMode,
   type AuthState,
   type AuthMetadata,
+  type AuthLifecycleSignal,
+  type AuthLifecycleSignalTag,
   NKeyAuth,
   JwtAuth,
   CredsAuth,
@@ -57,74 +62,153 @@ export interface MshAuthServiceShape {
   /** Safe-to-log metadata about current auth (I9) */
   readonly metadata: Effect.Effect<AuthMetadata>;
 
-  /** Transition to a new state (I5: explicit transitions only) */
+  /** Apply a semantic lifecycle signal (I5: explicit operation-driven transitions) */
+  readonly signal: (signal: AuthLifecycleSignal) => Effect.Effect<void, AuthInvariantViolation>;
+
+  /** Transition to a new state (I5: compatibility adapter over the lifecycle graph) */
   readonly transition: (to: AuthState) => Effect.Effect<void, AuthInvariantViolation>;
 
   /** The configured auth mode (if any) */
   readonly mode: MshAuthMode | undefined;
 }
 
+export interface MshCredentialSourceReaderShape {
+  readonly readFile: (path: string) => Effect.Effect<Uint8Array, CredentialLoadError>;
+  readonly readEnv: (variable: string) => Effect.Effect<string, CredentialLoadError>;
+}
+
 // =============================================================================
 // State Machine Transitions (I5)
 // =============================================================================
 
-const VALID_TRANSITIONS: Record<AuthState, readonly AuthState[]> = {
-  unconfigured: ['loading_credentials', 'ready'],
-  loading_credentials: ['ready', 'failed'],
-  ready: ['authenticating'],
-  authenticating: ['authenticated', 'failed'],
-  authenticated: ['expiring', 'failed'],
-  expiring: ['rotating'],
-  rotating: ['authenticated', 'failed'],
-  failed: ['loading_credentials', 'unconfigured'],
+const AUTH_LIFECYCLE_GRAPH = {
+  unconfigured: {
+    CredentialLoadRequested: 'loading_credentials',
+    CredentialLoadSucceeded: 'ready',
+  },
+  loading_credentials: {
+    CredentialLoadSucceeded: 'ready',
+    CredentialLoadFailed: 'failed',
+  },
+  ready: {
+    CredentialLoadRequested: 'loading_credentials',
+    AuthenticationRequested: 'authenticating',
+  },
+  authenticating: {
+    AuthenticationSucceeded: 'authenticated',
+    AuthenticationFailed: 'failed',
+  },
+  authenticated: {
+    CredentialExpiryDetected: 'expiring',
+    AuthenticationFailed: 'failed',
+  },
+  expiring: {
+    CredentialRotationRequested: 'rotating',
+  },
+  rotating: {
+    CredentialRotationSucceeded: 'authenticated',
+    CredentialRotationFailed: 'failed',
+  },
+  failed: {
+    CredentialLoadRequested: 'loading_credentials',
+    AuthResetRequested: 'unconfigured',
+  },
+} satisfies Record<AuthState, Partial<Record<AuthLifecycleSignalTag, AuthState>>>;
+
+const transitionTargetsFromState = (state: AuthState): readonly AuthState[] =>
+  [...new Set(Object.values(AUTH_LIFECYCLE_GRAPH[state]))];
+
+const nextStateForSignal = (
+  current: AuthState,
+  signal: AuthLifecycleSignal,
+): Option.Option<AuthState> => {
+  const transitions = AUTH_LIFECYCLE_GRAPH[current] as Partial<Record<AuthLifecycleSignalTag, AuthState>>;
+  return Option.fromNullishOr(transitions[signal._tag]);
 };
 
 // =============================================================================
-// Credential Loading (I7)
+// Credential Source Reader (I7)
 // =============================================================================
 
-const loadCredentialContents = (
-  source: CredsFile | CredsEnv | CredsInline,
-): Effect.Effect<Uint8Array, CredentialLoadError> => {
-  switch (source._tag) {
-    case 'CredsFile':
-      return Effect.tryPromise({
-        try: async () => {
-          // Use dynamic import for fs to avoid bundler issues
-          const fs = await import('fs');
-          const contents = fs.readFileSync(source.path);
-          return new Uint8Array(contents);
-        },
-        catch: (err) =>
-          new CredentialLoadError({
-            message: `Failed to read credentials file: ${source.path}`,
-            source: `file:${source.path}`,
-            cause: err,
-          }),
-      });
+export class MshCredentialSourceReader extends Context.Service<
+  MshCredentialSourceReader,
+  MshCredentialSourceReaderShape
+>()('@tmnl/msh/auth/CredentialSourceReader') {
+  static readonly layer = Layer.succeed(
+    MshCredentialSourceReader,
+    MshCredentialSourceReader.of({
+      readFile: Effect.fn(MshSpan.Auth.readCredentialFile)(function*(path: string) {
+        const fs = yield* Effect.tryPromise({
+          try: () => import('node:fs/promises'),
+          catch: (cause) =>
+            new CredentialLoadError({
+              message: 'Failed to load node filesystem module',
+              source: 'file',
+              cause,
+            }),
+        });
 
-    case 'CredsEnv':
-      return Effect.gen(function* () {
-        const value = typeof process !== 'undefined'
-          ? process.env[source.variable]
-          : undefined;
+        const contents = yield* Effect.tryPromise({
+          try: () => fs.readFile(path),
+          catch: (cause) =>
+            new CredentialLoadError({
+              message: `Failed to read credentials file: ${path}`,
+              source: `file:${path}`,
+              cause,
+            }),
+        });
+
+        return new Uint8Array(contents);
+      }),
+
+      readEnv: Effect.fn(MshSpan.Auth.readCredentialEnv)(function*(variable: string) {
+        const value = yield* Config.string(variable)
+          .parse(ConfigProvider.fromEnv())
+          .pipe(
+            Effect.mapError(
+              (cause) =>
+                new CredentialLoadError({
+                  message: `Environment variable '${variable}' not set or empty`,
+                  source: `env:${variable}`,
+                  cause,
+                }),
+            ),
+          );
+
         if (!value) {
           return yield* Effect.fail(
             new CredentialLoadError({
-              message: `Environment variable '${source.variable}' not set or empty`,
-              source: `env:${source.variable}`,
+              message: `Environment variable '${variable}' not set or empty`,
+              source: `env:${variable}`,
             }),
           );
         }
-        return new TextEncoder().encode(value);
-      });
 
-    case 'CredsInline':
-      return Effect.succeed(
-        new TextEncoder().encode(Redacted.value(source.contents)),
-      );
-  }
-};
+        return value;
+      }),
+    }),
+  );
+}
+
+const loadCredentialContents = Effect.fn(MshSpan.Auth.loadCredentials)(
+  function*(
+    reader: MshCredentialSourceReaderShape,
+    source: CredsFile | CredsEnv | CredsInline,
+  ) {
+    switch (source._tag) {
+      case 'CredsFile':
+        return yield* reader.readFile(source.path);
+
+      case 'CredsEnv': {
+        const value = yield* reader.readEnv(source.variable);
+        return new TextEncoder().encode(value);
+      }
+
+      case 'CredsInline':
+        return new TextEncoder().encode(Redacted.value(source.contents));
+    }
+  },
+);
 
 // =============================================================================
 // Authenticator Factory
@@ -132,6 +216,7 @@ const loadCredentialContents = (
 
 const createAuthenticator = (
   mode: MshAuthMode,
+  reader: MshCredentialSourceReaderShape,
 ): Effect.Effect<Authenticator, CredentialLoadError> =>
   Effect.gen(function* () {
     switch (mode._tag) {
@@ -149,7 +234,7 @@ const createAuthenticator = (
         return jwtAuthenticator(mode.jwt);
       }
       case 'CredsAuth': {
-        const contents = yield* loadCredentialContents(mode.source);
+        const contents = yield* loadCredentialContents(reader, mode.source);
         return credsAuthenticator(contents);
       }
       case 'TokenAuth': {
@@ -167,45 +252,66 @@ export class MshAuthService extends Context.Service<
   MshAuthService,
   MshAuthServiceShape
 >()('@tmnl/msh/auth/AuthService') {
-  /** Injectable layer for tests/custom runtimes. Requires MshConfigTag. */
-  static readonly layerFromConfig = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires MshConfigTag + MshCredentialSourceReader. */
+  static readonly layerFromConfigAndCredentialSource = Layer.effect(
     MshAuthService,
     Effect.gen(function* () {
       const config = yield* MshConfigTag;
       const authMode = config.auth;
+      const credentialSourceReader = yield* MshCredentialSourceReader;
 
       const stateRef = yield* Ref.make<AuthState>(
         authMode ? 'unconfigured' : 'ready',
       );
 
-      // I5: Explicit state transitions only
-      const transition: MshAuthServiceShape['transition'] = (to) =>
-        Effect.gen(function* () {
-          const current = yield* Ref.get(stateRef);
-          const allowed = VALID_TRANSITIONS[current];
-          if (!allowed.includes(to)) {
-            return yield* Effect.fail(
-              new AuthInvariantViolation({
-                invariant: 'I5',
-                message: `Invalid auth state transition: ${current} → ${to}`,
-                context: `allowed: ${allowed.join(', ')}`,
-              }),
-            );
-          }
-          yield* Ref.set(stateRef, to);
-        }).pipe(Effect.withSpan(MshSpan.Auth.authenticate));
+      const signal: MshAuthServiceShape['signal'] = (authSignal) => {
+        const planned = Ref.modify(stateRef, (current): readonly [Effect.Effect<void, AuthInvariantViolation>, AuthState] =>
+          Option.match(nextStateForSignal(current, authSignal), {
+            onNone: () => [
+              Effect.fail(
+                new AuthInvariantViolation({
+                  invariant: 'I5',
+                  message: `Invalid auth lifecycle signal '${authSignal._tag}' from state '${current}'`,
+                  context: `allowed: ${Object.keys(AUTH_LIFECYCLE_GRAPH[current]).join(', ')}`,
+                }),
+              ),
+              current,
+            ] as const,
+            onSome: (next) => [Effect.void, next] as const,
+          }),
+        );
+
+        return planned.pipe(Effect.flatten, Effect.withSpan(MshSpan.Auth.lifecycleSignal));
+      };
+
+      // I5: Compatibility adapter for callers that still use target-state transitions.
+      const transition: MshAuthServiceShape['transition'] = (to) => {
+        const planned = Ref.modify(stateRef, (current): readonly [Effect.Effect<void, AuthInvariantViolation>, AuthState] => {
+          const allowed = transitionTargetsFromState(current);
+          return allowed.includes(to)
+            ? [Effect.void, to] as const
+            : [
+                Effect.fail(
+                  new AuthInvariantViolation({
+                    invariant: 'I5',
+                    message: `Invalid auth state transition: ${current} → ${to}`,
+                    context: `allowed: ${allowed.join(', ')}`,
+                  }),
+                ),
+                current,
+              ] as const;
+        });
+
+        return planned.pipe(Effect.flatten, Effect.withSpan(MshSpan.Auth.authenticate));
+      };
 
       const getAuthenticator =
         Effect.gen(function* () {
           if (!authMode) return undefined;
 
-          const current = yield* Ref.get(stateRef);
-          if (current === 'unconfigured' || current === 'failed') {
-            yield* transition('loading_credentials');
-          }
+          yield* signal({ _tag: 'CredentialLoadRequested' });
 
-          const authenticator = yield* createAuthenticator(authMode).pipe(
-            Effect.tapError(() => Ref.set(stateRef, 'failed')),
+          const authenticator = yield* createAuthenticator(authMode, credentialSourceReader).pipe(
             Effect.mapError((err) =>
               new CredentialLoadError({
                 message: `Failed to create authenticator for mode '${authMode._tag}'`,
@@ -213,12 +319,10 @@ export class MshAuthService extends Context.Service<
                 cause: err,
               }),
             ),
+            Effect.tapError(() => signal({ _tag: 'CredentialLoadFailed' })),
           );
 
-          const st = yield* Ref.get(stateRef);
-          if (st === 'loading_credentials') {
-            yield* transition('ready');
-          }
+          yield* signal({ _tag: 'CredentialLoadSucceeded' });
 
           return authenticator;
         }).pipe(Effect.withSpan(MshSpan.Auth.loadCredentials));
@@ -253,10 +357,16 @@ export class MshAuthService extends Context.Service<
         getAuthenticator,
         state,
         metadata,
+        signal,
         transition,
         mode: authMode,
       });
     }),
+  );
+
+  /** Injectable layer for tests/custom runtimes. Requires MshConfigTag. */
+  static readonly layerFromConfig = MshAuthService.layerFromConfigAndCredentialSource.pipe(
+    Layer.provide(MshCredentialSourceReader.layer),
   );
 
   static readonly layer = MshAuthService.layerFromConfig.pipe(

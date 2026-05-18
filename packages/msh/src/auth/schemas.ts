@@ -92,7 +92,7 @@ export const MshAuthMode = Schema.Union([NKeyAuth, JwtAuth, CredsAuth, TokenAuth
 export type MshAuthMode = typeof MshAuthMode.Type;
 
 // =============================================================================
-// Auth State (I5: State Completeness)
+// Auth State + Lifecycle Signals (I5: State Completeness)
 // =============================================================================
 
 /** The 8-state auth lifecycle FSM */
@@ -107,6 +107,29 @@ export const AuthState = Schema.Literals([
   'failed',
 ] as const);
 export type AuthState = typeof AuthState.Type;
+
+/**
+ * Semantic lifecycle signals that drive auth state changes.
+ *
+ * These are intentionally named as domain events/intents rather than target
+ * states. The service owns the transition table that decides which signals are
+ * legal in which states.
+ */
+export const AuthLifecycleSignal = Schema.Union([
+  Schema.TaggedStruct('CredentialLoadRequested', {}),
+  Schema.TaggedStruct('CredentialLoadSucceeded', {}),
+  Schema.TaggedStruct('CredentialLoadFailed', {}),
+  Schema.TaggedStruct('AuthenticationRequested', {}),
+  Schema.TaggedStruct('AuthenticationSucceeded', {}),
+  Schema.TaggedStruct('AuthenticationFailed', {}),
+  Schema.TaggedStruct('CredentialExpiryDetected', {}),
+  Schema.TaggedStruct('CredentialRotationRequested', {}),
+  Schema.TaggedStruct('CredentialRotationSucceeded', {}),
+  Schema.TaggedStruct('CredentialRotationFailed', {}),
+  Schema.TaggedStruct('AuthResetRequested', {}),
+]);
+export type AuthLifecycleSignal = typeof AuthLifecycleSignal.Type;
+export type AuthLifecycleSignalTag = AuthLifecycleSignal['_tag'];
 
 // =============================================================================
 // Auth Errors

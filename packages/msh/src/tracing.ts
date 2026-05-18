@@ -153,7 +153,10 @@ export const MshSpan = {
   // ─── Auth (I9 redaction rules apply) ────────────────────────────────────
   Auth: {
     authenticate: 'msh.auth.authenticate',
+    lifecycleSignal: 'msh.auth.lifecycleSignal',
     loadCredentials: 'msh.auth.loadCredentials',
+    readCredentialFile: 'msh.auth.readCredentialFile',
+    readCredentialEnv: 'msh.auth.readCredentialEnv',
     rotateToken: 'msh.auth.rotateToken',
     createAuthenticator: 'msh.auth.createAuthenticator',
     Jwt: {
