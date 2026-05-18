@@ -22,6 +22,7 @@ MSH provides typed, observable NATS services with Schema-validated messages, aut
 | `SubjectRegistry` | Runtime subject registration + catalog introspection |
 | `MshStreamProcessor` | Durable streaming with consumer-based offset tracking |
 | `MshAuthService` | NKey/JWT/Creds/Token auth with token rotation |
+| `MshJwtService` | NATS JWT construction: operator/account/user JWTs, NKeys, `.creds` |
 
 ## Usage
 
@@ -54,6 +55,67 @@ const config = MshConfigCustom({
   }),
 });
 ```
+
+## JWT Construction
+
+`MshJwtService` wraps `@nats-io/jwt` for NATS-native decentralized auth chains.
+Secrets are always `Schema.Redacted` / `Redacted.Redacted` values.
+
+```typescript
+import {
+  MshJwtService,
+  OperatorJwtRequest,
+  AccountJwtRequest,
+  UserJwtRequest,
+} from '@tmnl/msh';
+import * as Effect from 'effect-v4/Effect';
+
+const program = Effect.gen(function*() {
+  const jwt = yield* MshJwtService;
+
+  const operator = yield* jwt.createOperatorKeyPair;
+  const account = yield* jwt.createAccountKeyPair;
+  const user = yield* jwt.createUserKeyPair;
+
+  const operatorJwt = yield* jwt.encodeOperator(new OperatorJwtRequest({
+    name: 'TMNL Operator',
+    operator,
+  }));
+
+  const accountJwt = yield* jwt.encodeAccount(new AccountJwtRequest({
+    name: 'TMNL Account',
+    account,
+    signer: operator,
+  }));
+
+  const userJwt = yield* jwt.encodeUser(new UserJwtRequest({
+    name: 'TMNL User',
+    user,
+    issuer: account,
+    permissions: {
+      pub: { allow: ['tmnl.>'] },
+      sub: { allow: ['tmnl.>'] },
+    },
+  }));
+
+  const creds = yield* jwt.formatCreds(userJwt, user);
+
+  // Or directly issue auth modes consumable by MshAuthService:
+  const jwtAuth = yield* jwt.issueJwtAuth(new UserJwtRequest({
+    name: 'TMNL User',
+    user,
+    issuer: account,
+  }));
+
+  return { operatorJwt, accountJwt, userJwt, creds, jwtAuth };
+});
+
+Effect.runPromise(program.pipe(Effect.provide(MshJwtService.layer)));
+```
+
+Note: `@nats-io/jwt` documents that the JavaScript package builds JWTs but does
+not exhaustively validate server acceptance. Final validation remains with
+`nats-server`/`nsc`/the Go JWT library.
 
 ## Tracing
 

@@ -46,6 +46,7 @@ import {
   NatsMicroService, NatsMicroServiceLive,
   NatsServiceDiscoveryService, NatsServiceDiscoveryServiceLive,
 } from './nats';
+import { MshAuthService, MshAuthServiceLive, MshJwtService, MshJwtServiceLive } from './auth';
 
 /**
  * Msh namespace for convenient service access.
@@ -80,6 +81,10 @@ export const Msh = {
   MicroLive: NatsMicroServiceLive,
   MicroDiscovery: NatsServiceDiscoveryService,
   MicroDiscoveryLive: NatsServiceDiscoveryServiceLive,
+  Auth: MshAuthService,
+  AuthLive: MshAuthServiceLive,
+  Jwt: MshJwtService,
+  JwtLive: MshJwtServiceLive,
 } as const;
 
 export type MshNamespace = typeof Msh;

@@ -150,12 +150,28 @@ export const MshSpan = {
     delete: 'msh.processor.delete',
   },
 
-  // ─── Auth (future — I9 redaction rules apply) ───────────────────────────
+  // ─── Auth (I9 redaction rules apply) ────────────────────────────────────
   Auth: {
     authenticate: 'msh.auth.authenticate',
     loadCredentials: 'msh.auth.loadCredentials',
     rotateToken: 'msh.auth.rotateToken',
     createAuthenticator: 'msh.auth.createAuthenticator',
+    Jwt: {
+      createOperatorKeyPair: 'msh.auth.jwt.createOperatorKeyPair',
+      createAccountKeyPair: 'msh.auth.jwt.createAccountKeyPair',
+      createUserKeyPair: 'msh.auth.jwt.createUserKeyPair',
+      createServerKeyPair: 'msh.auth.jwt.createServerKeyPair',
+      keyPairFromSeed: 'msh.auth.jwt.keyPairFromSeed',
+      encodeOperator: 'msh.auth.jwt.encodeOperator',
+      encodeAccount: 'msh.auth.jwt.encodeAccount',
+      encodeUser: 'msh.auth.jwt.encodeUser',
+      encodeActivation: 'msh.auth.jwt.encodeActivation',
+      decode: 'msh.auth.jwt.decode',
+      formatCreds: 'msh.auth.jwt.formatCreds',
+      parseCreds: 'msh.auth.jwt.parseCreds',
+      issueJwtAuth: 'msh.auth.jwt.issueJwtAuth',
+      issueCredsAuth: 'msh.auth.jwt.issueCredsAuth',
+    },
   },
 } as const;
 
