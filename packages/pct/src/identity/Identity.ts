@@ -19,7 +19,7 @@
  * Layers:
  *   - `Identity.layerEphemeral`           — fresh random keypair + derived nodeId per process
  *   - `Identity.layerFromEventLogIdentity` — wrap an externally-provided EventLog.Identity
- *   - (future) `Identity.layerPersistent`  — load from disk (Phase 3.7)
+ *   - `Identity.layerPersistent`           — load stable node keys from disk
  *
  * @module @tmnl/pct/identity/Identity
  */

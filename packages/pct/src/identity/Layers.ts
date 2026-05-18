@@ -13,9 +13,11 @@
  */
 
 import * as Effect from "effect-v4/Effect"
+import * as FileSystem from "effect-v4/FileSystem"
 import * as Hash from "effect-v4/Hash"
 import * as Layer from "effect-v4/Layer"
 import * as Option from "effect-v4/Option"
+import * as Path from "effect-v4/Path"
 import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
 import * as EventLogEncryption from "effect-v4/unstable/eventlog/EventLogEncryption"
 
@@ -54,7 +56,7 @@ const deriveNodeId = (publicKey: string): NodeId => {
  *
  * Use for: tests, dev servers, ad-hoc clients. Not suitable for
  * production nodes that need stable identity across restarts —
- * use `layerPersistent` (future) for that.
+ * use `layerPersistent` for that.
  */
 export const layerEphemeral: Layer.Layer<
   Identity | EventLog.Identity,
@@ -83,6 +85,11 @@ export interface FromKeyOptions {
   readonly nodeUrl?: string
 }
 
+export interface PersistentOptions extends FromKeyOptions {
+  /** File containing EventLog.encodeIdentityString output. */
+  readonly filePath: string
+}
+
 /**
  * Wrap an externally-supplied `EventLog.Identity` as a `Pact.Identity`.
  *
@@ -108,5 +115,84 @@ export const layerFromEventLogIdentity = (
             ? Option.some(options.nodeUrl)
             : Option.none(),
       }
+    }),
+  )
+
+// ─── Persistent layer ──────────────────────────────────────────────────────
+
+/**
+ * Load or create a stable EventLog identity at `filePath`.
+ *
+ * The file stores Effect-smol's `EventLog.encodeIdentityString` output.
+ * If absent, a fresh identity is generated, the parent directory is
+ * created, and the encoded identity is written before services are
+ * provided. This keeps Pact `nodeId` stable across process restarts.
+ */
+export const layerPersistent = (
+  options: PersistentOptions,
+): Layer.Layer<
+  Identity | EventLog.Identity,
+  Error,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const exists = yield* fs.exists(options.filePath).pipe(
+        Effect.catchCause(() => Effect.succeed(false)),
+      )
+
+      const eventLogIdentity = exists
+        ? yield* fs.readFileString(options.filePath).pipe(
+            Effect.map((contents) =>
+              EventLog.decodeIdentityString(contents.trim()),
+            ),
+            Effect.mapError(
+              (cause) =>
+                new Error(
+                  `pct identity: failed to read ${options.filePath}: ${cause}`,
+                ),
+            ),
+          )
+        : yield* Effect.gen(function* () {
+            const created = yield* EventLog.makeIdentity.pipe(
+              Effect.provide(EventLogEncryption.layerSubtle),
+            )
+            yield* fs.makeDirectory(path.dirname(options.filePath), {
+              recursive: true,
+            }).pipe(
+              Effect.mapError(
+                (cause) =>
+                  new Error(
+                    `pct identity: failed to create ${path.dirname(options.filePath)}: ${cause}`,
+                  ),
+              ),
+            )
+            yield* fs.writeFileString(
+              options.filePath,
+              `${EventLog.encodeIdentityString(created)}\n`,
+            ).pipe(
+              Effect.mapError(
+                (cause) =>
+                  new Error(
+                    `pct identity: failed to write ${options.filePath}: ${cause}`,
+                  ),
+              ),
+            )
+            return created
+          })
+
+      const nodeId = options.nodeId ?? deriveNodeId(eventLogIdentity.publicKey)
+      return Layer.mergeAll(
+        Layer.succeed(Identity, {
+          nodeId,
+          nodeUrl:
+            options.nodeUrl !== undefined
+              ? Option.some(options.nodeUrl)
+              : Option.none(),
+        }),
+        Layer.succeed(EventLog.Identity, eventLogIdentity),
+      )
     }),
   )
