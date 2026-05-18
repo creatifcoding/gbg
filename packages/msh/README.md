@@ -117,6 +117,11 @@ Note: `@nats-io/jwt` documents that the JavaScript package builds JWTs but does
 not exhaustively validate server acceptance. Final validation remains with
 `nats-server`/`nsc`/the Go JWT library.
 
+## Composition roadmap
+
+- [`docs/pct-lnk-composition-rfc.md`](./docs/pct-lnk-composition-rfc.md) defines how `@tmnl/pct` and `@tmnl/lnk` layer over `@tmnl/msh` without leaking protocol/domain semantics into the mesh substrate.
+- [`docs/consumer-migration-inventory.md`](./docs/consumer-migration-inventory.md) tracks remaining legacy Holonet consumers and the strict no-v3/v4-bridge migration guardrail.
+
 ## Tracing
 
 All service methods are traced via `Effect.fn` / `Effect.withSpan` with structured span names:
