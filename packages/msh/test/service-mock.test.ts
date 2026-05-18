@@ -17,6 +17,7 @@ import {
   NatsStreamService,
 } from '../src/nats';
 import { makeStreamProcessor } from '../src/integration/stream-processor';
+import { releaseNatsConnection } from '../src/nats/connection';
 import {
   bytes,
   collectAsyncIterable,
@@ -40,6 +41,26 @@ const makeStreamLayer = (fixture: ReturnType<typeof makeMockNatsFixture>) =>
   NatsStreamService.layerFromInner.pipe(Layer.provide(makeInnerLayer(fixture)));
 
 describe('mock NATS transport', () => {
+  it('awaits connection drain before close during deterministic release', async () => {
+    const calls: string[] = [];
+    let drained = false;
+    const nc = {
+      drain: async () => {
+        calls.push('drain:start');
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        drained = true;
+        calls.push('drain:end');
+      },
+      close: async () => {
+        calls.push(`close:${drained}`);
+      },
+    };
+
+    await Effect.runPromise(releaseNatsConnection(nc as any, { debug: false }));
+
+    expect(calls).toEqual(['drain:start', 'drain:end', 'close:true']);
+  });
+
   it('supports inner core publish and request/reply', async () => {
     const fixture = makeMockNatsFixture();
     fixture.state.responders.set('rpc.echo', (data) => ({

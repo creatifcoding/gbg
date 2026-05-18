@@ -38,6 +38,29 @@ export interface NatsConnectionShape {
 }
 
 // =============================================================================
+// Release Helpers
+// =============================================================================
+
+export const releaseNatsConnection = (
+  conn: NatsConnection,
+  config: Pick<MshConfig, 'debug'>,
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    if (config.debug) {
+      console.log('[NatsConnectionService] Releasing connection...');
+    }
+
+    yield* Effect.tryPromise({
+      try: () => conn.drain(),
+      catch: (err) => err,
+    }).pipe(Effect.ignore);
+    yield* Effect.tryPromise({
+      try: () => conn.close(),
+      catch: (err) => err,
+    }).pipe(Effect.ignore);
+  });
+
+// =============================================================================
 // Service Definition (v4 Context.Service)
 // =============================================================================
 
@@ -101,14 +124,7 @@ export class NatsConnectionService extends Context.Service<
               cause: err,
             }),
         }),
-        (conn) =>
-          Effect.sync(() => {
-            if (config.debug) {
-              console.log('[NatsConnectionService] Releasing connection...');
-            }
-            conn.drain().catch(() => {});
-            conn.close().catch(() => {});
-          }),
+        (conn) => releaseNatsConnection(conn, config),
       );
 
       // Get JetStream client (synchronous)
