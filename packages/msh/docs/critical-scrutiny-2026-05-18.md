@@ -1,6 +1,6 @@
 # @tmnl/msh Critical Scrutiny — 2026-05-18
 
-Status: remediation in progress; remaining findings are tracked in the #F1021 remediation feature tree.
+Status: remediated and closed out. Findings are tracked in the #F1021 remediation feature tree; closeout validation passed on 2026-05-18.
 
 Baseline before scrutiny:
 
@@ -9,7 +9,17 @@ cd packages/msh && bunx tsc --noEmit
 cd packages/msh && bunx vitest run
 ```
 
-Observed result: typecheck passed; normal tests passed (`82 passed`, live suites skipped by default). `packages/msh` was clean before this report.
+Observed baseline result: typecheck passed; normal tests passed (`82 passed`, live suites skipped by default). `packages/msh` was clean before this report.
+
+Closeout validation:
+
+```bash
+cd packages/msh && bunx vitest run && bunx tsc --noEmit --pretty false
+# 10 files passed, 4 skipped; 98 tests passed, 11 skipped
+
+cd packages/msh && MSH_LIVE_NATS=1 bunx vitest run test/live-*.test.ts
+# 4 files passed; 11 tests passed
+```
 
 ## Fix-now findings
 
@@ -21,17 +31,7 @@ File: `src/auth/jwt.ts`
 
 `keyPairFromSeed(kind, seed)` constructed `createPair(kind, kp)`, and `createPair` stored the caller-supplied kind without inferring the actual kind from the restored public key. The subsequent check `pair.kind !== kind` was therefore tautological.
 
-Probe:
-
-```ts
-const user = yield* jwt.createUserKeyPair
-const mislabeled = yield* jwt.keyPairFromSeed("operator", user.seed)
-// Success: { kind: "operator", publicKey: "U..." }
-```
-
-Impact: key-kind assertions can be bypassed in-process. NATS may reject invalid chains later, but MSH's trust-chain monotonicity invariant is already compromised.
-
-Recommended fix: infer kind from restored public key prefix and fail if it does not match the expected kind. Apply the same guard inside `createPair` so all constructors remain honest.
+Impact: key-kind assertions could be bypassed in-process. NATS may reject invalid chains later, but MSH's trust-chain monotonicity invariant was already compromised.
 
 Resolution evidence:
 
@@ -43,44 +43,58 @@ Regression added: `keyPairFromSeed('operator', user.seed)` now returns `JwtConst
 
 ### 2. `NatsHubService.publish` double-delivers to local subscribers
 
+Status: remediated. Hub publish now forwards encoded bytes to core NATS only; local subscribers receive the NATS echo path, not a synthetic local fanout plus echo.
+
 File: `src/nats/hub.ts`
 
-`publish` first publishes directly into all matching local PubSubs, then forwards to core NATS. A matching local NATS subscription receives the same message back from the server, causing duplicate delivery.
+Original issue: `publish` first published directly into all matching local PubSubs, then forwarded to core NATS. A matching local NATS subscription received the same message back from the server, causing duplicate delivery.
 
-Live probe against ephemeral `nats-server` produced:
+Impact: local subscribers could see duplicates for a single publish.
 
-```json
-[
-  "probe.dup.<ts>:one",
-  "probe.dup.<ts>:one"
-]
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/hub-pubsub.integration.test.ts && bunx tsc --noEmit --pretty false
 ```
 
-Impact: local subscribers see duplicates even for a single publish. Any downstream consumer that assumes at-most-once local fan-out is wrong.
-
-Recommended fix: default `publish` should only encode and forward to NATS. Let the NATS subscription feed the hub. If optimistic local fan-out is ever desired, make it explicit and de-duplicate using message ids.
+Regression added: one `NatsPubSubService.publish` to a matching wildcard subscriber yields exactly one delivery, and core NATS receives one encoded publish.
 
 ### 3. `NatsHubService` schema isolation is broken
 
+Status: remediated. Hub fanout is raw-message based per NATS subscription identity; schema decode now happens per subscriber stream.
+
 File: `src/nats/hub.ts`
 
-Hub keying uses `(schema as any).ast?._tag`, so most structs collide as `Struct`. The first subscriber's schema owns the shared typed hub; later subscribers with a different schema share the same PubSub. Worse, local synthetic `publish` bypasses subscriber decoding entirely and injects the publisher's typed data into all matching hubs.
+Original issue: hub keying used `(schema as any).ast?._tag`, so most structs collided as `Struct`. Later subscribers with different schemas shared the first subscriber's typed hub, and synthetic publish bypassed decode entirely.
 
-Probe with `Schema.Struct({ a: String })` and `Schema.Struct({ b: String })` on the same pattern showed the A subscriber receiving `{ b: "bee" }` with no decode error.
+Impact: type-level stream contracts were unsound.
 
-Impact: type-level stream contracts are unsound.
+Resolution evidence:
 
-Recommended fix: make the hub raw-byte based per NATS subscription key (`pattern`, `queue`, maybe subscription options), then decode per subscriber stream. Do not store schema-typed messages in the shared hub.
+```bash
+cd packages/msh && bunx vitest run test/hub-pubsub.integration.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: incompatible schemas sharing the same subject pattern are isolated; the wrong schema subscriber receives no decoded data while the matching schema subscriber receives the message.
 
 ### 4. `SubscribeOptions.startSequence` is exposed but not wired to NATS
 
+Status: remediated. `SubscribeOptions.startSequence` / `startTime` now flow through `ConsumerConfigInput` and map to NATS `opt_start_seq` / `opt_start_time` for both durable and ephemeral subscription paths.
+
 Files: `src/nats/stream.ts`, `src/nats/inner.ts`
 
-`NatsStreamService.subscribe` exposes `startSequence`, but `ConsumerConfigInput` / `inner.consumers.add` never map it to the NATS consumer config (`opt_start_seq`). A live probe using `deliverPolicy: "by_start_sequence", startSequence: 2` failed during consumer creation.
+Original issue: `NatsStreamService.subscribe` exposed replay-from-sequence options but never forwarded them to `jsm.consumers.add`.
 
-Impact: API advertises replay-from-sequence semantics that do not work.
+Impact: API advertised replay-from-sequence semantics that did not work.
 
-Recommended fix: add typed config fields for `startSequence` / `startTime`, map them to NATS consumer config, and add a live test proving the first delivered message is the requested sequence.
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/service-mock.test.ts test/live-infrastructure.test.ts && bunx tsc --noEmit --pretty false
+cd packages/msh && MSH_LIVE_NATS=1 bunx vitest run test/live-infrastructure.test.ts
+```
+
+Regression added: live JetStream test publishes seq 1/2 and verifies `deliverPolicy: 'by_start_sequence', startSequence: 2` starts at seq 2.
 
 ### 5. `MshAuthService` leaves state as `failed` after successful retry
 
@@ -88,17 +102,9 @@ Status: remediated. Auth lifecycle state is now driven by Schema-backed `AuthLif
 
 File: `src/auth/service.ts`
 
-After a credential load failure, a later `getAuthenticator` could succeed, but the state remained `failed` because success only transitioned from `loading_credentials` to `ready`.
+Original issue: after a credential load failure, a later `getAuthenticator` could succeed, but state remained `failed` because success only transitioned from `loading_credentials` to `ready`.
 
-Probe result:
-
-```json
-{"first":"Failure","afterFirst":"failed","second":"Success","afterSecond":"failed"}
-```
-
-Impact: callers observing auth state receive stale failure state after recovery.
-
-Recommended fix: on retry from `failed`, transition through `loading_credentials`; after successful credential load, set `ready` regardless of whether the prior state was `failed` or `loading_credentials`.
+Impact: callers observing auth state received stale failure state after recovery.
 
 Resolution evidence:
 
@@ -110,22 +116,13 @@ Regression added: a failed `CredsEnv` load can recover after the variable become
 
 ### 6. `SubjectSpec.matches` treats literal dots as regex wildcards
 
-Status: remediated. Subject matching/extraction now compares token-by-token: full-token placeholders capture one non-empty subject token, and literal tokens must match exactly.
+Status: remediated. Subject matching/extraction now compares token-by-token: full-token placeholders capture one non-empty subject token, and literal tokens must match exactly. Registry `patternMatch` query also uses token-wise NATS-style wildcard matching instead of raw regex fragments.
 
-File: `src/subject/schemas.ts`
+Files: `src/subject/schemas.ts`, `src/subject/registry.ts`
 
-`matches()` built a regex directly from the subject pattern and only replaced placeholders. Literal `.` characters were not escaped.
+Original issue: `matches()` built a regex directly from the subject pattern and only replaced placeholders. Literal `.` characters were not escaped.
 
-Probe:
-
-```ts
-new SubjectSpec({ pattern: "foo.bar.{id}", ... }).matches("fooXbar.1")
-// true
-```
-
-Impact: subject registry matching can authorize/route subjects that do not match the tokenized NATS pattern.
-
-Recommended fix: match token-by-token instead of building a raw regex, or escape all literal pattern tokens before placeholder expansion.
+Impact: subject registry matching could authorize/route subjects that do not match the tokenized NATS pattern.
 
 Resolution evidence:
 
@@ -143,11 +140,9 @@ Status: remediated. Release now delegates to exported `releaseNatsConnection`, a
 
 File: `src/nats/connection.ts`
 
-The scoped release finalizer called `conn.drain().catch(() => {})` and `conn.close().catch(() => {})` inside `Effect.sync`, then returned immediately.
+Original issue: the scoped release finalizer called `conn.drain().catch(() => {})` and `conn.close().catch(() => {})` inside `Effect.sync`, then returned immediately.
 
-Impact: scope exit can complete before the NATS connection is actually drained or closed; cleanup errors are fully swallowed.
-
-Recommended fix: use an async finalizer and await drain/close. If failures should not fail scope release, log or trace them deliberately.
+Impact: scope exit could complete before the NATS connection was actually drained or closed; cleanup errors were fully swallowed.
 
 Resolution evidence:
 
@@ -159,50 +154,136 @@ Regression added: `close()` observes that `drain()` completed first.
 
 ### 8. Core connection eagerly requires JetStream manager
 
-File: `src/nats/connection.ts`
+Status: remediated. `NatsConnectionService` no longer calls `nc.jetstreamManager()` during layer acquisition. It exposes a memoized `getJsm()` Effect; `NatsInnerService` calls that lazily only in stream/consumer management operations.
 
-The connection layer eagerly initializes both `nc.jetstream()` and `nc.jetstreamManager()`. Even pure core pub/sub consumers therefore require JetStream management permission at startup.
+Files: `src/nats/connection.ts`, `src/nats/inner.ts`
 
-Impact: least-privilege deployments cannot use core-only MSH services without `$JS.API` access.
+Original issue: even pure core pub/sub consumers required JetStream management permission at startup.
 
-Recommended fix: split core connection from JetStream manager access, or make the manager lazy.
+Impact: least-privilege deployments could not use core-only MSH services without `$JS.API` access.
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/service-mock.test.ts test/hub-pubsub.integration.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: mock core publish/request succeeds when JetStream manager access is unavailable; stream manager calls fail at use time with typed errors.
 
 ### 9. `ensureStream` accepts existing streams without config validation
 
-File: `src/nats/stream.ts`
+Status: remediated. `ensureStream` is now strict get-or-create: existing streams are accepted only when requested material fields match; mismatches fail with Schema-backed `Stream.ConfigMismatchError` carrying `streamName` and mismatched field names.
 
-`ensureStream(config)` returns existing stream info if a stream by that name exists, without validating subjects, retention, storage, duplicate window, etc.
+Files: `src/nats/stream.ts`, `src/nats/errors.ts`
 
-Impact: callers can believe they ensured a topology while running against an incompatible existing stream.
+Original issue: `ensureStream(config)` returned existing stream info by name without validating subjects, retention, storage, duplicate window, etc.
 
-Recommended fix: either rename to `getOrCreateStream` or compare material config and fail/update explicitly.
+Impact: callers could believe they ensured a topology while running against an incompatible existing stream.
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/live-infrastructure.test.ts test/service-mock.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: identical existing stream config succeeds; incompatible subjects fail with `Stream/ConfigMismatch` and `mismatches: ['subjects']`.
 
 ### 10. Optional JetStream manager wrappers likely hide permission failures
 
+Status: remediated. Optional wrappers now return `null` only for recognized not-found errors; operational failures surface as typed errors.
+
 File: `src/nats/inner.ts`
 
-Several optional wrappers return `null` on any thrown error. That is appropriate for true not-found cases, but not for permission, network, or server errors.
+Original issue: some optional wrappers returned `null` on any thrown error, hiding permission, network, or server failures.
 
-Impact: operational failures can be misclassified as absence.
+Impact: operational failures could be misclassified as absence.
 
-Recommended fix: inspect NATS error codes and only convert recognized not-found responses to `null`.
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/service-mock.test.ts test/errors.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: `streams.find` converts stream-not-found to `null` but preserves JetStream-manager failure; `objectStore.info` converts object-not-found to `null` but maps operational failures to `Inner/KV/Get`.
 
 ## Lower-priority findings
 
-- `NatsCodec.encodeBatch` / `decodeBatch` accept `concurrency` but processed sequentially.
-  - Status: remediated. Service batch operations now route through the same stream-native `Stream.mapEffect(..., { concurrency })` path as codec stream transforms.
-  - Regression: `test/codec.test.ts` uses an effectful delayed schema and `Ref`-tracked in-flight counters to prove `concurrency: 2` overlaps exactly two transforms while preserving batch order/index metadata.
-  - Evidence: `cd packages/msh && bunx vitest run test/codec.test.ts && bunx tsc --noEmit --pretty false`.
-- `parseJwtExpiry` decodes base64url without explicit padding normalization; Bun is tolerant, but this is fragile cross-runtime code.
-- `NatsStreamService.collectMessages` breaks after `limit` without explicitly stopping the pull consumer message iterator in that helper path.
+### 11. `NatsCodec.encodeBatch` / `decodeBatch` accept `concurrency` but process sequentially
 
-## Test gaps exposed
+Status: remediated. Service batch operations now route through the same stream-native `Stream.mapEffect(..., { concurrency })` path as codec stream transforms.
 
-Add deterministic tests before/with fixes for:
+Files: `src/nats/codec.ts`, `test/codec.test.ts`
 
-1. `keyPairFromSeed("operator", userSeed)` must fail.
-2. One local hub publish should produce exactly one local delivery against live NATS.
-3. Different schemas on the same pattern must not leak wrong-typed data.
-4. `deliverPolicy: "by_start_sequence"` + `startSequence` must deliver from that sequence live.
-5. Auth retry success must update state away from `failed`.
-6. `SubjectSpec.matches("fooXbar.1")` must be false for pattern `foo.bar.{id}`.
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/codec.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: `test/codec.test.ts` uses an effectful delayed schema and `Ref`-tracked in-flight counters to prove `concurrency: 2` overlaps exactly two transforms while preserving batch order/index metadata.
+
+### 12. `parseJwtExpiry` decodes base64url without explicit padding normalization
+
+Status: remediated. JWT expiry parsing now converts base64url to base64 and pads payload segments before `atob`; invalid lengths still fail closed to `undefined` through the existing parser catch path.
+
+File: `src/auth/rotation.ts`
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/jwt.test.ts test/auth-behavior.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: padded and unpadded payload segments requiring padding both parse to the expected `exp`.
+
+### 13. `NatsStreamService.collectMessages` breaks after `limit` without stopping the iterator
+
+Status: remediated. `collectMessages` now wraps the `for await` loop in `try/finally` and best-effort invokes `messages.stop?.()` on limit break, normal completion, or error.
+
+File: `src/nats/stream.ts`
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/service-mock.test.ts test/live-infrastructure.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: limited `NatsStreamService.fetch` collection calls `ConsumerMessages.stop()` exactly once.
+
+## Test gaps exposed and covered
+
+1. `keyPairFromSeed("operator", userSeed)` must fail — covered in `test/jwt.test.ts`.
+2. One local hub publish should produce exactly one local delivery — covered in `test/hub-pubsub.integration.test.ts`.
+3. Different schemas on the same pattern must not leak wrong-typed data — covered in `test/hub-pubsub.integration.test.ts`.
+4. `deliverPolicy: "by_start_sequence"` + `startSequence` must deliver from that sequence live — covered in `test/live-infrastructure.test.ts`.
+5. Auth retry success must update state away from `failed` — covered in `test/auth-behavior.test.ts`.
+6. `SubjectSpec.matches("fooXbar.1")` must be false for pattern `foo.bar.{id}` — covered in `test/subject-registry.test.ts` and `test/property.test.ts`.
+7. Core-only MSH use must not require JetStream manager permission — covered in `test/service-mock.test.ts`.
+8. Optional wrappers must distinguish not-found from operational failure — covered in `test/service-mock.test.ts`.
+9. Codec batch concurrency option must do real concurrent work — covered in `test/codec.test.ts`.
+10. JWT expiry parsing must handle padded/unpadded base64url — covered in `test/jwt.test.ts`.
+11. Limited consumer collection must stop iterators — covered in `test/service-mock.test.ts`.
+
+## Remediation commit ledger
+
+Path-scoped commits for this scrutiny wave:
+
+- `302b7bf2 fix(msh): recover auth after credential retry`
+- `4658eabd refactor(@tmnl/msh): model auth lifecycle signals`
+- `285115fd test(@tmnl/msh): cover auth lifecycle signals`
+- `b043e5b0 docs(@tmnl/msh): record auth lifecycle remediation`
+- `20e3482c fix(msh): isolate hub fanout decoding`
+- `99e4c38f fix(msh): wire JetStream start sequence`
+- `68e8492f fix(@tmnl/msh): match subject specs token-wise`
+- `d948688e test(@tmnl/msh): reject subject literal token drift`
+- `a787b526 test(@tmnl/msh): cover subject literal boundaries`
+- `a5c554c6 docs(@tmnl/msh): record subject matching remediation`
+- `1bc2ec26 fix(msh): query subject patterns token-wise`
+- `cb7abbfb fix(msh): await NATS connection release`
+- `8c9e7092 docs(@tmnl/msh): record connection finalizer remediation`
+- `7fdf5c13 fix(msh): lazy JetStream manager access`
+- `c1fd8cdd fix(msh): reject mismatched stream ensure`
+- `5a323380 fix(msh): preserve operational optional errors`
+- `9e010fb7 fix(msh): normalize JWT expiry payload padding`
+- `c69de124 fix(msh): stop collected consumer iterators`
+- `4ed17d35 fix(msh): honor codec batch concurrency`
