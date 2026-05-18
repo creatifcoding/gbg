@@ -8,6 +8,13 @@
  *     auto-serializes the Schema to its `SchemaRepresentation.Document`
  *     wire form. The remote node's Notary auto-stamps origin + time.
  *
+ *   - `publishProcedure(procedure)` / `publishGroup(group)` — POST
+ *     Procedure documents to operation-aware publish endpoints so
+ *     `/capabilities` includes live operations as well as schemas.
+ *
+ *   - `federationPeers` / `federationPeer` / `federationUnpeer` /
+ *     `federationSync` — Flow B admin control plane.
+ *
  *   - `fetchSchema(schemaId)` — GETs /schemas/:id, decodes the wire
  *     document, reconstructs an Effect `Schema.Top`. Cached so
  *     repeated lookups don't re-fetch.
@@ -48,8 +55,26 @@ import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
 import * as HttpClient from "effect-v4/unstable/http/HttpClient"
 import * as HttpClientRequest from "effect-v4/unstable/http/HttpClientRequest"
 
+import {
+  FederationPeerResponse,
+  FederationPeersResponse,
+  FederationSyncResponse,
+  FederationUnpeerResponse,
+} from "../federation/wire.js"
 import { Manifest } from "../manifest/Manifest.js"
-import { GetSchemaResponse, PublishSchemaResponse } from "../server/wire.js"
+import * as RegistryDelta from "../registry/RegistryDelta.js"
+import {
+  toDocument,
+  toGroupDocument,
+} from "../procedures/Document.js"
+import type { Procedure } from "../procedures/Procedure.js"
+import type { ProcedureGroup } from "../procedures/ProcedureGroup.js"
+import {
+  GetSchemaResponse,
+  PublishedProcedureResponse,
+  PublishProcedureGroupResponse,
+  PublishSchemaResponse,
+} from "../server/wire.js"
 
 // ─── Errors ─────────────────────────────────────────────────────────────────
 
@@ -88,6 +113,14 @@ export interface PublishResult {
   readonly registeredAt: number
 }
 
+export type PublishProcedureResult = typeof PublishedProcedureResponse.Type
+export type PublishGroupResult = typeof PublishProcedureGroupResponse.Type
+export type FederationPeersResult = typeof FederationPeersResponse.Type
+export type FederationPeerResult = typeof FederationPeerResponse.Type
+export type FederationUnpeerResult = typeof FederationUnpeerResponse.Type
+export type FederationSyncResult = typeof FederationSyncResponse.Type
+export type FederationDeltaResult = RegistryDelta.RegistryDelta
+
 export interface PactClientShape {
   readonly baseUrl: string
 
@@ -102,6 +135,42 @@ export interface PactClientShape {
     schema: Schema.Top,
     options?: { description?: string },
   ) => Effect.Effect<PublishResult, PactClientError>
+
+  /** Publish a single Procedure as component schemas + OperationEntry. */
+  readonly publishProcedure: (
+    procedure: Procedure,
+  ) => Effect.Effect<PublishProcedureResult, PactClientError>
+
+  /** Publish a ProcedureGroup as component schemas + OperationEntries. */
+  readonly publishGroup: (
+    group: ProcedureGroup,
+  ) => Effect.Effect<PublishGroupResult, PactClientError>
+
+  /** List Flow B federation peers from `/federation/peers`. */
+  readonly federationPeers: Effect.Effect<
+    FederationPeersResult,
+    PactClientError
+  >
+
+  /** Add a peer through `/federation/peer`. */
+  readonly federationPeer: (
+    url: string,
+  ) => Effect.Effect<FederationPeerResult, PactClientError>
+
+  /** Remove a peer through `DELETE /federation/peer`. */
+  readonly federationUnpeer: (
+    url: string,
+  ) => Effect.Effect<FederationUnpeerResult, PactClientError>
+
+  /** Trigger a one-shot sync through `/federation/sync`. */
+  readonly federationSync: (
+    url: string,
+  ) => Effect.Effect<FederationSyncResult, PactClientError>
+
+  /** Fetch PCT-native registry delta since a local peer revision. */
+  readonly federationDelta: (
+    fromRevision: number,
+  ) => Effect.Effect<FederationDeltaResult, PactClientError>
 
   /**
    * Fetch a schema by id. Reconstructs an Effect `Schema.Top` from
@@ -128,7 +197,25 @@ export class PactClient extends Context.Service<PactClient, PactClientShape>()(
 // ─── Implementation helpers ─────────────────────────────────────────────────
 
 const decodePublishResponse = Schema.decodeUnknownEffect(PublishSchemaResponse)
+const decodePublishProcedureResponse = Schema.decodeUnknownEffect(
+  PublishedProcedureResponse,
+)
+const decodePublishGroupResponse = Schema.decodeUnknownEffect(
+  PublishProcedureGroupResponse,
+)
 const decodeGetSchemaResponse = Schema.decodeUnknownEffect(GetSchemaResponse)
+const decodeFederationPeersResponse = Schema.decodeUnknownEffect(
+  FederationPeersResponse,
+)
+const decodeFederationPeerResponse = Schema.decodeUnknownEffect(
+  FederationPeerResponse,
+)
+const decodeFederationUnpeerResponse = Schema.decodeUnknownEffect(
+  FederationUnpeerResponse,
+)
+const decodeFederationSyncResponse = Schema.decodeUnknownEffect(
+  FederationSyncResponse,
+)
 
 interface ErrorEnvelope {
   readonly error?: { readonly code?: string; readonly message?: string }
@@ -235,6 +322,199 @@ export const make = (options: { readonly baseUrl: string }) =>
         }
       })
 
+    const cacheProcedureSchemas = (
+      procedure: Procedure,
+      published: PublishProcedureResult,
+    ) =>
+      Ref.update(cache, (m) => {
+        const next = new Map(m)
+        next.set(published.inputSchemaId, procedure.input)
+        next.set(published.outputSchemaId, procedure.output)
+        for (let i = 0; i < published.errorSchemaIds.length; i++) {
+          const schema = procedure.errors[i]
+          if (schema !== undefined) {
+            next.set(published.errorSchemaIds[i]!, schema)
+          }
+        }
+        return next
+      })
+
+    const publishProcedure: PactClientShape["publishProcedure"] = (procedure) =>
+      Effect.gen(function* () {
+        const { status, body: respBody } = yield* fetchJson(
+          HttpClientRequest.post(`${baseUrl}/publish/procedure`).pipe(
+            HttpClientRequest.bodyJsonUnsafe(toDocument(procedure)),
+          ),
+        )
+
+        if (status >= 400) {
+          return yield* Effect.fail(
+            liftEnvelopeError(status, respBody, "PCT_PUBLISH_PROCEDURE_FAILED"),
+          )
+        }
+
+        const decoded = yield* decodePublishProcedureResponse(respBody).pipe(
+          Effect.mapError(
+            (cause) =>
+              new PactClientError({
+                status,
+                code: "PCT_RESPONSE_SCHEMA",
+                message: String(cause),
+              }),
+          ),
+        )
+        yield* cacheProcedureSchemas(procedure, decoded)
+        return decoded
+      })
+
+    const publishGroup: PactClientShape["publishGroup"] = (group) =>
+      Effect.gen(function* () {
+        const { status, body: respBody } = yield* fetchJson(
+          HttpClientRequest.post(`${baseUrl}/publish/group`).pipe(
+            HttpClientRequest.bodyJsonUnsafe(toGroupDocument(group)),
+          ),
+        )
+
+        if (status >= 400) {
+          return yield* Effect.fail(
+            liftEnvelopeError(status, respBody, "PCT_PUBLISH_GROUP_FAILED"),
+          )
+        }
+
+        const decoded = yield* decodePublishGroupResponse(respBody).pipe(
+          Effect.mapError(
+            (cause) =>
+              new PactClientError({
+                status,
+                code: "PCT_RESPONSE_SCHEMA",
+                message: String(cause),
+              }),
+          ),
+        )
+        for (let i = 0; i < decoded.procedures.length; i++) {
+          const procedure = group.procedures[i]
+          const published = decoded.procedures[i]
+          if (procedure !== undefined && published !== undefined) {
+            yield* cacheProcedureSchemas(procedure, published)
+          }
+        }
+        return decoded
+      })
+
+    const decodeClientResponse = <A>(
+      status: number,
+      body: unknown,
+      decode: (u: unknown) => Effect.Effect<A, unknown>,
+    ) =>
+      decode(body).pipe(
+        Effect.mapError(
+          (cause) =>
+            new PactClientError({
+              status,
+              code: "PCT_RESPONSE_SCHEMA",
+              message: String(cause),
+            }),
+        ),
+      )
+
+    const federationPeers = Effect.gen(function* () {
+      const { status, body } = yield* fetchJson(
+        HttpClientRequest.get(`${baseUrl}/federation/peers`),
+      )
+      if (status >= 400) {
+        return yield* Effect.fail(
+          liftEnvelopeError(status, body, "PCT_FEDERATION_PEERS_FAILED"),
+        )
+      }
+      return yield* decodeClientResponse(
+        status,
+        body,
+        decodeFederationPeersResponse,
+      )
+    })
+
+    const federationPeer: PactClientShape["federationPeer"] = (url) =>
+      Effect.gen(function* () {
+        const { status, body } = yield* fetchJson(
+          HttpClientRequest.post(`${baseUrl}/federation/peer`).pipe(
+            HttpClientRequest.bodyJsonUnsafe({ url }),
+          ),
+        )
+        if (status >= 400) {
+          return yield* Effect.fail(
+            liftEnvelopeError(status, body, "PCT_FEDERATION_PEER_FAILED"),
+          )
+        }
+        return yield* decodeClientResponse(
+          status,
+          body,
+          decodeFederationPeerResponse,
+        )
+      })
+
+    const federationUnpeer: PactClientShape["federationUnpeer"] = (url) =>
+      Effect.gen(function* () {
+        const { status, body } = yield* fetchJson(
+          HttpClientRequest.delete(`${baseUrl}/federation/peer`).pipe(
+            HttpClientRequest.bodyJsonUnsafe({ url }),
+          ),
+        )
+        if (status >= 400) {
+          return yield* Effect.fail(
+            liftEnvelopeError(status, body, "PCT_FEDERATION_UNPEER_FAILED"),
+          )
+        }
+        return yield* decodeClientResponse(
+          status,
+          body,
+          decodeFederationUnpeerResponse,
+        )
+      })
+
+    const federationSync: PactClientShape["federationSync"] = (url) =>
+      Effect.gen(function* () {
+        const { status, body } = yield* fetchJson(
+          HttpClientRequest.post(`${baseUrl}/federation/sync`).pipe(
+            HttpClientRequest.bodyJsonUnsafe({ url }),
+          ),
+        )
+        if (status >= 400) {
+          return yield* Effect.fail(
+            liftEnvelopeError(status, body, "PCT_FEDERATION_SYNC_FAILED"),
+          )
+        }
+        return yield* decodeClientResponse(
+          status,
+          body,
+          decodeFederationSyncResponse,
+        )
+      })
+
+    const federationDelta: PactClientShape["federationDelta"] =
+      (fromRevision) =>
+        Effect.gen(function* () {
+          const { status, body } = yield* fetchJson(
+            HttpClientRequest.get(
+              `${baseUrl}/federation/delta/${encodeURIComponent(String(fromRevision))}`,
+            ),
+          )
+          if (status >= 400) {
+            return yield* Effect.fail(
+              liftEnvelopeError(status, body, "PCT_FEDERATION_DELTA_FAILED"),
+            )
+          }
+          return yield* RegistryDelta.decode(body).pipe(
+            Effect.mapError(
+              (cause) =>
+                new PactClientError({
+                  status,
+                  code: "PCT_DELTA_DECODE",
+                  message: String(cause),
+                }),
+            ),
+          )
+        })
+
     const fetchSchema: PactClientShape["fetchSchema"] = (schemaId) =>
       Effect.gen(function* () {
         const cached = (yield* Ref.get(cache)).get(schemaId)
@@ -316,6 +596,13 @@ export const make = (options: { readonly baseUrl: string }) =>
     return PactClient.of({
       baseUrl,
       publish,
+      publishProcedure,
+      publishGroup,
+      federationPeers,
+      federationPeer,
+      federationUnpeer,
+      federationSync,
+      federationDelta,
       fetchSchema,
       capabilities,
       clearCache,

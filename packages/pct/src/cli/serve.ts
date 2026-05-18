@@ -21,9 +21,9 @@
  *   Identity (ephemeral) ← layerEphemeral
  *   Registry             ← layerMemory composition
  *   Notary               ← Default
- *   Routes               ← addAll([/capabilities, /schemas/:id, /publish])
- *
- * Future: add `--persistent` flag once SQL EventJournal layer lands.
+ *   Federation (optional) ← Flow B manifest-pull peer sync
+ *   EventJournal          ← configured backend (memory/indexeddb)
+ *   Routes               ← addAll([/capabilities, /schemas/:id, /publish*])
  *
  * @module @tmnl/pct/cli/serve
  */
@@ -34,17 +34,23 @@ import { Readable } from "node:stream"
 import * as Console from "effect-v4/Console"
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
+import * as ManagedRuntime from "effect-v4/ManagedRuntime"
 import * as Option from "effect-v4/Option"
 import { Command, Flag } from "effect-v4/unstable/cli"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
+import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
 import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
 
 import { Services as LnkServices } from "@tmnl/lnk"
 
 import * as Config from "../config/index.js"
+import { DeltaRoutes as FederationDeltaRoutes } from "../federation/DeltaRoutes.js"
+import { layer as federationLayer } from "../federation/Default.js"
+import { Federation } from "../federation/Federation.js"
+import { Routes as FederationRoutes } from "../federation/Routes.js"
 import * as IdentityLayers from "../identity/Layers.js"
 import * as NotaryDefault from "../notary/Default.js"
 import * as RegistryMemory from "../registry/Memory.js"
+import { layerFromConfig as journalLayerFromConfig } from "../server/Journal.js"
 import { Routes as PactRoutes } from "../server/Routes.js"
 
 // ─── Server runtime detection ───────────────────────────────────────────────
@@ -161,24 +167,76 @@ export const serveCommand = Command.make(
         ? hostOverride.value
         : config.server.host
 
+      // Build the shared service layer first so HTTP routes and
+      // startup federation seeding reuse the exact same Registry/EventLog
+      // instances via ManagedRuntime.memoMap. Prime, no phantom duplicate
+      // journals; that way lies interpretive dance, not architecture.
+      const JournalLayer = journalLayerFromConfig(config.journal)
+      const pctServices = config.federation.enabled
+        ? Layer.mergeAll(
+            NotaryDefault.Default,
+            federationLayer({
+              pollIntervalMs: config.federation.pollIntervalMs,
+              syncOnAdd: true,
+            }).pipe(Layer.provide(FetchHttpClient.layer)),
+          ).pipe(
+            Layer.provideMerge(RegistryMemory.layer),
+            Layer.provideMerge(IdentityLayers.layerEphemeral),
+            Layer.provideMerge(JournalLayer),
+          )
+        : NotaryDefault.Default.pipe(
+            Layer.provideMerge(RegistryMemory.layer),
+            Layer.provideMerge(IdentityLayers.layerEphemeral),
+            Layer.provideMerge(JournalLayer),
+          )
+
+      const ServicesLayer = Layer.mergeAll(
+        pctServices,
+        LnkServices.Wire.InMemory.InMemoryWire.layer,
+      )
+
+      const runtime = ManagedRuntime.make(
+        ServicesLayer as unknown as Layer.Layer<never, never, never>,
+      )
+
       // Build the full app layer:
-      //   PactRoutes        → /capabilities, /schemas/:id, /publish
+      //   PactRoutes        → /capabilities, /schemas/:id, /publish*
       //   LnkServices.Wire.Http.Routes → /streams/:streamId (PUT, POST, GET)
       // Both compose onto the single HttpRouter that toWebHandler
       // builds, demonstrating the architectural commitment from PCT.md
       // §6: "lnk + pct served on one HTTP host."
-      const AppLayer = Layer.mergeAll(
-        PactRoutes,
-        LnkServices.Wire.Http.Routes,
-      ).pipe(
-        Layer.provideMerge(NotaryDefault.Default),
-        Layer.provideMerge(RegistryMemory.layer),
-        Layer.provideMerge(IdentityLayers.layerEphemeral),
-        Layer.provideMerge(LnkServices.Wire.InMemory.InMemoryWire.layer),
-        Layer.provideMerge(EventJournal.layerMemory),
+      const AppLayer = config.federation.enabled
+        ? Layer.mergeAll(
+            PactRoutes,
+            FederationDeltaRoutes,
+            FederationRoutes,
+            LnkServices.Wire.Http.Routes,
+            ServicesLayer,
+          )
+        : Layer.mergeAll(
+            PactRoutes,
+            FederationDeltaRoutes,
+            LnkServices.Wire.Http.Routes,
+            ServicesLayer,
+          )
+
+      const { handler, dispose } = HttpRouter.toWebHandler(
+        AppLayer as unknown as Layer.Layer<never, never, never>,
+        { memoMap: runtime.memoMap },
       )
 
-      const { handler, dispose } = HttpRouter.toWebHandler(AppLayer)
+      if (config.federation.enabled) {
+        yield* Effect.promise(() =>
+          runtime.runPromise(
+            Effect.gen(function* () {
+              const fed = yield* Federation
+              for (const peer of config.federation.peers) {
+                yield* fed.peer(peer)
+              }
+            }) as Effect.Effect<void, never, never>,
+          ),
+        )
+      }
 
       const server = yield* bindServer(handler, { port, host })
 
@@ -186,15 +244,24 @@ export const serveCommand = Command.make(
       yield* Console.log(`  PCT + Lnk server running.`)
       yield* Console.log(`  ┃ ${server.url}`)
       yield* Console.log(`  ┃`)
-      yield* Console.log(`  ┃ PCT  /capabilities, /schemas/:id, /publish`)
+      yield* Console.log(`  ┃ PCT  /capabilities, /schemas/:id, /publish*`)
+      yield* Console.log(`  ┃ Delta /federation/delta/:fromRevision`)
       yield* Console.log(`  ┃ Lnk  /streams/:streamId  (PUT POST GET)`)
+      yield* Console.log(
+        `  ┃ Fed  ${config.federation.enabled ? `enabled (${config.federation.peers.length} peers, ${config.federation.pollIntervalMs}ms) /federation/*` : "disabled"}`,
+      )
       yield* Console.log(``)
 
       // Wait for SIGINT / SIGTERM to shut down cleanly.
       yield* Effect.callback<void>((_resume) => {
+        let shuttingDown = false
         const shutdown = () => {
+          if (shuttingDown) return
+          shuttingDown = true
           server.close()
-          dispose().catch(() => {})
+          dispose()
+            .then(() => runtime.dispose())
+            .catch(() => {})
           _resume(Effect.void)
         }
         process.on("SIGINT", shutdown)

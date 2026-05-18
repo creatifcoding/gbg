@@ -77,6 +77,11 @@ const makeImpl = (stateRef: Ref.Ref<RegistryState>) =>
     listOperations: (filter) =>
       Effect.map(Ref.get(stateRef), (s) => filterOperations(s, filter)),
 
+    deltaSince: (fromRevision) =>
+      Effect.map(Ref.get(stateRef), (s) =>
+        s.changelog.filter((change) => change.revision > fromRevision),
+      ),
+
     revision: Effect.map(Ref.get(stateRef), (s) => s.revision),
   })
 

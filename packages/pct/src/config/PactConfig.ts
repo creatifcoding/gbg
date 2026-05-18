@@ -14,6 +14,8 @@
  *   - `node`     — identity + URL the local node advertises
  *   - `server`   — port + bind host for `pact serve`
  *   - `client`   — default baseUrl for the CLI's HTTP calls
+ *   - `federation` — Flow B peer polling controls for `pact serve`
+ *   - `journal`  — EventJournal backend selection
  *
  * # Service shape
  *
@@ -45,7 +47,13 @@ import * as Sources from "./Sources.js"
  * {
  *   "node":   { "url": "https://pct.example.com" },
  *   "server": { "port": 8080, "host": "127.0.0.1" },
- *   "client": { "baseUrl": "http://localhost:8080" }
+ *   "client": { "baseUrl": "http://localhost:8080" },
+ *   "federation": {
+ *     "enabled": true,
+ *     "pollIntervalMs": 5000,
+ *     "peers": ["http://peer-a:8080"]
+ *   },
+ *   "journal": { "backend": "memory" }
  * }
  * ```
  *
@@ -54,6 +62,11 @@ import * as Sources from "./Sources.js"
  *   PCT_SERVER_PORT=8080
  *   PCT_SERVER_HOST=127.0.0.1
  *   PCT_CLIENT_BASE_URL=http://localhost:8080
+ *   PCT_FEDERATION_ENABLED=true
+ *   PCT_FEDERATION_POLL_INTERVAL_MS=5000
+ *   PCT_FEDERATION_PEERS_0=http://peer-a:8080
+ *   PCT_JOURNAL_BACKEND=memory
+ *   PCT_JOURNAL_DATABASE=pct-registry
  */
 export const PactConfigSchema = Schema.Struct({
   node: Schema.Struct({
@@ -69,6 +82,20 @@ export const PactConfigSchema = Schema.Struct({
   client: Schema.Struct({
     /** Default base URL for `pact registry status`, `pact publish`. */
     baseUrl: Schema.String,
+  }),
+  federation: Schema.Struct({
+    /** Enable Flow B manifest-pull federation in `pact serve`. */
+    enabled: Schema.Boolean,
+    /** Peer polling interval in milliseconds. */
+    pollIntervalMs: Schema.Int,
+    /** Peer base URLs to add when the server starts. */
+    peers: Schema.Array(Schema.String),
+  }),
+  journal: Schema.Struct({
+    /** EventJournal backend. `indexeddb` is for runtimes with IndexedDB. */
+    backend: Schema.Literals(["memory", "indexeddb"]),
+    /** Optional database name for indexeddb backend. */
+    database: Schema.optional(Schema.String),
   }),
 })
 
@@ -89,6 +116,8 @@ const DEFAULTS: PactConfigValue = {
   node: {},
   server: { port: 8080, host: "127.0.0.1" },
   client: { baseUrl: "http://localhost:8080" },
+  federation: { enabled: false, pollIntervalMs: 5000, peers: [] },
+  journal: { backend: "memory" },
 }
 
 /**

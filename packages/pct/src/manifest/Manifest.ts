@@ -25,9 +25,10 @@
  *
  * # Federation convergence
  *
- * In Flow B (federation), peers exchange registry events via
- * `EventLogRemote`; manifests CONVERGE because the underlying logs
- * converge. The manifest itself is not the sync unit — it's the readout.
+ * Flow B peers can exchange manifests and replay represented registry
+ * facts into the local registry. Flow B+ narrows that to a PCT-native
+ * delta envelope. Flow C uses Effect-smol's `EventLogRemote` substrate;
+ * the manifest remains the readout rather than the substrate sequence.
  *
  * @module @tmnl/pct/manifest/Manifest
  */
@@ -262,7 +263,7 @@ export class Manifest extends Schema.TaggedClass<Manifest>()("Manifest", {
       }
     }
 
-    // Peers (when federation is wired in Phase 3.6)
+    // Peers (when a served node wires the Federation layer)
     if (this.peers !== undefined && this.peers.length > 0) {
       lines.push("")
       lines.push(`Peers (${this.peers.length}):`)

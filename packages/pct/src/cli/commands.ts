@@ -8,8 +8,12 @@
  *
  *   pact publish <spec-file> [--config <path>] [--url <override>]
  *     Dynamically import the spec file (TS/JS), look for exported
- *     `Procedure` or `ProcedureGroup` values, and publish each schema
- *     to the configured node. The remote Notary auto-stamps origin + time.
+ *     `Procedure` or `ProcedureGroup` values, and publish operations plus
+ *     component schemas to the configured node. Raw Schema exports still
+ *     publish as standalone schemas. The remote Notary auto-stamps origin + time.
+ *
+ *   pact federation peers|status|peer|unpeer|sync ...
+ *     Inspect and mutate the live Flow B federation peer set.
  *
  * # Configuration
  *
@@ -37,6 +41,7 @@ import { Argument, Command, Flag } from "effect-v4/unstable/cli"
 import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
 
 import * as Config from "../config/index.js"
+import { type PeerSyncStatus } from "../federation/wire.js"
 import { type Manifest } from "../manifest/Manifest.js"
 import { PactClient, layer as pactClientLayer } from "../client/PactClient.js"
 import { isProcedure } from "../procedures/Procedure.js"
@@ -107,6 +112,29 @@ const clientLayerForInvocation = (
  * Render a Manifest as the colorless terminal status report shown in
  * the tracer documentation.
  */
+const renderPeer = (peer: PeerSyncStatus): string => {
+  const at =
+    peer.lastPolledMs > 0
+      ? new Date(peer.lastPolledMs).toISOString()
+      : "never"
+  const node = peer.lastObservedNodeId ?? "unknown-node"
+  const suffix =
+    peer.lastError !== undefined
+      ? `\n      last error: ${peer.lastError}`
+      : ""
+  return `  • ${peer.url}\n      node: ${node}    revision: ${peer.lastObservedRevision}    last poll: ${at}    errors: ${peer.errorCount}${suffix}`
+}
+
+const renderPeers = (peers: ReadonlyArray<PeerSyncStatus>): string => {
+  const lines = [`Federation peers (${peers.length}):`]
+  if (peers.length === 0) {
+    lines.push("  (none)")
+  } else {
+    for (const peer of peers) lines.push(renderPeer(peer))
+  }
+  return lines.join("\n")
+}
+
 const renderManifest = (manifest: Manifest): string => {
   const liveSchemas = manifest.schemas.filter((s) => s.deprecated === null)
   const liveOps = manifest.operations.filter((o) => o.deprecated === null)
@@ -227,63 +255,54 @@ const publishCommand = Command.make(
       })
 
       const client = yield* PactClient
-      let publishedCount = 0
+      let publishedSchemas = 0
+      let publishedOperations = 0
+
+      const groupedProcedures = new Set<unknown>()
+      for (const value of Object.values(moduleExports)) {
+        if (isProcedureGroup(value)) {
+          for (const procedure of value.procedures) {
+            groupedProcedures.add(procedure)
+          }
+        }
+      }
 
       for (const [name, value] of Object.entries(moduleExports)) {
         if (isProcedureGroup(value)) {
           yield* Console.log(
             `  ProcedureGroup ${name} (${value.procedures.length} procedures)`,
           )
-          for (const procedure of value.procedures) {
-            const schemaId = `${procedure.name}@${procedure.version}`
-            yield* Console.log(`    procedure ${schemaId}`)
-            yield* client.publish(
-              `${procedure.name}/Input`,
-              procedure.version,
-              procedure.input,
-            )
-            publishedCount++
-            yield* client.publish(
-              `${procedure.name}/Output`,
-              procedure.version,
-              procedure.output,
-            )
-            publishedCount++
-            for (let i = 0; i < procedure.errors.length; i++) {
-              yield* client.publish(
-                `${procedure.name}/Error_${i}`,
-                procedure.version,
-                procedure.errors[i] as Schema.Top,
-              )
-              publishedCount++
-            }
+          const result = yield* client.publishGroup(value)
+          publishedOperations += result.procedures.length
+          for (const procedure of result.procedures) {
+            publishedSchemas += 2 + procedure.errorSchemaIds.length
+            yield* Console.log(`    operation ${procedure.schemaId}`)
           }
         } else if (isProcedure(value)) {
+          if (groupedProcedures.has(value)) {
+            yield* Console.log(
+              `  Procedure ${name} → ${value.name}@${value.version} (covered by exported group)`,
+            )
+            continue
+          }
           yield* Console.log(
             `  Procedure ${name} → ${value.name}@${value.version}`,
           )
-          yield* client.publish(
-            `${value.name}/Input`,
-            value.version,
-            value.input,
-          )
-          publishedCount++
-          yield* client.publish(
-            `${value.name}/Output`,
-            value.version,
-            value.output,
-          )
-          publishedCount++
+          const result = yield* client.publishProcedure(value)
+          publishedOperations++
+          publishedSchemas += 2 + result.errorSchemaIds.length
         } else if (isSchema(value)) {
           yield* Console.log(`  Schema ${name} (defaulting to 1.0.0)`)
           yield* client.publish(name, "1.0.0", value)
-          publishedCount++
+          publishedSchemas++
         }
       }
 
       const baseUrl = yield* resolveBaseUrl(urlOverride)
       yield* Console.log("")
-      yield* Console.log(`Published ${publishedCount} schemas to ${baseUrl}.`)
+      yield* Console.log(
+        `Published ${publishedSchemas} schemas and ${publishedOperations} operations to ${baseUrl}.`,
+      )
     }).pipe(
       Effect.provide(clientLayerForInvocation(configFile, urlOverride)),
       Effect.provide(configLayer(configFile)),
@@ -294,13 +313,110 @@ const publishCommand = Command.make(
   ),
 )
 
+// ─── pact federation ───────────────────────────────────────────────────────
+
+const peerUrlArgument = Argument.string("peer-url").pipe(
+  Argument.withDescription("Peer PCT base URL, e.g. http://127.0.0.1:8081"),
+)
+
+const federationPeersCommand = Command.make(
+  "peers",
+  { config: configFileFlag, url: urlOverrideFlag },
+  ({ config: configFile, url: urlOverride }) =>
+    Effect.gen(function* () {
+      const client = yield* PactClient
+      const result = yield* client.federationPeers
+      yield* Console.log(renderPeers(result.peers))
+    }).pipe(
+      Effect.provide(clientLayerForInvocation(configFile, urlOverride)),
+      Effect.provide(configLayer(configFile)),
+    ),
+).pipe(Command.withDescription("List configured federation peers"))
+
+const federationStatusCommand = Command.make(
+  "status",
+  { config: configFileFlag, url: urlOverrideFlag },
+  ({ config: configFile, url: urlOverride }) =>
+    Effect.gen(function* () {
+      const client = yield* PactClient
+      const result = yield* client.federationPeers
+      yield* Console.log(renderPeers(result.peers))
+    }).pipe(
+      Effect.provide(clientLayerForInvocation(configFile, urlOverride)),
+      Effect.provide(configLayer(configFile)),
+    ),
+).pipe(Command.withDescription("Alias for `pact federation peers`"))
+
+const federationPeerCommand = Command.make(
+  "peer",
+  { peerUrl: peerUrlArgument, config: configFileFlag, url: urlOverrideFlag },
+  ({ peerUrl, config: configFile, url: urlOverride }) =>
+    Effect.gen(function* () {
+      const client = yield* PactClient
+      const result = yield* client.federationPeer(peerUrl)
+      yield* Console.log(`Added federation peer ${peerUrl}.`)
+      yield* Console.log(renderPeers(result.peers))
+    }).pipe(
+      Effect.provide(clientLayerForInvocation(configFile, urlOverride)),
+      Effect.provide(configLayer(configFile)),
+    ),
+).pipe(Command.withDescription("Add a federation peer URL"))
+
+const federationUnpeerCommand = Command.make(
+  "unpeer",
+  { peerUrl: peerUrlArgument, config: configFileFlag, url: urlOverrideFlag },
+  ({ peerUrl, config: configFile, url: urlOverride }) =>
+    Effect.gen(function* () {
+      const client = yield* PactClient
+      const result = yield* client.federationUnpeer(peerUrl)
+      yield* Console.log(`Removed federation peer ${result.url}.`)
+      yield* Console.log(renderPeers(result.peers))
+    }).pipe(
+      Effect.provide(clientLayerForInvocation(configFile, urlOverride)),
+      Effect.provide(configLayer(configFile)),
+    ),
+).pipe(Command.withDescription("Remove a federation peer URL"))
+
+const federationSyncCommand = Command.make(
+  "sync",
+  { peerUrl: peerUrlArgument, config: configFileFlag, url: urlOverrideFlag },
+  ({ peerUrl, config: configFile, url: urlOverride }) =>
+    Effect.gen(function* () {
+      const client = yield* PactClient
+      const result = yield* client.federationSync(peerUrl)
+      yield* Console.log(
+        `Synced ${peerUrl}: node=${result.peerNodeId} revision=${result.peerRevision} writes=${result.writes}`,
+      )
+      yield* Console.log(renderPeers(result.peers))
+    }).pipe(
+      Effect.provide(clientLayerForInvocation(configFile, urlOverride)),
+      Effect.provide(configLayer(configFile)),
+    ),
+).pipe(Command.withDescription("Trigger a one-shot federation sync"))
+
+const federationCommand = Command.make("federation").pipe(
+  Command.withDescription("Inspect and manage Flow B federation peers"),
+  Command.withSubcommands([
+    federationPeersCommand,
+    federationStatusCommand,
+    federationPeerCommand,
+    federationUnpeerCommand,
+    federationSyncCommand,
+  ]),
+)
+
 // ─── Root command ──────────────────────────────────────────────────────────
 
 export const pact = Command.make("pact").pipe(
   Command.withDescription(
     "PCT — Pact Protocol CLI: author, publish, and inspect schemas",
   ),
-  Command.withSubcommands([registryCommand, publishCommand, serveCommand]),
+  Command.withSubcommands([
+    registryCommand,
+    federationCommand,
+    publishCommand,
+    serveCommand,
+  ]),
 )
 
 export { pactClientLayer }

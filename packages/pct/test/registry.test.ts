@@ -219,5 +219,47 @@ describe("Registry service hierarchy", () => {
       expect(result.after1).toBe(1)
       expect(result.after2).toBe(2)
     })
+
+    it("deltaSince returns applied changelog entries in revision order", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function* () {
+          const log = yield* EventLog.EventLog
+          const registry = yield* Registry
+          yield* log.write({
+            schema,
+            event: "SchemaRegistered",
+            payload: {
+              schemaId: "delta/A",
+              version: "1.0.0",
+              schemaDocument: orderDocumentJson,
+              registeredAt: 1,
+              originNodeId: TEST_NODE_ID,
+            },
+          })
+          yield* log.write({
+            schema,
+            event: "SchemaRegistered",
+            payload: {
+              schemaId: "delta/B",
+              version: "1.0.0",
+              schemaDocument: orderDocumentJson,
+              registeredAt: 2,
+              originNodeId: TEST_NODE_ID,
+            },
+          })
+          const all = yield* registry.deltaSince(0)
+          const afterFirst = yield* registry.deltaSince(1)
+          const afterCurrent = yield* registry.deltaSince(2)
+          return { all, afterFirst, afterCurrent }
+        }).pipe(Effect.provide(layerMemory)),
+      )
+      expect(result.all.map((change) => change.revision)).toEqual([1, 2])
+      expect(result.all.map((change) => change._tag)).toEqual([
+        "DeltaSchemaRegistered",
+        "DeltaSchemaRegistered",
+      ])
+      expect(result.afterFirst.map((change) => change.revision)).toEqual([2])
+      expect(result.afterCurrent).toHaveLength(0)
+    })
   })
 })

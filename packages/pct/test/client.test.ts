@@ -36,14 +36,16 @@ import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
 import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
 
 import * as PactClient from "../src/client/PactClient.js"
+import { DeltaRoutes } from "../src/federation/DeltaRoutes.js"
 import * as IdentityLayers from "../src/identity/Layers.js"
 import * as NotaryDefault from "../src/notary/Default.js"
+import * as Procedure from "../src/procedures/index.js"
 import * as RegistryMemory from "../src/registry/Memory.js"
 import { Routes } from "../src/server/Routes.js"
 
 // ─── Server side ────────────────────────────────────────────────────────────
 
-const ServerLayer = Routes.pipe(
+const ServerLayer = Layer.mergeAll(Routes, DeltaRoutes).pipe(
   Layer.provideMerge(NotaryDefault.Default),
   Layer.provideMerge(RegistryMemory.layer),
   Layer.provideMerge(IdentityLayers.layerEphemeral),
@@ -90,6 +92,23 @@ const HeartRate = Schema.Struct({
   observedAt: Schema.String,
   deviceId: Schema.String,
 })
+
+const HeartRateInput = Schema.Struct({
+  bpm: Schema.Number,
+  deviceId: Schema.String,
+})
+
+const submitReading = Procedure.mutation("vitals.submitReading", {
+  input: HeartRateInput,
+  output: HeartRate,
+  errors: [],
+  version: "1.0.0",
+})
+
+const Vitals = Procedure.makeGroup(
+  { name: "vitals", version: "1.0.0" },
+  submitReading,
+)
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
@@ -188,6 +207,71 @@ describe("PactClient", () => {
           expect(populated.schemas).toHaveLength(2)
           expect(populated.revision).toBe(2)
           expect(populated.nodeId).toMatch(/^pct:[0-9a-f]{8}$/)
+        }).pipe(Effect.provide(ClientLayer)),
+      )
+    } finally {
+      await dispose()
+    }
+  })
+
+  it("publishGroup registers operations and caches component schemas", async () => {
+    const { ClientLayer, dispose } = buildRig()
+    try {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const client = yield* PactClient.PactClient
+          const published = yield* client.publishGroup(Vitals)
+          expect(published.procedures).toHaveLength(1)
+          expect(published.procedures[0].schemaId).toBe(
+            "vitals.submitReading@1.0.0",
+          )
+          expect(published.originNodeId).toMatch(/^pct:[0-9a-f]{8}$/)
+
+          const manifest = yield* client.capabilities
+          expect(manifest.schemas).toHaveLength(2)
+          expect(manifest.operations).toHaveLength(1)
+          expect(manifest.operations[0].name).toBe("vitals.submitReading")
+
+          const inputSchemaId = published.procedures[0].inputSchemaId
+          const inputSchema = yield* client.fetchSchema(inputSchemaId)
+          const sample = { bpm: 72, deviceId: "dev_1" }
+          expect(Schema.decodeUnknownSync(inputSchema)(sample)).toEqual(
+            Schema.decodeUnknownSync(HeartRateInput)(sample),
+          )
+        }).pipe(Effect.provide(ClientLayer)),
+      )
+    } finally {
+      await dispose()
+    }
+  })
+
+  it("federationDelta fetches PCT-native changes since a revision", async () => {
+    const { ClientLayer, dispose } = buildRig()
+    try {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const client = yield* PactClient.PactClient
+          yield* client.publishGroup(Vitals)
+
+          const all = yield* client.federationDelta(0)
+          expect(all._tag).toBe("RegistryDelta")
+          expect(all.fromRevision).toBe(0)
+          expect(all.toRevision).toBe(3)
+          expect(all.complete).toBe(true)
+          expect(all.changes.map((change) => change.revision)).toEqual([
+            1,
+            2,
+            3,
+          ])
+          expect(all.changes.map((change) => change._tag)).toEqual([
+            "DeltaSchemaRegistered",
+            "DeltaSchemaRegistered",
+            "DeltaOperationRegistered",
+          ])
+
+          const afterTwo = yield* client.federationDelta(2)
+          expect(afterTwo.changes).toHaveLength(1)
+          expect(afterTwo.changes[0]._tag).toBe("DeltaOperationRegistered")
         }).pipe(Effect.provide(ClientLayer)),
       )
     } finally {

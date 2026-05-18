@@ -10,9 +10,10 @@
  *
  *   Registry            ← this service, the read surface
  *   ├── EventLog        ← write surface (effect/unstable/eventlog)
- *   ├── EventJournal    ← persistence (memory or SQL)
+ *   ├── EventJournal    ← persistence (memory now; SQL planned)
  *   ├── Identity        ← node identity for federation/signing
- *   └── EventLogRemote  ← peer sync (federated registries; Phase 3.6)
+ *   └── Federation      ← Flow B peer sync over manifests today;
+ *                         Flow B+ deltas and Flow C EventLogRemote planned
  *
  * Implementations are provided by per-storage layer modules
  * (`Registry.layerMemory`, `Registry.layerSqlite` (future)).
@@ -32,6 +33,7 @@
 import * as Context from "effect-v4/Context"
 import type * as Effect from "effect-v4/Effect"
 
+import type { RegistryDeltaChange } from "./RegistryDelta.js"
 import type {
   OperationEntry,
   RegistryState,
@@ -79,6 +81,14 @@ export interface RegistryShape {
     readonly name?: string
     readonly includeDeprecated?: boolean
   }) => Effect.Effect<ReadonlyArray<OperationEntry>>
+
+  /**
+   * PCT-native Flow B+ delta read model. Returns applied registry
+   * changes with local `revision > fromRevision`, ascending.
+   */
+  readonly deltaSince: (
+    fromRevision: number,
+  ) => Effect.Effect<ReadonlyArray<RegistryDeltaChange>>
 
   /**
    * The current registry revision. Monotonic; clients can use this for

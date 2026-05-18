@@ -20,6 +20,7 @@
  *   unpeer(url)     — remove a peer
  *   peers           — snapshot of all peers + their last sync status
  *   syncNow(url)    — one-shot pull from a specific peer (for tests + CLI)
+ *   peerEventLogRemote(remote) — Flow C: register native EventLogRemote peer
  *
  * # What's deferred for 3.7b+
  *
@@ -35,6 +36,8 @@
 
 import * as Context from "effect-v4/Context"
 import type * as Effect from "effect-v4/Effect"
+import type * as Scope from "effect-v4/Scope"
+import type * as EventLogRemote from "effect-v4/unstable/eventlog/EventLogRemote"
 
 import type { PactClientError } from "../client/PactClient.js"
 import type { PeerSyncStatus } from "./Sync.js"
@@ -73,6 +76,16 @@ export interface FederationShape {
   readonly syncNow: (
     baseUrl: string,
   ) => Effect.Effect<SyncResult, PactClientError>
+
+  /**
+   * Flow C registration mode: attach an actual Effect-smol
+   * EventLogRemote to the local EventLog registry. The lifetime is
+   * scope-bound by Effect-smol's `registerRemote`, so callers use it
+   * inside the owning server/runtime scope.
+   */
+  readonly peerEventLogRemote: (
+    remote: EventLogRemote.EventLogRemote["Service"],
+  ) => Effect.Effect<void, never, Scope.Scope>
 }
 
 // ─── Service tag ────────────────────────────────────────────────────────────

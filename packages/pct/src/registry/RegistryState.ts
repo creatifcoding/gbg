@@ -36,6 +36,8 @@
 
 import * as Schema from "effect-v4/Schema"
 
+import * as RegistryDelta from "./RegistryDelta.js"
+
 // ─── Tagged sub-structure: Deprecation flag ─────────────────────────────────
 
 export const Deprecation = Schema.TaggedStruct("Deprecation", {
@@ -76,6 +78,8 @@ export type OperationEntry = typeof OperationEntry.Type
 
 // ─── Aggregate state ────────────────────────────────────────────────────────
 
+export type RegistryChangeLogEntry = RegistryDelta.RegistryDeltaChange
+
 export interface RegistryState {
   /** Key: `{schemaId}@{version}`. */
   readonly schemas: ReadonlyMap<string, SchemaEntry>
@@ -83,6 +87,8 @@ export interface RegistryState {
   readonly operations: ReadonlyMap<string, OperationEntry>
   /** Monotonic revision counter, bumped on every applied event. */
   readonly revision: number
+  /** Applied changes in ascending local revision order. */
+  readonly changelog: ReadonlyArray<RegistryChangeLogEntry>
   /**
    * Wall-clock millis of the most recent applied event. `null` for an
    * empty registry. Read-side translates to ISO-8601 on demand.
@@ -94,6 +100,7 @@ export const empty = (): RegistryState => ({
   schemas: new Map(),
   operations: new Map(),
   revision: 0,
+  changelog: [],
   asOfMs: null,
 })
 
@@ -155,6 +162,7 @@ export const onSchemaRegistered = (
   ) {
     return state
   }
+  const revision = state.revision + 1
   const next = new Map(state.schemas)
   next.set(
     key,
@@ -173,7 +181,20 @@ export const onSchemaRegistered = (
   return {
     ...state,
     schemas: next,
-    revision: state.revision + 1,
+    revision,
+    changelog: [
+      ...state.changelog,
+      RegistryDelta.makeSchemaRegistered(revision, {
+        schemaId: payload.schemaId,
+        version: payload.version,
+        schemaDocument: payload.schemaDocument,
+        registeredAt: payload.registeredAt,
+        originNodeId: payload.originNodeId,
+        ...(payload.description !== undefined
+          ? { description: payload.description }
+          : {}),
+      }),
+    ],
     asOfMs: Math.max(state.asOfMs ?? 0, payload.registeredAt),
   }
 }
@@ -204,6 +225,7 @@ export const onSchemaDeprecated = (
   ) {
     return state
   }
+  const revision = state.revision + 1
   const next = new Map(state.schemas)
   next.set(
     key,
@@ -220,7 +242,18 @@ export const onSchemaDeprecated = (
   return {
     ...state,
     schemas: next,
-    revision: state.revision + 1,
+    revision,
+    changelog: [
+      ...state.changelog,
+      RegistryDelta.makeSchemaDeprecated(revision, {
+        schemaId: payload.schemaId,
+        version: payload.version,
+        successor: payload.successor,
+        deprecatedAt: payload.deprecatedAt,
+        reason: payload.reason,
+        originNodeId: payload.originNodeId,
+      }),
+    ],
     asOfMs: Math.max(state.asOfMs ?? 0, payload.deprecatedAt),
   }
 }
@@ -252,6 +285,7 @@ export const onOperationRegistered = (
   ) {
     return state
   }
+  const revision = state.revision + 1
   const next = new Map(state.operations)
   next.set(
     key,
@@ -273,7 +307,23 @@ export const onOperationRegistered = (
   return {
     ...state,
     operations: next,
-    revision: state.revision + 1,
+    revision,
+    changelog: [
+      ...state.changelog,
+      RegistryDelta.makeOperationRegistered(revision, {
+        name: payload.name,
+        version: payload.version,
+        kind: payload.kind,
+        inputSchemaId: payload.inputSchemaId,
+        outputSchemaId: payload.outputSchemaId,
+        errorSchemaIds: [...payload.errorSchemaIds],
+        registeredAt: payload.registeredAt,
+        originNodeId: payload.originNodeId,
+        ...(payload.description !== undefined
+          ? { description: payload.description }
+          : {}),
+      }),
+    ],
     asOfMs: Math.max(state.asOfMs ?? 0, payload.registeredAt),
   }
 }
@@ -303,6 +353,7 @@ export const onOperationDeprecated = (
   ) {
     return state
   }
+  const revision = state.revision + 1
   const next = new Map(state.operations)
   next.set(
     key,
@@ -319,7 +370,18 @@ export const onOperationDeprecated = (
   return {
     ...state,
     operations: next,
-    revision: state.revision + 1,
+    revision,
+    changelog: [
+      ...state.changelog,
+      RegistryDelta.makeOperationDeprecated(revision, {
+        name: payload.name,
+        version: payload.version,
+        successor: payload.successor,
+        deprecatedAt: payload.deprecatedAt,
+        reason: payload.reason,
+        originNodeId: payload.originNodeId,
+      }),
+    ],
     asOfMs: Math.max(state.asOfMs ?? 0, payload.deprecatedAt),
   }
 }

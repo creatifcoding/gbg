@@ -22,6 +22,7 @@ import {
 } from "../client/PactClient.js"
 import { Federation, type FederationShape, type SyncResult } from "./Federation.js"
 import {
+  applyDelta,
   applyManifest,
   makeStatus,
   type PeerSyncStatus,
@@ -53,13 +54,14 @@ export interface FederationConfig {
  *     `PactClient` against the peer's baseUrl)
  *   - `EventLog.EventLog` (the local journal that imported events
  *     are written to)
+ *   - `EventLog.Registry` (Flow C native remote registration)
  */
 export const layer = (
   config: FederationConfig = {},
 ): Layer.Layer<
   Federation,
   never,
-  HttpClient.HttpClient | EventLog.EventLog
+  HttpClient.HttpClient | EventLog.EventLog | EventLog.Registry
 > => {
   const interval = config.pollIntervalMs ?? 5000
   const syncOnAdd = config.syncOnAdd ?? true
@@ -69,6 +71,7 @@ export const layer = (
     Effect.gen(function* () {
       const httpClient = yield* HttpClient.HttpClient
       const eventLog = yield* EventLog.EventLog
+      const eventLogRegistry = yield* EventLog.Registry
       const peersRef = yield* Ref.make<ReadonlyMap<string, PeerSyncStatus>>(
         new Map(),
       )
@@ -91,40 +94,65 @@ export const layer = (
             Effect.provideService(HttpClient.HttpClient, httpClient),
           )
 
-          const manifest = yield* client.capabilities
+          const existing = (yield* Ref.get(peersRef)).get(baseUrl)
+          const fromRevision = existing?.lastObservedRevision ?? 0
 
-          // Replay onto local EventLog. The Registry folder's
-          // precedence rule decides what's accepted.
-          const { writes } = yield* applyManifest(manifest).pipe(
-            Effect.provideService(EventLog.EventLog, eventLog),
-            // EventJournal errors aren't a federation-level concern;
-            // surface them as opaque transport failure.
-            Effect.catchTag("EventJournalError", (err) =>
-              Effect.die(err),
-            ),
+          const deltaAttempt = yield* Effect.result(
+            Effect.gen(function* () {
+              const delta = yield* client.federationDelta(fromRevision)
+              if (!delta.complete) {
+                return yield* Effect.die(
+                  new Error("peer returned incomplete RegistryDelta"),
+                )
+              }
+              const { writes } = yield* applyDelta(delta).pipe(
+                Effect.provideService(EventLog.EventLog, eventLog),
+                Effect.catchTag("EventJournalError", (err) =>
+                  Effect.die(err),
+                ),
+              )
+              return {
+                peerNodeId: delta.nodeId,
+                peerRevision: delta.toRevision,
+                writes,
+              }
+            }),
           )
+
+          const synced = deltaAttempt._tag === "Success"
+            ? deltaAttempt.success
+            : yield* Effect.gen(function* () {
+                const manifest = yield* client.capabilities
+                const { writes } = yield* applyManifest(manifest).pipe(
+                  Effect.provideService(EventLog.EventLog, eventLog),
+                  // EventJournal errors aren't a federation-level concern;
+                  // surface them as opaque transport failure.
+                  Effect.catchTag("EventJournalError", (err) =>
+                    Effect.die(err),
+                  ),
+                )
+                return {
+                  peerNodeId: manifest.nodeId,
+                  peerRevision: manifest.revision,
+                  writes,
+                }
+              })
 
           // Update the peer's status
           const now = yield* Clock.currentTimeMillis
           yield* Ref.update(peersRef, (m) => {
-            const existing = m.get(baseUrl)
             const next = new Map(m)
             next.set(baseUrl, {
               url: baseUrl,
               lastPolledMs: now,
-              lastObservedRevision: manifest.revision,
-              lastObservedNodeId: manifest.nodeId,
+              lastObservedRevision: synced.peerRevision,
+              lastObservedNodeId: synced.peerNodeId,
               errorCount: 0,
-              ...(existing !== undefined ? {} : {}),
             })
             return next
           })
 
-          return {
-            peerNodeId: manifest.nodeId,
-            peerRevision: manifest.revision,
-            writes,
-          }
+          return synced
         }).pipe(
           // On error, increment error count for the peer (don't blow
           // the loop). The error is still raised to the caller.
@@ -188,6 +216,9 @@ export const layer = (
 
       const syncNow: FederationShape["syncNow"] = syncPeer
 
+      const peerEventLogRemote: FederationShape["peerEventLogRemote"] =
+        (remote) => eventLogRegistry.registerRemote(remote)
+
       // ── Spawn the poll loop fiber ──────────────────────────────────────
       // Each tick: walk all peers, sync each. Errors logged via the
       // per-peer status (errorCount + lastError); never propagate.
@@ -204,7 +235,13 @@ export const layer = (
         Effect.repeat(tick, Schedule.spaced(Duration.millis(interval))),
       )
 
-      return Federation.of({ peer, unpeer, peers, syncNow })
+      return Federation.of({
+        peer,
+        unpeer,
+        peers,
+        syncNow,
+        peerEventLogRemote,
+      })
     }),
   )
 }
@@ -213,5 +250,5 @@ export const layer = (
 export const Default: Layer.Layer<
   Federation,
   never,
-  HttpClient.HttpClient | EventLog.EventLog
+  HttpClient.HttpClient | EventLog.EventLog | EventLog.Registry
 > = layer()

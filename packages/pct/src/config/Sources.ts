@@ -85,6 +85,8 @@ export const DEFAULTS_PROVIDER: ConfigProvider.ConfigProvider =
     node: {},
     server: { port: 8080, host: "127.0.0.1" },
     client: { baseUrl: "http://localhost:8080" },
+    federation: { enabled: false, pollIntervalMs: 5000, peers: [] },
+    journal: { backend: "memory" },
   })
 
 // ─── File loaders ───────────────────────────────────────────────────────────

@@ -67,6 +67,11 @@ describe("Config — Sources stacking", () => {
     expect(result.server.port).toBe(8080)
     expect(result.server.host).toBe("127.0.0.1")
     expect(result.client.baseUrl).toBe("http://localhost:8080")
+    expect(result.federation).toEqual({
+      enabled: false,
+      pollIntervalMs: 5000,
+      peers: [],
+    })
   })
 
   it("project file alone: walks up from cwd to find pact.config.json", async () => {
@@ -179,6 +184,48 @@ describe("Config — Sources stacking", () => {
     )
     expect(result.server.port).toBe(6666)
     expect(result.client.baseUrl).toBe("http://home-config:6666")
+  })
+
+  it("federation config reads file values and env array overrides", async () => {
+    const files = new Map([
+      [
+        "/workspace/pact.config.json",
+        JSON.stringify({
+          server: { port: 9090, host: "0.0.0.0" },
+          client: { baseUrl: "http://from-file:9090" },
+          node: {},
+          federation: {
+            enabled: false,
+            pollIntervalMs: 1500,
+            peers: ["http://file-peer:9090"],
+          },
+        }),
+      ],
+    ])
+    const dirs = new Set(["/workspace/.git"])
+
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([
+              ["PCT_FEDERATION_ENABLED", "true"],
+              ["PCT_FEDERATION_PEERS_0", "http://env-peer-a:8080"],
+              ["PCT_FEDERATION_PEERS_1", "http://env-peer-b:8080"],
+            ]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(files, dirs)),
+      ),
+    )
+
+    expect(result.federation.enabled).toBe(true)
+    expect(result.federation.pollIntervalMs).toBe(1500)
+    expect(result.federation.peers).toEqual([
+      "http://env-peer-a:8080",
+      "http://env-peer-b:8080",
+    ])
   })
 
   it("env vars override file values per-key", async () => {

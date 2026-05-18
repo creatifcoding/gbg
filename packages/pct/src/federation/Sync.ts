@@ -34,6 +34,7 @@ import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
 import type * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
 
 import type { Manifest } from "../manifest/Manifest.js"
+import * as RegistryDelta from "../registry/RegistryDelta.js"
 import { RegistryGroup } from "../registry/RegistryEvents.js"
 
 const eventSchema = EventLog.schema(RegistryGroup)
@@ -137,6 +138,35 @@ export const applyManifest = (
       }
     }
 
+    return { writes }
+  })
+
+/**
+ * Replay a Flow B+ RegistryDelta onto the local EventLog. The delta is
+ * already PCT-native, so each change projects directly back to the
+ * registry event payload that produced it. Remote local revision numbers
+ * are intentionally not written into EventLog; they are peer progress
+ * metadata, not substrate-level RemoteEntry sequence numbers.
+ */
+export const applyDelta = (
+  delta: RegistryDelta.RegistryDelta,
+): Effect.Effect<
+  { readonly writes: number },
+  EventJournal.EventJournalError,
+  EventLog.EventLog
+> =>
+  Effect.gen(function* () {
+    const log = yield* EventLog.EventLog
+    let writes = 0
+    for (const change of delta.changes) {
+      const event = RegistryDelta.toRegistryEvent(change)
+      yield* log.write({
+        schema: eventSchema,
+        event: event.event,
+        payload: event.payload as never,
+      })
+      writes++
+    }
     return { writes }
   })
 

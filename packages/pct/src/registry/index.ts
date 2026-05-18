@@ -11,6 +11,7 @@
 export { Registry, type RegistryShape } from "./Registry.js"
 
 export {
+  type RegistryChangeLogEntry,
   type RegistryState,
   Deprecation,
   OperationEntry,
@@ -31,5 +32,7 @@ export {
   SchemaDeprecatedPayload,
   SchemaRegisteredPayload,
 } from "./RegistryEvents.js"
+
+export * as Delta from "./RegistryDelta.js"
 
 export { layerMemory } from "./Memory.js"
