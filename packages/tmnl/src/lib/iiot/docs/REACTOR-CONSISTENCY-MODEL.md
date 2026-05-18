@@ -581,7 +581,7 @@ Target file size: 150–500 lines each. Split by boundary, not by whim.
 For Machine maintenance → WorkOrders suspend:
 
 - [x] Machine transition creates a durable event.
-- [ ] Machine transition creates a `propagation_id`.
+- [x] Machine/EquipmentState transition creates a `propagation_id` and carries it on `EquipmentStateChanged`.
 - [x] WorkOrders target Machine through graph `targets` edges.
 - [x] Reactor sees Machine state-change event via durable EventJournal entry and warm EventDistribution DTO.
 - [x] Reactor pre-filters completed/closed/cancelled WorkOrders.
@@ -593,11 +593,49 @@ For Machine maintenance → WorkOrders suspend:
   Reactor checkpoint dedupe skips already processed source journal entries;
   WorkOrder suspend also treats duplicate inbound `caused_by_propagation_id`
   as an idempotent no-op before state-graph rejection.
-- [ ] Causal chain query reconstructs Machine → WorkOrder propagation.
+- [x] Causal chain query reconstructs Machine → WorkOrder propagation via `ReactorCausalDagRepo.getMachineWorkOrderChains`.
 
 ---
 
-## 17. Remaining Questions
+## 17. Causal DAG Query Contract
+
+`ReactorCausalDagRepo.getMachineWorkOrderChains(query)` is the first cold-path
+causal reconstruction API.
+
+Supported bounds:
+
+- `machineId`
+- `propagationId`
+- `startDate`
+- `endDate`
+
+The query reconstructs:
+
+```text
+iiot.equipment_state_transitions.propagation_id
+  -> iiot.event_journal.payload.propagationId
+  -> graph (work_order)-[:targets]->(machine)
+  -> iiot.work_order_transitions.caused_by_propagation_id
+```
+
+Each returned `MachineWorkOrderCausalChain` includes:
+
+- source Machine id;
+- source local propagation id;
+- source transition id/from/to/timestamp;
+- optional durable EventJournal entry metadata;
+- relationship edge type and graph verification flag;
+- target WorkOrder id;
+- target transition id/from/to/timestamp;
+- target local propagation id;
+- target inbound `caused_by_propagation_id`.
+
+This is intentionally a **cold-path audit query**. It is not used on the hot
+Reactor dispatch path.
+
+---
+
+## 18. Remaining Questions
 
 1. Should skipped targets get a lightweight audit record, or is classification
    telemetry enough for v1?

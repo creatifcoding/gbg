@@ -204,3 +204,4 @@ export {
   type ReactorCheckpointRepository,
   type ReactorCheckpointRepoError,
 } from './ReactorCheckpointRepo'
+export { ReactorCausalDagRepo, ReactorCausalDagRepoLive, type ReactorCausalDagRepository, type ReactorCausalDagRepoError } from './ReactorCausalDagRepo'
