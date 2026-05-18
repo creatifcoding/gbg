@@ -9,6 +9,34 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./auth": {
+      "import": "./dist/auth/index.js",
+      "types": "./dist/auth/index.d.ts"
+    },
+    "./integration": {
+      "import": "./dist/integration/index.js",
+      "types": "./dist/integration/index.d.ts"
+    },
+    "./nats": {
+      "import": "./dist/nats/index.js",
+      "types": "./dist/nats/index.d.ts"
+    },
+    "./schemas": {
+      "import": "./dist/schemas/index.js",
+      "types": "./dist/schemas/index.d.ts"
+    },
+    "./subject": {
+      "import": "./dist/subject/index.js",
+      "types": "./dist/subject/index.d.ts"
+    },
+    "./tracing": {
+      "import": "./dist/tracing.js",
+      "types": "./dist/tracing.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
     }
   },
   "files": [
