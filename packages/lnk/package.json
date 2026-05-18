@@ -38,12 +38,17 @@
     "./services/wire/http": {
       "import": "./dist/services/wire/http/index.js",
       "types": "./dist/services/wire/http/index.d.ts"
+    },
+    "./services/wire/nats-bridge": {
+      "import": "./dist/services/wire/nats-bridge/index.js",
+      "types": "./dist/services/wire/nats-bridge/index.d.ts"
     }
   },
   "files": [
     "dist",
     "README.md",
-    "ARCHITECTURE.md"
+    "ARCHITECTURE.md",
+    "NATS-BRIDGE.md"
   ],
   "description": "Effect v4-native Durable Streams client + server-adapter library. Spec-faithful implementation of the Durable Streams wire protocol with first-class Yieldable handles, Pull-driven offset tracking, and stx atom integration.",
   "keywords": [

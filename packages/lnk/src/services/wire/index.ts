@@ -63,3 +63,4 @@ export {
 
 export * as InMemory from "./in-memory/index.js"
 export * as Http from "./http/index.js"
+export * as NatsBridge from "./nats-bridge/index.js"
