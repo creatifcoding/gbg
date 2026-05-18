@@ -29,4 +29,5 @@ export {
 
 export { DeltaRoutes } from "./DeltaRoutes.js"
 export { Routes } from "./Routes.js"
+export * as EventLogRemote from "./eventlog-remote/index.js"
 export * as Wire from "./wire.js"
