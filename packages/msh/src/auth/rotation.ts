@@ -18,6 +18,14 @@ import { TokenRotationError } from './schemas';
 // JWT Claims Parsing (minimal — just exp)
 // =============================================================================
 
+const normalizeBase64Url = (input: string): string => {
+  const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+  const remainder = base64.length % 4;
+  if (remainder === 0) return base64;
+  if (remainder === 1) throw new Error('Invalid base64url length');
+  return base64 + '='.repeat(4 - remainder);
+};
+
 /**
  * Extract expiry (exp) from a JWT without full validation.
  * NATS JWTs use standard JWT structure: header.payload.signature
@@ -30,10 +38,9 @@ export const parseJwtExpiryEffect = (
     try: () => {
       const parts = jwt.split('.');
       if (parts.length !== 3) return undefined;
-      // Base64url decode the payload
+      // Base64url decode the payload. JWT segments may be padded or unpadded.
       const payload = parts[1];
-      const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const decoded = atob(padded);
+      const decoded = atob(normalizeBase64Url(payload));
       const claims = JSON.parse(decoded) as { exp?: number };
       return claims.exp;
     },

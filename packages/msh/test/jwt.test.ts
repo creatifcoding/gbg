@@ -22,6 +22,7 @@ import {
   JwtAuth,
   CredsAuth,
   CredsInline,
+  parseJwtExpiry,
 } from '../src/auth';
 
 // =============================================================================
@@ -175,6 +176,40 @@ describe('MshJwtService — JWT trust chain', () => {
         expect(Redacted.value(credsAuth.source.contents)).toContain('BEGIN NATS USER JWT');
       }
     }).pipe(Effect.provide(MshJwtServiceLive), Effect.runPromise));
+});
+
+// =============================================================================
+// JWT expiry parsing
+// =============================================================================
+
+const encodeJwtSegment = (value: unknown, padding: 'padded' | 'unpadded'): string => {
+  const encoded = btoa(JSON.stringify(value))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+  return padding === 'padded' ? encoded : encoded.replace(/=/g, '');
+};
+
+const claimsRequiringPadding = (exp: number): Record<string, unknown> => {
+  let claims: Record<string, unknown> = { exp, sub: 'u' };
+  while (!encodeJwtSegment(claims, 'padded').endsWith('=')) {
+    claims = { ...claims, pad: `${claims.pad ?? ''}x` };
+  }
+  return claims;
+};
+
+describe('JWT expiry parsing', () => {
+  it('parses padded and unpadded base64url payload segments', () => {
+    const exp = 1_893_456_000;
+    const header = encodeJwtSegment({ alg: 'none', typ: 'JWT' }, 'unpadded');
+    const claims = claimsRequiringPadding(exp);
+    const paddedPayload = encodeJwtSegment(claims, 'padded');
+    const unpaddedPayload = encodeJwtSegment(claims, 'unpadded');
+
+    expect(paddedPayload).toContain('=');
+    expect(unpaddedPayload).not.toContain('=');
+    expect(parseJwtExpiry(`${header}.${paddedPayload}.sig`)).toBe(exp);
+    expect(parseJwtExpiry(`${header}.${unpaddedPayload}.sig`)).toBe(exp);
+  });
 });
 
 // =============================================================================
