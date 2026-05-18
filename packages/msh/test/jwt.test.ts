@@ -60,6 +60,20 @@ describe('MshJwtService — NKey generation', () => {
       expect(restored.publicKey).toBe(user.publicKey);
       expect(Redacted.isRedacted(restored.seed)).toBe(true);
     }).pipe(Effect.provide(MshJwtServiceLive), Effect.runPromise));
+
+  it('rejects seeds whose public key kind does not match the requested kind', () =>
+    Effect.gen(function* () {
+      const jwt = yield* MshJwtService;
+      const user = yield* jwt.createUserKeyPair;
+
+      const result = yield* jwt.keyPairFromSeed('operator', user.seed).pipe(Effect.result);
+
+      expect(result._tag).toBe('Failure');
+      if (result._tag === 'Failure') {
+        expect(result.failure).toBeInstanceOf(JwtConstructionError);
+        expect(result.failure.message).toContain('Failed to restore operator nkey pair from seed');
+      }
+    }).pipe(Effect.provide(MshJwtServiceLive), Effect.runPromise));
 });
 
 // =============================================================================
