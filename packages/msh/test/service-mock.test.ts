@@ -210,6 +210,41 @@ describe('mock NATS transport', () => {
     }
   });
 
+  it('stops consumer message iterators after limited fetch collection', async () => {
+    const fixture = makeMockNatsFixture();
+    let stopped = 0;
+    const makeMessage = (seq: number, data: Uint8Array) => ({
+      subject: 'events.created',
+      data,
+      seq,
+      info: { timestampNanos: BigInt(Date.now()) * 1_000_000n },
+      ack: () => undefined,
+      nak: () => undefined,
+      working: () => undefined,
+      term: () => undefined,
+    });
+    const messages = {
+      async *[Symbol.asyncIterator]() {
+        yield makeMessage(1, bytes('{"id":"a","value":1}'));
+        yield makeMessage(2, bytes('{"id":"b","value":2}'));
+      },
+      stop: () => { stopped += 1; },
+    };
+    const consumer = {
+      fetch: () => Promise.resolve(messages),
+    };
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const stream = yield* NatsStreamService;
+        return yield* stream.fetch(consumer as any, TestEvent, { max: 1 });
+      }).pipe(Effect.provide(makeStreamLayer(fixture))),
+    );
+
+    expect(result.map((msg) => msg.data)).toEqual([{ id: 'a', value: 1 }]);
+    expect(stopped).toBe(1);
+  });
+
   it('supports high-level stream ensure/publish/fetch/next', async () => {
     const fixture = makeMockNatsFixture();
 

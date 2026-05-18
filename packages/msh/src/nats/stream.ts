@@ -130,8 +130,12 @@ export class NatsStreamService extends Context.Service<
       const collectMessages = (messages: ConsumerMessages, limit?: number): Effect.Effect<JsMsg[]> =>
         Effect.promise(async () => {
           const r: JsMsg[] = [];
-          for await (const msg of messages) { r.push(msg); if (limit && r.length >= limit) break; }
-          return r;
+          try {
+            for await (const msg of messages) { r.push(msg); if (limit && r.length >= limit) break; }
+            return r;
+          } finally {
+            try { messages.stop?.(); } catch { /* best-effort iterator cleanup */ }
+          }
         });
 
       const sameArray = (left: readonly string[] | undefined, right: readonly string[] | undefined): boolean => {
