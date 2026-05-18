@@ -134,10 +134,48 @@ export class NatsStreamService extends Context.Service<
           return r;
         });
 
+      const sameArray = (left: readonly string[] | undefined, right: readonly string[] | undefined): boolean => {
+        if (!left && !right) return true;
+        if (!left || !right) return false;
+        return left.length === right.length && left.every((value, index) => value === right[index]);
+      };
+
+      const streamConfigMismatches = (expected: StreamConfigInput, info: StreamInfo): ReadonlyArray<string> => {
+        const actual = info.config as unknown as Record<string, unknown>;
+        const mismatches: string[] = [];
+        const check = (field: keyof StreamConfigInput, actualKey: string) => {
+          const expectedValue = expected[field];
+          if (expectedValue !== undefined && actual[actualKey] !== expectedValue) mismatches.push(String(field));
+        };
+
+        if (expected.subjects !== undefined && !sameArray(expected.subjects, actual.subjects as readonly string[] | undefined)) {
+          mismatches.push('subjects');
+        }
+        check('storage', 'storage');
+        check('retention', 'retention');
+        check('maxAge', 'max_age');
+        check('maxBytes', 'max_bytes');
+        check('maxMsgs', 'max_msgs');
+        check('maxMsgSize', 'max_msg_size');
+        check('replicas', 'num_replicas');
+        check('duplicateWindow', 'duplicate_window');
+        return mismatches;
+      };
+
       const ensureStream: NatsStreamServiceShape['ensureStream'] = (config) =>
         Effect.gen(function* () {
           const existing = yield* inner.streams.info(config.name);
-          if (existing) return existing;
+          if (existing) {
+            const mismatches = streamConfigMismatches(config, existing);
+            if (mismatches.length > 0) {
+              return yield* Effect.fail(new StreamErrors.ConfigMismatchError({
+                message: `Existing stream '${config.name}' does not match requested config: ${mismatches.join(', ')}`,
+                streamName: config.name,
+                mismatches,
+              }));
+            }
+            return existing;
+          }
           return yield* inner.streams.add(config);
         });
 

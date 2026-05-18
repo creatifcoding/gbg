@@ -404,7 +404,15 @@ export namespace KV {
  * Errors for NatsStreamService (JetStream streams with Schema codecs).
  */
 export namespace Stream {
-  export type EnsureStreamError = Inner.Streams.InfoError | Inner.Streams.AddError;
+  export class ConfigMismatchError extends Schema.TaggedErrorClass<ConfigMismatchError>(
+    '@tmnl/msh/Stream.ConfigMismatchError',
+  )('Stream/ConfigMismatch', {
+    message: Schema.String,
+    streamName: Schema.String,
+    mismatches: Schema.Array(Schema.String),
+  }) {}
+
+  export type EnsureStreamError = Inner.Streams.InfoError | Inner.Streams.AddError | ConfigMismatchError;
   export type PublishError = Inner.Publish.Error | Codec.EncodeError;
   export type SubscribeError = Inner.Consumers.Error | Codec.DecodeError;
 

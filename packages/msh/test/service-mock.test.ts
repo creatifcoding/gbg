@@ -163,6 +163,27 @@ describe('mock NATS transport', () => {
     expect(result.history.map((entry) => entry.value)).toEqual([{ id: 'a', value: 7 }]);
   });
 
+  it('rejects ensureStream when an existing stream has incompatible material config', async () => {
+    const fixture = makeMockNatsFixture();
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const stream = yield* NatsStreamService;
+        yield* stream.ensureStream({ name: 'EVENTS', subjects: ['events.>'] });
+        const same = yield* Effect.result(stream.ensureStream({ name: 'EVENTS', subjects: ['events.>'] }));
+        const mismatch = yield* Effect.result(stream.ensureStream({ name: 'EVENTS', subjects: ['other.>'] }));
+        return { same, mismatch };
+      }).pipe(Effect.provide(makeStreamLayer(fixture))),
+    );
+
+    expect(result.same._tag).toBe('Success');
+    expect(result.mismatch._tag).toBe('Failure');
+    if (result.mismatch._tag === 'Failure') {
+      expect(result.mismatch.failure._tag).toBe('Stream/ConfigMismatch');
+      expect(result.mismatch.failure.mismatches).toEqual(['subjects']);
+    }
+  });
+
   it('supports high-level stream ensure/publish/fetch/next', async () => {
     const fixture = makeMockNatsFixture();
 
