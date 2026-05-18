@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { DateTime, Effect, Layer, Option } from 'effect'
+import { DateTime, Effect, Layer, Option, Schema } from 'effect'
 import * as EventLog from '@effect/experimental/EventLog'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import { DomainEventEmitter, DomainEventEmitterLive } from '../DomainEventEmitter'
@@ -15,9 +15,11 @@ import {
   IIoTEventLogLayer,
 } from '../../../infrastructure/eventlog-layer'
 import { WorkOrder } from '../../../schemas/work-orders'
+import { EquipmentStateEvents, WorkOrderEvents } from '../../../schemas/events/groups'
 import type {
   AssetId,
   MachineId,
+  PropagationId,
   WorkOrderId,
   WorkflowDefinitionId,
 } from '../../../schemas/identifiers'
@@ -89,10 +91,11 @@ describe('DomainEventEmitter', () => {
     ))
   })
 
-  it('writes EquipmentStateChanged events to the EventJournal', async () => {
+  it('writes EquipmentStateChanged events to the EventJournal with propagation identity', async () => {
     await Effect.runPromise(withEmitterAndJournal((journal) =>
       Effect.gen(function* () {
         const emitter = yield* DomainEventEmitter
+        const propagationId = 'PROP-EMITTER-EQUIPMENT-001' as PropagationId
 
         yield* emitter.emitEquipmentStateChanged({
           machineId: 'MCH-EMITTER-001' as MachineId,
@@ -100,11 +103,48 @@ describe('DomainEventEmitter', () => {
           newState: 'maintenance',
           reason: 'planned maintenance',
           triggeredBy: 'test-operator',
+          propagationId,
         })
 
         const entries = yield* journal.entries
         expect(entries).toHaveLength(1)
         expect(entries[0]?.event).toBe('EquipmentStateChanged')
+
+        const event = EquipmentStateEvents.events.EquipmentStateChanged
+        const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
+        expect(payload.propagationId).toBe(propagationId)
+      })
+    ))
+  })
+
+  it('writes WorkOrderSuspended events with local and inbound propagation identity', async () => {
+    await Effect.runPromise(withEmitterAndJournal((journal) =>
+      Effect.gen(function* () {
+        const emitter = yield* DomainEventEmitter
+        const propagationId = 'PROP-EMITTER-WO-LOCAL-001' as PropagationId
+        const causedByPropagationId = 'PROP-EMITTER-EQUIPMENT-001' as PropagationId
+        const workOrder = new WorkOrder({
+          ...makeWorkOrder(),
+          status: 'suspended',
+          suspensionReason: Option.some('equipment_unavailable'),
+        })
+
+        yield* emitter.emitWorkOrderLifecycle({
+          tag: 'WorkOrderSuspended',
+          workOrder,
+          actor: 'relationship-reactor-v1',
+          propagationId,
+          causedByPropagationId,
+        })
+
+        const entries = yield* journal.entries
+        expect(entries).toHaveLength(1)
+        expect(entries[0]?.event).toBe('WorkOrderSuspended')
+
+        const event = WorkOrderEvents.events.WorkOrderSuspended
+        const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
+        expect(payload.propagationId).toBe(propagationId)
+        expect(payload.causedByPropagationId).toBe(causedByPropagationId)
       })
     ))
   })

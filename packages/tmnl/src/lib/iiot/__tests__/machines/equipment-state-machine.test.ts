@@ -9,7 +9,7 @@
 
 import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
-import { Effect, Layer, Option, DateTime } from 'effect'
+import { Effect, Layer, Option, DateTime, Schema } from 'effect'
 import { Machine } from '@effect/experimental'
 import * as EventLog from '@effect/experimental/EventLog'
 import * as EventJournal from '@effect/experimental/EventJournal'
@@ -23,6 +23,7 @@ import {
   InternalGetDurations,
 } from '../../machines/EquipmentStateMachine'
 import { EquipmentState, makeEquipmentStateId, type StateType, type StateReason } from '../../schemas/equipment-state/schema'
+import { EquipmentStateEvents } from '../../schemas/events/groups'
 import type { MachineId } from '../../schemas/identifiers'
 import type { EquipmentStateShapeInterface, CreateEquipmentStateInput, EquipmentStateFilter } from '../../state/StateShape'
 import type { FeatureFlagsShape } from '../../infrastructure/feature-flags'
@@ -254,6 +255,10 @@ describe('EquipmentStateMachine', () => {
 
           expect(entries).toHaveLength(1)
           expect(entries[0]?.event).toBe('EquipmentStateChanged')
+
+          const event = EquipmentStateEvents.events.EquipmentStateChanged
+          const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
+          expect(payload.propagationId).toMatch(/^PROP-/)
         }).pipe(
           Effect.scoped,
           Effect.provide(emitterLayer),

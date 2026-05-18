@@ -13,7 +13,7 @@
 
 import { Schema } from 'effect'
 import * as EventGroup from '@effect/experimental/EventGroup'
-import { EventId, EquipmentLevel, AssetId, EnterpriseId, SiteId, AreaId, PlantId, LineId, WorkCellId, MachineId, SensorId, DeviceId, AlarmId, WorkOrderId, WorkflowDefinitionId, TaskInstanceId, WorkOrderContextId, ResourceId, ExternalRefId, SyncId } from '../identifiers'
+import { EventId, EquipmentLevel, AssetId, EnterpriseId, SiteId, AreaId, PlantId, LineId, WorkCellId, MachineId, SensorId, DeviceId, AlarmId, WorkOrderId, WorkflowDefinitionId, TaskInstanceId, WorkOrderContextId, ResourceId, ExternalRefId, SyncId, PropagationId } from '../identifiers'
 import { AlarmSeverity, AlarmType } from '../alarms'
 import { WorkOrderPriority, WorkOrderOutcome, SuspensionReason, WorkOrderFinalStatus, WorkOrderType } from '../work-orders'
 
@@ -810,6 +810,7 @@ const EquipmentStateChangedPayload = Schema.Struct({
   machineId: MachineId,
   previousState: EquipmentState,
   newState: EquipmentState,
+  propagationId: Schema.optional(PropagationId),
   reason: Schema.optionalWith(Schema.String, { as: 'Option' }),
   triggeredBy: Schema.optionalWith(Schema.String, { as: 'Option' }),
 })
@@ -956,6 +957,8 @@ const WorkOrderSuspendedPayload = Schema.Struct({
   reason: SuspensionReason,
   expectedResume: Schema.optionalWith(Schema.DateTimeUtc, { as: 'Option' }),
   notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
+  propagationId: Schema.optional(PropagationId),
+  causedByPropagationId: Schema.optional(PropagationId),
 })
 
 /**

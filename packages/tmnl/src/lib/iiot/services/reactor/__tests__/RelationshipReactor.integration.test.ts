@@ -27,6 +27,7 @@ import { WorkOrder, type WorkOrderStatus } from '../../../schemas/work-orders'
 import type {
   AssetId,
   MachineId,
+  PropagationId,
   WorkOrderId,
   WorkflowDefinitionId,
 } from '../../../schemas/identifiers'
@@ -66,10 +67,14 @@ const makeWorkOrder = (id: WorkOrderId, status: WorkOrderStatus) => new WorkOrde
   transitions: [],
 })
 
-const makeInMemoryDispatcher = (state: WorkOrderState.Service) =>
+const makeInMemoryDispatcher = (
+  state: WorkOrderState.Service,
+  captured: Array<{ workOrderId: WorkOrderId; propagationId?: PropagationId }> = [],
+) =>
   WorkOrderReactorDispatcher.of({
-    suspendForEquipmentUnavailable: ({ workOrderId }) =>
+    suspendForEquipmentUnavailable: ({ workOrderId, propagationId }) =>
       Effect.gen(function* () {
+        captured.push({ workOrderId, propagationId })
         const current = yield* state.get(workOrderId)
         const suspended = new WorkOrder({
           ...current,
@@ -121,6 +126,7 @@ describe('RelationshipReactor integration', () => {
         machineId: TEST_MACHINE_ID,
       })
 
+      const propagationId = 'PROP-REACTOR-JOURNAL-001' as PropagationId
       yield* Effect.gen(function* () {
         const emitter = yield* DomainEventEmitter
         yield* emitter.emitEquipmentStateChanged({
@@ -129,11 +135,13 @@ describe('RelationshipReactor integration', () => {
           newState: 'maintenance',
           reason: 'scheduled maintenance',
           triggeredBy: 'reactor-test',
+          propagationId,
         })
       }).pipe(Effect.provide(makeEmitterLayer(journal)))
 
       const entries = yield* journal.entries
-      const dispatcher = makeInMemoryDispatcher(state)
+      const capturedDispatches: Array<{ workOrderId: WorkOrderId; propagationId?: PropagationId }> = []
+      const dispatcher = makeInMemoryDispatcher(state, capturedDispatches)
 
       const reactorProgram = Effect.gen(function* () {
         const reactor = yield* RelationshipReactor
@@ -150,6 +158,8 @@ describe('RelationshipReactor integration', () => {
 
       expect(Option.isSome(first)).toBe(true)
       expect(Option.isNone(duplicate)).toBe(true)
+      expect(Option.getOrThrow(first).plan.propagationId).toBe(propagationId)
+      expect(capturedDispatches).toEqual([{ workOrderId, propagationId }])
       const updated = yield* state.get(workOrderId)
       expect(updated.status).toBe('suspended')
     }).pipe(
@@ -196,6 +206,7 @@ describe('RelationshipReactor integration', () => {
 
       const dispatcher = makeInMemoryDispatcher(state)
 
+      const warmPropagationId = 'PROP-REACTOR-WARM-001' as PropagationId
       const resultOption = yield* Effect.gen(function* () {
         const reactor = yield* RelationshipReactor
         return yield* reactor.reactToEquipmentStateChange(new EquipmentStateChange({
@@ -203,6 +214,7 @@ describe('RelationshipReactor integration', () => {
           previousState: 'running',
           newState: 'planned_downtime',
           timestamp: new Date().toISOString(),
+          propagationId: warmPropagationId,
         }))
       }).pipe(
         Effect.provide(RelationshipReactorLive),
@@ -235,6 +247,7 @@ describe('RelationshipReactor integration', () => {
       expect(completed.status).toBe('completed')
 
       expect(Option.isNone(ignored)).toBe(true)
+      expect(result.plan.propagationId).toBe(warmPropagationId)
 
       const relevantResults = result.results.filter((r) => ids.includes(r.workOrderId))
       expect(relevantResults.filter((r) => r.outcome === 'suspended')).toHaveLength(2)

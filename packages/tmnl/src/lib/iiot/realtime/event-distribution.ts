@@ -60,6 +60,7 @@ export class EquipmentStateChange extends Schema.TaggedClass<EquipmentStateChang
   previousState: Schema.String,
   newState: Schema.String,
   timestamp: Schema.String,
+  propagationId: Schema.optional(Schema.String),
 }) {}
 
 /** Work order lifecycle event for internal distribution. Published to iiot:work_orders channel. */
@@ -68,6 +69,8 @@ export class WorkOrderLifecycleEvent extends Schema.TaggedClass<WorkOrderLifecyc
   eventTag: Schema.String,
   status: Schema.String,
   timestamp: Schema.String,
+  propagationId: Schema.optional(Schema.String),
+  causedByPropagationId: Schema.optional(Schema.String),
 }) {}
 
 /** Cache invalidation signal for internal distribution. Published to iiot:invalidations channel. */

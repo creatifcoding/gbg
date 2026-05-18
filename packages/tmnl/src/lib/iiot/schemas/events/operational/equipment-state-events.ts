@@ -31,7 +31,7 @@
  */
 
 import { Schema } from 'effect'
-import { MachineId } from '../../identifiers'
+import { MachineId, PropagationId } from '../../identifiers'
 import { BaseOperationalEvent } from '../base'
 
 // =============================================================================
@@ -188,6 +188,9 @@ export class EquipmentStateChanged extends BaseOperationalEvent.extend<Equipment
 
   /** State after the transition */
   newState: EquipmentState,
+
+  /** Domain propagation id minted by the source transition. Optional for legacy journal entries. */
+  propagationId: Schema.optional(PropagationId),
 
   /** Reason for the state change */
   reason: Schema.optionalWith(Schema.String, { as: 'Option' }),

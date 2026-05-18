@@ -27,6 +27,7 @@ import {
   WorkOrderId,
   TaskInstanceId,
   WorkflowDefinitionId,
+  PropagationId,
 } from '../../identifiers'
 import {
   WorkOrderPriority,
@@ -224,6 +225,12 @@ export class WorkOrderSuspended extends BaseOperationalEvent.extend<WorkOrderSus
 
   /** Additional notes */
   notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
+
+  /** Local propagation id minted by the WorkOrder suspend transition. Optional for legacy journal entries. */
+  propagationId: Schema.optional(PropagationId),
+
+  /** Source propagation id that caused this suspend, when Reactor-triggered. */
+  causedByPropagationId: Schema.optional(PropagationId),
 }) {}
 
 export type WorkOrderSuspendedType = typeof WorkOrderSuspended.Type

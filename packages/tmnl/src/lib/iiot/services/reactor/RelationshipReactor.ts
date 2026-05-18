@@ -287,6 +287,7 @@ export const RelationshipReactorLive = Layer.effect(
         const result = yield* reactToMachineMaintenance(new MachineMaintenanceFact({
           machineId: change.equipmentId as MachineIdType,
           reason: change.newState,
+          propagationId: change.propagationId as PropagationIdType | undefined,
         }))
 
         return Option.some(result)
@@ -334,7 +335,7 @@ export const RelationshipReactorLive = Layer.effect(
         const result = yield* reactToMachineMaintenance(new MachineMaintenanceFact({
           machineId: payload.machineId,
           reason: payload.newState,
-          propagationId: entry.idString as PropagationIdType,
+          propagationId: payload.propagationId ?? (entry.idString as PropagationIdType),
         }))
 
         if (Option.isSome(checkpoints)) {

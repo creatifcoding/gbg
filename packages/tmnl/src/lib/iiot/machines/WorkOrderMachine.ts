@@ -338,6 +338,9 @@ export interface WorkOrderMachineDeps {
 // Event Emission Helper
 // =============================================================================
 
+const makePropagationId = (): PropagationId =>
+  `PROP-${Date.now()}-${Math.random().toString(36).slice(2)}` as PropagationId
+
 /**
  * Conditionally emit work order events based on feature flags.
  */
@@ -380,6 +383,12 @@ const maybeEmitWorkOrder = (
       actor,
       reason: typeof payload['reason'] === 'string' ? payload['reason'] : undefined,
       notes: typeof payload['notes'] === 'string' ? payload['notes'] : undefined,
+      propagationId: typeof payload['propagationId'] === 'string'
+        ? payload['propagationId'] as PropagationId
+        : undefined,
+      causedByPropagationId: typeof payload['causedByPropagationId'] === 'string'
+        ? payload['causedByPropagationId'] as PropagationId
+        : undefined,
     })
   })
 
@@ -674,6 +683,8 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 // Transactional dual-write: update state + insert transition
                 const suspended = yield* sql.withTransaction(
                   Effect.gen(function* () {
+                    const propagationId = makePropagationId()
+
                     // 1. Update WorkOrder with fields that exist on schema
                     const updated = new WorkOrder({
                       ...workOrder,
@@ -691,7 +702,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                       toState: 'suspended' as WorkOrderStatus,
                       transitionedBy: Option.some(request.suspendedBy),
                       reason: Option.some(request.reason as string),
-                      propagationId: Option.none(),
+                      propagationId: Option.some(propagationId),
                       causedByPropagationId: request.causedByPropagationId,
                     })
 
@@ -699,6 +710,8 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                       workOrder: updated,
                       actor: request.suspendedBy,
                       reason: request.reason,
+                      propagationId,
+                      causedByPropagationId: Option.getOrNull(request.causedByPropagationId) ?? undefined,
                     })
 
                     return updated

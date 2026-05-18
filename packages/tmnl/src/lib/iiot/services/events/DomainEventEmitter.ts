@@ -22,6 +22,7 @@ import type {
   AssetId,
   EventId,
   MachineId,
+  PropagationId,
 } from '../../schemas/identifiers'
 import { EventDistribution, EquipmentStateChange, WorkOrderLifecycleEvent } from '../../realtime/event-distribution'
 
@@ -35,6 +36,8 @@ export interface WorkOrderLifecycleEmission {
   readonly actor?: string
   readonly reason?: string
   readonly notes?: string
+  readonly propagationId?: PropagationId
+  readonly causedByPropagationId?: PropagationId
 }
 
 export interface EquipmentStateChangedEmission {
@@ -43,6 +46,7 @@ export interface EquipmentStateChangedEmission {
   readonly newState: string
   readonly reason?: string
   readonly triggeredBy?: string
+  readonly propagationId?: PropagationId
 }
 
 export interface DomainEventEmitterShape {
@@ -162,6 +166,8 @@ const makeWorkOrderEventPayload = (event: WorkOrderLifecycleEmission): unknown =
         reason: optionValue(workOrder.suspensionReason) ?? event.reason ?? 'other',
         expectedResume: workOrder.expectedResume,
         notes: optionalString(event.notes),
+        ...(event.propagationId ? { propagationId: event.propagationId } : {}),
+        ...(event.causedByPropagationId ? { causedByPropagationId: event.causedByPropagationId } : {}),
       }
 
     case 'WorkOrderResumed':
@@ -245,6 +251,7 @@ const makeEquipmentStateChangedPayload = (event: EquipmentStateChangedEmission) 
   machineId: event.machineId,
   previousState: toEventEquipmentState(event.previousState),
   newState: toEventEquipmentState(event.newState),
+  ...(event.propagationId ? { propagationId: event.propagationId } : {}),
   reason: optionalString(event.reason),
   triggeredBy: optionalString(event.triggeredBy),
 })
@@ -278,6 +285,8 @@ const makeDomainEventEmitter = Effect.gen(function* () {
         eventTag: event.tag,
         status: event.workOrder.status,
         timestamp: new Date().toISOString(),
+        ...(event.propagationId ? { propagationId: event.propagationId } : {}),
+        ...(event.causedByPropagationId ? { causedByPropagationId: event.causedByPropagationId } : {}),
       })),
     })
 
@@ -289,6 +298,7 @@ const makeDomainEventEmitter = Effect.gen(function* () {
         previousState: event.previousState,
         newState: event.newState,
         timestamp: new Date().toISOString(),
+        ...(event.propagationId ? { propagationId: event.propagationId } : {}),
       })),
     })
 

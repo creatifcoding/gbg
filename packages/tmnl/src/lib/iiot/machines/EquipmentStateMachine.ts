@@ -68,7 +68,7 @@ import {
   StateReason,
   StateDurationAggregate,
 } from '../schemas/equipment-state/schema'
-import { MachineId } from '../schemas/identifiers'
+import { MachineId, PropagationId } from '../schemas/identifiers'
 import {
   isValidEquipmentTransition,
   getTransitionAction,
@@ -265,6 +265,9 @@ export interface EquipmentStateMachineDeps {
 // Event Emission Helper
 // =============================================================================
 
+const makePropagationId = (): PropagationId =>
+  `PROP-${Date.now()}-${Math.random().toString(36).slice(2)}` as PropagationId
+
 /**
  * Conditionally emit equipment state events based on feature flags.
  */
@@ -293,6 +296,9 @@ const maybeEmitEquipmentEvent = (
       newState: String(payload['toState']),
       reason: typeof payload['reason'] === 'string' ? payload['reason'] : undefined,
       triggeredBy: typeof payload['operatorId'] === 'string' ? payload['operatorId'] : undefined,
+      propagationId: typeof payload['propagationId'] === 'string'
+        ? payload['propagationId'] as PropagationId
+        : undefined,
     })
   })
 
@@ -416,6 +422,8 @@ export const makeEquipmentStateMachine = (deps: EquipmentStateMachineDeps) =>
 
                 const newEquipmentState = yield* transactionally(
                   Effect.gen(function* () {
+                    const propagationId = makePropagationId()
+
                     if (Option.isSome(currentOpt)) {
                       yield* state.endCurrent(machineId as MachineId, new Date(Number(now.epochMillis)))
                     }
@@ -435,6 +443,7 @@ export const makeEquipmentStateMachine = (deps: EquipmentStateMachineDeps) =>
                       reason: Option.isSome(reason) ? reason.value : undefined,
                       operatorId: Option.isSome(operatorId) ? operatorId.value : undefined,
                       equipmentState: created,
+                      propagationId,
                     })
 
                     return created

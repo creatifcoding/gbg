@@ -510,6 +510,8 @@ describe('WorkOrderMachine', () => {
         expect(duplicate.status).toBe('suspended')
         expect(suspendTransitions).toHaveLength(1)
         expect(Option.getOrNull(suspendTransitions[0]!.causedByPropagationId)).toBe(propagationId)
+        expect(Option.isSome(suspendTransitions[0]!.propagationId)).toBe(true)
+        expect(Option.getOrNull(suspendTransitions[0]!.propagationId)).toMatch(/^PROP-/)
       }).pipe(
         Effect.scoped,
         Effect.provide(WorkOrderStateInMemory),
