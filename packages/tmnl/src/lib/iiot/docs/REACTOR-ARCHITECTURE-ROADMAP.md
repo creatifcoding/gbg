@@ -205,10 +205,10 @@ Examples:
 
 Deliverables:
 
-- Schema-backed `EligibilityResult`.
-- WorkOrder suspend eligibility helper.
-- Reactor planning/reporting based on typed results.
-- Documentation of skip/reject/idempotent vocabulary.
+- Schema-backed `EligibilityResult`. **Done:** `src/lib/iiot/schemas/relationships/eligibility.ts`.
+- WorkOrder suspend eligibility helper. **Done:** `classifyWorkOrderSuspendEligibility`.
+- Reactor planning/reporting based on typed results. **Done:** `RelationshipReactor` now derives decisions from the rich helper.
+- Documentation of skip/reject/idempotent vocabulary. **Done:** vocabulary includes `eligible`, `skipped`, `idempotent`, `rejected`, `failed` with reasons such as `terminal_state`, `not_started`, `already_suspended`, and `duplicate_propagation`.
 
 Why it matters: Reactor decisions must be explainable and stable under replay.
 

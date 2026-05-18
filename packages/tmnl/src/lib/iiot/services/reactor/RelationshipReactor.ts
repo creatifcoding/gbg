@@ -38,6 +38,10 @@ import {
   WorkOrderEntity,
   WorkOrderSuspendTag,
 } from '../../entity/WorkOrderEntity'
+import {
+  classifyWorkOrderSuspendEligibility,
+  workOrderNotFoundSuspendEligibility,
+} from '../../machines/graphs/work-order-eligibility'
 
 // =============================================================================
 // Schemas
@@ -160,14 +164,6 @@ export class RelationshipReactor extends Context.Tag('iiot/RelationshipReactor')
   RelationshipReactorShape
 >() {}
 
-const terminalStatuses = new Set<WorkOrderStatus>([
-  'rejected',
-  'completed',
-  'failed',
-  'cancelled',
-  'closed',
-])
-
 const unavailableEquipmentStates = new Set([
   'maintenance',
   'planned_downtime',
@@ -177,38 +173,24 @@ const unavailableEquipmentStates = new Set([
 ])
 
 const classifyWorkOrder = (workOrder: WorkOrder): WorkOrderReactorDecision => {
-  if (workOrder.status === 'started' || workOrder.status === 'resumed') {
-    return new WorkOrderReactorDecision({
-      workOrderId: workOrder.id,
-      status: workOrder.status,
-      eligible: true,
-    })
-  }
-
-  if (workOrder.status === 'suspended') {
-    return new WorkOrderReactorDecision({
-      workOrderId: workOrder.id,
-      status: workOrder.status,
-      eligible: false,
-      skipReason: 'already_suspended',
-    })
-  }
-
+  const eligibility = classifyWorkOrderSuspendEligibility(workOrder)
   return new WorkOrderReactorDecision({
     workOrderId: workOrder.id,
     status: workOrder.status,
-    eligible: false,
-    skipReason: terminalStatuses.has(workOrder.status) ? 'terminal_state' : 'not_started',
+    eligible: eligibility.eligible,
+    skipReason: eligibility.reason as WorkOrderReactorSkipReason | undefined,
   })
 }
 
-const notFoundDecision = (workOrderId: WorkOrderIdType): WorkOrderReactorDecision =>
-  new WorkOrderReactorDecision({
+const notFoundDecision = (workOrderId: WorkOrderIdType): WorkOrderReactorDecision => {
+  const eligibility = workOrderNotFoundSuspendEligibility(workOrderId)
+  return new WorkOrderReactorDecision({
     workOrderId,
     status: 'closed',
     eligible: false,
-    skipReason: 'not_found',
+    skipReason: eligibility.reason as WorkOrderReactorSkipReason | undefined,
   })
+}
 
 export const RelationshipReactorLive = Layer.effect(
   RelationshipReactor,
