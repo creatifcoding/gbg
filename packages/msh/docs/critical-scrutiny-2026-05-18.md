@@ -139,13 +139,23 @@ Regression added: literal-token mutations such as `geointXflight.ABC123.position
 
 ### 7. Connection finalizer does not await drain/close
 
+Status: remediated. Release now delegates to exported `releaseNatsConnection`, an Effect program that awaits `drain()` before `close()`.
+
 File: `src/nats/connection.ts`
 
-The scoped release finalizer calls `conn.drain().catch(() => {})` and `conn.close().catch(() => {})` inside `Effect.sync`, then returns immediately.
+The scoped release finalizer called `conn.drain().catch(() => {})` and `conn.close().catch(() => {})` inside `Effect.sync`, then returned immediately.
 
 Impact: scope exit can complete before the NATS connection is actually drained or closed; cleanup errors are fully swallowed.
 
 Recommended fix: use an async finalizer and await drain/close. If failures should not fail scope release, log or trace them deliberately.
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/service-mock.test.ts --testNamePattern "awaits connection drain" && bunx tsc --noEmit --pretty false
+```
+
+Regression added: `close()` observes that `drain()` completed first.
 
 ### 8. Core connection eagerly requires JetStream manager
 
