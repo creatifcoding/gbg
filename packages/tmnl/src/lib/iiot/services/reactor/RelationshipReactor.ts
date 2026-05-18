@@ -14,7 +14,7 @@
  * @module
  */
 
-import { Context, Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Context, DateTime, Effect, Layer, Option, Schema, Stream } from 'effect'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import {
   MachineId,
@@ -25,15 +25,21 @@ import {
   type WorkOrderId as WorkOrderIdType,
 } from '../../schemas/identifiers'
 import { WorkOrder, WorkOrderStatus } from '../../schemas/work-orders'
-import { GraphClient } from '../l1/GraphClient'
 import { WorkOrderState } from '../../state'
 import { EquipmentStateChange, EventDistribution } from '../../realtime/event-distribution'
-import { EquipmentStateEvents } from '../../schemas/events/groups'
 import {
   ReactorCheckpointRepo,
   type ReactorCheckpointRepository,
 } from '../../repos/ReactorCheckpointRepo'
-import type { ReactorCheckpointOutcome } from '../../schemas/reactor'
+import {
+  ObservationSignal,
+  ReactorCausality,
+  ReactorEventEnvelope,
+  ReactorObservation,
+  type ReactorCheckpointOutcome,
+  type ReactorPlan,
+  type ReactorRun,
+} from '../../schemas/reactor'
 import {
   WorkOrderEntity,
   WorkOrderSuspendTag,
@@ -42,6 +48,15 @@ import {
   classifyWorkOrderSuspendEligibility,
   workOrderNotFoundSuspendEligibility,
 } from '../../machines/graphs/work-order-eligibility'
+import { RelationshipEndpoint, TargetsMachineUnavailableBlocksSource } from '../../schemas/relationships'
+import {
+  makeReactorRegistry,
+  ReactorRegistry,
+  type EntityReactionContract,
+} from './ReactorRegistry'
+import { ReactorPlanner, ReactorPlannerLive } from './ReactorPlanner'
+import { ReactorDispatcher, ReactorDispatcherLive } from './ReactorDispatcher'
+import { EquipmentStateChangedObservationSpec } from './observations'
 
 // =============================================================================
 // Schemas
@@ -192,72 +207,151 @@ const notFoundDecision = (workOrderId: WorkOrderIdType): WorkOrderReactorDecisio
   })
 }
 
-export const RelationshipReactorLive = Layer.effect(
-  RelationshipReactor,
+const toLegacySkipReason = (reason: string | undefined): WorkOrderReactorSkipReason | undefined => {
+  switch (reason) {
+    case 'not_found':
+    case 'terminal_state':
+    case 'not_started':
+    case 'already_suspended':
+      return reason
+    case 'duplicate_propagation':
+      return 'already_suspended'
+    default:
+      return undefined
+  }
+}
+
+const makeMachineUnavailableObservation = (fact: MachineMaintenanceFact): ReactorObservation =>
+  new ReactorObservation({
+    event: new ReactorEventEnvelope({
+      entryId: (fact.propagationId ?? `LEGACY-MACHINE-MAINTENANCE-${fact.machineId}`) as never,
+      tag: 'MachineMaintenanceFact',
+      primaryKey: fact.machineId,
+      occurredAt: DateTime.unsafeNow(),
+    }),
+    subject: new RelationshipEndpoint({ type: 'machine', id: fact.machineId }),
+    signals: [new ObservationSignal({
+      axis: 'equipment.availability',
+      kind: 'condition_asserted',
+      value: 'unavailable',
+      reason: fact.reason ?? 'machine_unavailable',
+    })],
+    causality: new ReactorCausality({
+      propagationId: (fact.propagationId ?? `PROP-LEGACY-${fact.machineId}`) as PropagationIdType,
+    }),
+    payload: fact,
+  })
+
+const RelationshipReactorRegistryLive = Layer.effect(
+  ReactorRegistry,
   Effect.gen(function* () {
-    const graph = yield* GraphClient
     const workOrders = yield* WorkOrderState
     const dispatcher = yield* WorkOrderReactorDispatcher
+
+    const contract: EntityReactionContract = {
+      entityType: 'work_order',
+      capabilities: new Map([
+        ['dependency.blocked', {
+          id: 'dependency.blocked',
+          classify: (request) =>
+            workOrders.get(request.target.id as WorkOrderIdType).pipe(
+              Effect.map(classifyWorkOrderSuspendEligibility),
+              Effect.catchAll(() => Effect.succeed(workOrderNotFoundSuspendEligibility(request.target.id))),
+            ),
+          dispatch: (request) =>
+            dispatcher.suspendForEquipmentUnavailable({
+              workOrderId: request.target.id as WorkOrderIdType,
+              sourceMachineId: request.source.id as MachineIdType,
+              propagationId: request.causality.propagationId,
+            }),
+        }],
+      ]),
+    }
+
+    return ReactorRegistry.of(makeReactorRegistry({
+      observations: [EquipmentStateChangedObservationSpec],
+      propagationPolicies: [TargetsMachineUnavailableBlocksSource],
+      entities: [contract],
+    }))
+  }),
+)
+
+const RelationshipReactorServiceLive = Layer.effect(
+  RelationshipReactor,
+  Effect.gen(function* () {
+    const workOrders = yield* WorkOrderState
+    const planner = yield* ReactorPlanner
+    const genericDispatcher = yield* ReactorDispatcher
     const distribution = yield* Effect.serviceOption(EventDistribution)
     const checkpoints = yield* Effect.serviceOption(ReactorCheckpointRepo)
 
-    const planMachineMaintenance = (fact: MachineMaintenanceFact) =>
+    const legacyPlanFromGeneric = (
+      genericPlan: ReactorPlan,
+      input: {
+        readonly sourceMachineId: MachineIdType
+        readonly reason: string
+        readonly propagationId?: PropagationIdType
+      },
+    ) =>
       Effect.gen(function* () {
-        const ids = yield* graph.getWorkOrderIdsTargetingMachine(fact.machineId)
-
         const decisions = yield* Effect.forEach(
-          ids,
-          (workOrderId) =>
-            workOrders.get(workOrderId).pipe(
+          genericPlan.decisions,
+          (decision) =>
+            workOrders.get(decision.target.id as WorkOrderIdType).pipe(
               Effect.map(classifyWorkOrder),
-              Effect.catchAll(() => Effect.succeed(notFoundDecision(workOrderId))),
+              Effect.catchAll(() => Effect.succeed(notFoundDecision(decision.target.id as WorkOrderIdType))),
             ),
           { concurrency: 'unbounded' },
         )
 
         return new WorkOrderReactorPlan({
+          sourceMachineId: input.sourceMachineId,
+          reason: input.reason,
+          propagationId: input.propagationId,
+          decisions,
+        })
+      })
+
+    const legacyRunFromGeneric = (
+      legacyPlan: WorkOrderReactorPlan,
+      genericRun: ReactorRun,
+    ): WorkOrderReactorRunResult =>
+      new WorkOrderReactorRunResult({
+        plan: legacyPlan,
+        results: genericRun.results.map((result) => new WorkOrderReactorDispatchResult({
+          workOrderId: result.target.id as WorkOrderIdType,
+          outcome: result.outcome === 'dispatched'
+            ? 'suspended'
+            : result.outcome === 'failed'
+              ? 'failed'
+              : 'skipped',
+          skipReason: result.outcome === 'skipped' ? toLegacySkipReason(result.reason) : undefined,
+          error: result.outcome === 'failed' ? result.reason : undefined,
+        })),
+      })
+
+    const planMachineMaintenance = (fact: MachineMaintenanceFact) =>
+      Effect.gen(function* () {
+        const observation = makeMachineUnavailableObservation(fact)
+        const genericPlan = yield* planner.planObservation(observation)
+        return yield* legacyPlanFromGeneric(genericPlan, {
           sourceMachineId: fact.machineId,
           reason: fact.reason ?? 'machine_unavailable',
           propagationId: fact.propagationId,
-          decisions,
         })
       }).pipe(Effect.withSpan('iiot.reactor.planMachineMaintenance'))
 
     const reactToMachineMaintenance = (fact: MachineMaintenanceFact) =>
       Effect.gen(function* () {
-        const plan = yield* planMachineMaintenance(fact)
-
-        const results = yield* Effect.forEach(
-          plan.decisions,
-          (decision) => {
-            if (!decision.eligible) {
-              return Effect.succeed(new WorkOrderReactorDispatchResult({
-                workOrderId: decision.workOrderId,
-                outcome: 'skipped',
-                skipReason: decision.skipReason,
-              }))
-            }
-
-            return dispatcher.suspendForEquipmentUnavailable({
-              workOrderId: decision.workOrderId,
-              sourceMachineId: fact.machineId,
-              propagationId: fact.propagationId,
-            }).pipe(
-              Effect.as(new WorkOrderReactorDispatchResult({
-                workOrderId: decision.workOrderId,
-                outcome: 'suspended',
-              })),
-              Effect.catchAll((error) => Effect.succeed(new WorkOrderReactorDispatchResult({
-                workOrderId: decision.workOrderId,
-                outcome: 'failed',
-                error: String(error),
-              }))),
-            )
-          },
-          { concurrency: 8 },
-        )
-
-        return new WorkOrderReactorRunResult({ plan, results })
+        const observation = makeMachineUnavailableObservation(fact)
+        const genericPlan = yield* planner.planObservation(observation)
+        const legacyPlan = yield* legacyPlanFromGeneric(genericPlan, {
+          sourceMachineId: fact.machineId,
+          reason: fact.reason ?? 'machine_unavailable',
+          propagationId: fact.propagationId,
+        })
+        const genericRun = yield* genericDispatcher.execute(genericPlan)
+        return legacyRunFromGeneric(legacyPlan, genericRun)
       }).pipe(Effect.withSpan('iiot.reactor.reactToMachineMaintenance'))
 
     const reactToEquipmentStateChange = (change: EquipmentStateChange) =>
@@ -299,10 +393,6 @@ export const RelationshipReactorLive = Layer.effect(
 
     const reactToJournalEntry = (entry: EventJournal.Entry) =>
       Effect.gen(function* () {
-        if (entry.event !== 'EquipmentStateChanged') {
-          return Option.none<WorkOrderReactorRunResult>()
-        }
-
         if (Option.isSome(checkpoints)) {
           const alreadyProcessed = yield* checkpoints.value.hasProcessed({
             consumerId: 'relationship-reactor-v1' as never,
@@ -311,14 +401,22 @@ export const RelationshipReactorLive = Layer.effect(
           if (alreadyProcessed) return Option.none<WorkOrderReactorRunResult>()
         }
 
-        const event = EquipmentStateEvents.events.EquipmentStateChanged
-        const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+        const genericPlanOption = yield* planner.planJournalEntry(entry)
+        if (Option.isNone(genericPlanOption)) {
+          return Option.none<WorkOrderReactorRunResult>()
+        }
 
-        const result = yield* reactToMachineMaintenance(new MachineMaintenanceFact({
-          machineId: payload.machineId,
-          reason: payload.newState,
-          propagationId: payload.propagationId ?? (entry.idString as PropagationIdType),
-        }))
+        const genericPlan = genericPlanOption.value
+        const sourceMachineId = genericPlan.observation.subject.id as MachineIdType
+        const reason = genericPlan.observation.signals[0]?.reason ?? 'machine_unavailable'
+        const propagationId = genericPlan.observation.causality.propagationId as PropagationIdType
+        const legacyPlan = yield* legacyPlanFromGeneric(genericPlan, {
+          sourceMachineId,
+          reason,
+          propagationId,
+        })
+        const genericRun = yield* genericDispatcher.execute(genericPlan)
+        const result = legacyRunFromGeneric(legacyPlan, genericRun)
 
         if (Option.isSome(checkpoints)) {
           yield* markCheckpoint(checkpoints.value, entry, result)
@@ -346,4 +444,10 @@ export const RelationshipReactorLive = Layer.effect(
       runEquipmentStateStream,
     })
   }),
+)
+
+export const RelationshipReactorLive = RelationshipReactorServiceLive.pipe(
+  Layer.provide(ReactorDispatcherLive),
+  Layer.provide(ReactorPlannerLive),
+  Layer.provide(RelationshipReactorRegistryLive),
 )
