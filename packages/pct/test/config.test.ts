@@ -67,11 +67,16 @@ describe("Config — Sources stacking", () => {
     expect(result.server.port).toBe(8080)
     expect(result.server.host).toBe("127.0.0.1")
     expect(result.client.baseUrl).toBe("http://localhost:8080")
+    expect(result.identity).toEqual({
+      root: { provider: "ephemeral" },
+    })
     expect(result.federation).toEqual({
       enabled: false,
       pollIntervalMs: 5000,
       peers: [],
+      eventLogRemote: { enabled: false, peers: [] },
     })
+    expect(result.lnk).toEqual({ backend: "in-memory", nats: {} })
   })
 
   it("project file alone: walks up from cwd to find pact.config.json", async () => {
@@ -228,6 +233,30 @@ describe("Config — Sources stacking", () => {
     ])
   })
 
+  it("eventlog remote federation config reads env peer arrays", async () => {
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([
+              ["PCT_FEDERATION_EVENT_LOG_REMOTE_ENABLED", "true"],
+              ["PCT_FEDERATION_EVENT_LOG_REMOTE_PEERS_0", "http://peer-a:8080"],
+              ["PCT_FEDERATION_EVENT_LOG_REMOTE_PEERS_1", "http://peer-b:8080"],
+            ]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(new Map(), new Set(["/workspace/.git"]))),
+      ),
+    )
+
+    expect(result.federation.eventLogRemote.enabled).toBe(true)
+    expect(result.federation.eventLogRemote.peers).toEqual([
+      "http://peer-a:8080",
+      "http://peer-b:8080",
+    ])
+  })
+
   it("env vars override file values per-key", async () => {
     const files = new Map([
       [
@@ -330,6 +359,115 @@ describe("Config — Sources stacking", () => {
     expect(result.server.port).toBe(9999)
     // unspecified-by-env keys flow from explicit file
     expect(result.client.baseUrl).toBe("http://from-explicit:4444")
+  })
+
+  it("identity config supports file provider and env overrides", async () => {
+    const files = new Map([
+      [
+        "/workspace/pact.config.json",
+        JSON.stringify({
+          server: { port: 9090, host: "127.0.0.1" },
+          client: { baseUrl: "http://from-file:9090" },
+          node: {},
+          identity: {
+            root: { provider: "ephemeral" },
+          },
+        }),
+      ],
+    ])
+    const dirs = new Set(["/workspace/.git"])
+
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([
+              ["PCT_IDENTITY_ROOT_PROVIDER", "file"],
+              ["PCT_IDENTITY_ROOT_FILE_PATH", ".pct/test.identity"],
+            ]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(files, dirs)),
+      ),
+    )
+
+    expect(result.identity.root.provider).toBe("file")
+    expect(result.identity.root.filePath).toBe(".pct/test.identity")
+  })
+
+  it("journal config supports postgres table options and env overrides", async () => {
+    const files = new Map([
+      [
+        "/workspace/pact.config.json",
+        JSON.stringify({
+          server: { port: 9090, host: "127.0.0.1" },
+          client: { baseUrl: "http://from-file:9090" },
+          node: {},
+          journal: {
+            backend: "memory",
+            entryTable: "file_entries",
+          },
+        }),
+      ],
+    ])
+    const dirs = new Set(["/workspace/.git"])
+
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([
+              ["PCT_JOURNAL_BACKEND", "postgres"],
+              ["PCT_JOURNAL_REMOTES_TABLE", "env_remotes"],
+            ]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(files, dirs)),
+      ),
+    )
+
+    expect(result.journal.backend).toBe("postgres")
+    expect(result.journal.entryTable).toBe("file_entries")
+    expect(result.journal.remotesTable).toBe("env_remotes")
+  })
+
+  it("lnk backend config supports the nats-bridge skeleton and env overrides", async () => {
+    const files = new Map([
+      [
+        "/workspace/pact.config.json",
+        JSON.stringify({
+          server: { port: 9090, host: "127.0.0.1" },
+          client: { baseUrl: "http://from-file:9090" },
+          node: {},
+          lnk: {
+            backend: "in-memory",
+            nats: { metadataBucket: "FILE_BUCKET" },
+          },
+        }),
+      ],
+    ])
+    const dirs = new Set(["/workspace/.git"])
+
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([
+              ["PCT_LNK_BACKEND", "nats-bridge"],
+              ["PCT_LNK_NATS_SUBJECT_ROOT", "_test.lnk.stream"],
+            ]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(files, dirs)),
+      ),
+    )
+
+    expect(result.lnk.backend).toBe("nats-bridge")
+    expect(result.lnk.nats.metadataBucket).toBe("FILE_BUCKET")
+    expect(result.lnk.nats.subjectRoot).toBe("_test.lnk.stream")
   })
 
   it("missing file is not fatal: falls through to defaults", async () => {

@@ -33,9 +33,13 @@ import { Readable } from "node:stream"
 
 import * as Console from "effect-v4/Console"
 import * as Effect from "effect-v4/Effect"
+import * as Exit from "effect-v4/Exit"
+import * as FileSystem from "effect-v4/FileSystem"
 import * as Layer from "effect-v4/Layer"
 import * as ManagedRuntime from "effect-v4/ManagedRuntime"
 import * as Option from "effect-v4/Option"
+import * as Path from "effect-v4/Path"
+import * as Scope from "effect-v4/Scope"
 import { Command, Flag } from "effect-v4/unstable/cli"
 import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
 import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
@@ -46,6 +50,10 @@ import * as Config from "../config/index.js"
 import { DeltaRoutes as FederationDeltaRoutes } from "../federation/DeltaRoutes.js"
 import { layer as federationLayer } from "../federation/Default.js"
 import { Federation } from "../federation/Federation.js"
+import {
+  makeRemoteHttp as makeEventLogRemoteHttp,
+  Routes as EventLogRemoteRoutes,
+} from "../federation/eventlog-remote/index.js"
 import { Routes as FederationRoutes } from "../federation/Routes.js"
 import * as IdentityLayers from "../identity/Layers.js"
 import * as NotaryDefault from "../notary/Default.js"
@@ -171,8 +179,26 @@ export const serveCommand = Command.make(
       // startup federation seeding reuse the exact same Registry/EventLog
       // instances via ManagedRuntime.memoMap. Prime, no phantom duplicate
       // journals; that way lies interpretive dance, not architecture.
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const PlatformLayer = Layer.mergeAll(
+        Layer.succeed(FileSystem.FileSystem)(fs),
+        Layer.succeed(Path.Path)(path),
+      )
+      const identityOptions =
+        config.node.url !== undefined ? { nodeUrl: config.node.url } : {}
+      const IdentityLayer = config.identity.root.provider === "file"
+        ? IdentityLayers.layerPersistent({
+            ...identityOptions,
+            filePath: path.resolve(
+              config.identity.root.filePath ?? ".pct/identity/root.identity",
+            ),
+          }).pipe(Layer.provide(PlatformLayer))
+        : IdentityLayers.layerEphemeralWith(identityOptions)
       const JournalLayer = journalLayerFromConfig(config.journal)
-      const pctServices = config.federation.enabled
+      const federationServiceEnabled =
+        config.federation.enabled || config.federation.eventLogRemote.enabled
+      const pctServices = federationServiceEnabled
         ? Layer.mergeAll(
             NotaryDefault.Default,
             federationLayer({
@@ -181,19 +207,29 @@ export const serveCommand = Command.make(
             }).pipe(Layer.provide(FetchHttpClient.layer)),
           ).pipe(
             Layer.provideMerge(RegistryMemory.layer),
-            Layer.provideMerge(IdentityLayers.layerEphemeral),
+            Layer.provideMerge(IdentityLayer),
             Layer.provideMerge(JournalLayer),
           )
         : NotaryDefault.Default.pipe(
             Layer.provideMerge(RegistryMemory.layer),
-            Layer.provideMerge(IdentityLayers.layerEphemeral),
+            Layer.provideMerge(IdentityLayer),
             Layer.provideMerge(JournalLayer),
           )
 
+      const LnkWireLayer = config.lnk.backend === "nats-bridge"
+        ? LnkServices.Wire.NatsBridge.NatsBridgeWire.layer(config.lnk.nats)
+        : LnkServices.Wire.InMemory.InMemoryWire.layer
+
       const ServicesLayer = Layer.mergeAll(
         pctServices,
-        LnkServices.Wire.InMemory.InMemoryWire.layer,
+        JournalLayer,
+        LnkWireLayer,
       )
+
+      const EventLogRemoteRouteLayer = EventLogRemoteRoutes().pipe(
+        Layer.provide(ServicesLayer),
+      )
+      const eventLogRemotePeerScope = yield* Scope.make()
 
       const runtime = ManagedRuntime.make(
         ServicesLayer as unknown as Layer.Layer<never, never, never>,
@@ -206,32 +242,55 @@ export const serveCommand = Command.make(
       // builds, demonstrating the architectural commitment from PCT.md
       // §6: "lnk + pct served on one HTTP host."
       const AppLayer = config.federation.enabled
-        ? Layer.mergeAll(
-            PactRoutes,
-            FederationDeltaRoutes,
-            FederationRoutes,
-            LnkServices.Wire.Http.Routes,
-            ServicesLayer,
-          )
-        : Layer.mergeAll(
-            PactRoutes,
-            FederationDeltaRoutes,
-            LnkServices.Wire.Http.Routes,
-            ServicesLayer,
-          )
+        ? config.federation.eventLogRemote.enabled
+          ? Layer.mergeAll(
+              PactRoutes,
+              FederationDeltaRoutes,
+              FederationRoutes,
+              EventLogRemoteRouteLayer,
+              LnkServices.Wire.Http.Routes,
+              ServicesLayer,
+            )
+          : Layer.mergeAll(
+              PactRoutes,
+              FederationDeltaRoutes,
+              FederationRoutes,
+              LnkServices.Wire.Http.Routes,
+              ServicesLayer,
+            )
+        : config.federation.eventLogRemote.enabled
+          ? Layer.mergeAll(
+              PactRoutes,
+              FederationDeltaRoutes,
+              EventLogRemoteRouteLayer,
+              LnkServices.Wire.Http.Routes,
+              ServicesLayer,
+            )
+          : Layer.mergeAll(
+              PactRoutes,
+              FederationDeltaRoutes,
+              LnkServices.Wire.Http.Routes,
+              ServicesLayer,
+            )
 
       const { handler, dispose } = HttpRouter.toWebHandler(
         AppLayer as unknown as Layer.Layer<never, never, never>,
         { memoMap: runtime.memoMap },
       )
 
-      if (config.federation.enabled) {
+      if (config.federation.enabled || config.federation.eventLogRemote.enabled) {
         yield* Effect.promise(() =>
           runtime.runPromise(
             Effect.gen(function* () {
               const fed = yield* Federation
               for (const peer of config.federation.peers) {
                 yield* fed.peer(peer)
+              }
+              for (const peer of config.federation.eventLogRemote.peers) {
+                yield* Scope.provide(
+                  makeEventLogRemoteHttp({ baseUrl: peer }),
+                  eventLogRemotePeerScope,
+                )
               }
             }) as Effect.Effect<void, never, never>,
           ),
@@ -246,9 +305,13 @@ export const serveCommand = Command.make(
       yield* Console.log(`  ┃`)
       yield* Console.log(`  ┃ PCT  /capabilities, /schemas/:id, /publish*`)
       yield* Console.log(`  ┃ Delta /federation/delta/:fromRevision`)
-      yield* Console.log(`  ┃ Lnk  /streams/:streamId  (PUT POST GET)`)
+      yield* Console.log(`  ┃ FlowC /federation/eventlog-remote`)
+      yield* Console.log(`  ┃ Lnk  /streams/:streamId  (PUT POST GET, backend=${config.lnk.backend})`)
       yield* Console.log(
         `  ┃ Fed  ${config.federation.enabled ? `enabled (${config.federation.peers.length} peers, ${config.federation.pollIntervalMs}ms) /federation/*` : "disabled"}`,
+      )
+      yield* Console.log(
+        `  ┃ FlowC ${config.federation.eventLogRemote.enabled ? `enabled (${config.federation.eventLogRemote.peers.length} peers)` : "disabled"}`,
       )
       yield* Console.log(``)
 
@@ -259,7 +322,8 @@ export const serveCommand = Command.make(
           if (shuttingDown) return
           shuttingDown = true
           server.close()
-          dispose()
+          Effect.runPromise(Scope.close(eventLogRemotePeerScope, Exit.void))
+            .then(() => dispose())
             .then(() => runtime.dispose())
             .catch(() => {})
           _resume(Effect.void)

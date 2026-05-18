@@ -11,11 +11,13 @@
  *
  * # Schema sections
  *
- *   - `node`     — identity + URL the local node advertises
+ *   - `node`     — public URL the local node advertises
+ *   - `identity` — local root identity provider for `pact serve`
  *   - `server`   — port + bind host for `pact serve`
  *   - `client`   — default baseUrl for the CLI's HTTP calls
  *   - `federation` — Flow B peer polling controls for `pact serve`
  *   - `journal`  — EventJournal backend selection
+ *   - `lnk`      — Durable Streams backend selection for mounted LNK routes
  *
  * # Service shape
  *
@@ -46,6 +48,7 @@ import * as Sources from "./Sources.js"
  * ```json
  * {
  *   "node":   { "url": "https://pct.example.com" },
+ *   "identity": { "root": { "provider": "file", "filePath": ".pct/identity/root.identity" } },
  *   "server": { "port": 8080, "host": "127.0.0.1" },
  *   "client": { "baseUrl": "http://localhost:8080" },
  *   "federation": {
@@ -53,25 +56,42 @@ import * as Sources from "./Sources.js"
  *     "pollIntervalMs": 5000,
  *     "peers": ["http://peer-a:8080"]
  *   },
- *   "journal": { "backend": "memory" }
+ *   "journal": { "backend": "memory" },
+ *   "lnk": { "backend": "in-memory" }
  * }
  * ```
  *
  * Equivalent env vars (highest precedence):
  *   PCT_NODE_URL=https://pct.example.com
+ *   PCT_IDENTITY_ROOT_PROVIDER=file
+ *   PCT_IDENTITY_ROOT_FILE_PATH=.pct/identity/root.identity
  *   PCT_SERVER_PORT=8080
  *   PCT_SERVER_HOST=127.0.0.1
  *   PCT_CLIENT_BASE_URL=http://localhost:8080
  *   PCT_FEDERATION_ENABLED=true
  *   PCT_FEDERATION_POLL_INTERVAL_MS=5000
  *   PCT_FEDERATION_PEERS_0=http://peer-a:8080
+ *   PCT_FEDERATION_EVENT_LOG_REMOTE_ENABLED=true
+ *   PCT_FEDERATION_EVENT_LOG_REMOTE_PEERS_0=http://peer-a:8080
  *   PCT_JOURNAL_BACKEND=memory
  *   PCT_JOURNAL_DATABASE=pct-registry
+ *   PCT_JOURNAL_ENTRY_TABLE=pct_event_journal
+ *   PCT_JOURNAL_REMOTES_TABLE=pct_event_remotes
+ *   PCT_LNK_BACKEND=in-memory
+ *   PCT_LNK_NATS_SUBJECT_ROOT=_tmnl.lnk.stream
  */
 export const PactConfigSchema = Schema.Struct({
   node: Schema.Struct({
     /** Optional public URL the node advertises in its Manifest. */
     url: Schema.optional(Schema.String),
+  }),
+  identity: Schema.Struct({
+    root: Schema.Struct({
+      /** Local root identity provider. `file` is stable across restarts. */
+      provider: Schema.Literals(["ephemeral", "file"]),
+      /** File path for `file` provider; defaults in serve if omitted. */
+      filePath: Schema.optional(Schema.String),
+    }),
   }),
   server: Schema.Struct({
     /** TCP port to bind. */
@@ -84,18 +104,44 @@ export const PactConfigSchema = Schema.Struct({
     baseUrl: Schema.String,
   }),
   federation: Schema.Struct({
-    /** Enable Flow B manifest-pull federation in `pact serve`. */
+    /** Enable Flow B manifest/delta federation in `pact serve`. */
     enabled: Schema.Boolean,
     /** Peer polling interval in milliseconds. */
     pollIntervalMs: Schema.Int,
     /** Peer base URLs to add when the server starts. */
     peers: Schema.Array(Schema.String),
+    /** Flow C EventLogRemote peer registration. */
+    eventLogRemote: Schema.Struct({
+      enabled: Schema.Boolean,
+      peers: Schema.Array(Schema.String),
+    }),
   }),
   journal: Schema.Struct({
-    /** EventJournal backend. `indexeddb` is for runtimes with IndexedDB. */
-    backend: Schema.Literals(["memory", "indexeddb"]),
+    /**
+     * EventJournal backend.
+     *
+     * - `memory`: tests/dev only
+     * - `indexeddb`: runtimes with IndexedDB
+     * - `postgres`: Effect-smol SqlEventJournal over a provided pg SqlClient
+     */
+    backend: Schema.Literals(["memory", "indexeddb", "postgres"]),
     /** Optional database name for indexeddb backend. */
     database: Schema.optional(Schema.String),
+    /** SQL entry table name for postgres backend. */
+    entryTable: Schema.optional(Schema.String),
+    /** SQL remote sequence table name for postgres backend. */
+    remotesTable: Schema.optional(Schema.String),
+  }),
+  lnk: Schema.Struct({
+    /** Durable Streams backend for mounted LNK routes. */
+    backend: Schema.Literals(["in-memory", "nats-bridge"]),
+    /** Options for the future MSH-backed NatsBridgeWire. */
+    nats: Schema.Struct({
+      subjectRoot: Schema.optional(Schema.String),
+      streamNamePrefix: Schema.optional(Schema.String),
+      metadataBucket: Schema.optional(Schema.String),
+      consumerNamePrefix: Schema.optional(Schema.String),
+    }),
   }),
 })
 
@@ -114,10 +160,17 @@ const PactConfigValueRef = Config.schema(PactConfigSchema)
 
 const DEFAULTS: PactConfigValue = {
   node: {},
+  identity: { root: { provider: "ephemeral" } },
   server: { port: 8080, host: "127.0.0.1" },
   client: { baseUrl: "http://localhost:8080" },
-  federation: { enabled: false, pollIntervalMs: 5000, peers: [] },
+  federation: {
+    enabled: false,
+    pollIntervalMs: 5000,
+    peers: [],
+    eventLogRemote: { enabled: false, peers: [] },
+  },
   journal: { backend: "memory" },
+  lnk: { backend: "in-memory", nats: {} },
 }
 
 /**

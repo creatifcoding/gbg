@@ -18,6 +18,8 @@ import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
 import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
 import * as EventLogEncryption from "effect-v4/unstable/eventlog/EventLogEncryption"
 
+import { PctRegistryStoreId } from "./StoreId.js"
+
 import { Registry } from "./Registry.js"
 import { RegistryGroup } from "./RegistryEvents.js"
 import {
@@ -28,6 +30,8 @@ import {
   onSchemaRegistered,
   type RegistryState,
 } from "./RegistryState.js"
+
+export const RegistryStoreId = PctRegistryStoreId
 
 const schema = EventLog.schema(RegistryGroup)
 
@@ -152,8 +156,11 @@ export const layer = Layer.unwrap(
   Effect.gen(function* () {
     const stateRef = yield* Ref.make<RegistryState>(empty())
     const registryLayer = Layer.succeed(Registry, makeImpl(stateRef))
-    const logLayer = EventLog.layer(schema, handlerLayer(stateRef))
-    return Layer.merge(registryLayer, logLayer)
+    const storeLayer = Layer.succeed(EventLog.CurrentStoreId)(RegistryStoreId)
+    const logLayer = EventLog.layer(schema, handlerLayer(stateRef)).pipe(
+      Layer.provide(storeLayer),
+    )
+    return Layer.mergeAll(registryLayer, logLayer, storeLayer)
   }),
 )
 

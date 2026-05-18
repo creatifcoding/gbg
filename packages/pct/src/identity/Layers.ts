@@ -58,25 +58,33 @@ const deriveNodeId = (publicKey: string): NodeId => {
  * production nodes that need stable identity across restarts —
  * use `layerPersistent` for that.
  */
+export const layerEphemeralWith = (
+  options: FromKeyOptions = {},
+): Layer.Layer<Identity | EventLog.Identity, never, never> =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const eventLogIdentity = yield* EventLog.makeIdentity.pipe(
+        Effect.provide(EventLogEncryption.layerSubtle),
+      )
+      const nodeId = options.nodeId ?? deriveNodeId(eventLogIdentity.publicKey)
+      return Layer.mergeAll(
+        Layer.succeed(Identity, {
+          nodeId,
+          nodeUrl:
+            options.nodeUrl !== undefined
+              ? Option.some(options.nodeUrl)
+              : Option.none(),
+        }),
+        Layer.succeed(EventLog.Identity, eventLogIdentity),
+      )
+    }),
+  )
+
 export const layerEphemeral: Layer.Layer<
   Identity | EventLog.Identity,
   never,
   never
-> = Layer.unwrap(
-  Effect.gen(function* () {
-    const eventLogIdentity = yield* EventLog.makeIdentity.pipe(
-      Effect.provide(EventLogEncryption.layerSubtle),
-    )
-    const nodeId = deriveNodeId(eventLogIdentity.publicKey)
-    return Layer.mergeAll(
-      Layer.succeed(Identity, {
-        nodeId,
-        nodeUrl: Option.none(),
-      }),
-      Layer.succeed(EventLog.Identity, eventLogIdentity),
-    )
-  }),
-)
+> = layerEphemeralWith()
 
 // ─── From-key layer (explicit) ──────────────────────────────────────────────
 

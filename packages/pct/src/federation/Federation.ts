@@ -36,7 +36,6 @@
 
 import * as Context from "effect-v4/Context"
 import type * as Effect from "effect-v4/Effect"
-import type * as Scope from "effect-v4/Scope"
 import type * as EventLogRemote from "effect-v4/unstable/eventlog/EventLogRemote"
 
 import type { PactClientError } from "../client/PactClient.js"
@@ -85,7 +84,7 @@ export interface FederationShape {
    */
   readonly peerEventLogRemote: (
     remote: EventLogRemote.EventLogRemote["Service"],
-  ) => Effect.Effect<void, never, Scope.Scope>
+  ) => Effect.Effect<void>
 }
 
 // ─── Service tag ────────────────────────────────────────────────────────────

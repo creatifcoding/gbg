@@ -61,6 +61,42 @@ const envPathFor = (path: ConfigProvider.Path): ConfigProvider.Path => [
   ...path.map((seg) => (typeof seg === "number" ? seg : Str.constantCase(seg))),
 ]
 
+const readIndexedEnvArray = (
+  env: ReadonlyMap<string, string>,
+  prefix: string,
+): ReadonlyArray<string> | undefined => {
+  const entries: Array<readonly [number, string]> = []
+  for (const [key, value] of env) {
+    const match = key.match(new RegExp(`^${prefix}_(\\d+)$`))
+    if (match?.[1] !== undefined) entries.push([Number(match[1]), value])
+  }
+  if (entries.length === 0) return undefined
+  return entries
+    .sort(([a], [b]) => a - b)
+    .map(([, value]) => value)
+}
+
+const envArrayOverlay = (
+  env: ReadonlyMap<string, string>,
+): ConfigProvider.ConfigProvider => {
+  const federationPeers = readIndexedEnvArray(env, "PCT_FEDERATION_PEERS")
+  const eventLogRemotePeers = readIndexedEnvArray(
+    env,
+    "PCT_FEDERATION_EVENT_LOG_REMOTE_PEERS",
+  )
+  const federation: {
+    peers?: ReadonlyArray<string>
+    eventLogRemote?: { peers: ReadonlyArray<string> }
+  } = {}
+  if (federationPeers !== undefined) federation.peers = federationPeers
+  if (eventLogRemotePeers !== undefined) {
+    federation.eventLogRemote = { peers: eventLogRemotePeers }
+  }
+  return Object.keys(federation).length === 0
+    ? emptyProvider
+    : ConfigProvider.fromUnknown({ federation })
+}
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 export const CONFIG_FILENAME = "pact.config.json"
@@ -83,10 +119,17 @@ const emptyProvider: ConfigProvider.ConfigProvider =
 export const DEFAULTS_PROVIDER: ConfigProvider.ConfigProvider =
   ConfigProvider.fromUnknown({
     node: {},
+    identity: { root: { provider: "ephemeral" } },
     server: { port: 8080, host: "127.0.0.1" },
     client: { baseUrl: "http://localhost:8080" },
-    federation: { enabled: false, pollIntervalMs: 5000, peers: [] },
+    federation: {
+      enabled: false,
+      pollIntervalMs: 5000,
+      peers: [],
+      eventLogRemote: { enabled: false, peers: [] },
+    },
     journal: { backend: "memory" },
+    lnk: { backend: "in-memory", nats: {} },
   })
 
 // ─── File loaders ───────────────────────────────────────────────────────────
@@ -287,8 +330,10 @@ export const stack = (
     // is baked into a custom `make` because ConfigProvider.orElse uses
     // self.get (raw) and bypasses pipe-applied mapInput/prefix.
     const rawEnv = ConfigProvider.fromEnv({ env: Object.fromEntries(env) })
-    const envProvider = ConfigProvider.make((path) =>
-      rawEnv.get(envPathFor(path)),
+    const envProvider = envArrayOverlay(env).pipe(
+      ConfigProvider.orElse(
+        ConfigProvider.make((path) => rawEnv.get(envPathFor(path))),
+      ),
     )
 
     // File chain (in precedence order, head wins per orElse semantics)

@@ -13,6 +13,7 @@ import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 import * as Ref from "effect-v4/Ref"
 import * as Schedule from "effect-v4/Schedule"
+import * as Scope from "effect-v4/Scope"
 import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
 import * as HttpClient from "effect-v4/unstable/http/HttpClient"
 
@@ -72,6 +73,7 @@ export const layer = (
       const httpClient = yield* HttpClient.HttpClient
       const eventLog = yield* EventLog.EventLog
       const eventLogRegistry = yield* EventLog.Registry
+      const serviceScope = yield* Scope.Scope
       const peersRef = yield* Ref.make<ReadonlyMap<string, PeerSyncStatus>>(
         new Map(),
       )
@@ -217,7 +219,7 @@ export const layer = (
       const syncNow: FederationShape["syncNow"] = syncPeer
 
       const peerEventLogRemote: FederationShape["peerEventLogRemote"] =
-        (remote) => eventLogRegistry.registerRemote(remote)
+        (remote) => Scope.provide(eventLogRegistry.registerRemote(remote), serviceScope)
 
       // ── Spawn the poll loop fiber ──────────────────────────────────────
       // Each tick: walk all peers, sync each. Errors logged via the

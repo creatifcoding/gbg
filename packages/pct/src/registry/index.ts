@@ -35,4 +35,5 @@ export {
 
 export * as Delta from "./RegistryDelta.js"
 
+export { PctRegistryStoreId } from "./StoreId.js"
 export { layerMemory } from "./Memory.js"
