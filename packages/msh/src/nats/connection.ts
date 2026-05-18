@@ -17,7 +17,7 @@ import {
   type JetStreamManager,
 } from 'nats.ws';
 
-import { MshConfigTag, MshConfigDefault, type MshConfig } from '../schemas/config';
+import { MshConfigTag, MshConfigDefault, MshConfigCustom, type MshConfig, type MshConfigInput } from '../schemas/config';
 import { Connection } from './errors';
 import { MshAuthService } from '../auth/service';
 import { MshSpan } from '../tracing';
@@ -45,7 +45,8 @@ export class NatsConnectionService extends Context.Service<
   NatsConnectionService,
   NatsConnectionShape
 >()('@tmnl/msh/nats/Connection') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires MshConfigTag. */
+  static readonly layerFromConfig = Layer.effect(
     NatsConnectionService,
     Effect.gen(function* () {
       const config = yield* MshConfigTag;
@@ -125,62 +126,17 @@ export class NatsConnectionService extends Context.Service<
 
       return NatsConnectionService.of({ nc, js, jsm, config });
     }),
-  ).pipe(Layer.provide(MshConfigDefault));
+  );
 
-  /**
-   * Custom layer with user-provided config.
-   */
-  static readonly layerCustom = (
-    config: Parameters<typeof import('../schemas/config').MshConfigCustom>[0],
-  ) => {
-    const { MshConfigCustom } = require('../schemas/config') as typeof import('../schemas/config');
-    return Layer.effect(
-      NatsConnectionService,
-      Effect.gen(function* () {
-        const cfg = yield* MshConfigTag;
+  static readonly layer = NatsConnectionService.layerFromConfig.pipe(
+    Layer.provide(MshConfigDefault),
+  );
 
-        const nc = yield* Effect.acquireRelease(
-          Effect.tryPromise({
-            try: async () => {
-              const svrs: string | string[] = Array.isArray(cfg.servers)
-                  ? [...cfg.servers] as string[]
-                  : cfg.servers as string;
-              return await connect({
-                servers: svrs,
-                name: cfg.name,
-                reconnect: cfg.reconnect,
-                maxReconnectAttempts: cfg.maxReconnectAttempts,
-                reconnectTimeWait: cfg.reconnectDelayMs,
-              });
-            },
-            catch: (err) =>
-              new Connection.ConnectError({
-                message: `Failed to connect to NATS: ${err}`,
-                servers: cfg.servers,
-                cause: err,
-              }),
-          }),
-          (conn) =>
-            Effect.sync(() => {
-              conn.drain().catch(() => {});
-              conn.close().catch(() => {});
-            }),
-        );
-
-        const js = nc.jetstream();
-        const jsm = yield* Effect.tryPromise({
-          try: () => nc.jetstreamManager(),
-          catch: (err) =>
-            new Connection.JetStreamManagerError({
-              message: `Failed to get JetStream manager: ${err}`,
-              cause: err,
-            }),
-        });
-
-        return NatsConnectionService.of({ nc, js, jsm, config: cfg });
-      }),
-    ).pipe(Layer.provide(MshConfigCustom(config)));
-  };
+  /** Custom layer with user-provided config. */
+  static readonly layerCustom = (config: MshConfigInput) =>
+    NatsConnectionService.layerFromConfig.pipe(
+      Layer.provide(MshConfigCustom(config)),
+    );
 }
 
 // =============================================================================

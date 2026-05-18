@@ -104,7 +104,8 @@ export interface NatsStreamServiceShape {
 export class NatsStreamService extends Context.Service<
   NatsStreamService, NatsStreamServiceShape
 >()('@tmnl/msh/nats/Stream') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires NatsInnerService. */
+  static readonly layerFromInner = Layer.effect(
     NatsStreamService,
     Effect.gen(function* () {
       const inner = yield* NatsInnerService;
@@ -228,7 +229,11 @@ export class NatsStreamService extends Context.Service<
         next: (c, sc, o) => next(c, sc, o).pipe(Effect.withSpan(MshSpan.Stream.next)),
       });
     }),
-  ).pipe(Layer.provide(NatsInnerService.layer));
+  );
+
+  static readonly layer = NatsStreamService.layerFromInner.pipe(
+    Layer.provide(NatsInnerService.layer),
+  );
 }
 
 export const NatsStreamServiceLive = NatsStreamService.layer;

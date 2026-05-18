@@ -280,7 +280,8 @@ export class NatsInnerService extends Context.Service<
   NatsInnerService,
   NatsInnerServiceShape
 >()('@tmnl/msh/nats/Inner') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires NatsConnectionService. */
+  static readonly layerFromConnection = Layer.effect(
     NatsInnerService,
     Effect.gen(function* () {
       const { nc, js, jsm, config } = yield* NatsConnectionService;
@@ -683,7 +684,11 @@ export class NatsInnerService extends Context.Service<
         objectStore,
       });
     }),
-  ).pipe(Layer.provide(NatsConnectionService.layer));
+  );
+
+  static readonly layer = NatsInnerService.layerFromConnection.pipe(
+    Layer.provide(NatsConnectionService.layer),
+  );
 }
 
 // =============================================================================

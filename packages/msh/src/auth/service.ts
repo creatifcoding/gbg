@@ -167,7 +167,8 @@ export class MshAuthService extends Context.Service<
   MshAuthService,
   MshAuthServiceShape
 >()('@tmnl/msh/auth/AuthService') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires MshConfigTag. */
+  static readonly layerFromConfig = Layer.effect(
     MshAuthService,
     Effect.gen(function* () {
       const config = yield* MshConfigTag;
@@ -256,14 +257,18 @@ export class MshAuthService extends Context.Service<
         mode: authMode,
       });
     }),
-  ).pipe(Layer.provide(Layer.effect(MshConfigTag, Effect.succeed({
-    servers: 'ws://localhost:9222',
-    name: 'tmnl-msh',
-    reconnect: true,
-    maxReconnectAttempts: 10,
-    reconnectDelayMs: 2000,
-    debug: false,
-  }))));
+  );
+
+  static readonly layer = MshAuthService.layerFromConfig.pipe(
+    Layer.provide(Layer.effect(MshConfigTag, Effect.succeed({
+      servers: 'ws://localhost:9222',
+      name: 'tmnl-msh',
+      reconnect: true,
+      maxReconnectAttempts: 10,
+      reconnectDelayMs: 2000,
+      debug: false,
+    }))),
+  );
 }
 
 export const MshAuthServiceLive = MshAuthService.layer;

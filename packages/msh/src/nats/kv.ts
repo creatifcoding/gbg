@@ -85,7 +85,8 @@ export interface NatsKVServiceShape {
 export class NatsKVService extends Context.Service<
   NatsKVService, NatsKVServiceShape
 >()('@tmnl/msh/nats/KV') {
-  static readonly layer = Layer.effect(
+  /** Injectable layer for tests/custom runtimes. Requires NatsInnerService. */
+  static readonly layerFromInner = Layer.effect(
     NatsKVService,
     Effect.gen(function* () {
       const inner = yield* NatsInnerService;
@@ -208,7 +209,11 @@ export class NatsKVService extends Context.Service<
         history: (b, k, s) => history(b, k, s).pipe(Effect.withSpan(MshSpan.KV.history)),
       });
     }),
-  ).pipe(Layer.provide(NatsInnerService.layer));
+  );
+
+  static readonly layer = NatsKVService.layerFromInner.pipe(
+    Layer.provide(NatsInnerService.layer),
+  );
 }
 
 export const NatsKVServiceLive = NatsKVService.layer;
