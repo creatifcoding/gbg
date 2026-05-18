@@ -51,6 +51,9 @@ const errorMessage = (err: unknown): string => {
 const isStreamNotFoundError = (err: unknown): boolean =>
   errorMessage(err).toLowerCase().includes('stream not found');
 
+const isObjectNotFoundError = (err: unknown): boolean =>
+  errorMessage(err).toLowerCase().includes('object not found');
+
 const wrapJsm = <A, E>(
   operation: () => A | PromiseLike<A>,
   toError: (cause: unknown) => E,
@@ -73,14 +76,6 @@ const wrapJsmNullable = <A, E>(
     Effect.mapError(toError),
   );
 
-const wrapJsmOptional = <A>(
-  operation: () => A | PromiseLike<A>,
-): Effect.Effect<A | null> =>
-  Effect.tryPromise({
-    try: async () => operation(),
-    catch: (cause) => cause,
-  }).pipe(Effect.catch(() => Effect.succeed(null)));
-
 type GetJsm = () => Effect.Effect<JetStreamManager, unknown>;
 
 const wrapJsmWith = <A, E>(
@@ -102,15 +97,6 @@ const wrapJsmNullableWith = <A, E>(
   getJsm().pipe(
     Effect.mapError(toError),
     Effect.flatMap((jsm) => wrapJsmNullable(() => operation(jsm), isAbsent, toError)),
-  );
-
-const wrapJsmOptionalWith = <A>(
-  getJsm: GetJsm,
-  operation: (jsm: JetStreamManager) => A | PromiseLike<A>,
-): Effect.Effect<A | null> =>
-  getJsm().pipe(
-    Effect.flatMap((jsm) => wrapJsmOptional(() => operation(jsm))),
-    Effect.catch(() => Effect.succeed(null)),
   );
 
 // =============================================================================
@@ -640,9 +626,13 @@ export class NatsInnerService extends Context.Service<
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.purge)),
 
         find: (subject) =>
-          wrapJsmOptionalWith(getJsm, (jsm) => jsm.streams.find(subject)).pipe(
-            Effect.withSpan(MshSpan.Inner.Streams.find),
-          ),
+          wrapJsmNullableWith(
+            getJsm,
+            (jsm) => jsm.streams.find(subject),
+            isStreamNotFoundError,
+            (err) =>
+              new Inner.Streams.InfoError({ message: `Failed to find stream for '${subject}'`, streamName: subject, cause: err }),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.find)),
       };
 
       // ─── KV ─────────────────────────────────────────────────────────────
@@ -708,7 +698,8 @@ export class NatsInnerService extends Context.Service<
             try: () => store.info(name),
             catch: (err) => err,
           }).pipe(
-            Effect.catch(() => Effect.succeed(null)),
+            Effect.catchIf(isObjectNotFoundError, () => Effect.succeed(null)),
+            Effect.mapError((err) => new Inner.KV.GetError({ message: `Failed to get object info '${name}'`, bucketName: 'unknown', key: name, cause: err })),
             Effect.withSpan(MshSpan.Inner.ObjectStore.info),
           ),
         get: (store, name) =>

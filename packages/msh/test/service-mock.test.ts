@@ -78,12 +78,14 @@ describe('mock NATS transport', () => {
         yield* inner.core.publish('core.only', bytes('hello'));
         const response = yield* inner.core.request('rpc.core-only', bytes('{"ok":true}'));
         const streamLookup = yield* Effect.result(inner.streams.info('EVENTS'));
-        return { response: response.string(), streamLookup };
+        const streamFind = yield* Effect.result(inner.streams.find('core.only'));
+        return { response: response.string(), streamLookup, streamFind };
       }).pipe(Effect.provide(makeInnerLayer(fixture))),
     );
 
     expect(result.response).toBe('{"ok":true}');
     expect(result.streamLookup._tag).toBe('Failure');
+    expect(result.streamFind._tag).toBe('Failure');
     expect(fixture.state.coreMessages.map((message) => message.subject)).toEqual(['core.only']);
   });
 
@@ -119,6 +121,7 @@ describe('mock NATS transport', () => {
       Effect.gen(function* () {
         const inner = yield* NatsInnerService;
         const missing = yield* inner.streams.info('EVENTS');
+        const missingFind = yield* inner.streams.find('events.missing');
         const added = yield* inner.streams.add({ name: 'EVENTS', subjects: ['events.>'] });
         const found = yield* inner.streams.find('events.created');
         yield* inner.jsPublish('events.created', bytes('{"id":"1","value":42}'));
@@ -128,16 +131,39 @@ describe('mock NATS transport', () => {
         const messages = yield* Effect.promise(() => collectAsyncIterable(batch as any));
         const consumers = yield* inner.consumers.list('EVENTS');
         const listed = yield* Effect.promise(() => collectAsyncIterable(consumers));
-        return { missing, added, found, messages, listed };
+        return { missing, missingFind, added, found, messages, listed };
       }).pipe(Effect.provide(makeInnerLayer(fixture))),
     );
 
     expect(result.missing).toBeNull();
+    expect(result.missingFind).toBeNull();
     expect(result.added.config.name).toBe('EVENTS');
     expect(result.found).toBe('EVENTS');
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].subject).toBe('events.created');
     expect(result.listed).toHaveLength(1);
+  });
+
+  it('classifies object-store info absence separately from operational failures', async () => {
+    const fixture = makeMockNatsFixture();
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const inner = yield* NatsInnerService;
+        const store = yield* inner.objectStore.bucket('objects');
+        const missing = yield* inner.objectStore.info(store, 'missing-object');
+        const failed = yield* Effect.result(inner.objectStore.info({
+          info: () => Promise.reject(new Error('network down')),
+        } as any, 'broken-object'));
+        return { missing, failed };
+      }).pipe(Effect.provide(makeInnerLayer(fixture))),
+    );
+
+    expect(result.missing).toBeNull();
+    expect(result.failed._tag).toBe('Failure');
+    if (result.failed._tag === 'Failure') {
+      expect(result.failed.failure._tag).toBe('Inner/KV/Get');
+    }
   });
 
   it('supports high-level KV put/get/list/history', async () => {
