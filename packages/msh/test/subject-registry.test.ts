@@ -134,6 +134,28 @@ describe('SubjectRegistry', () => {
         const results = yield* reg.query({ domain: 'geoint' as DomainId });
         expect(results.length).toBe(2);
       }).pipe(Effect.provide(SubjectRegistry.layer), Effect.runPromise));
+
+    it('queries patternMatch token-wise instead of as raw regex', () =>
+      Effect.gen(function* () {
+        const reg = yield* SubjectRegistry;
+        const tricky = new SubjectSpec({
+          id: 'geoXnt.flight.position' as SubjectSpecId,
+          domain: 'geoXnt' as DomainId,
+          entityType: 'flight' as EntityType,
+          description: 'Literal boundary regression',
+          pattern: 'geoXnt.flight.{icao24}.position',
+          schemaId: 'FlightPositionEvent',
+          streamMapping: { _tag: 'entityType' as const },
+          registeredAt: new Date(),
+        });
+        yield* reg.register(tricky);
+
+        const matched = yield* reg.query({ patternMatch: 'geoXnt.flight.>' });
+        const notMatched = yield* reg.query({ patternMatch: 'geo.nt.flight.>' });
+
+        expect(matched.map((spec) => spec.id)).toEqual(['geoXnt.flight.position']);
+        expect(notMatched).toEqual([]);
+      }).pipe(Effect.provide(SubjectRegistry.layer), Effect.runPromise));
   });
 
   // =============================================================================
@@ -198,6 +220,13 @@ describe('SubjectRegistry', () => {
       const spec = flightSpec();
       expect(spec.matches('geoint.flight.ABC123.position')).toBe(true);
       expect(spec.matches('geoint.vessel.ABC123.position')).toBe(false);
+    });
+
+    it('treats literal subject tokens literally rather than as regex fragments', () => {
+      const spec = flightSpec();
+      expect(spec.matches('geointXflight.ABC123.position')).toBe(false);
+      expect(spec.matches('geoint.flight.ABC123Xposition')).toBe(false);
+      expect(spec.extractParams('geointXflight.ABC123.position')).toBeNull();
     });
 
     it('extracts params from subject', () => {
