@@ -40,6 +40,46 @@ import { NatsConnectionService } from './connection';
 import { Inner } from './errors';
 import { MshSpan } from '../tracing';
 
+const errorMessage = (err: unknown): string => {
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    return String((err as { readonly message?: unknown }).message ?? err);
+  }
+  return String(err);
+};
+
+const isStreamNotFoundError = (err: unknown): boolean =>
+  errorMessage(err).toLowerCase().includes('stream not found');
+
+const wrapJsm = <A, E>(
+  operation: () => A | PromiseLike<A>,
+  toError: (cause: unknown) => E,
+): Effect.Effect<A, E> =>
+  Effect.tryPromise({
+    try: async () => operation(),
+    catch: toError,
+  });
+
+const wrapJsmNullable = <A, E>(
+  operation: () => A | PromiseLike<A>,
+  isAbsent: (cause: unknown) => boolean,
+  toError: (cause: unknown) => E,
+): Effect.Effect<A | null, E> =>
+  Effect.tryPromise({
+    try: async () => operation(),
+    catch: (cause) => cause,
+  }).pipe(
+    Effect.catchIf(isAbsent, () => Effect.succeed(null)),
+    Effect.mapError(toError),
+  );
+
+const wrapJsmOptional = <A>(
+  operation: () => A | PromiseLike<A>,
+): Effect.Effect<A | null> =>
+  Effect.tryPromise({
+    try: async () => operation(),
+    catch: (cause) => cause,
+  }).pipe(Effect.catch(() => Effect.succeed(null)));
+
 // =============================================================================
 // Type Definitions
 // =============================================================================
@@ -426,145 +466,135 @@ export class NatsInnerService extends Context.Service<
           }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.next)),
 
         add: (stream, cfg) =>
-          Effect.tryPromise({
-            try: () =>
-              jsm.consumers.add(stream, {
-                durable_name: cfg.durableName,
-                deliver_policy: cfg.deliverPolicy as any,
-                ack_policy: cfg.ackPolicy as any,
-                replay_policy: cfg.replayPolicy as any,
-                filter_subject: cfg.filterSubject,
-                filter_subjects: cfg.filterSubjects ? [...cfg.filterSubjects] : undefined,
-                ack_wait: cfg.ackWait,
-                max_deliver: cfg.maxDeliver,
-                max_ack_pending: cfg.maxAckPending,
-                max_waiting: cfg.maxWaiting,
-                max_batch: cfg.maxBatch,
-                max_bytes: cfg.maxBytes,
-                idle_heartbeat: cfg.idleHeartbeat,
-              } as ConsumerConfig),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.consumers.add(stream, {
+              durable_name: cfg.durableName,
+              deliver_policy: cfg.deliverPolicy as any,
+              ack_policy: cfg.ackPolicy as any,
+              replay_policy: cfg.replayPolicy as any,
+              filter_subject: cfg.filterSubject,
+              filter_subjects: cfg.filterSubjects ? [...cfg.filterSubjects] : undefined,
+              ack_wait: cfg.ackWait,
+              max_deliver: cfg.maxDeliver,
+              max_ack_pending: cfg.maxAckPending,
+              max_waiting: cfg.maxWaiting,
+              max_batch: cfg.maxBatch,
+              max_bytes: cfg.maxBytes,
+              idle_heartbeat: cfg.idleHeartbeat,
+            } as ConsumerConfig),
+            (err) =>
               new Inner.Consumers.AddError({
                 message: `Failed to add consumer to '${stream}'`,
                 streamName: stream,
                 cause: err,
               }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.add)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.add)),
 
         info: (stream, name) =>
-          Effect.tryPromise({
-            try: () => jsm.consumers.info(stream, name),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.consumers.info(stream, name),
+            (err) =>
               new Inner.Consumers.GetError({
                 message: `Failed to get consumer info '${name}' on '${stream}'`,
                 streamName: stream,
                 consumerName: name,
                 cause: err,
               }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.info)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.info)),
 
         delete: (stream, name) =>
-          Effect.tryPromise({
-            try: () => jsm.consumers.delete(stream, name),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.consumers.delete(stream, name),
+            (err) =>
               new Inner.Consumers.DeleteError({
                 message: `Failed to delete consumer '${name}' from '${stream}'`,
                 streamName: stream,
                 consumerName: name,
                 cause: err,
               }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.delete)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.delete)),
 
         list: (stream) =>
-          Effect.tryPromise({
-            try: async () => jsm.consumers.list(stream),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.consumers.list(stream),
+            (err) =>
               new Inner.Consumers.GetError({
                 message: `Failed to list consumers for '${stream}'`,
                 streamName: stream,
                 cause: err,
               }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.list)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.list)),
       };
 
       // ─── STREAMS ────────────────────────────────────────────────────────
 
       const streams: NatsInnerServiceShape['streams'] = {
         info: (name) =>
-          Effect.tryPromise({
-            try: async () => {
-              try { return await jsm.streams.info(name); }
-              catch (err: any) {
-                if (err?.message?.includes('stream not found')) return null;
-                throw err;
-              }
-            },
-            catch: (err) =>
+          wrapJsmNullable(
+            () => jsm.streams.info(name),
+            isStreamNotFoundError,
+            (err) =>
               new Inner.Streams.InfoError({ message: `Failed to get stream '${name}'`, streamName: name, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.info)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.info)),
 
         add: (cfg) =>
-          Effect.tryPromise({
-            try: () =>
-              jsm.streams.add({
-                name: cfg.name,
-                subjects: cfg.subjects ? [...cfg.subjects] : undefined,
-                storage: cfg.storage as any,
-                retention: cfg.retention as any,
-                max_age: cfg.maxAge,
-                max_bytes: cfg.maxBytes,
-                max_msgs: cfg.maxMsgs,
-                max_msg_size: cfg.maxMsgSize,
-                num_replicas: cfg.replicas,
-                duplicate_window: cfg.duplicateWindow,
-              } as Partial<StreamConfig> & { name: string }),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.streams.add({
+              name: cfg.name,
+              subjects: cfg.subjects ? [...cfg.subjects] : undefined,
+              storage: cfg.storage as any,
+              retention: cfg.retention as any,
+              max_age: cfg.maxAge,
+              max_bytes: cfg.maxBytes,
+              max_msgs: cfg.maxMsgs,
+              max_msg_size: cfg.maxMsgSize,
+              num_replicas: cfg.replicas,
+              duplicate_window: cfg.duplicateWindow,
+            } as Partial<StreamConfig> & { name: string }),
+            (err) =>
               new Inner.Streams.AddError({ message: `Failed to create stream '${cfg.name}'`, streamName: cfg.name, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.add)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.add)),
 
         update: (name, cfg) =>
-          Effect.tryPromise({
-            try: () =>
-              jsm.streams.update(name, {
-                subjects: cfg.subjects ? [...cfg.subjects] : undefined,
-                max_age: cfg.maxAge,
-                max_bytes: cfg.maxBytes,
-                max_msgs: cfg.maxMsgs,
-                max_msg_size: cfg.maxMsgSize,
-                num_replicas: cfg.replicas,
-                duplicate_window: cfg.duplicateWindow,
-              } as Partial<StreamUpdateConfig>),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.streams.update(name, {
+              subjects: cfg.subjects ? [...cfg.subjects] : undefined,
+              max_age: cfg.maxAge,
+              max_bytes: cfg.maxBytes,
+              max_msgs: cfg.maxMsgs,
+              max_msg_size: cfg.maxMsgSize,
+              num_replicas: cfg.replicas,
+              duplicate_window: cfg.duplicateWindow,
+            } as Partial<StreamUpdateConfig>),
+            (err) =>
               new Inner.Streams.UpdateError({ message: `Failed to update stream '${name}'`, streamName: name, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.update)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.update)),
 
         delete: (name) =>
-          Effect.tryPromise({
-            try: () => jsm.streams.delete(name),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.streams.delete(name),
+            (err) =>
               new Inner.Streams.DeleteError({ message: `Failed to delete stream '${name}'`, streamName: name, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.delete)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.delete)),
 
         list: (subject) =>
-          Effect.tryPromise({
-            try: async () => jsm.streams.list(subject),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.streams.list(subject),
+            (err) =>
               new Inner.Streams.InfoError({ message: 'Failed to list streams', streamName: subject ?? '*', cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.list)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.list)),
 
         purge: (stream, opts) =>
-          Effect.tryPromise({
-            try: () => jsm.streams.purge(stream, opts as PurgeOpts | undefined),
-            catch: (err) =>
+          wrapJsm(
+            () => jsm.streams.purge(stream, opts as PurgeOpts | undefined),
+            (err) =>
               new Inner.Streams.DeleteError({ message: `Failed to purge '${stream}'`, streamName: stream, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.purge)),
+          ).pipe(Effect.withSpan(MshSpan.Inner.Streams.purge)),
 
         find: (subject) =>
-          Effect.tryPromise({
-            try: async () => { try { return await jsm.streams.find(subject); } catch { return null; } },
-            catch: (err) =>
-              new Inner.Streams.InfoError({ message: `Failed to find stream for '${subject}'`, streamName: subject, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Streams.find)),
+          wrapJsmOptional(() => jsm.streams.find(subject)).pipe(
+            Effect.withSpan(MshSpan.Inner.Streams.find),
+          ),
       };
 
       // ─── KV ─────────────────────────────────────────────────────────────
@@ -627,9 +657,12 @@ export class NatsInnerService extends Context.Service<
           }).pipe(Effect.withSpan(MshSpan.Inner.ObjectStore.bucket)),
         info: (store, name) =>
           Effect.tryPromise({
-            try: async () => { try { return await store.info(name); } catch { return null; } },
-            catch: (err) => new Inner.KV.GetError({ message: `Failed to get object info '${name}'`, bucketName: 'unknown', key: name, cause: err }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.ObjectStore.info)),
+            try: () => store.info(name),
+            catch: (err) => err,
+          }).pipe(
+            Effect.catch(() => Effect.succeed(null)),
+            Effect.withSpan(MshSpan.Inner.ObjectStore.info),
+          ),
         get: (store, name) =>
           Effect.tryPromise({
             try: () => store.get(name),

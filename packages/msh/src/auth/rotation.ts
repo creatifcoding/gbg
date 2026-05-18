@@ -11,7 +11,6 @@
  */
 
 import * as Effect from 'effect-v4/Effect';
-import * as Schema from 'effect-v4/Schema';
 import { MshSpan } from '../tracing';
 import { TokenRotationError } from './schemas';
 
@@ -24,20 +23,25 @@ import { TokenRotationError } from './schemas';
  * NATS JWTs use standard JWT structure: header.payload.signature
  * We only need the payload's `exp` field for rotation scheduling.
  */
-export const parseJwtExpiry = (jwt: string): number | undefined => {
-  try {
-    const parts = jwt.split('.');
-    if (parts.length !== 3) return undefined;
-    // Base64url decode the payload
-    const payload = parts[1];
-    const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(padded);
-    const claims = JSON.parse(decoded) as { exp?: number };
-    return claims.exp;
-  } catch {
-    return undefined;
-  }
-};
+export const parseJwtExpiryEffect = (
+  jwt: string,
+): Effect.Effect<number | undefined> =>
+  Effect.try({
+    try: () => {
+      const parts = jwt.split('.');
+      if (parts.length !== 3) return undefined;
+      // Base64url decode the payload
+      const payload = parts[1];
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = atob(padded);
+      const claims = JSON.parse(decoded) as { exp?: number };
+      return claims.exp;
+    },
+    catch: () => undefined,
+  }).pipe(Effect.catch(() => Effect.succeed(undefined)));
+
+export const parseJwtExpiry = (jwt: string): number | undefined =>
+  Effect.runSync(parseJwtExpiryEffect(jwt));
 
 /**
  * Calculate when to start rotation based on expiry and window.
@@ -72,7 +76,7 @@ export const scheduleRotation = (
   onRotate: () => Effect.Effect<void, TokenRotationError>,
 ): Effect.Effect<void, TokenRotationError> =>
   Effect.gen(function* () {
-    const exp = parseJwtExpiry(jwt);
+    const exp = yield* parseJwtExpiryEffect(jwt);
 
     if (exp === undefined) {
       // No expiry — token doesn't expire, no rotation needed
