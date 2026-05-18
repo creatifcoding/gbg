@@ -48,7 +48,7 @@ events, queries relationship descriptors, and dispatches local entity commands.
 |---|---|---|
 | Asset/Alarm generic helpers remain log-only | `entity/_helpers.ts` helpers log only | Structural/Alarm machines still need the new emitter path when their slices are targeted |
 | Machine emission is only partially wired | WorkOrder + EquipmentState machines accept optional `DomainEventEmitter`; other machines do not yet | Reactor v1 should start with the wired vertical slices only |
-| Event emission is only partially transaction-fused | Reactor v1 source/target paths now fuse EquipmentState transition and WorkOrder suspend with durable EventLog writes; other lifecycle slices still need the same treatment | V1 cascade is atomic at local transaction boundaries; broad IIoT lifecycle hardening remains |
+| Event emission is partially transaction-fused | Reactor v1 source/target paths fuse EquipmentState transition and WorkOrder suspend with durable EventLog writes; WorkOrder reject/resume/complete/fail/cancel/close now share the same status + transition + durable EventLog boundary | V1 cascade and audited WorkOrder lifecycle facts are atomic at local transaction boundaries; non-audited lifecycle notifications remain compatibility paths |
 | Realtime distribution is DTO-based | `EventDistribution` streams compact DTOs, not full EventLog entries | Reactor should treat realtime stream as warm notification and use journal for replay/catch-up |
 | Only WorkOrder has transition audit | Non-WorkOrder machines mostly `state.set()` | Causal DAG and idempotency are incomplete across entities |
 | Graph writes are partially generic | `GraphClient` now has registry-validated generic relationship node/edge APIs; legacy hard-coded helpers still exist | Future slices should use registry APIs and add propagation descriptors |
@@ -404,10 +404,10 @@ fairy tales in the margins.
       EquipmentState slices.
 - [ ] Replace remaining log-only `maybeEmit*` helpers for structural and alarm
       machines as those slices enter scope.
-- [~] Ensure event emission is inside the same local transaction as state +
+- [x] Ensure event emission is inside the same local transaction as state +
       transition audit when the event claims a committed transition. Done for
-      Reactor v1 EquipmentState transition and WorkOrder suspend; remaining
-      lifecycle procedures still need full sweep hardening.
+      Reactor v1 EquipmentState transition and WorkOrder suspend, and for
+      WorkOrder reject/resume/complete/fail/cancel/close lifecycle procedures.
 - [x] Ensure EventDistribution publishes only after durable write succeeds, or
       mark the channel explicitly as non-durable telemetry. `DomainEventEmitter`
       strict path now writes durable EventLog first; realtime publish is best-effort

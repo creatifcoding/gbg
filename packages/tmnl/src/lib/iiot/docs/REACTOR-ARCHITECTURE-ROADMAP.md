@@ -226,10 +226,20 @@ state and audit writes.
 
 Deliverables:
 
-- Emission-site audit matrix.
-- Fusion of remaining WorkOrder transition events where applicable.
-- Representative rollback tests for non-suspend commands.
-- Docs that distinguish committed facts from best-effort telemetry.
+- Emission-site audit matrix. **Done:** audited WorkOrder terminal/reversible transitions now share one local boundary.
+- Fusion of remaining WorkOrder transition events where applicable. **Done:** reject, resume, complete, fail, cancel, and close emit durable facts inside the same SQL transaction as status + transition audit writes; suspend was already fused.
+- Representative rollback tests for non-suspend commands. **Done:** complete rollback test proves status and transition rows disappear when durable emission fails.
+- Docs that distinguish committed facts from best-effort telemetry. **Done:** warm realtime remains post-commit notification; durable EventLog facts are written in the local commit boundary.
+
+| Command | State write | Transition audit | Durable EventLog fact | Boundary |
+| --- | --- | --- | --- | --- |
+| `InternalRejectWorkOrder` | yes | yes | `WorkOrderRejected` | single SQL transaction |
+| `InternalSuspendWorkOrder` | yes | yes | `WorkOrderSuspended` | single SQL transaction |
+| `InternalResumeWorkOrder` | yes | yes | `WorkOrderResumed` | single SQL transaction |
+| `InternalCompleteWorkOrder` | yes | yes | `WorkOrderCompleted` | single SQL transaction |
+| `InternalFailWorkOrder` | yes | yes | `WorkOrderFailed` | single SQL transaction |
+| `InternalCancelWorkOrder` | yes | yes | `WorkOrderCancelled` | single SQL transaction |
+| `InternalCloseWorkOrder` | yes | yes | `WorkOrderClosed` | single SQL transaction |
 
 Why it matters: a durable event claiming a committed transition must not diverge
 from state/audit persistence.

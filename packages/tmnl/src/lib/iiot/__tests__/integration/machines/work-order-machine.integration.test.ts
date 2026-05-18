@@ -112,6 +112,18 @@ const failSuspendEmitter: DomainEventEmitterShape = {
   emitEquipmentStateChangedStrict: () => Effect.void,
 }
 
+const failCompleteEmitter: DomainEventEmitterShape = {
+  emitWorkOrderLifecycle: (event: WorkOrderLifecycleEmission) =>
+    failCompleteEmitter.emitWorkOrderLifecycleStrict(event).pipe(Effect.ignore),
+  emitEquipmentStateChanged: (event: EquipmentStateChangedEmission) =>
+    failCompleteEmitter.emitEquipmentStateChangedStrict(event).pipe(Effect.ignore),
+  emitWorkOrderLifecycleStrict: (event: WorkOrderLifecycleEmission) =>
+    event.tag === 'WorkOrderCompleted'
+      ? Effect.fail(new Error('intentional complete event failure'))
+      : Effect.void,
+  emitEquipmentStateChangedStrict: () => Effect.void,
+}
+
 // =============================================================================
 // Tests
 // =============================================================================
@@ -310,6 +322,44 @@ describe.skipIf(!RUN)('WorkOrderMachine Integration', () => {
 
           const transitions = yield* transitionRepo.getByWorkOrderId(created.id)
           expect(transitions.find((transition) => transition.toState === 'suspended')).toBeUndefined()
+        })
+      ).pipe(
+        Effect.scoped,
+        Effect.provide(WorkOrderMachineIntegrationLayer)
+      )
+    )
+
+    it.effect('rolls back complete state + transition when durable event emission fails', () =>
+      withCleanMachineDatabase(
+        Effect.gen(function* () {
+          const state = yield* WorkOrderState
+          const { actor, transitionRepo } = yield* bootMachineWith(failCompleteEmitter)
+
+          const created = yield* actor.send(
+            new InternalCreateWorkOrder({
+              input: createTestWorkOrderInput({ title: 'Complete Event Rollback Test' }),
+            })
+          )
+
+          yield* actor.send(new InternalSubmitWorkOrder({ workOrderId: created.id, submittedBy: 'test-user-001' }))
+          yield* actor.send(new InternalApproveWorkOrder({ workOrderId: created.id, approvedBy: 'supervisor-001' }))
+          yield* actor.send(new InternalStartWorkOrder({ workOrderId: created.id, startedBy: 'technician-001' }))
+
+          const failedComplete = yield* actor.send(
+            new InternalCompleteWorkOrder({
+              workOrderId: created.id,
+              completedBy: 'technician-001',
+              notes: 'event sink down',
+            })
+          ).pipe(Effect.either)
+
+          expect(failedComplete._tag).toBe('Left')
+
+          const persisted = yield* state.get(created.id)
+          expect(persisted.status).toBe('started')
+
+          const transitions = yield* transitionRepo.getByWorkOrderId(created.id)
+          expect(transitions.find((transition) => transition.toState === 'completed')).toBeUndefined()
         })
       ).pipe(
         Effect.scoped,
