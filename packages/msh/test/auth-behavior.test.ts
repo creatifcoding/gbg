@@ -90,6 +90,30 @@ describe('MshAuthService behavior', () => {
     expect(result).toBe('authenticated');
   });
 
+  it('applies semantic lifecycle signals through the auth transition graph', async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const auth = yield* MshAuthService;
+        yield* auth.signal({ _tag: 'CredentialLoadRequested' });
+        const loading = yield* auth.state;
+        yield* auth.signal({ _tag: 'CredentialLoadSucceeded' });
+        const ready = yield* auth.state;
+        const invalid = yield* auth.signal({ _tag: 'CredentialRotationRequested' }).pipe(Effect.result);
+        const afterInvalid = yield* auth.state;
+        return { loading, ready, invalid, afterInvalid };
+      }).pipe(Effect.provide(authLayer(new TokenAuth({ token: Redacted.make('signal-token') })))),
+    );
+
+    expect(result.loading).toBe('loading_credentials');
+    expect(result.ready).toBe('ready');
+    expect(result.invalid._tag).toBe('Failure');
+    if (result.invalid._tag === 'Failure') {
+      expect(result.invalid.failure).toBeInstanceOf(AuthInvariantViolation);
+      expect(result.invalid.failure.message).toContain('CredentialRotationRequested');
+    }
+    expect(result.afterInvalid).toBe('ready');
+  });
+
   it('fails closed on invalid auth state transitions', async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
