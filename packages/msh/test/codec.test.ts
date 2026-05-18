@@ -7,11 +7,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import * as Chunk from 'effect-v4/Chunk';
+import * as Context from 'effect-v4/Context';
 import * as Effect from 'effect-v4/Effect';
+import * as Layer from 'effect-v4/Layer';
+import * as Ref from 'effect-v4/Ref';
 import * as Schema from 'effect-v4/Schema';
+import * as SchemaGetter from 'effect-v4/SchemaGetter';
 
 import { NatsCodec, NatsCodecService } from '../src/nats/codec';
-import { Codec } from '../src/nats/errors';
 
 // =============================================================================
 // Test Schemas
@@ -30,6 +34,49 @@ const ComplexMessage = Schema.Struct({
   })),
   metadata: Schema.optionalKey(Schema.String),
 });
+
+class CodecProbe extends Context.Service<CodecProbe, {
+  readonly delayMs: number;
+  readonly inFlight: Ref.Ref<number>;
+  readonly maxInFlight: Ref.Ref<number>;
+}>()('@tmnl/msh/test/CodecProbe') {}
+
+const makeCodecProbeLayer = (delayMs: number) =>
+  Layer.effect(
+    CodecProbe,
+    Effect.gen(function* () {
+      const inFlight = yield* Ref.make(0);
+      const maxInFlight = yield* Ref.make(0);
+      return CodecProbe.of({ delayMs, inFlight, maxInFlight });
+    }),
+  );
+
+const recordProbeOverlap = (probe: CodecProbe, value: number) =>
+  Effect.gen(function* () {
+    const current = yield* Ref.updateAndGet(probe.inFlight, (n) => n + 1);
+    yield* Ref.update(probe.maxInFlight, (n) => Math.max(n, current));
+    yield* Effect.sleep(`${probe.delayMs + (5 - value) * 5} millis`);
+    yield* Ref.update(probe.inFlight, (n) => n - 1);
+  });
+
+const DelayedMessage = SimpleMessage.pipe(
+  Schema.decode({
+    decode: SchemaGetter.transformOrFail((value: typeof SimpleMessage.Type) =>
+      Effect.gen(function* () {
+        const probe = yield* CodecProbe;
+        yield* recordProbeOverlap(probe, value.value);
+        return value;
+      }),
+    ),
+    encode: SchemaGetter.transformOrFail((value: typeof SimpleMessage.Type) =>
+      Effect.gen(function* () {
+        const probe = yield* CodecProbe;
+        yield* recordProbeOverlap(probe, value.value);
+        return value;
+      }),
+    ),
+  }),
+);
 
 // =============================================================================
 // Static Codec Tests (NatsCodec)
@@ -167,5 +214,57 @@ describe('NatsCodecService', () => {
 
     expect(result.id).toBe('svc-test');
     expect(result.value).toBe(7);
+  });
+
+  it('encodes batches with the configured concurrency', async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const codec = yield* NatsCodecService;
+        const probe = yield* CodecProbe;
+        const encoded = yield* codec.encodeBatch(
+          DelayedMessage,
+          Chunk.make(
+            { id: 'a', value: 1 },
+            { id: 'b', value: 2 },
+            { id: 'c', value: 3 },
+            { id: 'd', value: 4 },
+          ),
+          { concurrency: 2 },
+        );
+        const maxInFlight = yield* Ref.get(probe.maxInFlight);
+        return { encoded: Array.from(encoded), maxInFlight };
+      }).pipe(
+        Effect.provide(NatsCodecService.layer),
+        Effect.provide(makeCodecProbeLayer(30)),
+      ),
+    );
+
+    expect(result.maxInFlight).toBe(2);
+    expect(result.encoded.map((item) => item.original.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('decodes batches with the configured concurrency while preserving indexes', async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const codec = yield* NatsCodecService;
+        const probe = yield* CodecProbe;
+        const bytes = Chunk.make(
+          new TextEncoder().encode(JSON.stringify({ id: 'a', value: 1 })),
+          new TextEncoder().encode(JSON.stringify({ id: 'b', value: 2 })),
+          new TextEncoder().encode(JSON.stringify({ id: 'c', value: 3 })),
+          new TextEncoder().encode(JSON.stringify({ id: 'd', value: 4 })),
+        );
+        const decoded = yield* codec.decodeBatch(DelayedMessage, bytes, { subject: 'batch' }, { concurrency: 2 });
+        const maxInFlight = yield* Ref.get(probe.maxInFlight);
+        return { decoded: Array.from(decoded), maxInFlight };
+      }).pipe(
+        Effect.provide(NatsCodecService.layer),
+        Effect.provide(makeCodecProbeLayer(30)),
+      ),
+    );
+
+    expect(result.maxInFlight).toBe(2);
+    expect(result.decoded.map((item) => item.index)).toEqual([0, 1, 2, 3]);
+    expect(result.decoded.map((item) => item.value.id)).toEqual(['a', 'b', 'c', 'd']);
   });
 });

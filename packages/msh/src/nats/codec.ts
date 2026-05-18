@@ -89,6 +89,7 @@ export interface NatsCodecServiceShape {
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+const defaultConcurrency = 4;
 
 const encodeJsonInternal = Effect.fnUntraced(
   function*<S extends Schema.Top>(schema: S, data: S['Type']) {
@@ -131,6 +132,52 @@ const decodeJsonInternal =
     })();
   };
 
+const encodeBatchInternal = <S extends Schema.Top>(
+  schema: S,
+  items: Chunk.Chunk<S['Type']>,
+  opts?: BatchOptions,
+): Effect.Effect<Chunk.Chunk<EncodedItem<S['Type']>>, Codec.EncodeError, S['EncodingServices']> =>
+  pipe(
+    Stream.fromIterable(items),
+    Stream.mapEffect(
+      (item) =>
+        pipe(
+          encodeJsonInternal(schema, item),
+          Effect.map((bytes): EncodedItem<S['Type']> => ({ original: item, bytes })),
+        ),
+      { concurrency: opts?.concurrency ?? defaultConcurrency },
+    ),
+    Stream.runCollect,
+    Effect.map(Chunk.fromIterable),
+  );
+
+const decodeBatchInternal = <S extends Schema.Top>(
+  schema: S,
+  items: Chunk.Chunk<Uint8Array>,
+  context?: DecodeContext,
+  opts?: BatchOptions,
+): Effect.Effect<Chunk.Chunk<DecodedItem<S['Type']>>, Codec.DecodeError, S['DecodingServices']> =>
+  pipe(
+    Stream.fromIterable(items),
+    Stream.zipWithIndex,
+    Stream.mapEffect(
+      ([data, index]) =>
+        pipe(
+          decodeJsonInternal(schema, context)(data),
+          Effect.map(
+            (value): DecodedItem<S['Type']> => ({
+              original: data,
+              value,
+              index,
+            }),
+          ),
+        ),
+      { concurrency: opts?.concurrency ?? defaultConcurrency },
+    ),
+    Stream.runCollect,
+    Effect.map(Chunk.fromIterable),
+  );
+
 // =============================================================================
 // Service Definition (v4 Context.Service)
 // =============================================================================
@@ -154,7 +201,7 @@ export class NatsCodecService extends Context.Service<
                 encodeJsonInternal(schema, item),
                 Effect.map((bytes): EncodedItem<any> => ({ original: item, bytes })),
               ),
-            { concurrency: opts?.concurrency ?? 4 },
+            { concurrency: opts?.concurrency ?? defaultConcurrency },
           ),
         ),
 
@@ -165,31 +212,13 @@ export class NatsCodecService extends Context.Service<
           stream,
           Stream.mapEffect(
             (data: Uint8Array) => decodeJsonInternal(schema, context)(data),
-            { concurrency: opts?.concurrency ?? 4 },
+            { concurrency: opts?.concurrency ?? defaultConcurrency },
           ),
         ),
 
-    encodeBatch: (schema, items, opts) =>
-      Effect.gen(function* () {
-        const arr = Array.from(items) as any[];
-        const results: EncodedItem<any>[] = [];
-        for (const item of arr) {
-          const bytes = yield* encodeJsonInternal(schema, item);
-          results.push({ original: item, bytes });
-        }
-        return results as any;
-      }),
+    encodeBatch: encodeBatchInternal,
 
-    decodeBatch: (schema, items, context, opts) =>
-      Effect.gen(function* () {
-        const arr = Array.from(items) as Uint8Array[];
-        const results: DecodedItem<any>[] = [];
-        for (let i = 0; i < arr.length; i++) {
-          const value = yield* decodeJsonInternal(schema, context)(arr[i]);
-          results.push({ original: arr[i], value, index: i });
-        }
-        return results as any;
-      }),
+    decodeBatch: decodeBatchInternal,
   });
 }
 

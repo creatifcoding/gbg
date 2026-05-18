@@ -1,6 +1,6 @@
 # @tmnl/msh Critical Scrutiny — 2026-05-18
 
-Status: audit findings, not yet remediated.
+Status: remediation in progress; remaining findings are tracked in the #F1021 remediation feature tree.
 
 Baseline before scrutiny:
 
@@ -189,7 +189,10 @@ Recommended fix: inspect NATS error codes and only convert recognized not-found 
 
 ## Lower-priority findings
 
-- `NatsCodec.encodeBatch` / `decodeBatch` accept `concurrency` but currently process sequentially.
+- `NatsCodec.encodeBatch` / `decodeBatch` accept `concurrency` but processed sequentially.
+  - Status: remediated. Service batch operations now route through the same stream-native `Stream.mapEffect(..., { concurrency })` path as codec stream transforms.
+  - Regression: `test/codec.test.ts` uses an effectful delayed schema and `Ref`-tracked in-flight counters to prove `concurrency: 2` overlaps exactly two transforms while preserving batch order/index metadata.
+  - Evidence: `cd packages/msh && bunx vitest run test/codec.test.ts && bunx tsc --noEmit --pretty false`.
 - `parseJwtExpiry` decodes base64url without explicit padding normalization; Bun is tolerant, but this is fragile cross-runtime code.
 - `NatsStreamService.collectMessages` breaks after `limit` without explicitly stopping the pull consumer message iterator in that helper path.
 
