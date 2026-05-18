@@ -28,6 +28,7 @@ import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-
 import { AlarmEventHandlers } from '../handlers/alarm-handlers'
 import { EquipmentStateEventHandlers } from '../handlers/equipment-handlers'
 import { WorkOrderEventHandlers } from '../handlers/work-order-handlers'
+import { StructuralEventHandlers } from '../handlers/structural-handlers'
 
 // =============================================================================
 // EventLog Schema
@@ -170,6 +171,7 @@ export const IIoTEventLogLayer = EventLog.layer(IIoTEventLogSchema)
  * intentionally idempotent and log-only/projection-oriented; they must not throw.
  */
 export const IIoTDomainEventHandlersLayer = Layer.mergeAll(
+  StructuralEventHandlers,
   AlarmEventHandlers,
   EquipmentStateEventHandlers,
   WorkOrderEventHandlers,

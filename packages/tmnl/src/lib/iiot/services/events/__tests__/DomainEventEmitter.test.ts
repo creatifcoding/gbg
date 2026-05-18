@@ -15,9 +15,12 @@ import {
   IIoTEventLogLayer,
 } from '../../../infrastructure/eventlog-layer'
 import { WorkOrder } from '../../../schemas/work-orders'
-import { EquipmentStateEvents, WorkOrderEvents } from '../../../schemas/events/groups'
+import { AlarmEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../../schemas/events/groups'
 import type {
   AssetId,
+  AlarmId,
+  DeviceId,
+  LineId,
   MachineId,
   PropagationId,
   WorkOrderId,
@@ -145,6 +148,81 @@ describe('DomainEventEmitter', () => {
         const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
         expect(payload.propagationId).toBe(propagationId)
         expect(payload.causedByPropagationId).toBe(causedByPropagationId)
+      })
+    ))
+  })
+
+  it('writes selected structural EventGroup facts to the EventJournal', async () => {
+    await Effect.runPromise(withEmitterAndJournal((journal) =>
+      Effect.gen(function* () {
+        const emitter = yield* DomainEventEmitter
+        const payload = {
+          eventId: 'EVT-STRUCTURAL-001' as EventId,
+          occurredAt: DateTime.unsafeNow(),
+          causedBy: 'asset-registry-test',
+          entityId: 'MCH-EMITTER-STRUCTURAL-001' as AssetId,
+          entityType: 'machine' as const,
+          hierarchyPath: ['MCH-EMITTER-STRUCTURAL-001' as AssetId],
+          correlationId: Option.none(),
+          schemaVersion: 1,
+          machineId: 'MCH-EMITTER-STRUCTURAL-001' as MachineId,
+          lineId: 'LIN-EMITTER-001' as LineId,
+          workCellId: Option.none(),
+          name: 'Emitter Machine',
+          machineType: 'cnc_mill',
+          manufacturer: Option.none(),
+          modelNumber: Option.none(),
+          serialNumber: Option.none(),
+          installationDate: Option.none(),
+          description: Option.none(),
+          initialConfig: Option.none(),
+        }
+
+        yield* emitter.emitStructuralEventStrict({ tag: 'MachineCreated', payload })
+
+        const entries = yield* journal.entries
+        expect(entries).toHaveLength(1)
+        expect(entries[0]?.event).toBe('MachineCreated')
+
+        const event = StructuralEvents.events.MachineCreated
+        const decoded = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
+        expect(decoded.machineId).toBe(payload.machineId)
+      })
+    ))
+  })
+
+  it('writes selected alarm EventGroup facts to the EventJournal', async () => {
+    await Effect.runPromise(withEmitterAndJournal((journal) =>
+      Effect.gen(function* () {
+        const emitter = yield* DomainEventEmitter
+        const payload = {
+          eventId: 'EVT-ALARM-001' as EventId,
+          occurredAt: DateTime.unsafeNow(),
+          causedBy: 'alarm-engine-test',
+          entityId: 'MCH-EMITTER-ALARM-001' as AssetId,
+          entityType: 'machine' as const,
+          correlationId: Option.none(),
+          schemaVersion: 1,
+          alarmId: 'ALM-EMITTER-001' as AlarmId,
+          deviceId: 'DEV-EMITTER-001' as DeviceId,
+          severity: 'critical' as const,
+          alarmType: 'high_temperature' as const,
+          triggerValue: 101,
+          thresholdValue: Option.some(90),
+          unit: Option.some('C'),
+          message: Option.some('High temperature'),
+          metadata: Option.none(),
+        }
+
+        yield* emitter.emitAlarmEventStrict({ tag: 'AlarmTriggered', payload })
+
+        const entries = yield* journal.entries
+        expect(entries).toHaveLength(1)
+        expect(entries[0]?.event).toBe('AlarmTriggered')
+
+        const event = AlarmEvents.events.AlarmTriggered
+        const decoded = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
+        expect(decoded.alarmId).toBe(payload.alarmId)
       })
     ))
   })

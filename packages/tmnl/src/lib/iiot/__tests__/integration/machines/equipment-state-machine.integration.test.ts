@@ -76,6 +76,8 @@ const failEquipmentEmitter: DomainEventEmitterShape = {
     failEquipmentEmitter.emitEquipmentStateChangedStrict(event).pipe(Effect.ignore),
   emitWorkOrderLifecycleStrict: () => Effect.void,
   emitEquipmentStateChangedStrict: () => Effect.fail(new Error('intentional equipment event failure')),
+  emitStructuralEventStrict: () => Effect.void,
+  emitAlarmEventStrict: () => Effect.void,
 }
 
 /**

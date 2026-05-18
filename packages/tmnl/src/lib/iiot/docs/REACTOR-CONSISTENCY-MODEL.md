@@ -47,7 +47,7 @@ events, queries relationship descriptors, and dispatches local entity commands.
 | Gap | Evidence | Consequence |
 |---|---|---|
 | Asset/Alarm generic helpers remain log-only | `entity/_helpers.ts` helpers log only | Structural/Alarm machines still need the new emitter path when their slices are targeted |
-| Machine emission is only partially wired | WorkOrder + EquipmentState machines accept optional `DomainEventEmitter`; other machines do not yet | Reactor v1 should start with the wired vertical slices only |
+| Machine emission is partially wired | WorkOrder + EquipmentState machines accept optional `DomainEventEmitter`; `DomainEventEmitter` also exposes strict structural/alarm EventGroup write paths for selected facts | Reactor v1 should start with wired vertical slices; structural/alarm machine ownership can opt into strict durable emission without inventing a second bus |
 | Event emission is partially transaction-fused | Reactor v1 source/target paths fuse EquipmentState transition and WorkOrder suspend with durable EventLog writes; WorkOrder reject/resume/complete/fail/cancel/close now share the same status + transition + durable EventLog boundary | V1 cascade and audited WorkOrder lifecycle facts are atomic at local transaction boundaries; non-audited lifecycle notifications remain compatibility paths |
 | Realtime distribution is DTO-based | `EventDistribution` streams compact DTOs, not full EventLog entries | Reactor should treat realtime stream as warm notification and use journal for replay/catch-up |
 | Only WorkOrder has transition audit | Non-WorkOrder machines mostly `state.set()` | Causal DAG and idempotency are incomplete across entities |
@@ -402,8 +402,10 @@ fairy tales in the margins.
       WorkOrder/Equipment/Alarm groups.
 - [x] Introduce a real `DomainEventEmitter` service for WorkOrder and
       EquipmentState slices.
-- [ ] Replace remaining log-only `maybeEmit*` helpers for structural and alarm
-      machines as those slices enter scope.
+- [~] Replace remaining log-only `maybeEmit*` helpers for structural and alarm
+      machines as those slices enter scope. `DomainEventEmitter` now exposes
+      strict EventGroup-backed structural/alarm write paths; machine-level
+      transactional rollback wiring remains per-slice owner work.
 - [x] Ensure event emission is inside the same local transaction as state +
       transition audit when the event claims a committed transition. Done for
       Reactor v1 EquipmentState transition and WorkOrder suspend, and for

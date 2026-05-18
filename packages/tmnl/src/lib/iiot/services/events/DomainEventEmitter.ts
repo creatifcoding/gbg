@@ -15,6 +15,7 @@
 import { Cause, Context, DateTime, Effect, Layer, Option } from 'effect'
 import * as EventLog from '@effect/experimental/EventLog'
 import { IIoTEventLogSchema } from '../../infrastructure/eventlog-layer'
+import { AlarmEvents, StructuralEvents } from '../../schemas/events/groups'
 import type { WorkOrder } from '../../schemas/work-orders'
 import type { WorkOrderEventTag } from '../../schemas/events/operational/work-order-events'
 import type { EquipmentState as EventEquipmentState } from '../../schemas/events/operational/equipment-state-events'
@@ -49,6 +50,16 @@ export interface EquipmentStateChangedEmission {
   readonly propagationId?: PropagationId
 }
 
+export interface StructuralEventEmission {
+  readonly tag: keyof typeof StructuralEvents.events
+  readonly payload: unknown
+}
+
+export interface AlarmEventEmission {
+  readonly tag: keyof typeof AlarmEvents.events
+  readonly payload: unknown
+}
+
 export interface DomainEventEmitterShape {
   /** Compatibility path: durable + realtime emission; failures are logged and swallowed. */
   readonly emitWorkOrderLifecycle: (event: WorkOrderLifecycleEmission) => Effect.Effect<void>
@@ -58,6 +69,10 @@ export interface DomainEventEmitterShape {
   readonly emitWorkOrderLifecycleStrict: (event: WorkOrderLifecycleEmission) => Effect.Effect<void>
   /** Transactional path: durable write failure is returned to the caller; realtime remains best-effort. */
   readonly emitEquipmentStateChangedStrict: (event: EquipmentStateChangedEmission) => Effect.Effect<void>
+  /** Transactional path for selected structural EventGroup facts. */
+  readonly emitStructuralEventStrict: (event: StructuralEventEmission) => Effect.Effect<void>
+  /** Transactional path for selected alarm EventGroup facts. */
+  readonly emitAlarmEventStrict: (event: AlarmEventEmission) => Effect.Effect<void>
 }
 
 // =============================================================================
@@ -320,11 +335,19 @@ const makeDomainEventEmitter = Effect.gen(function* () {
   const emitEquipmentStateChanged = (event: EquipmentStateChangedEmission): Effect.Effect<void> =>
     emitEquipmentStateChangedStrict(event).pipe(ignoreEmissionFailure('emit EquipmentStateChanged'))
 
+  const emitStructuralEventStrict = (event: StructuralEventEmission): Effect.Effect<void> =>
+    writeEvent(event.tag, event.payload)
+
+  const emitAlarmEventStrict = (event: AlarmEventEmission): Effect.Effect<void> =>
+    writeEvent(event.tag, event.payload)
+
   return DomainEventEmitter.of({
     emitWorkOrderLifecycle,
     emitEquipmentStateChanged,
     emitWorkOrderLifecycleStrict,
     emitEquipmentStateChangedStrict,
+    emitStructuralEventStrict,
+    emitAlarmEventStrict,
   })
 })
 

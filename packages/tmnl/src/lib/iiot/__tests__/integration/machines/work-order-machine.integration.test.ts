@@ -110,6 +110,8 @@ const failSuspendEmitter: DomainEventEmitterShape = {
       ? Effect.fail(new Error('intentional suspend event failure'))
       : Effect.void,
   emitEquipmentStateChangedStrict: () => Effect.void,
+  emitStructuralEventStrict: () => Effect.void,
+  emitAlarmEventStrict: () => Effect.void,
 }
 
 const failCompleteEmitter: DomainEventEmitterShape = {
@@ -122,6 +124,8 @@ const failCompleteEmitter: DomainEventEmitterShape = {
       ? Effect.fail(new Error('intentional complete event failure'))
       : Effect.void,
   emitEquipmentStateChangedStrict: () => Effect.void,
+  emitStructuralEventStrict: () => Effect.void,
+  emitAlarmEventStrict: () => Effect.void,
 }
 
 // =============================================================================

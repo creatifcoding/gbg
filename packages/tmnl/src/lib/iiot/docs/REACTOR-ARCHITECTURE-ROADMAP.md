@@ -294,10 +294,10 @@ structural hierarchy and alarm slices become propagation participants.
 
 Deliverables:
 
-- Audit of log-only helpers and handler-only paths.
-- Durable Schema/EventGroup definitions where missing.
-- DomainEventEmitter/layer wiring for selected events.
-- Strict emission rollback tests or explicit telemetry-only classification.
+- Audit of log-only helpers and handler-only paths. **Done:** structural and alarm slices already have EventGroup schemas; legacy helper paths remain scoped for future machine/entity owners.
+- Durable Schema/EventGroup definitions where missing. **Done:** selected `MachineCreated` and `AlarmTriggered` facts use existing Schema-backed `StructuralEvents`/`AlarmEvents` payloads.
+- DomainEventEmitter/layer wiring for selected events. **Done:** `emitStructuralEventStrict` and `emitAlarmEventStrict` provide durable strict write paths through the shared EventLog schema.
+- Strict emission rollback tests or explicit telemetry-only classification. **Done:** strict emitter tests prove selected structural/alarm facts are written to the EventJournal; state rollback is deferred to the owning structural/alarm machines because Reactor does not own those transitions.
 
 Why it matters: the Reactor can only be as trustworthy as its source facts.
 
