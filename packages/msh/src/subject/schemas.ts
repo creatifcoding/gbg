@@ -80,6 +80,11 @@ export type ConsumerHints = typeof ConsumerHints.Type;
 // SUBJECT SPEC — The Core Definition
 // =============================================================================
 
+const placeholderTokenName = (token: string): string | undefined => {
+  const match = /^\{(\w+)\}$/.exec(token);
+  return match?.[1];
+};
+
 /**
  * SubjectSpec defines a NATS subject with:
  * - Pattern template with typed placeholders
@@ -161,19 +166,28 @@ export class SubjectSpec extends Schema.Class<SubjectSpec>('SubjectSpec')({
    * Extract placeholder names from the pattern.
    */
   placeholders(): string[] {
-    const matches = this.pattern.match(/\{(\w+)\}/g);
-    if (!matches) return [];
-    return matches.map((m) => m.slice(1, -1));
+    return this.pattern
+      .split('.')
+      .flatMap((token) => {
+        const name = placeholderTokenName(token);
+        return name ? [name] : [];
+      });
   }
 
   /**
-   * Check if a concrete subject matches this spec's pattern.
+   * Check if a concrete subject matches this spec's tokenized pattern.
    */
   matches(subject: string): boolean {
-    const regex = new RegExp(
-      '^' + this.pattern.replace(/\{(\w+)\}/g, '[^.]+') + '$',
-    );
-    return regex.test(subject);
+    const patternParts = this.pattern.split('.');
+    const subjectParts = subject.split('.');
+
+    if (patternParts.length !== subjectParts.length) return false;
+
+    return patternParts.every((patternToken, index) => {
+      const subjectToken = subjectParts[index];
+      if (placeholderTokenName(patternToken)) return subjectToken.length > 0;
+      return patternToken === subjectToken;
+    });
   }
 
   /**
@@ -182,18 +196,14 @@ export class SubjectSpec extends Schema.Class<SubjectSpec>('SubjectSpec')({
   extractParams(subject: string): Record<string, string> | null {
     if (!this.matches(subject)) return null;
 
-    const phs = this.placeholders();
     const patternParts = this.pattern.split('.');
     const subjectParts = subject.split('.');
 
     const params: Record<string, string> = {};
-    let phIdx = 0;
 
     for (let i = 0; i < patternParts.length; i++) {
-      if (patternParts[i].includes('{')) {
-        params[phs[phIdx]] = subjectParts[i];
-        phIdx++;
-      }
+      const name = placeholderTokenName(patternParts[i]);
+      if (name) params[name] = subjectParts[i];
     }
 
     return params;
