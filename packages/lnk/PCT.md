@@ -1,6 +1,6 @@
 # `pct` — Pact Protocol
 
-**Status**: Draft 0.2 (working). Not published. Subject to change without notice.
+**Status**: Draft 0.3 (working). Not published. Subject to change without notice.
 
 **Codename**: `pct` — short for *pact*. Schemas are contracts; the registry is the shared pact-book.
 
@@ -59,7 +59,7 @@
 | **Schema-Document** | The serialized JSON form of a Schema, produced by `SchemaRepresentation.fromAST` + `DocumentFromJson` codec. |
 | **Registry** | The authoritative system-of-record for procedures and schemas. Backed by an EventLog. Federated across nodes via `EventLogRemote`. |
 | **Capability catalog** | The result of `GET /capabilities` — a snapshot of all registered procedures and their versions. |
-| **Lnk** | (Existing in `@tmnl/lnk` Phase 2.) A typed handle to a stream. In Phase 3, also a schema-carrier. |
+| **Lnk** | (Existing in `@tmnl/lnk` Phase 2.) A typed handle to a stream, with schema auto-binding through `SchemaResolver` / `TypedLnk`. Future NATS-backed transport is an `@tmnl/msh` composition concern, not a schema-carrier phase. |
 | **Compliant server** | A server that implements all `MUST` requirements at the conformance level it advertises. |
 
 ---
@@ -733,7 +733,17 @@ The reference implementation uses these Effect v4 primitives:
 
 ## Changelog
 
-- **0.2 (Draft, current)** — Major commitments:
+- **0.3 (Draft, current)** — Server composition formalized via the
+  `HttpLayerRouter` pattern. `pct` is implemented as Effect Layers that
+  contribute routes to a shared router; a single host process can serve
+  `pct` + `lnk` + future protocols by `Layer.mergeAll` over their route
+  layers. Conformance now requires multi-protocol embeddability
+  (self-contained-server-only impls are non-conforming). Path namespace
+  conventions specced (`pct`: `/rpc/*`, `/schemas/*`, `/capabilities`,
+  `/snapshots/*`, `/publish`, `/federation/*`; `lnk`: `/streams/*`).
+  Optional path prefix per protocol layer for shared deployments.
+
+- **0.2 (Draft)** — Major commitments:
   - Authoring style: procedures-as-values (B from design deck) — `Procedure.{pure,query,mutation,stream}` returns serializable values; groups are records.
   - Internal layering: event-sourced primary (iii from design deck) — server is a fold over the EventLog; specs change via `pact publish`, not code redeploys.
   - Federation REQUIRED at L3 (was optional in v0.1).

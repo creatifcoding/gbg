@@ -454,23 +454,35 @@ When starting Phase 4 (server runtime) or Phase 5 (Fork):
   protocol mapping for all upstream conformance tests in scope. Lifted
   validation from spec-server into contracts. 241/299 passing, 0 in-scope
   failures.
-- **Phase 2** (⚠ IN PROGRESS): `Lnk` handle — user-facing reactive API as
-  `Effect.YieldableClass<A, E, R>`.
+- **Phase 2** (✅ functional, with deferred sub-phases): `Lnk` handle — user-
+  facing reactive API as `Effect.YieldableClass<A, E, R>`.
   - **Phase 2.0** (✅ DONE): `Lnk` class with driver fiber, PubSub-backed
     `subscribe()`, one-shot `read()`, `append()`/`close()`/`head()`
     delegation, content-type-aware message decoding (raw vs JSON).
-    5 tests, 175/175 internal green.
-  - **Phase 2.1** (next): `Lnks` factory — `RcMap`-cached multi-stream
-    client. `Lnks.connect(streamId, opts)` reuses existing handles by id;
-    refcount + scope-bound disposal.
-  - **Phase 2.2** (next): `IdempotentProducer` Sink with `lingerMs` +
-    `maxBatchBytes` aggregation, `restart()` + `autoClaim` epoch bump.
-  - **Phase 2.3** (next): `@tmnl/stx` materializer integration
-    (`stxLatest`, `stxPull`, `stxFeed`, `stxShared`, `stxDuplex`).
-  - **Phase 2.4** (next): React surface via `AtomRuntime.pull` integration.
-- **Phase 3** (later): NATS-bridge wire — repurpose v1's
-  `StreamBridgeService`/`LiveStreamService`/`ConsumerStateService` against
-  the new `Wire` shape.
+  - **Phase 2.1** (✅ DONE): `Lnks` factory — `RcMap`-cached multi-stream
+    client. `Lnks.connect(streamId, contentType, opts)` reuses existing
+    handles by id; refcount + scope-bound disposal; optional capacity +
+    idle TTL eviction.
+  - **Phase 2.2** (⏸ deferred): `IdempotentProducer` Sink — wraps the
+    existing producer-tracked POST in a Sink for batching (`lingerMs` +
+    `maxBatchBytes`) and auto-restart (`epoch++` on fence). Manual
+    producer-tracked appends already work via `Lnk#append({ producer })`;
+    the Sink layer is a high-throughput convenience.
+  - **Phase 2.3** (✅ DONE): `@tmnl/stx` materializer integration —
+    `lnkLatest(lnk, registry)` and `lnkFeed(lnk, registry, opts)` turn a
+    Lnk into reactive atoms. Composes with stx's React hooks
+    (`useStxLatest`, `useStxFeed`).
+  - **Phase 2.4** (✅ covered by stx hooks): The stx React hooks
+    (`useStxLatest`, `useStxFeed`) directly consume the materializer
+    instances from Phase 2.3. No additional `@tmnl/lnk`-specific React
+    surface needed; an opinionated `useLnk` could be added later if
+    boilerplate-reduction is valuable.
+  - **Tests at end of Phase 2**: 182/182 internal (170 wire + 12 lnks),
+    241/299 upstream (unchanged — Phase 2 doesn't affect wire conformance).
+- **Phase 3** (⏸ RFC-gated): MSH-backed NATS wire adapter — adapt
+  `@tmnl/msh` (`../msh`) NATS/session primitives into the new `Wire` shape.
+  Do not implement a bespoke raw JetStream substrate in `@tmnl/lnk` before
+  the pending Lnk/PCT composition RFC lands.
 - **Phase 4** (deferred from §16): Production HTTP server adapter — TTL
   reaper, ETag/304, browser security headers, long-poll edge cases. ~24
   upstream tests gated here.

@@ -18,6 +18,26 @@
     "./contracts": {
       "import": "./dist/contracts/index.js",
       "types": "./dist/contracts/index.d.ts"
+    },
+    "./services": {
+      "import": "./dist/services/index.js",
+      "types": "./dist/services/index.d.ts"
+    },
+    "./services/lnks": {
+      "import": "./dist/services/lnks/index.js",
+      "types": "./dist/services/lnks/index.d.ts"
+    },
+    "./services/wire": {
+      "import": "./dist/services/wire/index.js",
+      "types": "./dist/services/wire/index.d.ts"
+    },
+    "./services/wire/in-memory": {
+      "import": "./dist/services/wire/in-memory/index.js",
+      "types": "./dist/services/wire/in-memory/index.d.ts"
+    },
+    "./services/wire/http": {
+      "import": "./dist/services/wire/http/index.js",
+      "types": "./dist/services/wire/http/index.d.ts"
     }
   },
   "files": [

@@ -26,7 +26,7 @@ Build an **Effect-native Durable Streams library** that:
    `PubSub`, `unstable/reactivity/Atom`).
 3. Provides a flexible **shim** layer such that the same client API can be
    driven by multiple transports (real HTTP, in-memory test transport,
-   NATS-bridge adapter for our internal infra).
+   and a future `@tmnl/msh`-backed NATS adapter for our internal infra).
 4. Exposes a **reactive React surface** via `@tmnl/stx` streaming materializers
    (`stxLatest`, `stxPull`, `stxFeed`, `stxShared`, `stxDuplex`) — these
    already wrap `effect-v4/unstable/reactivity` atoms with the right semantics
@@ -54,7 +54,7 @@ implementations.
 | Live: `?live=long-poll` / `?live=sse`; client auto-transitions catch-up→live on `Stream-Up-To-Date` | Two separate code paths, custom `_tag: "data"\|"heartbeat"` event union | Doesn't interop with reference servers; reinvented SSE event shape |
 
 **Lesson**: We model the wire spec first, then layer schema validation,
-NATS-bridge transport, and React reactivity on top — never the reverse.
+MSH-backed transport, and React reactivity on top — never the reverse.
 
 ---
 
@@ -130,7 +130,7 @@ We use **two different rungs of the HTTP ladder** for client vs. server.
 | Component | What | Why |
 |---|---|---|
 | `effect/unstable/http/HttpClient` + `FetchHttpClient` | **Client SDK transport** | The wire protocol is header-driven, has SSE + long-poll auto-transition, and chunked bodies. `HttpApiClient`'s typed-derivation cannot capture SSE event types or header-driven control flow without escape hatches. We use raw `HttpClient` for full control. |
-| `effect/unstable/httpapi/HttpApi*` (`HttpApi`, `HttpApiBuilder`) | **Server-side NATS-bridge adapter only** | Declarative endpoint schemas + auto-OpenAPI are valuable for the bridge. Streaming responses fall back to `HttpServerResponse.stream`. |
+| `effect/unstable/httpapi/HttpApi*` (`HttpApi`, `HttpApiBuilder`) | **Server-side bridge adapter only** | Declarative endpoint schemas + auto-OpenAPI are valuable for future bridge work. The NATS path is RFC-gated and should adapt `@tmnl/msh` rather than own raw NATS directly. Streaming responses fall back to `HttpServerResponse.stream`. |
 
 **Decision (locked-in)**: Client SDK = raw `HttpClient`; server bridge = `HttpApi`.
 
@@ -141,7 +141,7 @@ We use **two different rungs of the HTTP ladder** for client vs. server.
 | `Effect.acquireRelease` + `Layer.scoped` | Connection lifecycle, SSE subscription cleanup. |
 | `Scope.provide` (renamed from v3 `Scope.extend`) | Cross-fiber scope handoff. |
 | `Resource` | Auto-refresh on auth-token rotation (calls `head` on schedule). |
-| `Pool` (`Pool.makeWithTTL`) | Server-side NATS connection pool. |
+| `Pool` (`Pool.makeWithTTL`) | Server-side bridge resource pooling when not delegated to `@tmnl/msh`. |
 | **`RcMap<StreamId, DurableStream>`** | Multi-stream client cache. `DurableStreamsClient.connect("foo")` called twice returns the same handle, ref-counted; closes on last release. |
 | `ScopedRef` / `ScopedCache` | SSE re-establishment (replace the connection without tearing down the handle). |
 
@@ -195,7 +195,7 @@ We do not reinvent reactive bindings. `@tmnl/stx` already provides exactly the s
 | `Reactivity` service | Cross-atom invalidation. |
 | `Hydration` | SSR (Tanstack Start integration, future). |
 
-**Phase 4 deliverable** is just a thin React surface: `useDurableStream(streamId, opts)` that internally calls `stxLatest` / `stxPull` / `stxShared` against the `DurableStream`'s underlying `Stream<Message>`.
+**Current stance**: Lnk already exposes stx materializers (`lnkLatest`, `lnkFeed`) rather than owning a separate React hook tier. Any future `useLnk` hook should be convenience-only and built on those materializers.
 
 ### 3.8 EventLog / Observability
 
@@ -247,7 +247,7 @@ We do not reinvent reactive bindings. `@tmnl/stx` already provides exactly the s
 │  ─ Implementations:                                               │
 │    • HttpWireLive       — real HTTP via HttpClient                │
 │    • InMemoryWireLive   — for tests                               │
-│    • NatsBridgeWireLive — server-side adapter (future, Phase 5)   │
+│    • MSH-backed NATS adapter — future Phase 3, RFC-gated          │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
@@ -258,7 +258,7 @@ We do not reinvent reactive bindings. `@tmnl/stx` already provides exactly the s
 
 ### Why this layering works
 
-- **Wire is swappable**: real HTTP, in-memory test, NATS-bridge — all the same shape.
+- **Wire is swappable**: real HTTP, in-memory test, future MSH-backed NATS adapter — all the same shape.
 - **Codec is orthogonal**: schema validation is opt-in and additive.
 - **DurableStream is the user surface**: yieldable, has domain methods, hides the layered guts.
 - **Client is the factory**: ref-counted handle cache via `RcMap`.
@@ -305,53 +305,58 @@ src/contracts/
 
 **Gate**: ✅ `bun run typecheck` clean; ✅ `bun run test:run` 90/90 green; ✅ `bun run build` produces dist.
 
-### Phase 1 — Wire layer (`Wire`)
+### Phase 1 — Wire layer (`Wire`) ✅
 
-- [ ] `Context.Service` over `HttpClient`
-- [ ] Methods: `put(streamId, config)`, `post(streamId, body, headers)`, `get(streamId, opts)`, `head(streamId)`, `delete(streamId)`
-- [ ] Returns parsed headers + raw body `Stream<Uint8Array>`
-- [ ] Backoff/retry as `HttpClient` middleware (exponential w/ jitter)
-- [ ] `HttpWireLive` + `InMemoryWireLive` implementations
-- [ ] Conformance test against in-memory wire
+- [x] `Wire` `Context.Service` shape
+- [x] `InMemoryWire` + `InMemoryInner`
+- [x] `HttpWire` + `HttpInner`
+- [x] Methods: `put`, `post`, `get`, `head`, `delete`
+- [x] Parsed protocol headers + raw body stream surface
+- [x] Internal + upstream conformance coverage for in-scope wire behavior
 
-### Phase 2 — Stream handle (`DurableStream` extends `Effect.YieldableClass`)
+### Phase 2 — Lnk handle + stx materialization ✅ / ⏸
 
-- [ ] `DurableStream` class extending `Effect.YieldableClass<A, E, R>`
-- [ ] Internal `Ref<Option<Message>>` (or `stxLatest` atom in React contexts) for `asEffect()`
-- [ ] Internal `PubSub<Message>` for fan-out
-- [ ] Driver fiber: `Pull`-driven loop with auto catch-up→live transition on `Stream-Up-To-Date`
-- [ ] `read`, `subscribe`, `append`, `appendStream`, `close`, `head`
-- [ ] `DurableStreamsClient` factory with `RcMap`-cached handles
+- [x] `Lnk` class extending `Effect.YieldableClass<A, E, R>`
+- [x] Driver fiber with catch-up → live transition
+- [x] `read`, `subscribe`, `append`, `close`, `head`
+- [x] `Lnks` factory with `RcMap`-cached multi-stream handles
+- [x] `@tmnl/stx` materializers (`lnkLatest`, `lnkFeed`)
+- [ ] `IdempotentProducer` Sink convenience layer — deferred; manual
+      producer-tracked appends already work through `Lnk#append({ producer })`
 
-### Phase 3 — Idempotent Producer (as a `Sink`)
+### Phase 3 — MSH-backed NATS wire adapter ⏸ RFC-gated
 
-- [ ] `IdempotentProducer` modeled as `Sink<CloseResult, AppMessage, never, ProducerError, R>`
-- [ ] Internal state: `epoch`, `nextSeq`, in-flight batch queue
-- [ ] `lingerMs` + `maxBatchBytes` via Sink aggregation combinators
-- [ ] `restart()` → epoch++, reset seq
-- [ ] `autoClaim` mode (on 403, retry with epoch+1)
-- [ ] Conformance against the wire
+Lnk's NATS substrate is **not** a bespoke JetStream implementation inside
+`@tmnl/lnk`. It depends on `@tmnl/msh` (`../msh`) and the pending Lnk/PCT
+composition RFC. Until that RFC lands, this phase is an adapter-design slot,
+not an implementation slot.
 
-### Phase 4 — React/Atom surface
+Likely direction after RFC review:
 
-- [ ] `AtomRuntime.pull(stream.subscribe)` integration
-- [ ] `useDurableStream(streamId, opts)` hook
-- [ ] Optional: AtomHttpApi-style auto-derivation for control-plane API
+- [ ] Adapt `@tmnl/msh` NATS/session primitives into Lnk's `Wire` contract
+- [ ] Preserve opaque offset mapping without leaking JetStream sequence shape
+- [ ] Implement producer epoch/fencing through the MSH-supported state plane
+- [ ] Keep HTTP `/streams/*` semantics and PCT composition boundaries intact
+- [ ] Reuse MSH auth/connection lifecycle rather than opening raw NATS directly
 
-### Phase 5 — Server adapter (`NatsBridgeWireLive`)
+### Phase 4 — Production HTTP server runtime ⏸
 
-This is where v1's `StreamBridgeService` / `LiveStreamService` / `ConsumerStateService` (currently at `tmnl/src/lib/holonet/durable-streams/v1/`) get **repurposed and corrected**:
+- [ ] TTL reaper and retention-drop behavior
+- [ ] ETag / 304 support
+- [ ] Browser/security headers
+- [ ] Long-poll edge cases: cancellation, concurrent timeout, abort handling
 
-- [ ] `HttpApi` + `HttpApiBuilder` for server endpoints (PUT/POST/GET/HEAD/DELETE)
-- [ ] Implements the wire protocol over NATS JetStream
-- [ ] Maps NATS sequence → opaque offset string
-- [ ] Implements `Stream-Closed`, `Stream-Cursor`, retention-drop → 410 Gone
-- [ ] Producer-Epoch fencing via NATS KV consumer state
-- [ ] SSE / long-poll modes via `HttpServerResponse.stream`
+### Phase 5 — Fork / branching streams ⏸
+
+- [ ] `Source-Stream` + `Source-Offset` inputs
+- [ ] Parent pointers / shared-data state / refcounting
+- [ ] Cross-boundary reads and fork-local appends
+- [ ] Soft-delete / cascade-GC semantics
+- [ ] SSE / long-poll behavior across inherited bytes
 
 ### Phase 6 — Observability
 
-- [ ] Migrate `events/` → `effect/unstable/eventlog`
+- [ ] Migrate operation logs to `effect/unstable/eventlog`
 - [ ] Re-wire metrics on `effect/Metric`
 - [ ] `Effect.withSpan` at every layer boundary
 
@@ -370,7 +375,7 @@ This is where v1's `StreamBridgeService` / `LiveStreamService` / `ConsumerStateS
 **Why this matters**:
 - The published TS client uses Promises + `ReadableStream` + callbacks. Wrapping it as Effects costs us native cancellation/tracing/`Cause` introspection at every layer boundary.
 - `IdempotentProducer` in their world is a class with mutable epoch/seq; in ours it's a `Sink<CloseResult, AppMessage>` over `Ref<Epoch>` + `Ref<Seq>`. Different model, can't be wrapped.
-- The server-side adapter (NATS-bridge, Phase 5) has to be built either way — their package is client-only.
+- The server-side adapter has to be built either way — their package is client-only — but our NATS path is RFC-gated and should adapt `@tmnl/msh`, not open a raw JetStream substrate inside Lnk.
 - Their conformance test suite IS the safety net (see §10 Interop).
 
 **What `@durable-streams/client` is to us**:
