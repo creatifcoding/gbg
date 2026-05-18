@@ -245,18 +245,41 @@ const assertKind = (
         message: `Expected ${expected} key, received ${pair.kind} key (${pair.publicKey})`,
       }));
 
+const inferKindFromPublicKey = (publicKey: string): MshNKeyKind | undefined => {
+  switch (publicKey[0]) {
+    case 'O': return 'operator';
+    case 'A': return 'account';
+    case 'U': return 'user';
+    case 'N': return 'server';
+    default: return undefined;
+  }
+};
+
 const createPair = (
   kind: MshNKeyKind,
   kp: KeyPair,
 ): MshNKeyPair => {
-  const seed = decoder.decode(kp.getSeed());
-  const publicKey = kp.getPublicKey();
-  kp.clear();
-  return new MshNKeyPair({
-    kind,
-    publicKey,
-    seed: Redacted.make(seed),
-  });
+  try {
+    const seed = decoder.decode(kp.getSeed());
+    const publicKey = kp.getPublicKey();
+    const actualKind = inferKindFromPublicKey(publicKey);
+
+    if (actualKind !== kind) {
+      throw new Error(
+        actualKind
+          ? `Expected ${kind} nkey seed, decoded ${actualKind} public key (${publicKey})`
+          : `Expected ${kind} nkey seed, decoded unknown public key kind (${publicKey})`,
+      );
+    }
+
+    return new MshNKeyPair({
+      kind,
+      publicKey,
+      seed: Redacted.make(seed),
+    });
+  } finally {
+    kp.clear();
+  }
 };
 
 const mutableStrings = (values: readonly string[] | undefined): string[] | undefined =>
