@@ -23,6 +23,26 @@ import type {
 import { Subject } from './errors';
 import { MshSpan } from '../tracing';
 
+const subjectPatternMatches = (pattern: string, subject: string): boolean => {
+  const patternParts = pattern.split('.');
+  const subjectParts = subject.split('.');
+
+  for (let i = 0; i < patternParts.length; i += 1) {
+    const token = patternParts[i];
+    const subjectToken = subjectParts[i];
+
+    if (token === '>') return i < subjectParts.length;
+    if (subjectToken === undefined) return false;
+    if (token === '*') {
+      if (subjectToken.length === 0) return false;
+      continue;
+    }
+    if (token !== subjectToken) return false;
+  }
+
+  return patternParts.length === subjectParts.length;
+};
+
 // =============================================================================
 // Service Shape
 // =============================================================================
@@ -167,10 +187,7 @@ export class SubjectRegistry extends Context.Service<
             if (q.domain && spec.domain !== q.domain) continue;
             if (q.entityType && spec.entityType !== q.entityType) continue;
             if (q.schemaId && spec.schemaId !== q.schemaId) continue;
-            if (q.patternMatch) {
-              const regex = new RegExp('^' + q.patternMatch.replace(/\*/g, '[^.]+').replace(/>/g, '.+') + '$');
-              if (!regex.test(spec.wildcardPattern())) continue;
-            }
+            if (q.patternMatch && !subjectPatternMatches(q.patternMatch, spec.wildcardPattern())) continue;
             results.push(spec);
           }
           return results;
