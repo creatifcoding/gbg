@@ -87,6 +87,40 @@ describe('property: subject pattern algebra', () => {
       expect(spec.capturePattern()).toBe(`${domain}.${entityType}.>`);
     }
   });
+
+  it('does not let mutated literal tokens match placeholder patterns', () => {
+    const rng = makeRng(0x5afe);
+
+    for (let i = 0; i < 120; i += 1) {
+      const domain = token(rng, 'd') as DomainId;
+      const entityType = token(rng, 'e') as EntityType;
+      const actionName = token(rng, 'a');
+      const entityValue = token(rng, 'v');
+      const pattern = `${domain}.${entityType}.{entityId}.${actionName}`;
+
+      const spec = new SubjectSpec({
+        id: `${domain}.${entityType}.${actionName}` as SubjectSpecId,
+        domain,
+        entityType,
+        description: 'generated subject literal-boundary case',
+        pattern,
+        schemaId: 'PropertyEvent',
+        streamMapping: { _tag: 'entityType' as const },
+        registeredAt: new Date(0),
+      });
+
+      const literalPrefixMutated = `${domain}X${entityType}.${entityValue}.${actionName}`;
+      const literalSuffixMutated = `${domain}.${entityType}.${entityValue}.${actionName}X`;
+      const dottedPlaceholder = `${domain}.${entityType}.${entityValue}.extra.${actionName}`;
+
+      expect(spec.matches(literalPrefixMutated), `case ${i}: ${literalPrefixMutated}`).toBe(false);
+      expect(spec.matches(literalSuffixMutated), `case ${i}: ${literalSuffixMutated}`).toBe(false);
+      expect(spec.matches(dottedPlaceholder), `case ${i}: ${dottedPlaceholder}`).toBe(false);
+      expect(spec.extractParams(literalPrefixMutated)).toBeNull();
+      expect(spec.extractParams(literalSuffixMutated)).toBeNull();
+      expect(spec.extractParams(dottedPlaceholder)).toBeNull();
+    }
+  });
 });
 
 describe('property: codec roundtrip', () => {
