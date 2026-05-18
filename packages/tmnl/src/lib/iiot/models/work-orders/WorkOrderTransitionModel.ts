@@ -15,7 +15,7 @@
 
 import { Schema } from 'effect'
 import { Model } from '@effect/sql'
-import { WorkOrderId } from '../../schemas/identifiers'
+import { PropagationId, WorkOrderId } from '../../schemas/identifiers'
 import { WorkOrderStatus } from '../../schemas/work-orders'
 
 // =============================================================================
@@ -73,4 +73,10 @@ export class WorkOrderTransitionModel extends Model.Class<WorkOrderTransitionMod
 
   /** Reason/justification for transition (FDA requirement for some transitions) */
   reason: Model.FieldOption(Schema.String),
+
+  /** Local propagation id created by this transition, if it fans out. */
+  propagationId: Model.FieldOption(PropagationId),
+
+  /** Inbound propagation id that caused this transition, if any. */
+  causedByPropagationId: Model.FieldOption(PropagationId),
 }) {}

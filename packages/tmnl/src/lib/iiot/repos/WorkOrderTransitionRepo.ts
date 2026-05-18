@@ -15,7 +15,7 @@
 
 import { Schema, Context, Layer, Effect, Option, ParseResult } from 'effect'
 import { SqlClient, SqlError } from '@effect/sql'
-import { WorkOrderId } from '../schemas/identifiers'
+import { PropagationId, WorkOrderId } from '../schemas/identifiers'
 import { WorkOrderTransitionModel } from '../models/work-orders/WorkOrderTransitionModel'
 import { decodeOptional, decodeRows, decodeFirst } from './_decode'
 
@@ -62,6 +62,15 @@ export interface WorkOrderTransitionRepository {
   ) => Effect.Effect<number, SqlError.SqlError>
 
   /**
+   * Check whether an inbound Reactor propagation has already caused a transition.
+   * Used for command-level idempotency before state-graph guards reject duplicates.
+   */
+  readonly hasInboundPropagation: (
+    workOrderId: WorkOrderId,
+    causedByPropagationId: PropagationId,
+  ) => Effect.Effect<boolean, SqlError.SqlError>
+
+  /**
    * Get transitions in a date range for FDA compliance audit trail.
    * Used for regulatory reporting.
    */
@@ -93,7 +102,9 @@ const SELECT_COLUMNS = `
   to_state AS "toState",
   transitioned_at AS "transitionedAt",
   transitioned_by AS "transitionedBy",
-  reason
+  reason,
+  propagation_id AS "propagationId",
+  caused_by_propagation_id AS "causedByPropagationId"
 `
 
 // =============================================================================
@@ -110,6 +121,8 @@ export const WorkOrderTransitionRepoLive = Layer.effect(
         // Convert Option fields to null/value for insert
         const transitionedBy = Option.getOrNull(transition.transitionedBy)
         const reason = Option.getOrNull(transition.reason)
+        const propagationId = Option.getOrNull(transition.propagationId ?? Option.none())
+        const causedByPropagationId = Option.getOrNull(transition.causedByPropagationId ?? Option.none())
 
         const rows = yield* sql`
           INSERT INTO iiot.work_order_transitions (
@@ -117,14 +130,18 @@ export const WorkOrderTransitionRepoLive = Layer.effect(
             from_state,
             to_state,
             transitioned_by,
-            reason
+            reason,
+            propagation_id,
+            caused_by_propagation_id
           )
           VALUES (
             ${transition.workOrderId},
             ${transition.fromState},
             ${transition.toState},
             ${transitionedBy},
-            ${reason}
+            ${reason},
+            ${propagationId},
+            ${causedByPropagationId}
           )
           RETURNING ${sql.unsafe(SELECT_COLUMNS)}
         `
@@ -164,6 +181,19 @@ export const WorkOrderTransitionRepoLive = Layer.effect(
         return (rows[0] as { count: number }).count
       })
 
+    const hasInboundPropagation = (workOrderId: WorkOrderId, causedByPropagationId: PropagationId) =>
+      Effect.gen(function* () {
+        const rows = yield* sql`
+          SELECT EXISTS (
+            SELECT 1
+            FROM iiot.work_order_transitions
+            WHERE work_order_id = ${workOrderId}
+              AND caused_by_propagation_id = ${causedByPropagationId}
+          ) AS exists
+        `
+        return Boolean((rows[0] as { exists: boolean }).exists)
+      })
+
     const getAuditTrail = (params: {
       workOrderId?: WorkOrderId
       startDate: Date
@@ -188,6 +218,7 @@ export const WorkOrderTransitionRepoLive = Layer.effect(
       getByWorkOrderId,
       getLatest,
       count,
+      hasInboundPropagation,
       getAuditTrail,
     } satisfies WorkOrderTransitionRepository
   })

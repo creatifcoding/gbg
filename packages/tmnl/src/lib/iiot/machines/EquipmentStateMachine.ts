@@ -57,8 +57,10 @@
 
 import { Schema, Effect, DateTime, Option } from 'effect'
 import { Machine } from '@effect/experimental'
+import { SqlClient } from '@effect/sql'
 import type { EquipmentStateShapeInterface, EquipmentStateFilter } from '../state/StateShape'
 import type { FeatureFlagsShape } from '../infrastructure/feature-flags'
+import type { DomainEventEmitterShape } from '../services/events'
 import {
   EquipmentState,
   EquipmentStateId,
@@ -253,6 +255,10 @@ export interface EquipmentStateMachineDeps {
   readonly state: EquipmentStateShapeInterface
   /** Feature flags for event emission control */
   readonly flags: FeatureFlagsShape
+  /** Optional durable/realtime domain event emitter */
+  readonly eventEmitter?: DomainEventEmitterShape
+  /** Optional SQL client; when present transition state + durable event writes share one transaction. */
+  readonly sql?: SqlClient.SqlClient
 }
 
 // =============================================================================
@@ -264,14 +270,30 @@ export interface EquipmentStateMachineDeps {
  */
 const maybeEmitEquipmentEvent = (
   flags: FeatureFlagsShape,
+  eventEmitter: DomainEventEmitterShape | undefined,
   eventType: string,
   payload: Record<string, unknown>
 ) =>
   Effect.gen(function* () {
-    if (flags.equipmentStateEventSourcingEnabled) {
-      yield* Effect.logDebug(`[EquipmentStateMachine] Would emit ${eventType}`, payload)
-      // TODO: Wire to EventLog when feature flag enabled
+    if (!flags.equipmentStateEventSourcingEnabled) return
+
+    if (!eventEmitter) {
+      yield* Effect.logWarning(`[EquipmentStateMachine] Skipping ${eventType}: DomainEventEmitter not provided`)
+      return
     }
+
+    if (eventType !== 'EquipmentStateChanged') {
+      yield* Effect.logWarning(`[EquipmentStateMachine] Skipping unsupported event ${eventType}`)
+      return
+    }
+
+    yield* eventEmitter.emitEquipmentStateChangedStrict({
+      machineId: payload['machineId'] as never,
+      previousState: String(payload['fromState']),
+      newState: String(payload['toState']),
+      reason: typeof payload['reason'] === 'string' ? payload['reason'] : undefined,
+      triggeredBy: typeof payload['operatorId'] === 'string' ? payload['operatorId'] : undefined,
+    })
   })
 
 // =============================================================================
@@ -288,7 +310,9 @@ export const makeEquipmentStateMachine = (deps: EquipmentStateMachineDeps) =>
   Machine.make(
     (_input: void, previous?: EquipmentStateMachineState) =>
       Effect.gen(function* () {
-        const { state, flags } = deps
+        const { state, flags, eventEmitter, sql } = deps
+        const transactionally = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+          sql ? sql.withTransaction(effect) : effect
 
         // Initial machine state
         const initialState: EquipmentStateMachineState = previous ?? {
@@ -388,29 +412,38 @@ export const makeEquipmentStateMachine = (deps: EquipmentStateMachineDeps) =>
                       })
                     )
                   }
-
-                  // End current state
-                  yield* state.endCurrent(machineId as MachineId, new Date(Number(now.epochMillis)))
                 }
 
-                // Create new equipment state
-                const newEquipmentState = yield* state.create({
-                  machineId: machineId as MachineId,
-                  state: newState,
-                  reason,
-                  operatorId,
-                  notes,
-                })
+                const newEquipmentState = yield* transactionally(
+                  Effect.gen(function* () {
+                    if (Option.isSome(currentOpt)) {
+                      yield* state.endCurrent(machineId as MachineId, new Date(Number(now.epochMillis)))
+                    }
+
+                    const created = yield* state.create({
+                      machineId: machineId as MachineId,
+                      state: newState,
+                      reason,
+                      operatorId,
+                      notes,
+                    })
+
+                    yield* maybeEmitEquipmentEvent(flags, eventEmitter, 'EquipmentStateChanged', {
+                      machineId,
+                      fromState: currentState,
+                      toState: targetState,
+                      reason: Option.isSome(reason) ? reason.value : undefined,
+                      operatorId: Option.isSome(operatorId) ? operatorId.value : undefined,
+                      equipmentState: created,
+                    })
+
+                    return created
+                  })
+                )
 
                 yield* Effect.logInfo(
                   `[EquipmentStateMachine] Machine ${machineId} transitioned from ${currentState} to ${targetState}`
                 )
-                yield* maybeEmitEquipmentEvent(flags, 'EquipmentStateChanged', {
-                  machineId,
-                  fromState: currentState,
-                  toState: targetState,
-                  equipmentState: newEquipmentState,
-                })
 
                 return [
                   newEquipmentState,

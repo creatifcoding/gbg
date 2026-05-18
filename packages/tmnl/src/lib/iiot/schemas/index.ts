@@ -39,5 +39,11 @@ export * from './approval'
 export * from './workflow-definition'
 export * from './l3-sync'
 
+// Reactor
+export * from './reactor'
+
+// Relationships
+export * from './relationships'
+
 // Errors
 export * from './errors'

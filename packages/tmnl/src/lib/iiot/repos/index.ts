@@ -39,6 +39,9 @@ import { SensorReadingRepoLive } from './SensorReadingRepo'
 import { AggregatedReadingRepoLive } from './AggregatedReadingRepo'
 import { AnalyticsRecordRepoLive } from './AnalyticsRecordRepo'
 
+// Reactor repositories
+import { ReactorCheckpointRepoLive } from './ReactorCheckpointRepo'
+
 // =============================================================================
 // Composed Layers
 // =============================================================================
@@ -120,6 +123,14 @@ export const ReadingRepositoriesLive = Layer.mergeAll(
 )
 
 /**
+ * Reactor repositories.
+ * Requires: SqlClient.SqlClient
+ */
+export const ReactorRepositoriesLive = Layer.mergeAll(
+  ReactorCheckpointRepoLive
+)
+
+/**
  * All IIoT repositories combined
  *
  * Provides:
@@ -130,6 +141,7 @@ export const ReadingRepositoriesLive = Layer.mergeAll(
  * - DeviceConfigRepo (config)
  * - EquipmentStateRepo (equipment states)
  * - WorkOrderRepo (work orders)
+ * - ReactorCheckpointRepo (reactor replay/dedupe)
  *
  * Requires: SqlClient.SqlClient
  */
@@ -140,7 +152,8 @@ export const IIoTRepositoriesLive = Layer.mergeAll(
   ReadingRepositoriesLive,
   ConfigRepositoriesLive,
   EquipmentStateRepositoriesLive,
-  WorkOrderRepositoriesLive
+  WorkOrderRepositoriesLive,
+  ReactorRepositoriesLive
 )
 
 // =============================================================================
@@ -178,3 +191,13 @@ export { EquipmentStateRepo, EquipmentStateRepoLive, type EquipmentStateReposito
 // Work order repos
 export { WorkOrderRepo, WorkOrderRepoLive, type WorkOrderRepository, type WorkOrderRepoError } from './WorkOrderRepo'
 export { WorkOrderTransitionRepo, WorkOrderTransitionRepoLive, type WorkOrderTransitionRepository, type WorkOrderTransitionRepoError } from './WorkOrderTransitionRepo'
+
+// Reactor repos
+export {
+  ReactorCheckpointRepo,
+  ReactorCheckpointRepoLive,
+  ReactorCheckpointRepoInMemory,
+  markProcessedIfPresent,
+  type ReactorCheckpointRepository,
+  type ReactorCheckpointRepoError,
+} from './ReactorCheckpointRepo'

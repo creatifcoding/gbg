@@ -24,6 +24,7 @@ import {
   ReadingEvent,
   AlarmEvent,
   EquipmentStateChange,
+  WorkOrderLifecycleEvent,
   CacheInvalidation,
 } from '../event-distribution'
 import {
@@ -83,6 +84,18 @@ const makeTestEquipmentStateChange = (overrides?: Partial<{
     timestamp: new Date().toISOString(),
   })
 
+const makeTestWorkOrderLifecycleEvent = (overrides?: Partial<{
+  workOrderId: string
+  eventTag: string
+  status: string
+}>) =>
+  new WorkOrderLifecycleEvent({
+    workOrderId: overrides?.workOrderId ?? 'WO-TEST-001',
+    eventTag: overrides?.eventTag ?? 'WorkOrderSuspended',
+    status: overrides?.status ?? 'suspended',
+    timestamp: new Date().toISOString(),
+  })
+
 const makeTestInvalidation = (overrides?: Partial<{
   cacheKey: string
   reason: string
@@ -123,10 +136,12 @@ describe('EventDistribution', () => {
         expect(typeof service.publishReading).toBe('function')
         expect(typeof service.publishAlarmEvent).toBe('function')
         expect(typeof service.publishEquipmentStateChange).toBe('function')
+        expect(typeof service.publishWorkOrderLifecycle).toBe('function')
         expect(typeof service.publishInvalidation).toBe('function')
         expect(service.subscribeReadings).toBeDefined()
         expect(service.subscribeAlarms).toBeDefined()
         expect(service.subscribeEquipmentState).toBeDefined()
+        expect(service.subscribeWorkOrders).toBeDefined()
         expect(service.subscribeInvalidations).toBeDefined()
         expect(service.getMetrics).toBeDefined()
       }))
@@ -255,6 +270,36 @@ describe('EventDistribution', () => {
   })
 
   // ===========================================================================
+  // Work Order PubSub
+  // ===========================================================================
+
+  describe('Work Order PubSub', () => {
+    it('publishWorkOrderLifecycle + subscribeWorkOrders roundtrip', () => {
+      if (SKIP_INTEGRATION || !serverAvailable) return
+      return run(Effect.gen(function* () {
+        const service = yield* EventDistribution
+
+        const stream = yield* service.subscribeWorkOrders
+        const collectFiber = yield* Stream.take(stream, 1).pipe(
+          Stream.runCollect,
+          Effect.fork,
+        )
+
+        yield* yieldForSubscription
+
+        const event = makeTestWorkOrderLifecycleEvent({ workOrderId: 'WO-TEST-ROUNDTRIP' })
+        yield* service.publishWorkOrderLifecycle(event)
+
+        const result = yield* Fiber.join(collectFiber)
+        const items = Chunk.toReadonlyArray(result)
+
+        expect(items).toHaveLength(1)
+        expect(items[0]).toEqual(event)
+      }))
+    })
+  })
+
+  // ===========================================================================
   // Invalidations PubSub
   // ===========================================================================
 
@@ -298,17 +343,20 @@ describe('EventDistribution', () => {
         expect(initial.readingsPublished).toBe(0)
         expect(initial.alarmsPublished).toBe(0)
         expect(initial.equipmentStatePublished).toBe(0)
+        expect(initial.workOrderLifecyclePublished).toBe(0)
         expect(initial.invalidationsPublished).toBe(0)
 
         const readingStream = yield* service.subscribeReadings
         const alarmStream = yield* service.subscribeAlarms
         const eqStream = yield* service.subscribeEquipmentState
+        const workOrderStream = yield* service.subscribeWorkOrders
         const invStream = yield* service.subscribeInvalidations
 
         const f1 = yield* Stream.take(readingStream, 3).pipe(Stream.runDrain, Effect.fork)
         const f2 = yield* Stream.take(alarmStream, 2).pipe(Stream.runDrain, Effect.fork)
         const f3 = yield* Stream.take(eqStream, 1).pipe(Stream.runDrain, Effect.fork)
-        const f4 = yield* Stream.take(invStream, 1).pipe(Stream.runDrain, Effect.fork)
+        const f4 = yield* Stream.take(workOrderStream, 1).pipe(Stream.runDrain, Effect.fork)
+        const f5 = yield* Stream.take(invStream, 1).pipe(Stream.runDrain, Effect.fork)
 
         yield* yieldForSubscription
 
@@ -318,17 +366,20 @@ describe('EventDistribution', () => {
         yield* service.publishAlarmEvent(makeTestAlarm())
         yield* service.publishAlarmEvent(makeTestAlarm())
         yield* service.publishEquipmentStateChange(makeTestEquipmentStateChange())
+        yield* service.publishWorkOrderLifecycle(makeTestWorkOrderLifecycleEvent())
         yield* service.publishInvalidation(makeTestInvalidation())
 
         yield* Fiber.join(f1)
         yield* Fiber.join(f2)
         yield* Fiber.join(f3)
         yield* Fiber.join(f4)
+        yield* Fiber.join(f5)
 
         const metrics = yield* service.getMetrics
         expect(metrics.readingsPublished).toBe(3)
         expect(metrics.alarmsPublished).toBe(2)
         expect(metrics.equipmentStatePublished).toBe(1)
+        expect(metrics.workOrderLifecyclePublished).toBe(1)
         expect(metrics.invalidationsPublished).toBe(1)
       }))
     })

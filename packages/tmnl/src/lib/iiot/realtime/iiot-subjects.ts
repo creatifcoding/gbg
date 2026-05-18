@@ -90,6 +90,28 @@ export const IIoTEquipmentSubject = createSubjectSpec({
 })
 
 /**
+ * Work order lifecycle events.
+ * Pattern: iiot.work_orders.{workOrderId}
+ *
+ * @example
+ * ```typescript
+ * IIoTWorkOrdersSubject.resolve({ workOrderId: 'WO-2026-00042' })
+ * // => "iiot.work_orders.WO-2026-00042"
+ *
+ * IIoTWorkOrdersSubject.wildcardPattern()
+ * // => "iiot.work_orders.*"
+ * ```
+ */
+export const IIoTWorkOrdersSubject = createSubjectSpec({
+  domain: 'iiot',
+  entityType: 'work_orders',
+  pattern: 'iiot.work_orders.{workOrderId}',
+  schemaId: 'WorkOrderLifecycleEvent',
+  description: 'Work order lifecycle events — create, approve, start, suspend, complete',
+  streamMapping: { _tag: 'domain' },
+})
+
+/**
  * Cache invalidation signals.
  * Pattern: iiot.invalidations.{cacheKey}
  *
@@ -122,6 +144,7 @@ export const IIoTSubjects = {
   readings: IIoTReadingsSubject,
   alarms: IIoTAlarmsSubject,
   equipment: IIoTEquipmentSubject,
+  workOrders: IIoTWorkOrdersSubject,
   invalidations: IIoTInvalidationsSubject,
 } as const
 
@@ -132,5 +155,6 @@ export const IIoTSubjectList = [
   IIoTReadingsSubject,
   IIoTAlarmsSubject,
   IIoTEquipmentSubject,
+  IIoTWorkOrdersSubject,
   IIoTInvalidationsSubject,
 ] as const

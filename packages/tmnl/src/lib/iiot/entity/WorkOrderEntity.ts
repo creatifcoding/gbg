@@ -31,6 +31,7 @@ import {
   WorkflowDefinitionId,
   TaskInstanceId,
   AssetId,
+  PropagationId,
 } from '../schemas/identifiers'
 import {
   WorkOrder,
@@ -44,6 +45,7 @@ import {
 import { WorkOrderState } from '../state'
 import { IIoTFeatureFlags } from '../infrastructure/feature-flags'
 import { WorkOrderTransitionRepo } from '../repos'
+import { DomainEventEmitter } from '../services/events'
 import {
   makeWorkOrderMachine,
   InternalCreateWorkOrder,
@@ -214,6 +216,7 @@ export class SuspendWorkOrderRpc extends Rpc.make(WorkOrderSuspendTag, {
     reason: SuspensionReason,
     expectedResume: Schema.optionalWith(Schema.DateTimeUtc, { as: 'Option' }),
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
+    causedByPropagationId: Schema.optionalWith(PropagationId, { as: 'Option' }),
   }),
   primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
@@ -360,11 +363,18 @@ export const WorkOrderEntityHandlers = WorkOrderEntity.toLayer(
     const flags = yield* IIoTFeatureFlags         // Port: feature flags
     const transitionRepo = yield* WorkOrderTransitionRepo  // Port: audit trail
     const sql = yield* SqlClient.SqlClient        // Port: transactions
+    const eventEmitter = yield* Effect.serviceOption(DomainEventEmitter)
 
     // ─────────────────────────────────────────────────────────────────────────
     // MACHINE BOOT (internal actor)
     // ─────────────────────────────────────────────────────────────────────────
-    const workOrderMachine = makeWorkOrderMachine({ state, flags, transitionRepo, sql })
+    const workOrderMachine = makeWorkOrderMachine({
+      state,
+      flags,
+      transitionRepo,
+      sql,
+      eventEmitter: Option.getOrUndefined(eventEmitter),
+    })
     const actor = yield* Machine.boot(workOrderMachine)
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -529,6 +539,7 @@ export const WorkOrderEntityHandlers = WorkOrderEntity.toLayer(
         reason: Schema.Schema.Type<typeof SuspensionReason>
         expectedResume?: Option.Option<DateTime.Utc>
         notes?: Option.Option<string>
+        causedByPropagationId?: Option.Option<PropagationId>
       }
     }) =>
       actor.send(new InternalSuspendWorkOrder({
@@ -536,6 +547,7 @@ export const WorkOrderEntityHandlers = WorkOrderEntity.toLayer(
         suspendedBy: 'system', // TODO: Extract from context
         reason: envelope.payload.reason,
         expectedResume: envelope.payload.expectedResume ?? Option.none<DateTime.Utc>(),
+        causedByPropagationId: envelope.payload.causedByPropagationId ?? Option.none<PropagationId>(),
       })).pipe(
         Effect.catchTags({
           MachineWorkOrderNotFoundError: (e) =>

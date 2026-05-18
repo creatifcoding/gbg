@@ -62,6 +62,14 @@ export class EquipmentStateChange extends Schema.TaggedClass<EquipmentStateChang
   timestamp: Schema.String,
 }) {}
 
+/** Work order lifecycle event for internal distribution. Published to iiot:work_orders channel. */
+export class WorkOrderLifecycleEvent extends Schema.TaggedClass<WorkOrderLifecycleEvent>()('WorkOrderLifecycleEvent', {
+  workOrderId: Schema.String,
+  eventTag: Schema.String,
+  status: Schema.String,
+  timestamp: Schema.String,
+}) {}
+
 /** Cache invalidation signal for internal distribution. Published to iiot:invalidations channel. */
 export class CacheInvalidation extends Schema.TaggedClass<CacheInvalidation>()('CacheInvalidation', {
   cacheKey: Schema.String,
@@ -78,6 +86,7 @@ export interface DistributionMetrics {
   readonly readingsPublished: number
   readonly alarmsPublished: number
   readonly equipmentStatePublished: number
+  readonly workOrderLifecyclePublished: number
   readonly invalidationsPublished: number
   readonly activeSubscribers: number
 }
@@ -86,6 +95,7 @@ const initialMetrics: DistributionMetrics = {
   readingsPublished: 0,
   alarmsPublished: 0,
   equipmentStatePublished: 0,
+  workOrderLifecyclePublished: 0,
   invalidationsPublished: 0,
   activeSubscribers: 0,
 }
@@ -104,11 +114,13 @@ export interface EventDistributionShape {
   readonly publishReading: (reading: ReadingEvent) => Effect.Effect<void>
   readonly publishAlarmEvent: (event: AlarmEvent) => Effect.Effect<void>
   readonly publishEquipmentStateChange: (change: EquipmentStateChange) => Effect.Effect<void>
+  readonly publishWorkOrderLifecycle: (event: WorkOrderLifecycleEvent) => Effect.Effect<void>
   readonly publishInvalidation: (inv: CacheInvalidation) => Effect.Effect<void>
 
   readonly subscribeReadings: Effect.Effect<Stream.Stream<ReadingEvent>>
   readonly subscribeAlarms: Effect.Effect<Stream.Stream<AlarmEvent>>
   readonly subscribeEquipmentState: Effect.Effect<Stream.Stream<EquipmentStateChange>>
+  readonly subscribeWorkOrders: Effect.Effect<Stream.Stream<WorkOrderLifecycleEvent>>
   readonly subscribeInvalidations: Effect.Effect<Stream.Stream<CacheInvalidation>>
 
   readonly getMetrics: Effect.Effect<DistributionMetrics>
@@ -148,6 +160,11 @@ const CHANNELS = {
     id: 'iiot:equipment' as ChannelId,
     inlet: 'iiot:equipment:inlet:in' as InletId,
     outlet: 'iiot:equipment:outlet:out' as OutletId,
+  },
+  workOrders: {
+    id: 'iiot:work_orders' as ChannelId,
+    inlet: 'iiot:work_orders:inlet:in' as InletId,
+    outlet: 'iiot:work_orders:outlet:out' as OutletId,
   },
   invalidations: {
     id: 'iiot:invalidations' as ChannelId,
@@ -191,6 +208,14 @@ const makeEventDistribution = Effect.gen(function* () {
   ).pipe(Effect.orDie)
 
   yield* channels.register(
+    ChannelBuilder.create('iiot:work_orders')
+      .name('IIoT Work Orders')
+      .inlet('in')
+      .outlet('out', { broadcast: true, maxLag: 1_000 })
+      .wire('in', 'out')
+  ).pipe(Effect.orDie)
+
+  yield* channels.register(
     ChannelBuilder.create('iiot:invalidations')
       .name('IIoT Cache Invalidations')
       .inlet('in')
@@ -203,6 +228,7 @@ const makeEventDistribution = Effect.gen(function* () {
   yield* channels.open(CHANNELS.readings.id).pipe(Effect.orDie)
   yield* channels.open(CHANNELS.alarms.id).pipe(Effect.orDie)
   yield* channels.open(CHANNELS.equipment.id).pipe(Effect.orDie)
+  yield* channels.open(CHANNELS.workOrders.id).pipe(Effect.orDie)
   yield* channels.open(CHANNELS.invalidations.id).pipe(Effect.orDie)
 
   // -- Inlet PubSubs (publishers push here, streams pipe into channel inlets) --
@@ -210,6 +236,7 @@ const makeEventDistribution = Effect.gen(function* () {
   const readingsInlet = yield* PubSub.unbounded<ReadingEvent>()
   const alarmsInlet = yield* PubSub.unbounded<AlarmEvent>()
   const equipmentInlet = yield* PubSub.unbounded<EquipmentStateChange>()
+  const workOrdersInlet = yield* PubSub.unbounded<WorkOrderLifecycleEvent>()
   const invalidationsInlet = yield* PubSub.unbounded<CacheInvalidation>()
 
   // -- Connect PubSub streams to channel inlets --
@@ -233,6 +260,13 @@ const makeEventDistribution = Effect.gen(function* () {
     CHANNELS.equipment.inlet,
     Stream.fromPubSub(equipmentInlet),
     'event-distribution:equipment',
+  ).pipe(Effect.orDie)
+
+  yield* channels.connectStream(
+    CHANNELS.workOrders.id,
+    CHANNELS.workOrders.inlet,
+    Stream.fromPubSub(workOrdersInlet),
+    'event-distribution:work-orders',
   ).pipe(Effect.orDie)
 
   yield* channels.connectStream(
@@ -260,6 +294,7 @@ const makeEventDistribution = Effect.gen(function* () {
   yield* forkIngress(bridge.remoteReadings, readingsInlet, 'readings')
   yield* forkIngress(bridge.remoteAlarms, alarmsInlet, 'alarms')
   yield* forkIngress(bridge.remoteEquipment, equipmentInlet, 'equipment')
+  yield* forkIngress(bridge.remoteWorkOrders, workOrdersInlet, 'work-orders')
   yield* forkIngress(bridge.remoteInvalidations, invalidationsInlet, 'invalidations')
 
   // -- Metrics --
@@ -313,6 +348,18 @@ const makeEventDistribution = Effect.gen(function* () {
         Effect.asVoid,
       ),
 
+    publishWorkOrderLifecycle: (event) =>
+      PubSub.publish(workOrdersInlet, event).pipe(
+        Effect.tap(() => bridge.publishWorkOrder(event)),
+        Effect.tap(() =>
+          Ref.update(metrics, (m) => ({
+            ...m,
+            workOrderLifecyclePublished: m.workOrderLifecyclePublished + 1,
+          }))
+        ),
+        Effect.asVoid,
+      ),
+
     publishInvalidation: (inv) =>
       PubSub.publish(invalidationsInlet, inv).pipe(
         Effect.tap(() => bridge.publishInvalidation(inv)),
@@ -340,6 +387,11 @@ const makeEventDistribution = Effect.gen(function* () {
     subscribeEquipmentState: outletStream<EquipmentStateChange>(
       CHANNELS.equipment.id,
       CHANNELS.equipment.outlet,
+    ),
+
+    subscribeWorkOrders: outletStream<WorkOrderLifecycleEvent>(
+      CHANNELS.workOrders.id,
+      CHANNELS.workOrders.outlet,
     ),
 
     subscribeInvalidations: outletStream<CacheInvalidation>(

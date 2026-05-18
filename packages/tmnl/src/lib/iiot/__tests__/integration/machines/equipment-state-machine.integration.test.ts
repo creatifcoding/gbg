@@ -19,6 +19,7 @@ import { it } from '@effect/vitest'
 import { Effect, Option, DateTime } from 'effect'
 import { Machine } from '@effect/experimental'
 import { PgClient } from '@effect/sql-pg'
+import { SqlClient } from '@effect/sql'
 import {
   makeEquipmentStateMachine,
   InternalGetCurrent,
@@ -29,6 +30,7 @@ import {
   InternalGetDurations,
 } from '../../../machines/EquipmentStateMachine'
 import { EquipmentStateService } from '../../../state/EquipmentStateService'
+import type { DomainEventEmitterShape, EquipmentStateChangedEmission, WorkOrderLifecycleEmission } from '../../../services/events'
 import { IIoTFeatureFlags } from '../../../infrastructure/feature-flags'
 import type { StateType, StateReason } from '../../../schemas/equipment-state/schema'
 import { makeEquipmentStateId } from '../../../schemas/equipment-state/schema'
@@ -56,14 +58,24 @@ const nextSlug = (prefix: string) => `${prefix}-${Date.now()}-${++testCounter}`
  * Boot an EquipmentStateMachine backed by the real SQL EquipmentStateService.
  * Dependencies resolved from the integration layer.
  */
-const bootMachine = () =>
+const bootMachine = (eventEmitter?: DomainEventEmitterShape) =>
   Effect.gen(function* () {
     const state = yield* EquipmentStateService
     const flags = yield* IIoTFeatureFlags
-    const machine = makeEquipmentStateMachine({ state, flags })
+    const sql = yield* SqlClient.SqlClient
+    const machine = makeEquipmentStateMachine({ state, flags, eventEmitter, sql })
     const actor = yield* Machine.boot(machine)
     return actor
   })
+
+const failEquipmentEmitter: DomainEventEmitterShape = {
+  emitWorkOrderLifecycle: (event: WorkOrderLifecycleEmission) =>
+    failEquipmentEmitter.emitWorkOrderLifecycleStrict(event).pipe(Effect.ignore),
+  emitEquipmentStateChanged: (event: EquipmentStateChangedEmission) =>
+    failEquipmentEmitter.emitEquipmentStateChangedStrict(event).pipe(Effect.ignore),
+  emitWorkOrderLifecycleStrict: () => Effect.void,
+  emitEquipmentStateChangedStrict: () => Effect.fail(new Error('intentional equipment event failure')),
+}
 
 /**
  * Insert a backdated equipment state directly via SQL for duration testing.
@@ -98,6 +110,36 @@ const insertBackdatedState = (params: {
 // =============================================================================
 
 describe.skipIf(!RUN)('EquipmentStateMachine Integration', () => {
+  describe('transaction-fused event emission', () => {
+    it.effect('rolls back equipment state create when durable event emission fails', () =>
+      withCleanMachineDatabase(
+        Effect.gen(function* () {
+          const machineId = makeMachineId(nextSlug('test'))
+          yield* setupTestMachine(machineId)
+          const state = yield* EquipmentStateService
+          const actor = yield* bootMachine(failEquipmentEmitter)
+
+          const result = yield* actor.send(
+            new InternalTransition({
+              machineId,
+              newState: 'running' as StateType,
+              reason: Option.some('production' as StateReason),
+              operatorId: Option.some('OP-001'),
+              notes: Option.none(),
+            })
+          ).pipe(Effect.either)
+
+          expect(result._tag).toBe('Left')
+          const current = yield* state.getCurrent(machineId)
+          expect(Option.isNone(current)).toBe(true)
+        })
+      ).pipe(
+        Effect.scoped,
+        Effect.provide(EquipmentStateMachineIntegrationLayer)
+      )
+    )
+  })
+
   // ─────────────────────────────────────────────────────────────────────────
   // 1. OEE with real DB durations
   // ─────────────────────────────────────────────────────────────────────────

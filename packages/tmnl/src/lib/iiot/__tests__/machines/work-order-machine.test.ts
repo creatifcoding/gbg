@@ -9,8 +9,10 @@
 
 import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
-import { Effect, Option } from 'effect'
+import { Effect, Layer, Option } from 'effect'
 import { Machine } from '@effect/experimental'
+import * as EventLog from '@effect/experimental/EventLog'
+import * as EventJournal from '@effect/experimental/EventJournal'
 import { SqlClient } from '@effect/sql'
 import {
   makeWorkOrderMachine,
@@ -31,9 +33,15 @@ import { WorkOrderState, WorkOrderStateInMemory } from '../../state'
 import {
   IIoTFeatureFlagsDisabledLayer,
   IIoTFeatureFlags,
+  makeFeatureFlagsLayer,
 } from '../../infrastructure/feature-flags'
+import {
+  IIoTDomainEventHandlersLayer,
+  IIoTEventLogLayer,
+} from '../../infrastructure/eventlog-layer'
+import { DomainEventEmitter, DomainEventEmitterLive } from '../../services/events'
 import type { CreateWorkOrderInput } from '../../state/StateShape'
-import type { WorkflowDefinitionId } from '../../schemas/identifiers'
+import type { PropagationId, WorkflowDefinitionId } from '../../schemas/identifiers'
 import type { WorkOrderTransitionRepository } from '../../repos/WorkOrderTransitionRepo'
 
 // =============================================================================
@@ -49,6 +57,7 @@ const stubTransitionRepo: WorkOrderTransitionRepository = {
   getByWorkOrderId: () => Effect.succeed([]),
   getLatest: () => Effect.succeed(Option.none()),
   count: () => Effect.succeed(0),
+  hasInboundPropagation: () => Effect.succeed(false),
   getAuditTrail: () => Effect.succeed([]),
 }
 
@@ -59,6 +68,22 @@ const stubTransitionRepo: WorkOrderTransitionRepository = {
 const stubSqlClient = {
   withTransaction: <A, E, R>(effect: Effect.Effect<A, E, R>) => effect,
 } as unknown as SqlClient.SqlClient
+
+const makeDomainEventEmitterLayer = (journal: EventJournal.EventJournal.Service) => {
+  const baseLayer = Layer.mergeAll(
+    Layer.succeed(EventJournal.EventJournal, journal),
+    Layer.succeed(EventLog.Identity, EventLog.Identity.makeRandom()),
+    IIoTDomainEventHandlersLayer,
+  )
+
+  return DomainEventEmitterLive.pipe(
+    Layer.provide(IIoTEventLogLayer.pipe(Layer.provide(baseLayer))),
+  )
+}
+
+const WorkOrderEventSourcingEnabledLayer = makeFeatureFlagsLayer({
+  workOrderEventSourcingEnabled: true,
+})
 
 // =============================================================================
 // Test Helpers
@@ -434,6 +459,64 @@ describe('WorkOrderMachine', () => {
   })
 
   describe('SUSPEND/RESUME procedure (graph-validated)', () => {
+    it.effect('records inbound propagation id when Reactor-triggered suspend is requested', () =>
+      Effect.gen(function* () {
+        const captured: Array<Parameters<WorkOrderTransitionRepository['insert']>[0]> = []
+        const capturingRepo: WorkOrderTransitionRepository = {
+          ...stubTransitionRepo,
+          insert: (transition) => {
+            captured.push(transition)
+            return Effect.succeed({} as never)
+          },
+          hasInboundPropagation: (_workOrderId, causedByPropagationId) =>
+            Effect.succeed(captured.some((transition) =>
+              Option.getOrNull(transition.causedByPropagationId) === causedByPropagationId
+            )),
+        }
+        const state = yield* WorkOrderState
+        const flags = yield* IIoTFeatureFlags
+        const machine = makeWorkOrderMachine({
+          state,
+          flags,
+          transitionRepo: capturingRepo,
+          sql: stubSqlClient,
+        })
+        const actor = yield* Machine.boot(machine)
+        const propagationId = 'PROP-REACTOR-UNIT-001' as PropagationId
+
+        const created = yield* actor.send(
+          new InternalCreateWorkOrder({ input: createTestWorkOrderInput() })
+        )
+
+        yield* actor.send(new InternalSubmitWorkOrder({ workOrderId: created.id, submittedBy: 'test-user-001' }))
+        yield* actor.send(new InternalApproveWorkOrder({ workOrderId: created.id, approvedBy: 'supervisor-001' }))
+        yield* actor.send(new InternalStartWorkOrder({ workOrderId: created.id, startedBy: 'technician-001' }))
+        yield* actor.send(new InternalSuspendWorkOrder({
+          workOrderId: created.id,
+          suspendedBy: 'relationship-reactor-v1',
+          reason: 'equipment_unavailable',
+          expectedResume: Option.none(),
+          causedByPropagationId: Option.some(propagationId),
+        }))
+        const duplicate = yield* actor.send(new InternalSuspendWorkOrder({
+          workOrderId: created.id,
+          suspendedBy: 'relationship-reactor-v1',
+          reason: 'equipment_unavailable',
+          expectedResume: Option.none(),
+          causedByPropagationId: Option.some(propagationId),
+        }))
+
+        const suspendTransitions = captured.filter((transition) => transition.toState === 'suspended')
+        expect(duplicate.status).toBe('suspended')
+        expect(suspendTransitions).toHaveLength(1)
+        expect(Option.getOrNull(suspendTransitions[0]!.causedByPropagationId)).toBe(propagationId)
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(WorkOrderStateInMemory),
+        Effect.provide(IIoTFeatureFlagsDisabledLayer)
+      )
+    )
+
     it.effect('suspends and resumes a started work order', () =>
       Effect.gen(function* () {
         const state = yield* WorkOrderState
@@ -460,6 +543,7 @@ describe('WorkOrderMachine', () => {
             suspendedBy: 'technician-001',
             reason: 'awaiting_parts',
             expectedResume: Option.none(),
+            causedByPropagationId: Option.none(),
           })
         )
 
@@ -478,6 +562,57 @@ describe('WorkOrderMachine', () => {
         Effect.provide(WorkOrderStateInMemory),
         Effect.provide(IIoTFeatureFlagsDisabledLayer)
       )
+    )
+  })
+
+  describe('EVENT EMISSION', () => {
+    it.effect('writes WorkOrderSuspended to the EventJournal when event sourcing is enabled', () =>
+      Effect.gen(function* () {
+        const journal = yield* EventJournal.makeMemory
+        const emitterLayer = makeDomainEventEmitterLayer(journal)
+
+        yield* Effect.gen(function* () {
+          const state = yield* WorkOrderState
+          const flags = yield* IIoTFeatureFlags
+          const eventEmitter = yield* DomainEventEmitter
+          const machine = makeWorkOrderMachine({
+            state,
+            flags,
+            transitionRepo: stubTransitionRepo,
+            sql: stubSqlClient,
+            eventEmitter,
+          })
+          const actor = yield* Machine.boot(machine)
+
+          const created = yield* actor.send(
+            new InternalCreateWorkOrder({ input: createTestWorkOrderInput() })
+          )
+
+          yield* actor.send(new InternalSubmitWorkOrder({ workOrderId: created.id, submittedBy: 'test-user-001' }))
+          yield* actor.send(new InternalApproveWorkOrder({ workOrderId: created.id, approvedBy: 'supervisor-001' }))
+          yield* actor.send(new InternalStartWorkOrder({ workOrderId: created.id, startedBy: 'technician-001' }))
+          yield* actor.send(
+            new InternalSuspendWorkOrder({
+              workOrderId: created.id,
+              suspendedBy: 'technician-001',
+              reason: 'awaiting_parts',
+              expectedResume: Option.none(),
+              causedByPropagationId: Option.none(),
+            })
+          )
+
+          const entries = yield* journal.entries
+          const eventTags = entries.map((entry) => entry.event)
+
+          expect(eventTags).toContain('WorkOrderSuspended')
+          expect(eventTags.at(-1)).toBe('WorkOrderSuspended')
+        }).pipe(
+          Effect.scoped,
+          Effect.provide(WorkOrderStateInMemory),
+          Effect.provide(WorkOrderEventSourcingEnabledLayer),
+          Effect.provide(emitterLayer),
+        )
+      })
     )
   })
 

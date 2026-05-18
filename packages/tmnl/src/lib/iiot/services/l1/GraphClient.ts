@@ -59,13 +59,22 @@
 import { Effect, Stream, Context, Layer } from 'effect'
 import { PgClient } from '@effect/sql-pg'
 import type {
+  AssetId,
   DeviceId,
   MachineId,
   LineId,
   PlantId,
+  WorkOrderId,
 } from '../../schemas/identifiers'
 import type { Plant, Line, Machine, Sensor, SensorHierarchy, SensorType, MeasurementUnit } from '../../schemas/assets'
 import { GraphQueryError, HierarchyError } from '../../schemas/errors'
+import {
+  isRelationshipAllowed,
+  type RelationshipEdgeMetadata,
+  type RelationshipEdgeType,
+  type RelationshipEndpoint,
+  type RelationshipNodeType,
+} from '../../schemas/relationships'
 import { IIoTPgClientLive } from './IIoTPgClient'
 
 // =============================================================================
@@ -119,6 +128,27 @@ const parseAgtype = (value: unknown): unknown => {
  */
 const escapeCypher = (value: string): string => {
   return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+}
+
+const nodeIdProperty = (type: RelationshipNodeType): string => {
+  switch (type) {
+    case 'sensor':
+    case 'device':
+      return 'device_id'
+    default:
+      return 'id'
+  }
+}
+
+const cypherMap = (entries: Record<string, string | number | boolean | null | undefined>): string => {
+  const props = Object.entries(entries)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => {
+      if (value === null) return `${key}: null`
+      if (typeof value === 'number' || typeof value === 'boolean') return `${key}: ${String(value)}`
+      return `${key}: '${escapeCypher(value)}'`
+    })
+  return `{${props.join(', ')}}`
 }
 
 // =============================================================================
@@ -341,6 +371,219 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
            CREATE (a)-[:triggered_by]->(s)`,
           '(e agtype)'
         )
+      })
+
+    /**
+     * Create or update a generic relationship node in the graph.
+     *
+     * Labels are restricted by RelationshipNodeType before interpolation.
+     */
+    const upsertRelationshipNode = (
+      endpoint: RelationshipEndpoint,
+      properties: Record<string, string | number | boolean | null | undefined> = {},
+    ): Effect.Effect<void, GraphQueryError> =>
+      Effect.gen(function* () {
+        const idProperty = nodeIdProperty(endpoint.type)
+        const propertyMap = cypherMap({
+          ...properties,
+          [idProperty]: endpoint.id,
+          updated_at: new Date().toISOString(),
+        })
+
+        yield* executeCypher(
+          `MERGE (n:${endpoint.type} {${idProperty}: '${escapeCypher(endpoint.id)}'})
+           SET n += ${propertyMap}`,
+          '(n agtype)'
+        )
+      })
+
+    /**
+     * Create or update a schema-registered relationship edge.
+     */
+    const upsertRelationshipEdge = (input: {
+      readonly source: RelationshipEndpoint
+      readonly target: RelationshipEndpoint
+      readonly edgeType: RelationshipEdgeType
+      readonly metadata: RelationshipEdgeMetadata
+    }): Effect.Effect<void, GraphQueryError> =>
+      Effect.gen(function* () {
+        if (!isRelationshipAllowed({
+          edgeType: input.edgeType,
+          sourceType: input.source.type,
+          targetType: input.target.type,
+        })) {
+          return yield* Effect.fail(new GraphQueryError({
+            query: 'upsertRelationshipEdge',
+            message: `Relationship ${input.source.type} -[:${input.edgeType}]-> ${input.target.type} is not allowed by registry`,
+          }))
+        }
+
+        const sourceIdProperty = nodeIdProperty(input.source.type)
+        const targetIdProperty = nodeIdProperty(input.target.type)
+        const edgeProperties = cypherMap({
+          created_at: new Date().toISOString(),
+          created_by: input.metadata.createdBy,
+          valid_from: input.metadata.validFrom ?? new Date().toISOString(),
+          valid_to: null,
+          reason: input.metadata.reason,
+          version: 1,
+          source_type: input.source.type,
+          target_type: input.target.type,
+          context_json: JSON.stringify(input.metadata.context ?? {}),
+        })
+
+        yield* executeCypher(
+          `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'}),
+                  (target:${input.target.type} {${targetIdProperty}: '${escapeCypher(input.target.id)}'})
+           MERGE (source)-[edge:${input.edgeType}]->(target)
+           SET edge += ${edgeProperties}`,
+          '(edge agtype)'
+        )
+      })
+
+    /**
+     * Soft-delete an active schema-registered relationship edge.
+     */
+    const softDeleteRelationshipEdge = (input: {
+      readonly source: RelationshipEndpoint
+      readonly target: RelationshipEndpoint
+      readonly edgeType: RelationshipEdgeType
+      readonly reason?: string
+    }): Effect.Effect<void, GraphQueryError> =>
+      Effect.gen(function* () {
+        if (!isRelationshipAllowed({
+          edgeType: input.edgeType,
+          sourceType: input.source.type,
+          targetType: input.target.type,
+        })) {
+          return yield* Effect.fail(new GraphQueryError({
+            query: 'softDeleteRelationshipEdge',
+            message: `Relationship ${input.source.type} -[:${input.edgeType}]-> ${input.target.type} is not allowed by registry`,
+          }))
+        }
+
+        const sourceIdProperty = nodeIdProperty(input.source.type)
+        const targetIdProperty = nodeIdProperty(input.target.type)
+        yield* executeCypher(
+          `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'})
+                  -[edge:${input.edgeType}]->
+                 (target:${input.target.type} {${targetIdProperty}: '${escapeCypher(input.target.id)}'})
+           SET edge.valid_to = '${new Date().toISOString()}',
+               edge.deactivation_reason = '${escapeCypher(input.reason ?? 'soft_delete')}'`,
+          '(edge agtype)'
+        )
+      })
+
+    /**
+     * Read target ids for an active schema-registered edge from a source.
+     */
+    const getRelationshipTargetIds = (input: {
+      readonly source: RelationshipEndpoint
+      readonly edgeType: RelationshipEdgeType
+      readonly targetType: RelationshipNodeType
+    }): Effect.Effect<readonly string[], GraphQueryError> =>
+      Effect.gen(function* () {
+        if (!isRelationshipAllowed({
+          edgeType: input.edgeType,
+          sourceType: input.source.type,
+          targetType: input.targetType,
+        })) {
+          return yield* Effect.fail(new GraphQueryError({
+            query: 'getRelationshipTargetIds',
+            message: `Relationship ${input.source.type} -[:${input.edgeType}]-> ${input.targetType} is not allowed by registry`,
+          }))
+        }
+
+        const sourceIdProperty = nodeIdProperty(input.source.type)
+        const targetIdProperty = nodeIdProperty(input.targetType)
+        const result = yield* executeCypher(
+          `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'})
+                  -[edge:${input.edgeType}]->
+                 (target:${input.targetType})
+           WHERE edge.valid_to IS NULL
+           RETURN target.${targetIdProperty} AS target_id
+           ORDER BY target.${targetIdProperty}`,
+          '(target_id agtype)'
+        )
+
+        return result.rows.map((row) => String(row['targetId']))
+      })
+
+    /**
+     * Create or update a work order node in the graph.
+     *
+     * Work orders remain relationally authoritative in iiot.work_orders; this
+     * node is the graph relationship anchor used by Reactor queries.
+     */
+    const upsertWorkOrderNode = (workOrder: {
+      readonly id: WorkOrderId
+      readonly status?: string
+      readonly primaryAssetId?: AssetId
+    }): Effect.Effect<void, GraphQueryError> =>
+      upsertRelationshipNode(
+        { type: 'work_order', id: workOrder.id },
+        {
+          status: workOrder.status,
+          primary_asset_id: workOrder.primaryAssetId,
+        },
+      )
+
+    /**
+     * Link a work order to the machine it targets.
+     *
+     * Creates: (work_order)-[:targets]->(machine)
+     */
+    const linkWorkOrderToMachine = (
+      workOrderId: WorkOrderId,
+      machineId: MachineId,
+    ): Effect.Effect<void, GraphQueryError> =>
+      upsertRelationshipEdge({
+        source: { type: 'work_order', id: workOrderId },
+        target: { type: 'machine', id: machineId },
+        edgeType: 'targets',
+        metadata: {
+          _tag: 'RelationshipEdgeMetadata',
+          createdBy: 'system',
+          reason: 'requires_asset',
+          context: { targetLevel: 'machine' },
+        },
+      })
+
+    /**
+     * Convenience helper for test fixtures and sync adapters.
+     */
+    const upsertWorkOrderTargetingMachine = (workOrder: {
+      readonly id: WorkOrderId
+      readonly status?: string
+      readonly machineId: MachineId
+    }): Effect.Effect<void, GraphQueryError> =>
+      Effect.gen(function* () {
+        yield* upsertWorkOrderNode({
+          id: workOrder.id,
+          status: workOrder.status,
+          primaryAssetId: workOrder.machineId as unknown as AssetId,
+        })
+        yield* linkWorkOrderToMachine(workOrder.id, workOrder.machineId)
+      })
+
+    /**
+     * Find work orders directly targeting a machine.
+     *
+     * Reactor v1 uses this as the graph-backed candidate set before applying
+     * relational pre-dispatch eligibility filters.
+     */
+    const getWorkOrderIdsTargetingMachine = (
+      machineId: MachineId,
+    ): Effect.Effect<readonly WorkOrderId[], GraphQueryError> =>
+      Effect.gen(function* () {
+        const result = yield* executeCypher(
+          `MATCH (wo:work_order)-[:targets]->(m:machine {id: '${escapeCypher(machineId)}'})
+           RETURN wo.id AS work_order_id
+           ORDER BY wo.id`,
+          '(work_order_id agtype)'
+        )
+
+        return result.rows.map((row) => String(row['workOrderId']) as WorkOrderId)
       })
 
     /**
@@ -569,6 +812,14 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
       getSensorsForMachine,
       getSensorHierarchy,
       linkAlarmToSensor,
+      upsertRelationshipNode,
+      upsertRelationshipEdge,
+      softDeleteRelationshipEdge,
+      getRelationshipTargetIds,
+      upsertWorkOrderNode,
+      linkWorkOrderToMachine,
+      upsertWorkOrderTargetingMachine,
+      getWorkOrderIdsTargetingMachine,
       getAllSensors,
       createAlarmNode,
       getSensorsWithAlarms,

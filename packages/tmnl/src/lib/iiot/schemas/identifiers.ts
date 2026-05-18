@@ -144,3 +144,7 @@ export type EventId = Schema.Schema.Type<typeof EventId>
 /** Fact identifier (extensible metadata, e.g., 'FACT-abc123') */
 export const FactId = Schema.String.pipe(Schema.brand('FactId'))
 export type FactId = Schema.Schema.Type<typeof FactId>
+
+/** Propagation identifier for Reactor causal DAGs (e.g., 'PROP-abc123') */
+export const PropagationId = Schema.String.pipe(Schema.brand('PropagationId'))
+export type PropagationId = Schema.Schema.Type<typeof PropagationId>

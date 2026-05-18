@@ -23,6 +23,8 @@
  * 0018-0020 - Device Config (table, audit log, trigger)
  * 0021 - Event Journal (partitioned event sourcing)
  * 0022 - Work Order Transitions (FDA 21 CFR Part 11 audit trail)
+ * 0023 - Reactor Checkpoints (replay/delivery dedupe)
+ * 0024 - Work Order transition propagation metadata
  *
  * @module
  */
@@ -81,6 +83,7 @@ import {
 import {
   createWorkOrderTransitionsTable,
   createTransitionsImmutabilityTrigger,
+  addWorkOrderTransitionPropagationColumns,
 } from './work-orders/WorkOrderTransitionModel.ddl'
 
 // Equipment State DDL
@@ -98,6 +101,9 @@ import {
 
 // Event Journal DDL
 import { createEventJournalSchema } from './_event-journal.ddl'
+
+// Reactor DDL
+import { createReactorCheckpointsTable } from './reactor/ReactorCheckpointModel.ddl'
 
 // =============================================================================
 // Migration Record
@@ -186,6 +192,12 @@ export const iiotMigrations = {
     yield* createWorkOrderTransitionsTable
     yield* createTransitionsImmutabilityTrigger
   }),
+
+  // Reactor checkpoints (replay/delivery dedupe)
+  '0023_reactor_checkpoints': createReactorCheckpointsTable,
+
+  // Reactor causal metadata on WorkOrder transition audit trail
+  '0024_work_order_transition_propagation': addWorkOrderTransitionPropagationColumns,
 } as const
 
 // =============================================================================

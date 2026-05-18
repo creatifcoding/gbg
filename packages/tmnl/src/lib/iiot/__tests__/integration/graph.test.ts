@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Effect, Stream, Chunk } from 'effect'
 import { GraphClient } from '../../services/l1/GraphClient'
-import type { DeviceId, PlantId, LineId, MachineId } from '../../schemas/identifiers'
+import type { DeviceId, PlantId, LineId, MachineId, WorkOrderId } from '../../schemas/identifiers'
 import { GraphIntegrationLayer, isDatabaseAvailable } from './layer'
 
 // =============================================================================
@@ -278,6 +278,105 @@ describe('GraphClient Integration Tests', () => {
         expect(sensors[0]).toHaveProperty('type')
         expect(sensors[0]).toHaveProperty('unit')
         expect(sensors[0]).toHaveProperty('machineId')
+      }).pipe(Effect.provide(GraphIntegrationLayer))
+
+      await Effect.runPromise(program)
+    })
+  })
+
+  // =============================================================================
+  // Work Order Relationship Queries
+  // =============================================================================
+
+  describe('Work Order Relationship Queries', () => {
+    it('should create, read, and soft-delete generic schema-registered relationship edges', async () => {
+      if (!dbAvailable) return
+
+      const program = Effect.gen(function* () {
+        const client = yield* GraphClient
+        const workOrderId = `TEST-WO-GENERIC-EDGE-${Date.now()}` as WorkOrderId
+
+        yield* client.upsertRelationshipNode(
+          { type: 'work_order', id: workOrderId },
+          { status: 'started', primary_asset_id: MOCK_MACHINE_ID },
+        )
+        yield* client.upsertRelationshipEdge({
+          source: { type: 'work_order', id: workOrderId },
+          target: { type: 'machine', id: MOCK_MACHINE_ID },
+          edgeType: 'targets',
+          metadata: {
+            _tag: 'RelationshipEdgeMetadata',
+            createdBy: 'graph-test',
+            reason: 'generic-edge-test',
+            context: { role: 'primary' },
+          },
+        })
+
+        const targets = yield* client.getRelationshipTargetIds({
+          source: { type: 'work_order', id: workOrderId },
+          edgeType: 'targets',
+          targetType: 'machine',
+        })
+        expect(targets).toContain(MOCK_MACHINE_ID)
+
+        yield* client.softDeleteRelationshipEdge({
+          source: { type: 'work_order', id: workOrderId },
+          target: { type: 'machine', id: MOCK_MACHINE_ID },
+          edgeType: 'targets',
+          reason: 'test-cleanup',
+        })
+
+        const afterDelete = yield* client.getRelationshipTargetIds({
+          source: { type: 'work_order', id: workOrderId },
+          edgeType: 'targets',
+          targetType: 'machine',
+        })
+        expect(afterDelete).not.toContain(MOCK_MACHINE_ID)
+
+        const invalid = yield* client.upsertRelationshipEdge({
+          source: { type: 'work_order', id: workOrderId },
+          target: { type: 'machine', id: MOCK_MACHINE_ID },
+          edgeType: 'monitors',
+          metadata: {
+            _tag: 'RelationshipEdgeMetadata',
+            createdBy: 'graph-test',
+            reason: 'invalid-edge-test',
+          },
+        }).pipe(Effect.either)
+        expect(invalid._tag).toBe('Left')
+
+        // Cleanup
+        yield* client.executeCypher(
+          `MATCH (wo:work_order {id: '${workOrderId}'}) DETACH DELETE wo`,
+          '(result agtype)'
+        )
+      }).pipe(Effect.provide(GraphIntegrationLayer))
+
+      await Effect.runPromise(program)
+    })
+
+    it('should find work orders targeting a machine through graph edges', async () => {
+      if (!dbAvailable) return
+
+      const program = Effect.gen(function* () {
+        const client = yield* GraphClient
+        const workOrderId = `TEST-WO-GRAPH-${Date.now()}` as WorkOrderId
+
+        yield* client.upsertWorkOrderTargetingMachine({
+          id: workOrderId,
+          status: 'started',
+          machineId: MOCK_MACHINE_ID,
+        })
+
+        const ids = yield* client.getWorkOrderIdsTargetingMachine(MOCK_MACHINE_ID)
+
+        expect(ids).toContain(workOrderId)
+
+        // Cleanup
+        yield* client.executeCypher(
+          `MATCH (wo:work_order {id: '${workOrderId}'}) DETACH DELETE wo`,
+          '(result agtype)'
+        )
       }).pipe(Effect.provide(GraphIntegrationLayer))
 
       await Effect.runPromise(program)

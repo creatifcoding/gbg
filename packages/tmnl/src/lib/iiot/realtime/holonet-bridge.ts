@@ -18,12 +18,14 @@ import {
   IIoTReadingsSubject,
   IIoTAlarmsSubject,
   IIoTEquipmentSubject,
+  IIoTWorkOrdersSubject,
   IIoTInvalidationsSubject,
 } from './iiot-subjects'
 import {
   ReadingEvent,
   AlarmEvent,
   EquipmentStateChange,
+  WorkOrderLifecycleEvent,
   CacheInvalidation,
 } from './event-distribution'
 
@@ -51,6 +53,12 @@ export interface HolonetBridgeShape {
   readonly publishEquipment: (event: EquipmentStateChange) => Effect.Effect<void>
 
   /**
+   * Outbound: Publish a work order lifecycle event to NATS.
+   * Fire-and-forget — errors are logged, never propagated.
+   */
+  readonly publishWorkOrder: (event: WorkOrderLifecycleEvent) => Effect.Effect<void>
+
+  /**
    * Outbound: Publish a cache invalidation to NATS.
    * Fire-and-forget — errors are logged, never propagated.
    */
@@ -73,6 +81,12 @@ export interface HolonetBridgeShape {
    * Subscribes to iiot.equipment.* wildcard.
    */
   readonly remoteEquipment: Effect.Effect<Stream.Stream<EquipmentStateChange>, never, Scope.Scope>
+
+  /**
+   * Inbound: Stream of remote work order lifecycle events from NATS.
+   * Subscribes to iiot.work_orders.* wildcard.
+   */
+  readonly remoteWorkOrders: Effect.Effect<Stream.Stream<WorkOrderLifecycleEvent>, never, Scope.Scope>
 
   /**
    * Inbound: Stream of remote cache invalidations from NATS.
@@ -117,6 +131,13 @@ const makeHolonetBridge = Effect.gen(function* () {
     pubsub.publish(
       IIoTEquipmentSubject.resolve({ equipmentId: event.equipmentId }),
       EquipmentStateChange,
+      event,
+    ).pipe(Effect.ignoreLogged)
+
+  const publishWorkOrder = (event: WorkOrderLifecycleEvent): Effect.Effect<void> =>
+    pubsub.publish(
+      IIoTWorkOrdersSubject.resolve({ workOrderId: event.workOrderId }),
+      WorkOrderLifecycleEvent,
       event,
     ).pipe(Effect.ignoreLogged)
 
@@ -169,6 +190,18 @@ const makeHolonetBridge = Effect.gen(function* () {
       Effect.orDie,
     )
 
+  const remoteWorkOrders: HolonetBridgeShape['remoteWorkOrders'] =
+    pubsub.subscribe(
+      IIoTWorkOrdersSubject.wildcardPattern(),
+      WorkOrderLifecycleEvent,
+    ).pipe(
+      Effect.map((stream) => stream.pipe(
+        Stream.map((msg) => msg.data),
+        Stream.orDie,
+      )),
+      Effect.orDie,
+    )
+
   const remoteInvalidations: HolonetBridgeShape['remoteInvalidations'] =
     pubsub.subscribe(
       IIoTInvalidationsSubject.wildcardPattern(),
@@ -185,10 +218,12 @@ const makeHolonetBridge = Effect.gen(function* () {
     publishReading,
     publishAlarm,
     publishEquipment,
+    publishWorkOrder,
     publishInvalidation,
     remoteReadings,
     remoteAlarms,
     remoteEquipment,
+    remoteWorkOrders,
     remoteInvalidations,
   })
 })

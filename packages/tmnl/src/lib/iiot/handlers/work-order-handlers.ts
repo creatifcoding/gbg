@@ -17,6 +17,8 @@
 import { Effect, Option, Cause } from 'effect'
 import * as EventLog from '@effect/experimental/EventLog'
 import { WorkOrderEvents } from '../schemas/events/groups'
+import { GraphClient } from '../services/l1/GraphClient'
+import type { MachineId } from '../schemas/identifiers'
 
 // =============================================================================
 // Helper: Wrap handlers with error catching
@@ -33,6 +35,36 @@ const catchHandlerError = <A, E, R>(handlerName: string, effect: Effect.Effect<A
     ),
     Effect.asVoid
   )
+
+const projectWorkOrderTargetToGraph = (input: {
+  readonly workOrderId: string
+  readonly entityId: string
+  readonly entityType: string
+  readonly status: string
+}) =>
+  Effect.gen(function* () {
+    if (input.entityType !== 'machine') return
+
+    const graph = yield* Effect.serviceOption(GraphClient)
+    if (Option.isNone(graph)) return
+
+    yield* graph.value.upsertWorkOrderTargetingMachine({
+      id: input.workOrderId as never,
+      status: input.status,
+      machineId: input.entityId as MachineId,
+    })
+  })
+
+const projectWorkOrderStatusToGraph = (workOrderId: string, status: string) =>
+  Effect.gen(function* () {
+    const graph = yield* Effect.serviceOption(GraphClient)
+    if (Option.isNone(graph)) return
+
+    yield* graph.value.upsertWorkOrderNode({
+      id: workOrderId as never,
+      status,
+    })
+  })
 
 // =============================================================================
 // Handler Implementation
@@ -76,6 +108,12 @@ export const WorkOrderEventHandlers = EventLog.group(WorkOrderEvents, (handlers)
             `[WorkOrderEventHandler] Work order created: ${payload.workOrderId}, ` +
             `title: "${payload.title}", priority: ${payload.priority}`
           )
+          yield* projectWorkOrderTargetToGraph({
+            workOrderId: payload.workOrderId,
+            entityId: payload.entityId,
+            entityType: payload.entityType,
+            status: 'created',
+          })
           // TODO: When WorkOrderRepo is implemented:
           // const repo = yield* WorkOrderRepo
           // yield* repo.insert({ ... })
@@ -144,6 +182,7 @@ export const WorkOrderEventHandlers = EventLog.group(WorkOrderEvents, (handlers)
             `[WorkOrderEventHandler] Work order started: ${payload.workOrderId} ` +
             `by ${payload.startedBy}${assignee}`
           )
+          yield* projectWorkOrderStatusToGraph(payload.workOrderId, 'started')
         })
       )
     )
@@ -162,6 +201,7 @@ export const WorkOrderEventHandlers = EventLog.group(WorkOrderEvents, (handlers)
             `[WorkOrderEventHandler] Work order suspended: ${payload.workOrderId} ` +
             `by ${payload.suspendedBy}, reason: ${payload.reason}${expectedResume}`
           )
+          yield* projectWorkOrderStatusToGraph(payload.workOrderId, 'suspended')
         })
       )
     )
@@ -177,6 +217,7 @@ export const WorkOrderEventHandlers = EventLog.group(WorkOrderEvents, (handlers)
             `[WorkOrderEventHandler] Work order resumed: ${payload.workOrderId} ` +
             `by ${payload.resumedBy}`
           )
+          yield* projectWorkOrderStatusToGraph(payload.workOrderId, 'resumed')
         })
       )
     )
@@ -195,6 +236,7 @@ export const WorkOrderEventHandlers = EventLog.group(WorkOrderEvents, (handlers)
             `[WorkOrderEventHandler] Work order completed: ${payload.workOrderId} ` +
             `by ${payload.completedBy}, outcome: ${payload.outcome}${duration}`
           )
+          yield* projectWorkOrderStatusToGraph(payload.workOrderId, 'completed')
         })
       )
     )

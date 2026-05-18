@@ -9,8 +9,10 @@
 
 import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
-import { Effect, Option, DateTime } from 'effect'
+import { Effect, Layer, Option, DateTime } from 'effect'
 import { Machine } from '@effect/experimental'
+import * as EventLog from '@effect/experimental/EventLog'
+import * as EventJournal from '@effect/experimental/EventJournal'
 import {
   makeEquipmentStateMachine,
   InternalGetCurrent,
@@ -24,6 +26,11 @@ import { EquipmentState, makeEquipmentStateId, type StateType, type StateReason 
 import type { MachineId } from '../../schemas/identifiers'
 import type { EquipmentStateShapeInterface, CreateEquipmentStateInput, EquipmentStateFilter } from '../../state/StateShape'
 import type { FeatureFlagsShape } from '../../infrastructure/feature-flags'
+import {
+  IIoTDomainEventHandlersLayer,
+  IIoTEventLogLayer,
+} from '../../infrastructure/eventlog-layer'
+import { DomainEventEmitter, DomainEventEmitterLive, type DomainEventEmitterShape } from '../../services/events'
 
 // =============================================================================
 // Test Stubs
@@ -154,16 +161,40 @@ const stubFeatureFlags: FeatureFlagsShape = {
   pgLakeEnabled: false,
 }
 
+const equipmentEventSourcingFlags: FeatureFlagsShape = {
+  ...stubFeatureFlags,
+  equipmentStateEventSourcingEnabled: true,
+}
+
+const makeDomainEventEmitterLayer = (journal: EventJournal.EventJournal.Service) => {
+  const baseLayer = Layer.mergeAll(
+    Layer.succeed(EventJournal.EventJournal, journal),
+    Layer.succeed(EventLog.Identity, EventLog.Identity.makeRandom()),
+    IIoTDomainEventHandlersLayer,
+  )
+
+  return DomainEventEmitterLive.pipe(
+    Layer.provide(IIoTEventLogLayer.pipe(Layer.provide(baseLayer))),
+  )
+}
+
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
 const TEST_MACHINE_ID = 'MCH-test-001' as MachineId
 
-const createBootedMachine = () =>
+const createBootedMachine = (options?: {
+  readonly flags?: FeatureFlagsShape
+  readonly eventEmitter?: DomainEventEmitterShape
+}) =>
   Effect.gen(function* () {
     const state = createStubEquipmentStateService()
-    const machine = makeEquipmentStateMachine({ state, flags: stubFeatureFlags })
+    const machine = makeEquipmentStateMachine({
+      state,
+      flags: options?.flags ?? stubFeatureFlags,
+      eventEmitter: options?.eventEmitter,
+    })
     const actor = yield* Machine.boot(machine)
     return { actor, state }
   })
@@ -193,6 +224,41 @@ describe('EquipmentStateMachine', () => {
         expect(Option.getOrNull(result.reason)).toBe('production')
         expect(Option.getOrNull(result.operatorId)).toBe('OP-001')
       }).pipe(Effect.scoped)
+    )
+  })
+
+  describe('EVENT EMISSION', () => {
+    it.effect('writes EquipmentStateChanged to the EventJournal when event sourcing is enabled', () =>
+      Effect.gen(function* () {
+        const journal = yield* EventJournal.makeMemory
+        const emitterLayer = makeDomainEventEmitterLayer(journal)
+
+        yield* Effect.gen(function* () {
+          const eventEmitter = yield* DomainEventEmitter
+          const { actor } = yield* createBootedMachine({
+            flags: equipmentEventSourcingFlags,
+            eventEmitter,
+          })
+
+          yield* actor.send(
+            new InternalTransition({
+              machineId: TEST_MACHINE_ID,
+              newState: 'planned_downtime' as StateType,
+              reason: Option.some('scheduled_maintenance' as StateReason),
+              operatorId: Option.some('OP-001'),
+              notes: Option.some('Planned maintenance window'),
+            })
+          )
+
+          const entries = yield* journal.entries
+
+          expect(entries).toHaveLength(1)
+          expect(entries[0]?.event).toBe('EquipmentStateChanged')
+        }).pipe(
+          Effect.scoped,
+          Effect.provide(emitterLayer),
+        )
+      })
     )
   })
 

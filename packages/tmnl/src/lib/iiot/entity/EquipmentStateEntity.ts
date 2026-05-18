@@ -27,6 +27,7 @@ import { Schema, Effect, Option, DateTime } from 'effect'
 import { Entity } from '@effect/cluster'
 import { Rpc } from '@effect/rpc'
 import { Machine } from '@effect/experimental'
+import { SqlClient } from '@effect/sql'
 import { MachineId } from '../schemas/identifiers'
 import {
   EquipmentStateId,
@@ -37,6 +38,7 @@ import {
 } from '../schemas/equipment-state/schema'
 import { EquipmentStateService } from '../state'
 import { IIoTFeatureFlags } from '../infrastructure/feature-flags'
+import { DomainEventEmitter } from '../services/events'
 import {
   makeEquipmentStateMachine,
   InternalGetCurrent,
@@ -275,11 +277,18 @@ export const EquipmentStateEntityHandlers = EquipmentStateEntity.toLayer(
     // ─────────────────────────────────────────────────────────────────────────
     const state = yield* EquipmentStateService    // Port: state persistence
     const flags = yield* IIoTFeatureFlags         // Port: feature flags
+    const eventEmitter = yield* Effect.serviceOption(DomainEventEmitter)
+    const sql = yield* Effect.serviceOption(SqlClient.SqlClient)
 
     // ─────────────────────────────────────────────────────────────────────────
     // MACHINE BOOT (Actor initialization)
     // ─────────────────────────────────────────────────────────────────────────
-    const equipmentStateMachine = makeEquipmentStateMachine({ state, flags })
+    const equipmentStateMachine = makeEquipmentStateMachine({
+      state,
+      flags,
+      eventEmitter: Option.getOrUndefined(eventEmitter),
+      sql: Option.getOrUndefined(sql),
+    })
     const actor = yield* Machine.boot(equipmentStateMachine)
 
     // ─────────────────────────────────────────────────────────────────────────

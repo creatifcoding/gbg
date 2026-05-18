@@ -40,6 +40,7 @@ import {
   InternalCloseWorkOrder,
 } from '../../../machines/WorkOrderMachine'
 import { WorkOrderState } from '../../../state'
+import type { DomainEventEmitterShape, WorkOrderLifecycleEmission, EquipmentStateChangedEmission } from '../../../services/events'
 import { IIoTFeatureFlags } from '../../../infrastructure/feature-flags'
 import { WorkOrderTransitionRepo } from '../../../repos'
 import type { CreateWorkOrderInput } from '../../../state/StateShape'
@@ -85,17 +86,31 @@ const createTestWorkOrderInput = (overrides?: Partial<{
 /**
  * Boot a work order machine with all integration dependencies.
  */
-const bootMachine = Effect.gen(function* () {
+const bootMachineWith = (eventEmitter?: DomainEventEmitterShape) => Effect.gen(function* () {
   const state = yield* WorkOrderState
   const flags = yield* IIoTFeatureFlags
   const transitionRepo = yield* WorkOrderTransitionRepo
   const sql = yield* SqlClient.SqlClient
 
-  const machine = makeWorkOrderMachine({ state, flags, transitionRepo, sql })
+  const machine = makeWorkOrderMachine({ state, flags, transitionRepo, sql, eventEmitter })
   const actor = yield* Machine.boot(machine)
 
   return { actor, transitionRepo }
 })
+
+const bootMachine = bootMachineWith()
+
+const failSuspendEmitter: DomainEventEmitterShape = {
+  emitWorkOrderLifecycle: (event: WorkOrderLifecycleEmission) =>
+    failSuspendEmitter.emitWorkOrderLifecycleStrict(event).pipe(Effect.ignore),
+  emitEquipmentStateChanged: (event: EquipmentStateChangedEmission) =>
+    failSuspendEmitter.emitEquipmentStateChangedStrict(event).pipe(Effect.ignore),
+  emitWorkOrderLifecycleStrict: (event: WorkOrderLifecycleEmission) =>
+    event.tag === 'WorkOrderSuspended'
+      ? Effect.fail(new Error('intentional suspend event failure'))
+      : Effect.void,
+  emitEquipmentStateChangedStrict: () => Effect.void,
+}
 
 // =============================================================================
 // Tests
@@ -262,6 +277,46 @@ describe.skipIf(!RUN)('WorkOrderMachine Integration', () => {
       )
     )
 
+    it.effect('rolls back suspend state + transition when durable event emission fails', () =>
+      withCleanMachineDatabase(
+        Effect.gen(function* () {
+          const state = yield* WorkOrderState
+          const { actor, transitionRepo } = yield* bootMachineWith(failSuspendEmitter)
+
+          const created = yield* actor.send(
+            new InternalCreateWorkOrder({
+              input: createTestWorkOrderInput({ title: 'Suspend Event Rollback Test' }),
+            })
+          )
+
+          yield* actor.send(new InternalSubmitWorkOrder({ workOrderId: created.id, submittedBy: 'test-user-001' }))
+          yield* actor.send(new InternalApproveWorkOrder({ workOrderId: created.id, approvedBy: 'supervisor-001' }))
+          yield* actor.send(new InternalStartWorkOrder({ workOrderId: created.id, startedBy: 'technician-001' }))
+
+          const failedSuspend = yield* actor.send(
+            new InternalSuspendWorkOrder({
+              workOrderId: created.id,
+              suspendedBy: 'relationship-reactor-v1',
+              reason: 'equipment_unavailable',
+              expectedResume: Option.none(),
+              causedByPropagationId: Option.none(),
+            })
+          ).pipe(Effect.either)
+
+          expect(failedSuspend._tag).toBe('Left')
+
+          const persisted = yield* state.get(created.id)
+          expect(persisted.status).toBe('started')
+
+          const transitions = yield* transitionRepo.getByWorkOrderId(created.id)
+          expect(transitions.find((transition) => transition.toState === 'suspended')).toBeUndefined()
+        })
+      ).pipe(
+        Effect.scoped,
+        Effect.provide(WorkOrderMachineIntegrationLayer)
+      )
+    )
+
     it.effect('suspend/resume path with audit trail', () =>
       withCleanMachineDatabase(
         Effect.gen(function* () {
@@ -284,6 +339,7 @@ describe.skipIf(!RUN)('WorkOrderMachine Integration', () => {
               suspendedBy: 'technician-001',
               reason: 'awaiting_parts',
               expectedResume: Option.none(),
+              causedByPropagationId: Option.none(),
             })
           )
           expect(suspended.status).toBe('suspended')
@@ -494,6 +550,7 @@ describe.skipIf(!RUN)('WorkOrderMachine Integration', () => {
               suspendedBy: 'technician-001',
               reason: 'awaiting_parts',
               expectedResume: Option.none(),
+              causedByPropagationId: Option.none(),
             })
           )
 

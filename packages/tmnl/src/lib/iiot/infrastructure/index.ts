@@ -31,6 +31,7 @@ export {
   // Layers - Shared
   IIoTIdentityLayer,
   IIoTEventLogLayer,
+  IIoTDomainEventHandlersLayer,
 
   // Deprecated
   IIoTEventJournalLayer,

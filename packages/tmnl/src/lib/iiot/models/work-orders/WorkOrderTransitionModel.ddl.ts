@@ -68,11 +68,17 @@ export const createWorkOrderTransitionsTable = Effect.gen(function* () {
       transitioned_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       transitioned_by   TEXT,
       reason            TEXT,
+      propagation_id    TEXT,
+      caused_by_propagation_id TEXT,
 
       -- Ensure from_state != to_state (no-op transitions are invalid)
       CONSTRAINT check_state_change CHECK (from_state != to_state)
     )
   `
+
+  // Existing deployments may already have the table from pre-Reactor migrations.
+  yield* sql`ALTER TABLE iiot.work_order_transitions ADD COLUMN IF NOT EXISTS propagation_id TEXT`
+  yield* sql`ALTER TABLE iiot.work_order_transitions ADD COLUMN IF NOT EXISTS caused_by_propagation_id TEXT`
 
   // Primary index: Lookup by work order (most common query)
   yield* sql`
@@ -91,6 +97,54 @@ export const createWorkOrderTransitionsTable = Effect.gen(function* () {
     CREATE INDEX IF NOT EXISTS idx_transitions_user
     ON iiot.work_order_transitions (transitioned_by, transitioned_at DESC)
     WHERE transitioned_by IS NOT NULL
+  `
+
+  // Reactor causal DAG indexes
+  yield* sql`
+    CREATE INDEX IF NOT EXISTS idx_transitions_propagation_id
+    ON iiot.work_order_transitions (propagation_id)
+    WHERE propagation_id IS NOT NULL
+  `
+
+  yield* sql`
+    CREATE INDEX IF NOT EXISTS idx_transitions_caused_by_propagation_id
+    ON iiot.work_order_transitions (caused_by_propagation_id)
+    WHERE caused_by_propagation_id IS NOT NULL
+  `
+
+  yield* sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_work_order_transition_inbound_propagation
+    ON iiot.work_order_transitions (work_order_id, caused_by_propagation_id)
+    WHERE caused_by_propagation_id IS NOT NULL
+  `
+})
+
+/**
+ * Adds Reactor causal metadata columns/indexes to existing transition tables.
+ * Kept as its own migration because 0022 may already be recorded in live DBs.
+ */
+export const addWorkOrderTransitionPropagationColumns = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient
+
+  yield* sql`ALTER TABLE iiot.work_order_transitions ADD COLUMN IF NOT EXISTS propagation_id TEXT`
+  yield* sql`ALTER TABLE iiot.work_order_transitions ADD COLUMN IF NOT EXISTS caused_by_propagation_id TEXT`
+
+  yield* sql`
+    CREATE INDEX IF NOT EXISTS idx_transitions_propagation_id
+    ON iiot.work_order_transitions (propagation_id)
+    WHERE propagation_id IS NOT NULL
+  `
+
+  yield* sql`
+    CREATE INDEX IF NOT EXISTS idx_transitions_caused_by_propagation_id
+    ON iiot.work_order_transitions (caused_by_propagation_id)
+    WHERE caused_by_propagation_id IS NOT NULL
+  `
+
+  yield* sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_work_order_transition_inbound_propagation
+    ON iiot.work_order_transitions (work_order_id, caused_by_propagation_id)
+    WHERE caused_by_propagation_id IS NOT NULL
   `
 })
 

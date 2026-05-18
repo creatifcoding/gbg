@@ -17,8 +17,17 @@ import * as EventLog from '@effect/experimental/EventLog'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import { SqlClient } from '@effect/sql'
 import type { SqlError } from '@effect/sql/SqlError'
-import { StructuralEvents, OperationalEvents, AlarmEvents } from '../schemas/events/groups'
+import {
+  StructuralEvents,
+  OperationalEvents,
+  AlarmEvents,
+  EquipmentStateEvents,
+  WorkOrderEvents,
+} from '../schemas/events/groups'
 import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-event-journal'
+import { AlarmEventHandlers } from '../handlers/alarm-handlers'
+import { EquipmentStateEventHandlers } from '../handlers/equipment-handlers'
+import { WorkOrderEventHandlers } from '../handlers/work-order-handlers'
 
 // =============================================================================
 // EventLog Schema
@@ -31,6 +40,8 @@ import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-
  * - StructuralEvents: Entity lifecycle (created, updated, decommissioned)
  * - OperationalEvents: Runtime business events (state changes, etc.)
  * - AlarmEvents: ISA-18.2 alarm lifecycle (triggered, acknowledged, cleared, etc.)
+ * - EquipmentStateEvents: OEE/equipment lifecycle transitions
+ * - WorkOrderEvents: ISA-95 Level 3 work order lifecycle
  *
  * This schema is used by EventLog.layer to know which events to handle.
  *
@@ -46,7 +57,9 @@ import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-
 export const IIoTEventLogSchema = EventLog.schema(
   StructuralEvents,
   OperationalEvents,
-  AlarmEvents
+  AlarmEvents,
+  EquipmentStateEvents,
+  WorkOrderEvents
 )
 
 export type IIoTEventLogSchema = typeof IIoTEventLogSchema
@@ -150,6 +163,18 @@ export const IIoTIdentityLayer: Layer.Layer<EventLog.Identity> = Layer.succeed(
  */
 export const IIoTEventLogLayer = EventLog.layer(IIoTEventLogSchema)
 
+/**
+ * Default domain handlers for the event groups used by Phase 0 emission.
+ *
+ * EventLog requires a handler service for emitted event tags. These handlers are
+ * intentionally idempotent and log-only/projection-oriented; they must not throw.
+ */
+export const IIoTDomainEventHandlersLayer = Layer.mergeAll(
+  AlarmEventHandlers,
+  EquipmentStateEventHandlers,
+  WorkOrderEventHandlers,
+)
+
 // =============================================================================
 // Composed Stack Layer
 // =============================================================================
@@ -189,6 +214,7 @@ export const IIoTEventLogLayer = EventLog.layer(IIoTEventLogSchema)
  * ```
  */
 export const IIoTEventLogStackLayer = IIoTEventLogLayer.pipe(
+  Layer.provide(IIoTDomainEventHandlersLayer),
   Layer.provide(IIoTEventJournalMemoryLayer),
   Layer.provide(IIoTIdentityLayer)
 )
@@ -318,6 +344,7 @@ export const makeIIoTEventLogStackSqlLayer = (options?: {
   // EventHandlers for all events in the schema, but those are optional
   // runtime registrations, not layer dependencies.
   return IIoTEventLogLayer.pipe(
+    Layer.provide(IIoTDomainEventHandlersLayer),
     Layer.provide(journalLayer),
     Layer.provide(identityLayer)
   ) as unknown as Layer.Layer<EventLog.EventLog, SqlError, SqlClient.SqlClient>

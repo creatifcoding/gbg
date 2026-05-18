@@ -61,7 +61,7 @@ import { SqlClient } from '@effect/sql'
 import type { WorkOrderStateShape, CreateWorkOrderInput } from '../state/StateShape'
 import type { FeatureFlagsShape } from '../infrastructure/feature-flags'
 import { WorkOrder, WorkOrderStatus, SuspensionReason } from '../schemas/work-orders'
-import type { WorkOrderId } from '../schemas/identifiers'
+import { PropagationId, type WorkOrderId } from '../schemas/identifiers'
 import {
   canSubmitWorkOrder,
   canApproveWorkOrder,
@@ -76,6 +76,7 @@ import {
   type WorkOrderStateNode,
 } from './graphs/work-order-graph'
 import type { WorkOrderTransitionRepository } from '../repos/WorkOrderTransitionRepo'
+import type { DomainEventEmitterShape } from '../services/events'
 
 // =============================================================================
 // Internal Error Types (for Machine procedures)
@@ -216,6 +217,7 @@ export class InternalSuspendWorkOrder extends Schema.TaggedRequest<InternalSuspe
       suspendedBy: Schema.String,
       reason: SuspensionReason,
       expectedResume: Schema.optionalWith(Schema.DateTimeUtc, { as: 'Option' }),
+      causedByPropagationId: Schema.optionalWith(PropagationId, { as: 'Option' }),
     },
   }
 ) {}
@@ -328,6 +330,8 @@ export interface WorkOrderMachineDeps {
   readonly transitionRepo: WorkOrderTransitionRepository
   /** SQL client for transactional operations */
   readonly sql: SqlClient.SqlClient
+  /** Optional durable/realtime domain event emitter */
+  readonly eventEmitter?: DomainEventEmitterShape
 }
 
 // =============================================================================
@@ -339,14 +343,44 @@ export interface WorkOrderMachineDeps {
  */
 const maybeEmitWorkOrder = (
   flags: FeatureFlagsShape,
+  eventEmitter: DomainEventEmitterShape | undefined,
   eventType: string,
   payload: Record<string, unknown>
 ) =>
   Effect.gen(function* () {
-    if (flags.workOrderEventSourcingEnabled) {
-      yield* Effect.logDebug(`[WorkOrderMachine] Would emit ${eventType}`, payload)
-      // TODO: Wire to EventLog when feature flag enabled
+    if (!flags.workOrderEventSourcingEnabled) return
+
+    const workOrder = payload['workOrder']
+    if (!(workOrder instanceof WorkOrder)) {
+      yield* Effect.logWarning(`[WorkOrderMachine] Skipping ${eventType}: missing WorkOrder payload`)
+      return
     }
+
+    if (!eventEmitter) {
+      yield* Effect.logWarning(`[WorkOrderMachine] Skipping ${eventType}: DomainEventEmitter not provided`)
+      return
+    }
+
+    const actor =
+      typeof payload['actor'] === 'string' ? payload['actor']
+        : typeof payload['approvedBy'] === 'string' ? payload['approvedBy']
+        : typeof payload['rejectedBy'] === 'string' ? payload['rejectedBy']
+        : typeof payload['startedBy'] === 'string' ? payload['startedBy']
+        : typeof payload['suspendedBy'] === 'string' ? payload['suspendedBy']
+        : typeof payload['resumedBy'] === 'string' ? payload['resumedBy']
+        : typeof payload['completedBy'] === 'string' ? payload['completedBy']
+        : typeof payload['failedBy'] === 'string' ? payload['failedBy']
+        : typeof payload['cancelledBy'] === 'string' ? payload['cancelledBy']
+        : typeof payload['closedBy'] === 'string' ? payload['closedBy']
+        : undefined
+
+    yield* eventEmitter.emitWorkOrderLifecycleStrict({
+      tag: eventType as never,
+      workOrder,
+      actor,
+      reason: typeof payload['reason'] === 'string' ? payload['reason'] : undefined,
+      notes: typeof payload['notes'] === 'string' ? payload['notes'] : undefined,
+    })
   })
 
 // =============================================================================
@@ -363,7 +397,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
   Machine.make(
     (_input: void, previous?: WorkOrderMachineState) =>
       Effect.gen(function* () {
-        const { state, flags, transitionRepo, sql } = deps
+        const { state, flags, transitionRepo, sql, eventEmitter } = deps
 
         // Initial machine state
         const initialState: WorkOrderMachineState = previous ?? { mode: 'created' }
@@ -383,7 +417,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Created work order ${workOrder.id}`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderCreated', { workOrder })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderCreated', { workOrder })
 
                 return [workOrder, { mode: 'created' as WorkOrderStateNode }] as const
               })
@@ -440,7 +474,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
 
                 yield* state.set(submitted)
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} submitted`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderSubmitted', { workOrder: submitted })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderSubmitted', { workOrder: submitted, actor: request.submittedBy })
 
                 return [submitted, { mode: targetState }] as const
               })
@@ -481,7 +515,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
 
                 yield* state.set(approved)
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} approved by ${request.approvedBy}`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderApproved', { workOrder: approved, approvedBy: request.approvedBy })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderApproved', { workOrder: approved, approvedBy: request.approvedBy })
 
                 return [approved, { mode: targetState }] as const
               })
@@ -548,7 +582,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} rejected by ${request.rejectedBy}`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderRejected', { workOrder: rejected, rejectedBy: request.rejectedBy, reason: request.reason })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderRejected', { workOrder: rejected, rejectedBy: request.rejectedBy, reason: request.reason })
 
                 return [rejected, { mode: targetState }] as const
               })
@@ -590,7 +624,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
 
                 yield* state.set(started)
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} started`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderStarted', { workOrder: started })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderStarted', { workOrder: started, actor: request.startedBy })
 
                 return [started, { mode: targetState }] as const
               })
@@ -611,6 +645,20 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
 
                 const currentState = workOrder.status as WorkOrderStateNode
                 const targetState: WorkOrderStateNode = 'suspended'
+
+                const alreadyHandledPropagation = Option.isSome(request.causedByPropagationId)
+                  ? yield* transitionRepo.hasInboundPropagation(
+                    workOrder.id,
+                    request.causedByPropagationId.value,
+                  )
+                  : false
+
+                if (alreadyHandledPropagation) {
+                  yield* Effect.logInfo(
+                    `[WorkOrderMachine] Work order ${request.workOrderId} suspend already handled for propagation ${request.causedByPropagationId.value}`,
+                  )
+                  return [workOrder, { mode: currentState }] as const
+                }
 
                 if (!canSuspendWorkOrder(currentState)) {
                   return yield* Effect.fail(
@@ -643,6 +691,14 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                       toState: 'suspended' as WorkOrderStatus,
                       transitionedBy: Option.some(request.suspendedBy),
                       reason: Option.some(request.reason as string),
+                      propagationId: Option.none(),
+                      causedByPropagationId: request.causedByPropagationId,
+                    })
+
+                    yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderSuspended', {
+                      workOrder: updated,
+                      actor: request.suspendedBy,
+                      reason: request.reason,
                     })
 
                     return updated
@@ -659,7 +715,6 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} suspended`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderSuspended', { workOrder: suspended, reason: request.reason })
 
                 return [suspended, { mode: targetState }] as const
               })
@@ -727,7 +782,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} resumed`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderResumed', { workOrder: resumed })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderResumed', { workOrder: resumed, actor: request.resumedBy })
 
                 return [resumed, { mode: targetState }] as const
               })
@@ -797,7 +852,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} completed`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderCompleted', { workOrder: completed })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderCompleted', { workOrder: completed, actor: request.completedBy, notes: request.notes })
 
                 return [completed, { mode: targetState }] as const
               })
@@ -840,7 +895,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
 
                 yield* state.set(failed)
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} failed`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderFailed', { workOrder: failed, reason: request.reason })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderFailed', { workOrder: failed, actor: request.failedBy, reason: request.reason })
 
                 return [failed, { mode: targetState }] as const
               })
@@ -907,7 +962,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} cancelled`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderCancelled', { workOrder: cancelled, reason: request.reason })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderCancelled', { workOrder: cancelled, actor: request.cancelledBy, reason: request.reason })
 
                 return [cancelled, { mode: targetState }] as const
               })
@@ -981,7 +1036,7 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                 )
 
                 yield* Effect.logInfo(`[WorkOrderMachine] Work order ${request.workOrderId} closed`)
-                yield* maybeEmitWorkOrder(flags, 'WorkOrderClosed', { workOrder: closed })
+                yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderClosed', { workOrder: closed, actor: request.closedBy, notes: request.notes })
 
                 return [closed, { mode: targetState }] as const
               })
