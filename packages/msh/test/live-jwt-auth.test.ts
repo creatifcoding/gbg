@@ -1,0 +1,194 @@
+/**
+ * Live NATS NKey/JWT/creds auth tests.
+ *
+ * Run with:
+ *   MSH_LIVE_NATS=1 bunx vitest run test/live-jwt-auth.test.ts
+ */
+
+import { afterEach, expect, it } from 'vitest';
+import * as Effect from 'effect-v4/Effect';
+import * as Layer from 'effect-v4/Layer';
+import { MshConfigCustom } from '../src/schemas/config';
+import {
+  AccountJwtRequest,
+  CredsAuth,
+  JwtAuth,
+  MshAuthService,
+  MshJwtService,
+  MshJwtServiceLive,
+  NKeyAuth,
+  OperatorJwtRequest,
+  UserJwtRequest,
+} from '../src/auth';
+import { NatsConnectionService, NatsInnerService } from '../src/nats';
+import { liveDescribe, startLiveNats, type LiveNatsServer } from './support/live-nats';
+
+const liveServers: LiveNatsServer[] = [];
+
+const quote = (value: string): string => JSON.stringify(value);
+
+const makeAuthLayers = (server: LiveNatsServer, auth: NKeyAuth | JwtAuth | CredsAuth) => {
+  const configLayer = MshConfigCustom({
+    servers: server.servers,
+    name: `msh-live-auth-${Date.now()}`,
+    reconnect: false,
+    maxReconnectAttempts: 0,
+    reconnectDelayMs: 50,
+    debug: false,
+    auth,
+  });
+
+  const authLayer = MshAuthService.layerFromConfig.pipe(Layer.provide(configLayer));
+  const connectionLayer = NatsConnectionService.layerFromConfig.pipe(
+    Layer.provide(configLayer),
+    Layer.provide(authLayer),
+  );
+  const innerLayer = NatsInnerService.layerFromConnection.pipe(Layer.provide(connectionLayer));
+  return { authLayer, innerLayer };
+};
+
+const assertConnects = (server: LiveNatsServer, auth: NKeyAuth | JwtAuth | CredsAuth) => {
+  const layers = makeAuthLayers(server, auth);
+  return Effect.gen(function* () {
+    const inner = yield* NatsInnerService;
+    yield* inner.core.flush();
+    const authService = yield* MshAuthService;
+    return yield* authService.metadata;
+  }).pipe(Effect.provide(Layer.mergeAll(layers.authLayer, layers.innerLayer)));
+};
+
+const accountNoLimit = {
+  conn: -1,
+  leaf: -1,
+  imports: -1,
+  exports: -1,
+  data: -1,
+  payload: -1,
+  subs: -1,
+  wildcards: true,
+} as const;
+
+const jetStreamNoLimit = {
+  mem_storage: -1,
+  disk_storage: -1,
+  streams: -1,
+  consumer: -1,
+  mem_max_stream_bytes: -1,
+  disk_max_stream_bytes: -1,
+  max_ack_pending: -1,
+} as const;
+
+const makeJwtChain = () =>
+  Effect.gen(function* () {
+    const jwt = yield* MshJwtService;
+    const operator = yield* jwt.createOperatorKeyPair;
+    const systemAccount = yield* jwt.createAccountKeyPair;
+    const account = yield* jwt.createAccountKeyPair;
+    const user = yield* jwt.createUserKeyPair;
+
+    const operatorJwt = yield* jwt.encodeOperator(new OperatorJwtRequest({
+      name: 'MSH Live Operator',
+      operator,
+      systemAccount: systemAccount.publicKey,
+    }));
+
+    const systemAccountJwt = yield* jwt.encodeAccount(new AccountJwtRequest({
+      name: 'MSH Live System Account',
+      account: systemAccount,
+      signer: operator,
+      // System accounts are required for JetStream under operator JWT auth,
+      // but NATS explicitly forbids enabling JetStream on the system account.
+      limits: accountNoLimit,
+    }));
+
+    const accountJwt = yield* jwt.encodeAccount(new AccountJwtRequest({
+      name: 'MSH Live Account',
+      account,
+      signer: operator,
+      // NATS account JWT NoLimit is -1. DeepWiki / nats-server confirms
+      // nats.limits.conn controls "maximum account active connections".
+      limits: { ...accountNoLimit, ...jetStreamNoLimit },
+    }));
+
+    const userRequest = new UserJwtRequest({
+      name: 'MSH Live User',
+      user,
+      issuer: account,
+      permissions: {
+        // NatsConnectionService eagerly obtains jetstreamManager(), which uses
+        // request/reply on $JS.API.> and _INBOX.>. Domain-only permissions are
+        // insufficient for an msh infrastructure client.
+        pub: { allow: ['msh.live.>', '$JS.API.>'] },
+        sub: { allow: ['msh.live.>', '_INBOX.>'] },
+      },
+    });
+
+    const jwtAuth = yield* jwt.issueJwtAuth(userRequest);
+    const credsAuth = yield* jwt.issueCredsAuth(userRequest);
+
+    return { operator, systemAccount, account, user, operatorJwt, systemAccountJwt, accountJwt, jwtAuth, credsAuth };
+  });
+
+liveDescribe('live NATS NKey/JWT/creds auth', () => {
+  afterEach(async () => {
+    await Promise.all(liveServers.splice(0).map((server) => server.stop()));
+  }, 10_000);
+
+  it('accepts NKeyAuth against real nkey challenge auth', async () => {
+    const chain = await Effect.runPromise(makeJwtChain().pipe(Effect.provide(MshJwtServiceLive)));
+    const server = await startLiveNats({
+      authorization: `authorization {\n  users = [\n    { nkey: ${quote(chain.user.publicKey)} }\n  ]\n}`,
+    });
+    liveServers.push(server);
+
+    const metadata = await Effect.runPromise(
+      assertConnects(server, new NKeyAuth({
+        seed: chain.user.seed,
+        publicKey: chain.user.publicKey,
+      })),
+    );
+
+    expect(metadata.mode).toBe('nkey');
+    expect(metadata.publicKey).toBe(chain.user.publicKey);
+  }, 10_000);
+
+  it('accepts JwtAuth generated by MshJwtService against real MEMORY resolver', async () => {
+    const chain = await Effect.runPromise(makeJwtChain().pipe(Effect.provide(MshJwtServiceLive)));
+    const server = await startLiveNats({
+      extraConfig: `operator: ${quote(chain.operatorJwt)}\nresolver: MEMORY\nresolver_preload: {\n  ${chain.systemAccount.publicKey}: ${quote(chain.systemAccountJwt)}\n  ${chain.account.publicKey}: ${quote(chain.accountJwt)}\n}`,
+    });
+    liveServers.push(server);
+
+    const metadata = await Effect.runPromise(assertConnects(server, chain.jwtAuth));
+
+    expect(metadata.mode).toBe('jwt');
+    expect('seed' in metadata).toBe(false);
+  }, 10_000);
+
+  it('accepts CredsAuth generated by MshJwtService against real MEMORY resolver', async () => {
+    const chain = await Effect.runPromise(makeJwtChain().pipe(Effect.provide(MshJwtServiceLive)));
+    const server = await startLiveNats({
+      extraConfig: `operator: ${quote(chain.operatorJwt)}\nresolver: MEMORY\nresolver_preload: {\n  ${chain.systemAccount.publicKey}: ${quote(chain.systemAccountJwt)}\n  ${chain.account.publicKey}: ${quote(chain.accountJwt)}\n}`,
+    });
+    liveServers.push(server);
+
+    const metadata = await Effect.runPromise(assertConnects(server, chain.credsAuth));
+
+    expect(metadata.mode).toBe('creds');
+  }, 10_000);
+
+  it('fails closed when JwtAuth uses a user from an unknown account', async () => {
+    const trusted = await Effect.runPromise(makeJwtChain().pipe(Effect.provide(MshJwtServiceLive)));
+    const untrusted = await Effect.runPromise(makeJwtChain().pipe(Effect.provide(MshJwtServiceLive)));
+    const server = await startLiveNats({
+      extraConfig: `operator: ${quote(trusted.operatorJwt)}\nresolver: MEMORY\nresolver_preload: {\n  ${trusted.systemAccount.publicKey}: ${quote(trusted.systemAccountJwt)}\n  ${trusted.account.publicKey}: ${quote(trusted.accountJwt)}\n}`,
+    });
+    liveServers.push(server);
+
+    const result = await Effect.runPromise(
+      assertConnects(server, untrusted.jwtAuth).pipe(Effect.result),
+    );
+
+    expect(result._tag).toBe('Failure');
+  }, 10_000);
+});
