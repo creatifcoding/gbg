@@ -517,6 +517,17 @@ export const cleanTestWorkOrders = Effect.gen(function* () {
 export const cleanTestEquipmentStates = Effect.gen(function* () {
   const sql = yield* PgClient.PgClient
 
+  // Clean transition audit first (FK to equipment_states)
+  yield* sql`DELETE FROM iiot.equipment_state_transitions WHERE equipment_state_id LIKE 'TEST-%'`.pipe(
+    Effect.orElseSucceed(() => undefined)
+  )
+  yield* sql`DELETE FROM iiot.equipment_state_transitions WHERE machine_id LIKE 'TEST-%'`.pipe(
+    Effect.orElseSucceed(() => undefined)
+  )
+  yield* sql`DELETE FROM iiot.equipment_state_transitions WHERE machine_id LIKE 'MCH-test-%'`.pipe(
+    Effect.orElseSucceed(() => undefined)
+  )
+
   // Clean by ID prefix (unlikely to have TEST- prefix since EST- is used)
   yield* sql`DELETE FROM iiot.equipment_states WHERE id LIKE 'TEST-%'`.pipe(
     Effect.orElseSucceed(() => undefined)

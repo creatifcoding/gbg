@@ -61,6 +61,7 @@ import { SqlClient } from '@effect/sql'
 import type { EquipmentStateShapeInterface, EquipmentStateFilter } from '../state/StateShape'
 import type { FeatureFlagsShape } from '../infrastructure/feature-flags'
 import type { DomainEventEmitterShape } from '../services/events'
+import type { EquipmentStateTransitionRepository } from '../repos/EquipmentStateTransitionRepo'
 import {
   EquipmentState,
   EquipmentStateId,
@@ -259,6 +260,8 @@ export interface EquipmentStateMachineDeps {
   readonly eventEmitter?: DomainEventEmitterShape
   /** Optional SQL client; when present transition state + durable event writes share one transaction. */
   readonly sql?: SqlClient.SqlClient
+  /** Optional transition audit repo for causal DAG reconstruction. */
+  readonly transitionRepo?: EquipmentStateTransitionRepository
 }
 
 // =============================================================================
@@ -316,7 +319,7 @@ export const makeEquipmentStateMachine = (deps: EquipmentStateMachineDeps) =>
   Machine.make(
     (_input: void, previous?: EquipmentStateMachineState) =>
       Effect.gen(function* () {
-        const { state, flags, eventEmitter, sql } = deps
+        const { state, flags, eventEmitter, sql, transitionRepo } = deps
         const transactionally = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
           sql ? sql.withTransaction(effect) : effect
 
@@ -435,6 +438,20 @@ export const makeEquipmentStateMachine = (deps: EquipmentStateMachineDeps) =>
                       operatorId,
                       notes,
                     })
+
+                    if (transitionRepo && currentState !== targetState) {
+                      yield* transitionRepo.insert({
+                        machineId: machineId as MachineId,
+                        equipmentStateId: created.id,
+                        fromState: currentState as StateType,
+                        toState: targetState as StateType,
+                        transitionedBy: operatorId,
+                        reason,
+                        notes,
+                        propagationId: Option.some(propagationId),
+                        causedByPropagationId: Option.none(),
+                      })
+                    }
 
                     yield* maybeEmitEquipmentEvent(flags, eventEmitter, 'EquipmentStateChanged', {
                       machineId,

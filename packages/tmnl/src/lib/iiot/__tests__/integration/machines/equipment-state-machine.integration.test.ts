@@ -32,6 +32,7 @@ import {
 import { EquipmentStateService } from '../../../state/EquipmentStateService'
 import type { DomainEventEmitterShape, EquipmentStateChangedEmission, WorkOrderLifecycleEmission } from '../../../services/events'
 import { IIoTFeatureFlags } from '../../../infrastructure/feature-flags'
+import { EquipmentStateTransitionRepo } from '../../../repos/EquipmentStateTransitionRepo'
 import type { StateType, StateReason } from '../../../schemas/equipment-state/schema'
 import { makeEquipmentStateId } from '../../../schemas/equipment-state/schema'
 import { makeMachineId } from '../../../schemas/assets/machine/schema'
@@ -63,9 +64,9 @@ const bootMachine = (eventEmitter?: DomainEventEmitterShape) =>
     const state = yield* EquipmentStateService
     const flags = yield* IIoTFeatureFlags
     const sql = yield* SqlClient.SqlClient
-    const machine = makeEquipmentStateMachine({ state, flags, eventEmitter, sql })
-    const actor = yield* Machine.boot(machine)
-    return actor
+    const transitionRepo = yield* EquipmentStateTransitionRepo
+    const machine = makeEquipmentStateMachine({ state, flags, eventEmitter, sql, transitionRepo })
+    return yield* Machine.boot(machine)
   })
 
 const failEquipmentEmitter: DomainEventEmitterShape = {
@@ -117,6 +118,7 @@ describe.skipIf(!RUN)('EquipmentStateMachine Integration', () => {
           const machineId = makeMachineId(nextSlug('test'))
           yield* setupTestMachine(machineId)
           const state = yield* EquipmentStateService
+          const transitionRepo = yield* EquipmentStateTransitionRepo
           const actor = yield* bootMachine(failEquipmentEmitter)
 
           const result = yield* actor.send(
@@ -132,6 +134,44 @@ describe.skipIf(!RUN)('EquipmentStateMachine Integration', () => {
           expect(result._tag).toBe('Left')
           const current = yield* state.getCurrent(machineId)
           expect(Option.isNone(current)).toBe(true)
+          const transitionCount = yield* transitionRepo.count(machineId)
+          expect(transitionCount).toBe(0)
+        })
+      ).pipe(
+        Effect.scoped,
+        Effect.provide(EquipmentStateMachineIntegrationLayer)
+      )
+    )
+
+    it.effect('records transition audit row with source propagation id', () =>
+      withCleanMachineDatabase(
+        Effect.gen(function* () {
+          const machineId = makeMachineId(nextSlug('test'))
+          yield* setupTestMachine(machineId)
+          const transitionRepo = yield* EquipmentStateTransitionRepo
+          const actor = yield* bootMachine()
+
+          const created = yield* actor.send(
+            new InternalTransition({
+              machineId,
+              newState: 'running' as StateType,
+              reason: Option.some('production' as StateReason),
+              operatorId: Option.some('OP-001'),
+              notes: Option.some('Audit row expected'),
+            })
+          )
+
+          const transitions = yield* transitionRepo.getByMachineId(machineId)
+          expect(transitions).toHaveLength(1)
+          expect(transitions[0]!.machineId).toBe(machineId)
+          expect(transitions[0]!.equipmentStateId).toBe(created.id)
+          expect(transitions[0]!.fromState).toBe('idle')
+          expect(transitions[0]!.toState).toBe('running')
+          expect(Option.getOrNull(transitions[0]!.transitionedBy)).toBe('OP-001')
+          expect(Option.getOrNull(transitions[0]!.reason)).toBe('production')
+          expect(Option.getOrNull(transitions[0]!.notes)).toBe('Audit row expected')
+          expect(Option.getOrNull(transitions[0]!.propagationId)).toMatch(/^PROP-/)
+          expect(Option.isNone(transitions[0]!.causedByPropagationId)).toBe(true)
         })
       ).pipe(
         Effect.scoped,

@@ -33,6 +33,7 @@ import { WorkOrderTransitionRepoLive } from './WorkOrderTransitionRepo'
 
 // Equipment state repositories
 import { EquipmentStateRepoLive } from './EquipmentStateRepo'
+import { EquipmentStateTransitionRepoLive } from './EquipmentStateTransitionRepo'
 
 // Reading repositories (Composite PK)
 import { SensorReadingRepoLive } from './SensorReadingRepo'
@@ -108,7 +109,8 @@ export const WorkOrderRepositoriesLive = Layer.mergeAll(
  * Requires: SqlClient.SqlClient
  */
 export const EquipmentStateRepositoriesLive = Layer.mergeAll(
-  EquipmentStateRepoLive
+  EquipmentStateRepoLive,
+  EquipmentStateTransitionRepoLive
 )
 
 /**
@@ -187,6 +189,7 @@ export { DeviceConfigRepo, DeviceConfigRepoLive, type DeviceConfigRepository, ty
 
 // Equipment state repos
 export { EquipmentStateRepo, EquipmentStateRepoLive, type EquipmentStateRepository, type EquipmentStateRepoError } from './EquipmentStateRepo'
+export { EquipmentStateTransitionRepo, EquipmentStateTransitionRepoLive, type EquipmentStateTransitionRepository, type EquipmentStateTransitionRepoError } from './EquipmentStateTransitionRepo'
 
 // Work order repos
 export { WorkOrderRepo, WorkOrderRepoLive, type WorkOrderRepository, type WorkOrderRepoError } from './WorkOrderRepo'

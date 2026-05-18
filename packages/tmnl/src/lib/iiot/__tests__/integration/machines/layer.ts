@@ -46,6 +46,7 @@ import {
   EquipmentStateRepo,
   EquipmentStateRepoLive,
   WorkOrderTransitionRepoLive,
+  EquipmentStateTransitionRepoLive,
 } from '../../../repos'
 
 // Feature flags
@@ -98,6 +99,10 @@ export const cleanWorkOrderTransitions = (workOrderId: string) =>
  * Used for FDA audit trail verification.
  */
 const WorkOrderTransitionRepoTestLayer = WorkOrderTransitionRepoLive.pipe(
+  Layer.provide(TestPgClientWithMigrations)
+)
+
+const EquipmentStateTransitionRepoTestLayer = EquipmentStateTransitionRepoLive.pipe(
   Layer.provide(TestPgClientWithMigrations)
 )
 
@@ -459,6 +464,7 @@ export const WorkOrderMachineIntegrationLayerNoEvents = Layer.mergeAll(
 export const EquipmentStateMachineIntegrationLayer = Layer.mergeAll(
   TestPgClientWithMigrations,
   EquipmentStateServiceSqlTestLayer,
+  EquipmentStateTransitionRepoTestLayer,
   IIoTFeatureFlagsEnabledLayer,
   EventJournalIntegrationLayer
 )
@@ -469,6 +475,7 @@ export const EquipmentStateMachineIntegrationLayer = Layer.mergeAll(
 export const EquipmentStateMachineIntegrationLayerNoEvents = Layer.mergeAll(
   TestPgClientWithMigrations,
   EquipmentStateServiceSqlTestLayer,
+  EquipmentStateTransitionRepoTestLayer,
   IIoTFeatureFlagsDisabledLayer,
   EventJournalIntegrationLayer
 )
@@ -484,6 +491,7 @@ export const FullMachineIntegrationLayer = Layer.mergeAll(
   WorkOrderStateSqlTestLayer,
   WorkOrderTransitionRepoTestLayer,
   EquipmentStateServiceSqlTestLayer,
+  EquipmentStateTransitionRepoTestLayer,
   IIoTFeatureFlagsEnabledLayer,
   EventJournalIntegrationLayer
 )

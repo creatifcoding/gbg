@@ -4,3 +4,4 @@
  */
 
 export * from './EquipmentStateModel'
+export * from './EquipmentStateTransitionModel'

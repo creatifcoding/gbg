@@ -25,6 +25,7 @@
  * 0022 - Work Order Transitions (FDA 21 CFR Part 11 audit trail)
  * 0023 - Reactor Checkpoints (replay/delivery dedupe)
  * 0024 - Work Order transition propagation metadata
+ * 0025 - Equipment State transitions audit trail
  *
  * @module
  */
@@ -91,6 +92,9 @@ import {
   createEquipmentStatesTable,
   createEquipmentStateDurationView,
 } from './equipment-state/EquipmentStateModel.ddl'
+import {
+  setupEquipmentStateTransitions,
+} from './equipment-state/EquipmentStateTransitionModel.ddl'
 
 // Device Config DDL
 import {
@@ -198,6 +202,9 @@ export const iiotMigrations = {
 
   // Reactor causal metadata on WorkOrder transition audit trail
   '0024_work_order_transition_propagation': addWorkOrderTransitionPropagationColumns,
+
+  // Equipment State transition audit trail for Reactor causal DAG source records
+  '0025_equipment_state_transitions': setupEquipmentStateTransitions,
 } as const
 
 // =============================================================================

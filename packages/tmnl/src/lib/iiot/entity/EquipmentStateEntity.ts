@@ -39,6 +39,7 @@ import {
 import { EquipmentStateService } from '../state'
 import { IIoTFeatureFlags } from '../infrastructure/feature-flags'
 import { DomainEventEmitter } from '../services/events'
+import { EquipmentStateTransitionRepo } from '../repos'
 import {
   makeEquipmentStateMachine,
   InternalGetCurrent,
@@ -279,6 +280,7 @@ export const EquipmentStateEntityHandlers = EquipmentStateEntity.toLayer(
     const flags = yield* IIoTFeatureFlags         // Port: feature flags
     const eventEmitter = yield* Effect.serviceOption(DomainEventEmitter)
     const sql = yield* Effect.serviceOption(SqlClient.SqlClient)
+    const transitionRepo = yield* Effect.serviceOption(EquipmentStateTransitionRepo)
 
     // ─────────────────────────────────────────────────────────────────────────
     // MACHINE BOOT (Actor initialization)
@@ -288,6 +290,7 @@ export const EquipmentStateEntityHandlers = EquipmentStateEntity.toLayer(
       flags,
       eventEmitter: Option.getOrUndefined(eventEmitter),
       sql: Option.getOrUndefined(sql),
+      transitionRepo: Option.getOrUndefined(transitionRepo),
     })
     const actor = yield* Machine.boot(equipmentStateMachine)
 
