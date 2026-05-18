@@ -61,6 +61,32 @@ describe('mock NATS transport', () => {
     expect(calls).toEqual(['drain:start', 'drain:end', 'close:true']);
   });
 
+  it('supports core pub/sub without eager JetStream manager permission', async () => {
+    const fixture = makeMockNatsFixture({}, { jetStreamManagerUnavailable: true });
+    fixture.state.responders.set('rpc.core-only', (data) => ({
+      subject: 'rpc.core-only.reply',
+      data,
+      reply: '',
+      respond: () => true,
+      json: () => JSON.parse(new TextDecoder().decode(data)),
+      string: () => new TextDecoder().decode(data),
+    } as any));
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const inner = yield* NatsInnerService;
+        yield* inner.core.publish('core.only', bytes('hello'));
+        const response = yield* inner.core.request('rpc.core-only', bytes('{"ok":true}'));
+        const streamLookup = yield* Effect.result(inner.streams.info('EVENTS'));
+        return { response: response.string(), streamLookup };
+      }).pipe(Effect.provide(makeInnerLayer(fixture))),
+    );
+
+    expect(result.response).toBe('{"ok":true}');
+    expect(result.streamLookup._tag).toBe('Failure');
+    expect(fixture.state.coreMessages.map((message) => message.subject)).toEqual(['core.only']);
+  });
+
   it('supports inner core publish and request/reply', async () => {
     const fixture = makeMockNatsFixture();
     fixture.state.responders.set('rpc.echo', (data) => ({

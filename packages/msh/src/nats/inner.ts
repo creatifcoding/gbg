@@ -34,6 +34,7 @@ import type {
   PurgeOpts,
   PurgeResponse,
   JsMsg,
+  JetStreamManager,
 } from 'nats.ws';
 
 import { NatsConnectionService } from './connection';
@@ -79,6 +80,38 @@ const wrapJsmOptional = <A>(
     try: async () => operation(),
     catch: (cause) => cause,
   }).pipe(Effect.catch(() => Effect.succeed(null)));
+
+type GetJsm = () => Effect.Effect<JetStreamManager, unknown>;
+
+const wrapJsmWith = <A, E>(
+  getJsm: GetJsm,
+  operation: (jsm: JetStreamManager) => A | PromiseLike<A>,
+  toError: (cause: unknown) => E,
+): Effect.Effect<A, E> =>
+  getJsm().pipe(
+    Effect.mapError(toError),
+    Effect.flatMap((jsm) => wrapJsm(() => operation(jsm), toError)),
+  );
+
+const wrapJsmNullableWith = <A, E>(
+  getJsm: GetJsm,
+  operation: (jsm: JetStreamManager) => A | PromiseLike<A>,
+  isAbsent: (cause: unknown) => boolean,
+  toError: (cause: unknown) => E,
+): Effect.Effect<A | null, E> =>
+  getJsm().pipe(
+    Effect.mapError(toError),
+    Effect.flatMap((jsm) => wrapJsmNullable(() => operation(jsm), isAbsent, toError)),
+  );
+
+const wrapJsmOptionalWith = <A>(
+  getJsm: GetJsm,
+  operation: (jsm: JetStreamManager) => A | PromiseLike<A>,
+): Effect.Effect<A | null> =>
+  getJsm().pipe(
+    Effect.flatMap((jsm) => wrapJsmOptional(() => operation(jsm))),
+    Effect.catch(() => Effect.succeed(null)),
+  );
 
 // =============================================================================
 // Type Definitions
@@ -326,7 +359,8 @@ export class NatsInnerService extends Context.Service<
   static readonly layerFromConnection = Layer.effect(
     NatsInnerService,
     Effect.gen(function* () {
-      const { nc, js, jsm, config } = yield* NatsConnectionService;
+      const connection = yield* NatsConnectionService;
+      const { nc, js, getJsm, config } = connection;
 
       if (config.debug) {
         console.log('[NatsInnerService] Initialized with shared connection');
@@ -468,8 +502,9 @@ export class NatsInnerService extends Context.Service<
           }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.next)),
 
         add: (stream, cfg) =>
-          wrapJsm(
-            () => jsm.consumers.add(stream, {
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.consumers.add(stream, {
               durable_name: cfg.durableName,
               deliver_policy: cfg.deliverPolicy as any,
               ack_policy: cfg.ackPolicy as any,
@@ -495,8 +530,9 @@ export class NatsInnerService extends Context.Service<
           ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.add)),
 
         info: (stream, name) =>
-          wrapJsm(
-            () => jsm.consumers.info(stream, name),
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.consumers.info(stream, name),
             (err) =>
               new Inner.Consumers.GetError({
                 message: `Failed to get consumer info '${name}' on '${stream}'`,
@@ -507,8 +543,9 @@ export class NatsInnerService extends Context.Service<
           ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.info)),
 
         delete: (stream, name) =>
-          wrapJsm(
-            () => jsm.consumers.delete(stream, name),
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.consumers.delete(stream, name),
             (err) =>
               new Inner.Consumers.DeleteError({
                 message: `Failed to delete consumer '${name}' from '${stream}'`,
@@ -519,8 +556,9 @@ export class NatsInnerService extends Context.Service<
           ).pipe(Effect.withSpan(MshSpan.Inner.Consumers.delete)),
 
         list: (stream) =>
-          wrapJsm(
-            () => jsm.consumers.list(stream),
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.consumers.list(stream),
             (err) =>
               new Inner.Consumers.GetError({
                 message: `Failed to list consumers for '${stream}'`,
@@ -534,16 +572,18 @@ export class NatsInnerService extends Context.Service<
 
       const streams: NatsInnerServiceShape['streams'] = {
         info: (name) =>
-          wrapJsmNullable(
-            () => jsm.streams.info(name),
+          wrapJsmNullableWith(
+            getJsm,
+            (jsm) => jsm.streams.info(name),
             isStreamNotFoundError,
             (err) =>
               new Inner.Streams.InfoError({ message: `Failed to get stream '${name}'`, streamName: name, cause: err }),
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.info)),
 
         add: (cfg) =>
-          wrapJsm(
-            () => jsm.streams.add({
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.streams.add({
               name: cfg.name,
               subjects: cfg.subjects ? [...cfg.subjects] : undefined,
               storage: cfg.storage as any,
@@ -560,8 +600,9 @@ export class NatsInnerService extends Context.Service<
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.add)),
 
         update: (name, cfg) =>
-          wrapJsm(
-            () => jsm.streams.update(name, {
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.streams.update(name, {
               subjects: cfg.subjects ? [...cfg.subjects] : undefined,
               max_age: cfg.maxAge,
               max_bytes: cfg.maxBytes,
@@ -575,28 +616,31 @@ export class NatsInnerService extends Context.Service<
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.update)),
 
         delete: (name) =>
-          wrapJsm(
-            () => jsm.streams.delete(name),
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.streams.delete(name),
             (err) =>
               new Inner.Streams.DeleteError({ message: `Failed to delete stream '${name}'`, streamName: name, cause: err }),
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.delete)),
 
         list: (subject) =>
-          wrapJsm(
-            () => jsm.streams.list(subject),
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.streams.list(subject),
             (err) =>
               new Inner.Streams.InfoError({ message: 'Failed to list streams', streamName: subject ?? '*', cause: err }),
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.list)),
 
         purge: (stream, opts) =>
-          wrapJsm(
-            () => jsm.streams.purge(stream, opts as PurgeOpts | undefined),
+          wrapJsmWith(
+            getJsm,
+            (jsm) => jsm.streams.purge(stream, opts as PurgeOpts | undefined),
             (err) =>
               new Inner.Streams.DeleteError({ message: `Failed to purge '${stream}'`, streamName: stream, cause: err }),
           ).pipe(Effect.withSpan(MshSpan.Inner.Streams.purge)),
 
         find: (subject) =>
-          wrapJsmOptional(() => jsm.streams.find(subject)).pipe(
+          wrapJsmOptionalWith(getJsm, (jsm) => jsm.streams.find(subject)).pipe(
             Effect.withSpan(MshSpan.Inner.Streams.find),
           ),
       };

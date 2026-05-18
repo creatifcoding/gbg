@@ -5,6 +5,7 @@
  * without monkeypatching `nats.ws.connect` or requiring a real server.
  */
 
+import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 import type {
   Consumer,
@@ -26,6 +27,7 @@ import type {
 } from 'nats.ws';
 
 import { NatsConnectionService, type NatsConnectionShape } from '../../src/nats/connection';
+import { Connection } from '../../src/nats/errors';
 import type { MshConfig } from '../../src/schemas/config';
 
 export interface MockStreamRecord {
@@ -71,6 +73,10 @@ export interface MockNatsState {
   readonly kvBuckets: Map<string, MockKvBucketState>;
   readonly objectStores: Map<string, MockObjectStoreState>;
   readonly responders: Map<string, (data: Uint8Array) => Msg | Promise<Msg>>;
+}
+
+export interface MockNatsOptions {
+  readonly jetStreamManagerUnavailable?: boolean;
 }
 
 export interface MockNatsFixture {
@@ -333,7 +339,11 @@ const makeObjectStore = (store: MockObjectStoreState): ObjectStore => ({
   watch: () => Promise.resolve(asyncIterableFrom([])),
 } as unknown as ObjectStore);
 
-const makeConnectionShape = (state: MockNatsState, config: MshConfig): NatsConnectionShape => {
+const makeConnectionShape = (
+  state: MockNatsState,
+  config: MshConfig,
+  options: MockNatsOptions = {},
+): NatsConnectionShape => {
   const jsm: JetStreamManager = {
     consumers: {
       add: (streamName: string, config: Partial<ConsumerConfig>) => {
@@ -445,15 +455,28 @@ const makeConnectionShape = (state: MockNatsState, config: MshConfig): NatsConne
     drain: () => Promise.resolve(),
     close: () => Promise.resolve(),
     jetstream: () => js,
-    jetstreamManager: () => Promise.resolve(jsm),
+    jetstreamManager: () => options.jetStreamManagerUnavailable
+      ? Promise.reject(new Error('mock JetStream manager unavailable'))
+      : Promise.resolve(jsm),
   } as unknown as NatsConnection;
 
-  return { nc, js, jsm, config };
+  const getJsm = () => Effect.tryPromise({
+    try: () => nc.jetstreamManager(),
+    catch: (err) => new Connection.JetStreamManagerError({
+      message: `Failed to get JetStream manager: ${err}`,
+      cause: err,
+    }),
+  });
+
+  return { nc, js, jsm: options.jetStreamManagerUnavailable ? undefined : jsm, getJsm, config };
 };
 
-export const makeMockNatsFixture = (config: Partial<MshConfig> = {}): MockNatsFixture => {
+export const makeMockNatsFixture = (
+  config: Partial<MshConfig> = {},
+  options: MockNatsOptions = {},
+): MockNatsFixture => {
   const state = makeState();
-  const shape = makeConnectionShape(state, { ...DEFAULT_CONFIG, ...config });
+  const shape = makeConnectionShape(state, { ...DEFAULT_CONFIG, ...config }, options);
   return {
     state,
     shape,

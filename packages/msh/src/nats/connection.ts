@@ -2,7 +2,7 @@
  * NATS Connection Service
  *
  * Provides scoped connection lifecycle management with Effect.acquireRelease.
- * Exposes nc (NatsConnection), js (JetStreamClient), and jsm (JetStreamManager).
+ * Exposes nc (NatsConnection), js (JetStreamClient), and lazy JetStreamManager access.
  *
  * @module @tmnl/msh/nats/connection
  */
@@ -31,8 +31,10 @@ export interface NatsConnectionShape {
   readonly nc: NatsConnection;
   /** JetStream client for streams, KV, object store */
   readonly js: JetStreamClient;
-  /** JetStream manager for stream/consumer administration */
-  readonly jsm: JetStreamManager;
+  /** Optional already-resolved JetStream manager for stream/consumer administration. */
+  readonly jsm?: JetStreamManager;
+  /** Lazily resolve the JetStream manager; core pub/sub users do not require this permission. */
+  readonly getJsm: () => Effect.Effect<JetStreamManager, Connection.JetStreamManagerError>;
   /** The active configuration */
   readonly config: MshConfig;
 }
@@ -130,17 +132,21 @@ export class NatsConnectionService extends Context.Service<
       // Get JetStream client (synchronous)
       const js = nc.jetstream();
 
-      // Get JetStream manager (async)
-      const jsm = yield* Effect.tryPromise({
-        try: () => nc.jetstreamManager(),
-        catch: (err) =>
-          new Connection.JetStreamManagerError({
-            message: `Failed to get JetStream manager: ${err}`,
-            cause: err,
-          }),
-      });
+      let jsmPromise: Promise<JetStreamManager> | undefined;
+      const getJsm = () =>
+        Effect.tryPromise({
+          try: () => {
+            jsmPromise ??= nc.jetstreamManager();
+            return jsmPromise;
+          },
+          catch: (err) =>
+            new Connection.JetStreamManagerError({
+              message: `Failed to get JetStream manager: ${err}`,
+              cause: err,
+            }),
+        });
 
-      return NatsConnectionService.of({ nc, js, jsm, config });
+      return NatsConnectionService.of({ nc, js, getJsm, config });
     }),
   );
 
