@@ -167,10 +167,21 @@ idempotency: caused_by_propagation_id
 
 Deliverables:
 
-- `PropagationDescriptor` Schema.
-- Registry attachment for descriptors on edge types.
-- Descriptor for Machine unavailable → WorkOrder suspend.
-- Tests for descriptor validation and discovery.
+- `PropagationDescriptor` Schema. **Done:** `src/lib/iiot/schemas/relationships/edge-types.ts`.
+- Registry attachment for descriptors on edge types. **Done:** descriptors live on `RelationshipEdgeDescriptor.propagationDescriptors`.
+- Descriptor for Machine unavailable → WorkOrder suspend. **Done:** `MachineUnavailableSuspendsWorkOrder` on the `targets` edge.
+- Tests for descriptor validation and discovery. **Done:** `src/lib/iiot/__tests__/relationships/propagation-descriptors.test.ts`.
+
+Descriptor shape:
+
+```text
+edge: work_order -[:targets]-> machine
+traversal: target_to_source
+source event: EquipmentStateChanged where newState ∈ unavailable states
+target command: WorkOrder.Suspend(reason=equipment_unavailable)
+idempotency: source_propagation_id
+eligibility: work_order.active_started_or_resumed
+```
 
 Why it matters: hard-coded Reactor behavior does not scale past the first slice.
 
