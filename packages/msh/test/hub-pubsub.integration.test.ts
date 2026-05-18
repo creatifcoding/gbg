@@ -27,6 +27,10 @@ const TestEvent = Schema.Struct({
   value: Schema.Number,
 });
 
+const OtherEvent = Schema.Struct({
+  name: Schema.String,
+});
+
 const RpcRequest = Schema.Struct({
   value: Schema.Number,
 });
@@ -69,7 +73,7 @@ describe('NatsHubService + NatsPubSubService integration', () => {
     expect(activePatterns).toEqual(['events.>']);
   });
 
-  it('fans out locally to wildcard subscribers and forwards encoded payloads to core NATS', async () => {
+  it('delivers one wildcard subscriber message and forwards encoded payloads to core NATS', async () => {
     const fixture = makeMockNatsFixture();
 
     const result = await Effect.runPromise(
@@ -95,6 +99,68 @@ describe('NatsHubService + NatsPubSubService integration', () => {
     expect(result.map((msg) => msg.subject)).toEqual(['events.created']);
     expect(fixture.state.coreMessages).toHaveLength(1);
     expect(fixture.state.coreMessages[0].subject).toBe('events.created');
+  });
+
+  it('does not duplicate local and core delivery for one publish', async () => {
+    const fixture = makeMockNatsFixture();
+
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const pubsub = yield* NatsPubSubService;
+          const stream = yield* pubsub.subscribe('events.>', TestEvent);
+          const received: Array<unknown> = [];
+          const fiber = yield* stream.pipe(
+            Stream.runForEach((msg) => Effect.sync(() => received.push(msg.data))),
+            Effect.forkScoped,
+          );
+
+          yield* pubsub.publish('events.created', TestEvent, { id: 'evt-1', value: 42 });
+          yield* Effect.sleep(50);
+          yield* Fiber.interrupt(fiber);
+          return received;
+        }),
+      ).pipe(Effect.provide(makePubSubLayer(fixture))),
+    );
+
+    expect(result).toEqual([{ id: 'evt-1', value: 42 }]);
+    expect(fixture.state.coreMessages).toHaveLength(1);
+  });
+
+  it('isolates schemas for subscribers sharing the same subject pattern', async () => {
+    const fixture = makeMockNatsFixture();
+
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const pubsub = yield* NatsPubSubService;
+          const wrongSchemaStream = yield* pubsub.subscribe('events.>', TestEvent);
+          const rightSchemaStream = yield* pubsub.subscribe('events.>', OtherEvent);
+          const wrong: Array<unknown> = [];
+          const right: Array<unknown> = [];
+
+          const wrongFiber = yield* wrongSchemaStream.pipe(
+            Stream.runForEach((msg) => Effect.sync(() => wrong.push(msg.data))),
+            Effect.ignore,
+            Effect.forkScoped,
+          );
+          const rightFiber = yield* rightSchemaStream.pipe(
+            Stream.runForEach((msg) => Effect.sync(() => right.push(msg.data))),
+            Effect.ignore,
+            Effect.forkScoped,
+          );
+
+          yield* pubsub.publish('events.created', OtherEvent, { name: 'schema-b' });
+          yield* Effect.sleep(50);
+          yield* Fiber.interrupt(wrongFiber);
+          yield* Fiber.interrupt(rightFiber);
+          return { wrong, right };
+        }),
+      ).pipe(Effect.provide(makePubSubLayer(fixture))),
+    );
+
+    expect(result.wrong).toEqual([]);
+    expect(result.right).toEqual([{ name: 'schema-b' }]);
   });
 
   it('performs schema-encoded request/reply roundtrips', async () => {

@@ -43,8 +43,15 @@ export interface HubSubscribeOptions {
   readonly queue?: string;
 }
 
-interface SubjectHub<A> {
-  readonly pubsub: PubSub.PubSub<A>;
+interface RawHubMessage {
+  readonly subject: string;
+  readonly data: Uint8Array;
+  readonly reply?: string;
+  readonly raw: Msg;
+}
+
+interface SubjectHub {
+  readonly pubsub: PubSub.PubSub<RawHubMessage>;
   readonly pattern: string;
 }
 
@@ -75,25 +82,6 @@ export interface NatsHubServiceShape {
 }
 
 // =============================================================================
-// Pattern Matching
-// =============================================================================
-
-function subjectMatchesPattern(subject: string, pattern: string): boolean {
-  const subjectTokens = subject.split('.');
-  const patternTokens = pattern.split('.');
-
-  for (let i = 0; i < patternTokens.length; i++) {
-    const pt = patternTokens[i];
-    if (pt === '>') return i < subjectTokens.length;
-    if (i >= subjectTokens.length) return false;
-    if (pt === '*') continue;
-    if (pt !== subjectTokens[i]) return false;
-  }
-
-  return subjectTokens.length === patternTokens.length;
-}
-
-// =============================================================================
 // Service Definition (v4 Context.Service)
 // =============================================================================
 
@@ -109,27 +97,23 @@ export class NatsHubService extends Context.Service<
 
       const defaultReplay = 3;
 
-      type AnyHub = SubjectHub<TypedHubMessage<unknown>>;
-      const activeHubsMap = new Map<string, AnyHub>();
+      const activeHubsMap = new Map<string, SubjectHub>();
 
       // ─── HUB FACTORY ──────────────────────────────────────────────────
 
-      const createHub = <S extends Schema.Top>(
+      const createHub = (
         pattern: string,
-        schema: S,
         config: SubjectHubConfig & HubSubscribeOptions,
       ): Effect.Effect<
-        SubjectHub<TypedHubMessage<S['Type']>>,
+        SubjectHub,
         HubErrors.HubCreationError,
-        Scope.Scope | S['DecodingServices']
+        Scope.Scope
       > =>
         Effect.gen(function* () {
           const replay = config.replay ?? defaultReplay;
 
           const pubsub = yield* Effect.acquireRelease(
-            PubSub.unbounded<TypedHubMessage<S['Type']>>({
-              replay,
-            }),
+            PubSub.unbounded<RawHubMessage>({ replay }),
             (ps) => PubSub.shutdown(ps),
           );
 
@@ -158,17 +142,55 @@ export class NatsHubService extends Context.Service<
               () => subscription.unsubscribe(),
             );
 
-          const typedStream = pipe(
+          const rawStream = pipe(
             natsStream,
+            Stream.map((msg): RawHubMessage => ({
+              subject: msg.subject,
+              data: msg.data,
+              reply: msg.reply,
+              raw: msg,
+            })),
+          );
+
+          yield* Effect.forkScoped(
+            Stream.runForEach(rawStream, (msg) => PubSub.publish(pubsub, msg)),
+          );
+
+          return { pubsub, pattern };
+        });
+
+      // ─── SUBSCRIBE ────────────────────────────────────────────────────
+
+      const subscribe: NatsHubServiceShape['subscribe'] = (pattern, schema, opts = {}) =>
+        Effect.gen(function* () {
+          const hubKey = `${pattern}::${opts.queue ?? ''}`;
+
+          let hub = activeHubsMap.get(hubKey);
+
+          if (!hub) {
+            hub = yield* createHub(pattern, opts);
+            activeHubsMap.set(hubKey, hub);
+
+            yield* Effect.addFinalizer(() =>
+              Effect.sync(() => {
+                if (activeHubsMap.get(hubKey) === hub) {
+                  activeHubsMap.delete(hubKey);
+                }
+              }),
+            );
+          }
+
+          return pipe(
+            Stream.fromPubSub(hub.pubsub),
             Stream.mapEffect((msg) =>
               pipe(
                 NatsCodec.decodeJson(schema, { subject: msg.subject })(msg.data),
                 Effect.map(
-                  (data): TypedHubMessage<S['Type']> => ({
+                  (data): TypedHubMessage<any> => ({
                     subject: msg.subject,
                     data,
                     reply: msg.reply,
-                    raw: msg,
+                    raw: msg.raw,
                   }),
                 ),
                 Effect.mapError(
@@ -181,40 +203,7 @@ export class NatsHubService extends Context.Service<
                 ),
               ),
             ),
-          );
-
-          yield* Effect.forkScoped(
-            Stream.runForEach(typedStream, (msg) => PubSub.publish(pubsub, msg)),
-          );
-
-          return { pubsub, pattern };
-        });
-
-      // ─── SUBSCRIBE ────────────────────────────────────────────────────
-
-      const subscribe: NatsHubServiceShape['subscribe'] = (pattern, schema, opts = {}) =>
-        Effect.gen(function* () {
-          const schemaId = (schema as any).ast?._tag ?? 'unknown';
-          const hubKey = `${pattern}::${schemaId}`;
-
-          let hub = activeHubsMap.get(hubKey) as
-            | SubjectHub<TypedHubMessage<any>>
-            | undefined;
-
-          if (!hub) {
-            hub = yield* createHub(pattern, schema, opts);
-            activeHubsMap.set(hubKey, hub as AnyHub);
-
-            yield* Effect.addFinalizer(() =>
-              Effect.sync(() => {
-                if (activeHubsMap.get(hubKey) === hub) {
-                  activeHubsMap.delete(hubKey);
-                }
-              }),
-            );
-          }
-
-          return Stream.fromPubSub(hub.pubsub) as any;
+          ) as any;
         });
 
       // ─── PUBLISH ──────────────────────────────────────────────────────
@@ -231,38 +220,6 @@ export class NatsHubService extends Context.Service<
                 }),
             ),
           );
-
-          const typedMsg: TypedHubMessage<any> = {
-            subject,
-            data,
-            reply: undefined,
-            raw: {
-              subject,
-              data: bytes,
-              reply: undefined,
-              sid: -1,
-              respond: () => false,
-              json: () => data,
-              string: () => new TextDecoder().decode(bytes),
-            } as Msg,
-          };
-
-          for (const [key, hub] of activeHubsMap) {
-            const [pat] = key.split('::');
-            if (subjectMatchesPattern(subject, pat)) {
-              yield* PubSub.publish(
-                hub.pubsub as PubSub.PubSub<any>,
-                typedMsg,
-              ).pipe(
-                Effect.mapError(() =>
-                  new HubErrors.HubPublishError({
-                    message: `Failed to publish to hub '${pat}'`,
-                    subject,
-                  }),
-                ),
-              );
-            }
-          }
 
           yield* pipe(
             inner.core.publish(subject, bytes),

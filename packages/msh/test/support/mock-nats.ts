@@ -58,8 +58,15 @@ export interface MockObjectStoreState {
   readonly entries: Map<string, { data: Uint8Array; description?: string; created: Date }>;
 }
 
+interface MockCoreSubscription extends AsyncIterable<Msg> {
+  readonly subject: string;
+  readonly offer: (message: Msg) => void;
+  readonly unsubscribe: () => void;
+}
+
 export interface MockNatsState {
   readonly coreMessages: Array<{ subject: string; data: Uint8Array; reply?: string }>;
+  readonly coreSubscriptions: Set<MockCoreSubscription>;
   readonly streams: Map<string, MockStreamRecord>;
   readonly kvBuckets: Map<string, MockKvBucketState>;
   readonly objectStores: Map<string, MockObjectStoreState>;
@@ -85,6 +92,7 @@ const textEncoder = new TextEncoder();
 
 const makeState = (): MockNatsState => ({
   coreMessages: [],
+  coreSubscriptions: new Set(),
   streams: new Map(),
   kvBuckets: new Map(),
   objectStores: new Map(),
@@ -142,15 +150,54 @@ const consumerInfo = (state: MockConsumerState): ConsumerInfo => ({
   num_pending: 0,
 } as unknown as ConsumerInfo);
 
-const makeMsg = (subject: string, data: Uint8Array): Msg => ({
+const makeMsg = (subject: string, data: Uint8Array, reply = ''): Msg => ({
   subject,
   data,
-  reply: '',
+  reply,
   headers: undefined,
   respond: () => true,
   json: () => JSON.parse(new TextDecoder().decode(data)),
   string: () => new TextDecoder().decode(data),
 } as unknown as Msg);
+
+const makeCoreSubscription = (state: MockNatsState, subject: string): MockCoreSubscription => {
+  const pending: Msg[] = [];
+  const waiters: Array<(result: IteratorResult<Msg>) => void> = [];
+  let closed = false;
+
+  const subscription: MockCoreSubscription = {
+    subject,
+    offer: (message) => {
+      if (closed) return;
+      const waiter = waiters.shift();
+      if (waiter) waiter({ value: message, done: false });
+      else pending.push(message);
+    },
+    unsubscribe: () => {
+      if (closed) return;
+      closed = true;
+      state.coreSubscriptions.delete(subscription);
+      while (waiters.length > 0) {
+        waiters.shift()?.({ value: undefined as unknown as Msg, done: true });
+      }
+    },
+    [Symbol.asyncIterator]() {
+      return {
+        next: async () => {
+          const message = pending.shift();
+          if (message !== undefined) return { value: message, done: false };
+          if (closed) return { value: undefined as unknown as Msg, done: true };
+          return new Promise<IteratorResult<Msg>>((resolve) => {
+            waiters.push(resolve);
+          });
+        },
+      };
+    },
+  };
+
+  state.coreSubscriptions.add(subscription);
+  return subscription;
+};
 
 const makeJsMsg = (msg: { subject: string; data: Uint8Array; seq: number }): JsMsg => ({
   subject: msg.subject,
@@ -362,13 +409,15 @@ const makeConnectionShape = (state: MockNatsState, config: MshConfig): NatsConne
 
   const nc: NatsConnection = {
     publish: (subject: string, data: Uint8Array, opts?: { reply?: string }) => {
-      state.coreMessages.push({ subject, data, reply: opts?.reply });
+      const message = { subject, data, reply: opts?.reply };
+      state.coreMessages.push(message);
+      for (const subscription of state.coreSubscriptions) {
+        if (matchesSubject(subscription.subject, subject)) {
+          subscription.offer(makeMsg(subject, data, opts?.reply ?? ''));
+        }
+      }
     },
-    subscribe: (subject: string) => asyncIterableFrom(
-      state.coreMessages
-        .filter((msg) => matchesSubject(subject, msg.subject))
-        .map((msg) => makeMsg(msg.subject, msg.data)),
-    ),
+    subscribe: (subject: string) => makeCoreSubscription(state, subject),
     request: async (subject: string, data: Uint8Array) => {
       const responder = state.responders.get(subject);
       if (!responder) throw Object.assign(new Error('no responders'), { code: '503' });
