@@ -2,17 +2,20 @@
  * PCT HTTP routes — Layer-shaped, composes onto a shared `HttpRouter`.
  *
  * Following the v4 `HttpRouter.addAll` pattern: this module exports a
- * `Layer` that adds the four PCT endpoints to whatever `HttpRouter`
- * is in scope. Compose with `Lnk.Routes` to host both protocols on
- * one server.
+ * `Layer` that adds the PCT endpoints to whatever `HttpRouter` is in
+ * scope. Compose with `Lnk.Routes` to host both protocols on one server.
  *
- * Endpoints (Phase 3.5 minimum):
+ * Current endpoints:
  *   - `GET  /capabilities`            — manifest snapshot
  *   - `GET  /schemas/:schemaId`        — single schema entry
  *   - `POST /publish`                  — register a schema (Notary-stamped)
- *   - (deferred) `POST /rpc/:opId`     — invoke a procedure
- *   - (deferred) `GET  /snapshots/...` — signed snapshots
- *   - (deferred) `*    /federation/*`  — peer endpoints
+ *   - `POST /publish/procedure`        — register one operation + schemas
+ *   - `POST /publish/group`            — register a ProcedureGroup
+ *
+ * Planned endpoints:
+ *   - `POST /rpc/:opId`                — invoke a procedure
+ *   - `GET  /snapshots/...`            — signed snapshots
+ *   - `*    /federation/*`             — peer/admin and delta sync
  *
  * @module @tmnl/pct/server/Routes
  */
@@ -28,12 +31,27 @@ import * as HttpServerResponse from "effect-v4/unstable/http/HttpServerResponse"
 import { Identity } from "../identity/Identity.js"
 import { Manifest } from "../manifest/Manifest.js"
 import { Notary } from "../notary/Notary.js"
+import {
+  fromDocument,
+  fromGroupDocument,
+} from "../procedures/Document.js"
 import { Registry } from "../registry/Registry.js"
-import { ErrorBody, PublishSchemaRequest } from "./wire.js"
+import {
+  ErrorBody,
+  PublishProcedureGroupRequest,
+  PublishProcedureRequest,
+  PublishSchemaRequest,
+} from "./wire.js"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const decodePublishBody = Schema.decodeUnknownEffect(PublishSchemaRequest)
+const decodePublishProcedureBody = Schema.decodeUnknownEffect(
+  PublishProcedureRequest,
+)
+const decodePublishGroupBody = Schema.decodeUnknownEffect(
+  PublishProcedureGroupRequest,
+)
 
 /**
  * Construct a JSON error response with the given status + code.
@@ -163,10 +181,136 @@ const publishHandler = Effect.gen(function* () {
   ),
 )
 
+// ─── POST /publish/procedure ───────────────────────────────────────────────
+
+const publishProcedureHandler = Effect.gen(function* () {
+  const request = yield* HttpServerRequest.HttpServerRequest
+  const rawBody = yield* request.json
+  const body = yield* decodePublishProcedureBody(rawBody)
+
+  const decoded = yield* Effect.result(
+    Effect.try({
+      try: () => fromDocument(body),
+      catch: (cause) => cause,
+    }),
+  )
+  if (decoded._tag === "Failure") {
+    return errorResponse(
+      400,
+      "PCT_PROCEDURE_DECODE",
+      "procedure document failed validation",
+      { issues: String(decoded.failure) },
+    )
+  }
+
+  const notary = yield* Notary
+  const registry = yield* Registry
+  const published = yield* notary.publishProcedure(decoded.success)
+  const revision = yield* registry.revision
+  const op = yield* registry.getOperation(published.schemaId)
+
+  return HttpServerResponse.jsonUnsafe({
+    ...published,
+    registeredAt: op?.registeredAt ?? 0,
+    originNodeId: op?.originNodeId ?? "",
+    revision,
+  })
+}).pipe(
+  Effect.catchTag("SchemaError", (err) =>
+    Effect.succeed(
+      errorResponse(
+        400,
+        "PCT_PROCEDURE_DECODE",
+        "request body failed validation",
+        { issues: String(err) },
+      ),
+    ),
+  ),
+  Effect.catchTag("EventJournalError", (err) =>
+    Effect.succeed(
+      errorResponse(500, "PCT_JOURNAL_WRITE", String(err)),
+    ),
+  ),
+  Effect.catch((err) =>
+    Effect.succeed(
+      errorResponse(500, "PCT_PUBLISH_PROCEDURE_FAILED", String(err)),
+    ),
+  ),
+)
+
+// ─── POST /publish/group ───────────────────────────────────────────────────
+
+const publishGroupHandler = Effect.gen(function* () {
+  const request = yield* HttpServerRequest.HttpServerRequest
+  const rawBody = yield* request.json
+  const body = yield* decodePublishGroupBody(rawBody)
+
+  const decoded = yield* Effect.result(
+    Effect.try({
+      try: () => fromGroupDocument(body),
+      catch: (cause) => cause,
+    }),
+  )
+  if (decoded._tag === "Failure") {
+    return errorResponse(
+      400,
+      "PCT_PROCEDURE_GROUP_DECODE",
+      "procedure group document failed validation",
+      { issues: String(decoded.failure) },
+    )
+  }
+
+  const notary = yield* Notary
+  const registry = yield* Registry
+  const result = yield* notary.publish(decoded.success)
+  const enriched = []
+  for (const procedure of result.procedures) {
+    const op = yield* registry.getOperation(procedure.schemaId)
+    enriched.push({
+      ...procedure,
+      registeredAt: op?.registeredAt ?? result.publishedAt,
+      originNodeId: op?.originNodeId ?? "",
+      revision: result.revision,
+    })
+  }
+
+  return HttpServerResponse.jsonUnsafe({
+    name: decoded.success.name,
+    ...(decoded.success.version !== undefined
+      ? { version: decoded.success.version }
+      : {}),
+    procedures: enriched,
+    publishedAt: result.publishedAt,
+    originNodeId: enriched[0]?.originNodeId ?? "",
+    revision: result.revision,
+  })
+}).pipe(
+  Effect.catchTag("SchemaError", (err) =>
+    Effect.succeed(
+      errorResponse(
+        400,
+        "PCT_PROCEDURE_GROUP_DECODE",
+        "request body failed validation",
+        { issues: String(err) },
+      ),
+    ),
+  ),
+  Effect.catchTag("EventJournalError", (err) =>
+    Effect.succeed(
+      errorResponse(500, "PCT_JOURNAL_WRITE", String(err)),
+    ),
+  ),
+  Effect.catch((err) =>
+    Effect.succeed(
+      errorResponse(500, "PCT_PUBLISH_GROUP_FAILED", String(err)),
+    ),
+  ),
+)
+
 // ─── Routes Layer ───────────────────────────────────────────────────────────
 
 /**
- * The PCT routes Layer. Adds the four PCT endpoints to whatever
+ * The PCT routes Layer. Adds the PCT endpoints to whatever
  * `HttpRouter` is in scope.
  *
  * Requires (in addition to HttpRouter): `Notary | Registry | Identity`
@@ -180,4 +324,6 @@ export const Routes = HttpRouter.addAll([
   HttpRouter.route("GET", "/capabilities", capabilitiesHandler),
   HttpRouter.route("GET", "/schemas/:schemaId", getSchemaHandler),
   HttpRouter.route("POST", "/publish", publishHandler),
+  HttpRouter.route("POST", "/publish/procedure", publishProcedureHandler),
+  HttpRouter.route("POST", "/publish/group", publishGroupHandler),
 ])

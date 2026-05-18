@@ -24,6 +24,7 @@ import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
 
 import * as IdentityLayers from "../src/identity/Layers.js"
 import * as NotaryDefault from "../src/notary/Default.js"
+import * as Procedure from "../src/procedures/index.js"
 import * as RegistryMemory from "../src/registry/Memory.js"
 import { Routes } from "../src/server/Routes.js"
 
@@ -47,6 +48,29 @@ const orderDocument = SchemaRepresentation.fromAST(Order.ast)
 const orderDocumentJson = Schema.encodeUnknownSync(
   SchemaRepresentation.DocumentFromJson,
 )(orderDocument)
+
+const HeartRateInput = Schema.Struct({
+  bpm: Schema.Number,
+  deviceId: Schema.String,
+})
+
+const HeartRate = Schema.Struct({
+  bpm: Schema.Number,
+  observedAt: Schema.String,
+  deviceId: Schema.String,
+})
+
+const submitReading = Procedure.mutation("vitals.submitReading", {
+  input: HeartRateInput,
+  output: HeartRate,
+  errors: [],
+  version: "1.0.0",
+})
+
+const Vitals = Procedure.makeGroup(
+  { name: "vitals", version: "1.0.0" },
+  submitReading,
+)
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
@@ -150,6 +174,65 @@ describe("PCT Server", () => {
       expect(body.schemas).toHaveLength(1)
       expect(body.schemas[0].schemaId).toBe("orders/Order")
       expect(body.schemas[0].version).toBe("1.0.0")
+    } finally {
+      await dispose()
+    }
+  })
+
+  it("POST /publish/group registers operations visible in capabilities", async () => {
+    const { handler, dispose } = buildHandler()
+    try {
+      const publishResponse = await handler(
+        new Request("http://test/publish/group", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(Procedure.toGroupDocument(Vitals)),
+        }),
+      )
+      expect(publishResponse.status).toBe(200)
+      const published = (await publishResponse.json()) as {
+        revision: number
+        originNodeId: string
+        procedures: ReadonlyArray<{
+          schemaId: string
+          inputSchemaId: string
+          outputSchemaId: string
+        }>
+      }
+      expect(published.originNodeId).toMatch(/^pct:[0-9a-f]{8}$/)
+      expect(published.procedures).toHaveLength(1)
+      expect(published.procedures[0].schemaId).toBe(
+        "vitals.submitReading@1.0.0",
+      )
+      expect(published.procedures[0].inputSchemaId).toBe(
+        "vitals.submitReading/Input@1.0.0",
+      )
+      expect(published.procedures[0].outputSchemaId).toBe(
+        "vitals.submitReading/Output@1.0.0",
+      )
+
+      const capabilities = await handler(
+        new Request("http://test/capabilities", { method: "GET" }),
+      )
+      const body = (await capabilities.json()) as {
+        revision: number
+        schemas: ReadonlyArray<{ schemaId: string; version: string }>
+        operations: ReadonlyArray<{
+          name: string
+          version: string
+          inputSchemaId: string
+          outputSchemaId: string
+        }>
+      }
+      expect(body.revision).toBe(3)
+      expect(body.schemas).toHaveLength(2)
+      expect(body.operations).toHaveLength(1)
+      expect(body.operations[0]).toMatchObject({
+        name: "vitals.submitReading",
+        version: "1.0.0",
+        inputSchemaId: "vitals.submitReading/Input@1.0.0",
+        outputSchemaId: "vitals.submitReading/Output@1.0.0",
+      })
     } finally {
       await dispose()
     }

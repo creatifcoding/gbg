@@ -42,10 +42,14 @@ export {
 } from "./ProcedureGroup.js"
 
 export {
-  type ProcedureDocument,
-  type ProcedureGroupDocument,
+  ProcedureDocument,
+  ProcedureGroupDocument,
   fromDocument,
   fromGroupDocument,
   toDocument,
   toGroupDocument,
+} from "./Document.js"
+export type {
+  ProcedureDocument as ProcedureDocumentType,
+  ProcedureGroupDocument as ProcedureGroupDocumentType,
 } from "./Document.js"

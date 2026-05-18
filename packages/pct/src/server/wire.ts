@@ -12,13 +12,18 @@
 
 import * as Schema from "effect-v4/Schema"
 
+import {
+  ProcedureDocument,
+  ProcedureGroupDocument,
+} from "../procedures/Document.js"
+
 // ─── /publish ──────────────────────────────────────────────────────────────
 
 /**
- * POST /publish — register a single schema or procedure document.
+ * POST /publish — register a single schema document.
  *
- * For Phase 3.5 we accept the simple "register schema" shape; full
- * procedure-document publish lands in 3.5.1.
+ * This endpoint remains for raw schema publication. Operation/procedure
+ * publication uses `/publish/procedure` and `/publish/group` below.
  */
 export const PublishSchemaRequest = Schema.Struct({
   /** Author-provided schema name (e.g. "orders/Order"). */
@@ -42,6 +47,42 @@ export const PublishSchemaResponse = Schema.Struct({
   /** Manifest revision after this write. */
   revision: Schema.Number,
 })
+
+// ─── /publish/procedure and /publish/group ────────────────────────────────
+
+/** POST /publish/procedure — register one Procedure as schemas + operation. */
+export const PublishProcedureRequest = ProcedureDocument
+
+export const PublishedProcedureResponse = Schema.Struct({
+  name: Schema.String,
+  version: Schema.String,
+  schemaId: Schema.String,
+  inputSchemaId: Schema.String,
+  outputSchemaId: Schema.String,
+  errorSchemaIds: Schema.Array(Schema.String),
+  registeredAt: Schema.Number,
+  /** The publishing node's nodeId (auto-stamped server-side). */
+  originNodeId: Schema.String,
+  /** Manifest revision after this write. */
+  revision: Schema.Number,
+})
+export type PublishedProcedureResponse = typeof PublishedProcedureResponse.Type
+
+/** POST /publish/group — register all Procedures in a ProcedureGroup. */
+export const PublishProcedureGroupRequest = ProcedureGroupDocument
+
+export const PublishProcedureGroupResponse = Schema.Struct({
+  name: Schema.String,
+  version: Schema.optional(Schema.String),
+  procedures: Schema.Array(PublishedProcedureResponse),
+  publishedAt: Schema.Number,
+  /** The publishing node's nodeId (auto-stamped server-side). */
+  originNodeId: Schema.String,
+  /** Manifest revision after the group write. */
+  revision: Schema.Number,
+})
+export type PublishProcedureGroupResponse =
+  typeof PublishProcedureGroupResponse.Type
 
 // ─── /capabilities ─────────────────────────────────────────────────────────
 

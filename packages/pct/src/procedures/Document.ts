@@ -18,7 +18,7 @@ import * as Schema from "effect-v4/Schema"
 import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
 
 import { make as makeProcedure, type Procedure } from "./Procedure.js"
-import type { ProcedureKind } from "./ProcedureKind.js"
+import { ProcedureKind } from "./ProcedureKind.js"
 import { make as makeGroup, type ProcedureGroup } from "./ProcedureGroup.js"
 
 // ─── Document types ─────────────────────────────────────────────────────────
@@ -32,15 +32,16 @@ import { make as makeGroup, type ProcedureGroup } from "./ProcedureGroup.js"
  * back to full Effect.Schemas via `SchemaRepresentation.toSchema` after
  * decoding through the same codec.
  */
-export interface ProcedureDocument {
-  readonly name: string
-  readonly version: string
-  readonly kind: ProcedureKind
-  readonly inputDocument: unknown
-  readonly outputDocument: unknown
-  readonly errorDocuments: ReadonlyArray<unknown>
-  readonly description?: string
-}
+export const ProcedureDocument = Schema.Struct({
+  name: Schema.String,
+  version: Schema.String,
+  kind: ProcedureKind,
+  inputDocument: Schema.Unknown,
+  outputDocument: Schema.Unknown,
+  errorDocuments: Schema.Array(Schema.Unknown),
+  description: Schema.optional(Schema.String),
+})
+export type ProcedureDocument = typeof ProcedureDocument.Type
 
 /**
  * A `ProcedureGroup` rendered as a wire-portable JSON document.
@@ -48,12 +49,13 @@ export interface ProcedureDocument {
  * Carries group metadata plus an array of `ProcedureDocument`s — one
  * per member procedure.
  */
-export interface ProcedureGroupDocument {
-  readonly name: string
-  readonly version?: string
-  readonly description?: string
-  readonly procedures: ReadonlyArray<ProcedureDocument>
-}
+export const ProcedureGroupDocument = Schema.Struct({
+  name: Schema.String,
+  version: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.String),
+  procedures: Schema.Array(ProcedureDocument),
+})
+export type ProcedureGroupDocument = typeof ProcedureGroupDocument.Type
 
 // ─── Procedure → Document ──────────────────────────────────────────────────
 
