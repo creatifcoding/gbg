@@ -84,9 +84,11 @@ Recommended fix: add typed config fields for `startSequence` / `startTime`, map 
 
 ### 5. `MshAuthService` leaves state as `failed` after successful retry
 
+Status: remediated. Auth lifecycle state is now driven by Schema-backed `AuthLifecycleSignal` operation kinds and a single transition graph. Credential source IO is isolated behind `MshCredentialSourceReader`, with named Effect programs for env/file reads.
+
 File: `src/auth/service.ts`
 
-After a credential load failure, a later `getAuthenticator` can succeed, but the state remains `failed` because success only transitions from `loading_credentials` to `ready`.
+After a credential load failure, a later `getAuthenticator` could succeed, but the state remained `failed` because success only transitioned from `loading_credentials` to `ready`.
 
 Probe result:
 
@@ -97,6 +99,14 @@ Probe result:
 Impact: callers observing auth state receive stale failure state after recovery.
 
 Recommended fix: on retry from `failed`, transition through `loading_credentials`; after successful credential load, set `ready` regardless of whether the prior state was `failed` or `loading_credentials`.
+
+Resolution evidence:
+
+```bash
+cd packages/msh && bunx vitest run test/auth-behavior.test.ts test/auth.test.ts && bunx tsc --noEmit --pretty false
+```
+
+Regression added: a failed `CredsEnv` load can recover after the variable becomes available, and state moves from `failed` → `loading_credentials` → `ready` via `CredentialLoadRequested` / `CredentialLoadSucceeded` signals.
 
 ### 6. `SubjectSpec.matches` treats literal dots as regex wildcards
 
