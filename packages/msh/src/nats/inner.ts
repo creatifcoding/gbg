@@ -133,6 +133,8 @@ export interface ConsumerConfigInput {
     | 'last_per_subject';
   readonly ackPolicy?: 'none' | 'all' | 'explicit';
   readonly replayPolicy?: 'instant' | 'original';
+  readonly startSequence?: number;
+  readonly startTime?: Date;
   readonly filterSubject?: string;
   readonly filterSubjects?: readonly string[];
   readonly ackWait?: number;
@@ -472,6 +474,8 @@ export class NatsInnerService extends Context.Service<
               deliver_policy: cfg.deliverPolicy as any,
               ack_policy: cfg.ackPolicy as any,
               replay_policy: cfg.replayPolicy as any,
+              opt_start_seq: cfg.startSequence,
+              opt_start_time: cfg.startTime?.toISOString(),
               filter_subject: cfg.filterSubject,
               filter_subjects: cfg.filterSubjects ? [...cfg.filterSubjects] : undefined,
               ack_wait: cfg.ackWait,

@@ -163,6 +163,7 @@ export class NatsStreamService extends Context.Service<
               yield* inner.consumers.add(streamName, {
                 durableName: opts.consumer, filterSubject: opts?.filterSubject,
                 filterSubjects: opts?.filterSubjects, deliverPolicy: opts?.deliverPolicy,
+                startSequence: opts?.startSequence, startTime: opts?.startTime,
                 ackPolicy: opts?.ackPolicy ?? 'explicit', maxAckPending: opts?.maxAckPending,
                 ackWait: opts?.ackWait, maxDeliver: opts?.maxDeliver,
               });
@@ -171,7 +172,8 @@ export class NatsStreamService extends Context.Service<
           } else {
             yield* inner.consumers.add(streamName, {
               filterSubject: opts?.filterSubject, filterSubjects: opts?.filterSubjects,
-              deliverPolicy: opts?.deliverPolicy ?? 'new', ackPolicy: opts?.ackPolicy ?? 'explicit',
+              deliverPolicy: opts?.deliverPolicy ?? 'new', startSequence: opts?.startSequence,
+              startTime: opts?.startTime, ackPolicy: opts?.ackPolicy ?? 'explicit',
               maxAckPending: opts?.maxAckPending, ackWait: opts?.ackWait, maxDeliver: opts?.maxDeliver,
             });
             consumer = yield* inner.consumers.get(streamName);

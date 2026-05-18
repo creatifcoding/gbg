@@ -30,7 +30,7 @@ import type { MshConfig } from '../../src/schemas/config';
 
 export interface MockStreamRecord {
   readonly config: Partial<StreamConfig> & { name: string };
-  readonly messages: Array<{ subject: string; data: Uint8Array; seq: number }>;
+  readonly messages: Array<{ subject: string; data: Uint8Array; seq: number; time: Date }>;
   readonly consumers: Map<string, MockConsumerState>;
 }
 
@@ -199,11 +199,11 @@ const makeCoreSubscription = (state: MockNatsState, subject: string): MockCoreSu
   return subscription;
 };
 
-const makeJsMsg = (msg: { subject: string; data: Uint8Array; seq: number }): JsMsg => ({
+const makeJsMsg = (msg: { subject: string; data: Uint8Array; seq: number; time: Date }): JsMsg => ({
   subject: msg.subject,
   data: msg.data,
   seq: msg.seq,
-  info: { timestampNanos: BigInt(Date.now()) * 1_000_000n },
+  info: { timestampNanos: BigInt(msg.time.getTime()) * 1_000_000n },
   ack: () => undefined,
   nak: () => undefined,
   working: () => undefined,
@@ -214,6 +214,23 @@ const makeConsumerMessages = (messages: JsMsg[]): ConsumerMessages => ({
   [Symbol.asyncIterator]: () => asyncIterableFrom(messages)[Symbol.asyncIterator](),
   stop: () => undefined,
 } as unknown as ConsumerMessages);
+
+const initialConsumerCursor = (stream: MockStreamRecord, config: Partial<ConsumerConfig>): number => {
+  switch (config.deliver_policy) {
+    case 'new':
+      return stream.messages.length;
+    case 'last':
+      return Math.max(stream.messages.length - 1, 0);
+    case 'by_start_sequence':
+      return stream.messages.findIndex((message) => message.seq >= (config.opt_start_seq ?? 1));
+    case 'by_start_time': {
+      const start = config.opt_start_time ? new Date(config.opt_start_time).getTime() : Number.NEGATIVE_INFINITY;
+      return stream.messages.findIndex((message) => message.time.getTime() >= start);
+    }
+    default:
+      return 0;
+  }
+};
 
 const ensureStream = (state: MockNatsState, name: string): MockStreamRecord => {
   const stream = state.streams.get(name);
@@ -322,7 +339,8 @@ const makeConnectionShape = (state: MockNatsState, config: MshConfig): NatsConne
       add: (streamName: string, config: Partial<ConsumerConfig>) => {
         const stream = ensureStream(state, streamName);
         const name = config.durable_name ?? `ephemeral-${stream.consumers.size + 1}`;
-        const consumer: MockConsumerState = { stream: streamName, name, cursor: 0, config };
+        const cursor = initialConsumerCursor(stream, config);
+        const consumer: MockConsumerState = { stream: streamName, name, cursor: cursor < 0 ? stream.messages.length : cursor, config };
         stream.consumers.set(name, consumer);
         return Promise.resolve(consumerInfo(consumer));
       },
@@ -372,7 +390,7 @@ const makeConnectionShape = (state: MockNatsState, config: MshConfig): NatsConne
       const stream = findStreamForSubject(state, subject);
       if (!stream) return Promise.reject(new Error(`no stream for subject: ${subject}`));
       const seq = stream.messages.length + 1;
-      stream.messages.push({ subject, data, seq });
+      stream.messages.push({ subject, data, seq, time: new Date() });
       return Promise.resolve({ stream: stream.config.name, seq, duplicate: false } as unknown as PubAck);
     },
     consumers: {

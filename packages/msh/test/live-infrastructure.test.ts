@@ -9,6 +9,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 import * as Schema from 'effect-v4/Schema';
+import * as Stream from 'effect-v4/Stream';
 
 import {
   NatsConnectionService,
@@ -83,6 +84,46 @@ liveDescribe('live NATS infrastructure semantics', () => {
     expect(result.keys).toContain(key);
     expect(result.listed.map((entry) => entry.value)).toContainEqual({ id: 'alpha', value: 2 });
     expect(result.missing).toBeNull();
+  }, 10_000);
+
+  it('honors JetStream by_start_sequence delivery on a real stream', async () => {
+    const layers = makeLiveLayers(server);
+    const suffix = Date.now();
+    const streamName = `MSH_LIVE_SEQ_${suffix}`;
+    const subject = `msh.live.seq.${suffix}.created`;
+
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const stream = yield* NatsStreamService;
+          yield* stream.ensureStream({ name: streamName, subjects: [`msh.live.seq.${suffix}.>`] });
+
+          yield* stream.publish(subject, LiveRecord, { id: 'first', value: 1 }, { expectStream: streamName });
+          yield* stream.publish(subject, LiveRecord, { id: 'second', value: 2 }, { expectStream: streamName });
+
+          const fromSecond = yield* stream.subscribe(streamName, LiveRecord, {
+            consumer: 'start-at-two',
+            filterSubject: subject,
+            deliverPolicy: 'by_start_sequence',
+            startSequence: 2,
+            ackPolicy: 'explicit',
+          });
+          const received = yield* fromSecond.pipe(
+            Stream.take(1),
+            Stream.runCollect,
+            Effect.timeout(5000),
+            Effect.orElseSucceed(() => []),
+            Effect.map((chunk) => Array.from(chunk)),
+          );
+          yield* stream.deleteStream(streamName);
+          return received;
+        }),
+      ).pipe(Effect.provide(layers.stream)),
+    );
+
+    expect(result.map((msg) => ({ seq: msg.seq, data: msg.data }))).toEqual([
+      { seq: 2, data: { id: 'second', value: 2 } },
+    ]);
   }, 10_000);
 
   it('honors JetStream duplicate message IDs on a real stream', async () => {

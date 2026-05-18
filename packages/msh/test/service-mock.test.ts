@@ -127,15 +127,31 @@ describe('mock NATS transport', () => {
         const consumer = yield* stream.getConsumer('EVENTS', 'worker', { durableName: 'worker' });
         const fetched = yield* stream.fetch(consumer, TestEvent, { max: 10 });
         yield* stream.publish('events.updated', TestEvent, { id: 'b', value: 2 });
+        const fromSecond = yield* stream.subscribe('EVENTS', TestEvent, {
+          consumer: 'from-second',
+          deliverPolicy: 'by_start_sequence',
+          startSequence: 2,
+          ackPolicy: 'none',
+        });
+        const started = yield* fromSecond.pipe(
+          Stream.take(1),
+          Stream.runCollect,
+          Effect.timeout(1000),
+          Effect.orElseSucceed(() => []),
+          Effect.map((chunk) => Array.from(chunk)),
+        );
         const next = yield* stream.next(consumer, TestEvent);
         const info = yield* stream.getStreamInfo('EVENTS');
-        return { ack, fetched, next, info };
+        return { ack, fetched, started, next, info };
       }).pipe(Effect.provide(makeStreamLayer(fixture))),
     );
 
     expect(result.ack.stream).toBe('EVENTS');
     expect(result.ack.seq).toBe(1);
     expect(result.fetched.map((msg) => msg.data)).toEqual([{ id: 'a', value: 1 }]);
+    expect(result.started.map((msg) => ({ seq: msg.seq, data: msg.data }))).toEqual([
+      { seq: 2, data: { id: 'b', value: 2 } },
+    ]);
     expect(result.next?.data).toEqual({ id: 'b', value: 2 });
     expect((result.info as any)?.state?.last_seq).toBe(2);
   });
