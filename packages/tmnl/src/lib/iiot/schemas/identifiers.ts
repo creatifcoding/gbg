@@ -148,3 +148,7 @@ export type FactId = Schema.Schema.Type<typeof FactId>
 /** Propagation identifier for Reactor causal DAGs (e.g., 'PROP-abc123') */
 export const PropagationId = Schema.String.pipe(Schema.brand('PropagationId'))
 export type PropagationId = Schema.Schema.Type<typeof PropagationId>
+
+/** Relationship edge identifier for graph/audit correlation (e.g., 'EDGE-abc123') */
+export const EdgeId = Schema.String.pipe(Schema.brand('EdgeId'))
+export type EdgeId = Schema.Schema.Type<typeof EdgeId>

@@ -265,10 +265,10 @@ Goal: move generic graph CRUD from useful to governable.
 
 Deliverables:
 
-- Stable application-level `EdgeId`.
-- Insert-only SQL edge audit trail.
-- Descriptor version metadata.
-- Read-only agent Cypher guardrails.
+- Stable application-level `EdgeId`. **Done:** graph edges get `edge_id` and audit rows correlate by the same value.
+- Insert-only SQL edge audit trail. **Done:** `iiot.relationship_edge_audit` via migration `0026_relationship_edge_audit`.
+- Descriptor version metadata. **Done:** audit rows carry `descriptor_version`.
+- Read-only agent Cypher guardrails. **Done:** `GraphClient.executeReadOnlyCypher` rejects mutating Cypher verbs.
 
 Why it matters: relationship edges influence operational propagation. They need
 traceability, safety, and migration discipline.

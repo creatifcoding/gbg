@@ -9,6 +9,7 @@
  */
 
 import { Schema } from 'effect'
+import { EdgeId } from '../identifiers'
 
 export const RelationshipNodeType = Schema.Literal(
   'enterprise',
@@ -59,6 +60,7 @@ export class RelationshipEndpoint extends Schema.TaggedClass<RelationshipEndpoin
 export type RelationshipEndpoint = typeof RelationshipEndpoint.Type
 
 export class RelationshipEdgeMetadata extends Schema.TaggedClass<RelationshipEdgeMetadata>()('RelationshipEdgeMetadata', {
+  edgeId: Schema.optional(EdgeId),
   createdBy: Schema.String,
   reason: Schema.optional(Schema.String),
   validFrom: Schema.optional(Schema.String),

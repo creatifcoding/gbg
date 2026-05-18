@@ -26,6 +26,7 @@
  * 0023 - Reactor Checkpoints (replay/delivery dedupe)
  * 0024 - Work Order transition propagation metadata
  * 0025 - Equipment State transitions audit trail
+ * 0026 - Relationship edge audit trail
  *
  * @module
  */
@@ -108,6 +109,7 @@ import { createEventJournalSchema } from './_event-journal.ddl'
 
 // Reactor DDL
 import { createReactorCheckpointsTable } from './reactor/ReactorCheckpointModel.ddl'
+import { createRelationshipEdgeAuditTable } from './relationships/EdgeAuditModel.ddl'
 
 // =============================================================================
 // Migration Record
@@ -205,6 +207,9 @@ export const iiotMigrations = {
 
   // Equipment State transition audit trail for Reactor causal DAG source records
   '0025_equipment_state_transitions': setupEquipmentStateTransitions,
+
+  // Relationship edge audit trail for graph topology changes
+  '0026_relationship_edge_audit': createRelationshipEdgeAuditTable,
 } as const
 
 // =============================================================================

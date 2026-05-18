@@ -492,6 +492,22 @@ export const cleanTestReadings = Effect.gen(function* () {
  * Note: work_orders has self-referencing FK (parent_work_order_id),
  * so we delete children first by setting parent_work_order_id to NULL.
  */
+export const cleanTestRelationshipEdgeAudit = Effect.gen(function* () {
+  const sql = yield* PgClient.PgClient
+
+  yield* sql`DELETE FROM iiot.relationship_edge_audit
+    WHERE source_id LIKE 'TEST-%'
+       OR source_id LIKE 'MCH-test-%'
+       OR target_id LIKE 'TEST-%'
+       OR target_id LIKE 'MCH-test-%'
+       OR edge_id LIKE 'EDGE-%TEST-%'
+       OR edge_id LIKE 'EDGE-%MCH-test-%'`.pipe(
+    Effect.orElseSucceed(() => undefined)
+  )
+
+  yield* Effect.log('Cleaned test relationship edge audit')
+})
+
 export const cleanTestWorkOrders = Effect.gen(function* () {
   const sql = yield* PgClient.PgClient
 
@@ -642,6 +658,8 @@ export const cleanAllTestData = Effect.gen(function* () {
   yield* cleanTestAlarms
   // Clean assets (FK chain: sensors -> machines -> lines -> plants)
   yield* cleanTestAssets
+  // Clean relationship edge audit
+  yield* cleanTestRelationshipEdgeAudit
   // Clean graph data
   yield* cleanTestData
   yield* Effect.log('Cleaned all test data')

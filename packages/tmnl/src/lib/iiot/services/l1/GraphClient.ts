@@ -65,6 +65,7 @@ import type {
   LineId,
   PlantId,
   WorkOrderId,
+  type EdgeId,
 } from '../../schemas/identifiers'
 import type { Plant, Line, Machine, Sensor, SensorHierarchy, SensorType, MeasurementUnit } from '../../schemas/assets'
 import { GraphQueryError, HierarchyError } from '../../schemas/errors'
@@ -138,6 +139,15 @@ const nodeIdProperty = (type: RelationshipNodeType): string => {
     default:
       return 'id'
   }
+}
+
+const makeEdgeId = (input: {
+  readonly source: RelationshipEndpoint
+  readonly target: RelationshipEndpoint
+  readonly edgeType: RelationshipEdgeType
+}): EdgeId => {
+  const raw = `EDGE-${input.edgeType}-${input.source.type}-${input.source.id}-${input.target.type}-${input.target.id}`
+  return raw.replace(/[^a-zA-Z0-9:_-]/g, '-') as EdgeId
 }
 
 const cypherMap = (entries: Record<string, string | number | boolean | null | undefined>): string => {
@@ -215,6 +225,22 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
           )
         )
       )
+
+    const assertReadOnlyCypher = (query: string): Effect.Effect<void, GraphQueryError> => {
+      const forbidden = /\b(CREATE|MERGE|SET|DELETE|DETACH|DROP|ALTER|CALL|REMOVE)\b/i
+      return forbidden.test(query)
+        ? Effect.fail(new GraphQueryError({
+          query,
+          message: 'Only read-only Cypher is allowed on this API',
+        }))
+        : Effect.void
+    }
+
+    const executeReadOnlyCypher = (
+      query: string,
+      columnDefs: string = '(result agtype)',
+    ): Effect.Effect<CypherResult, GraphQueryError> =>
+      Effect.zipRight(assertReadOnlyCypher(query), executeCypher(query, columnDefs))
 
     /**
      * Get all plants
@@ -420,10 +446,13 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
 
         const sourceIdProperty = nodeIdProperty(input.source.type)
         const targetIdProperty = nodeIdProperty(input.target.type)
+        const edgeId = input.metadata.edgeId ?? makeEdgeId(input)
+        const validFrom = input.metadata.validFrom ?? new Date().toISOString()
         const edgeProperties = cypherMap({
+          edge_id: edgeId,
           created_at: new Date().toISOString(),
           created_by: input.metadata.createdBy,
-          valid_from: input.metadata.validFrom ?? new Date().toISOString(),
+          valid_from: validFrom,
           valid_to: null,
           reason: input.metadata.reason,
           version: 1,
@@ -439,6 +468,36 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
            SET edge += ${edgeProperties}`,
           '(edge agtype)'
         )
+
+        yield* sql`
+          INSERT INTO iiot.relationship_edge_audit (
+            edge_id,
+            action,
+            edge_type,
+            source_type,
+            source_id,
+            target_type,
+            target_id,
+            actor,
+            reason,
+            descriptor_version,
+            valid_from,
+            metadata
+          ) VALUES (
+            ${edgeId},
+            'upsert',
+            ${input.edgeType},
+            ${input.source.type},
+            ${input.source.id},
+            ${input.target.type},
+            ${input.target.id},
+            ${input.metadata.createdBy},
+            ${input.metadata.reason ?? null},
+            1,
+            ${validFrom},
+            ${JSON.stringify(input.metadata.context ?? {})}::jsonb
+          )
+        `
       })
 
     /**
@@ -464,14 +523,46 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
 
         const sourceIdProperty = nodeIdProperty(input.source.type)
         const targetIdProperty = nodeIdProperty(input.target.type)
+        const edgeId = makeEdgeId(input)
+        const validTo = new Date().toISOString()
         yield* executeCypher(
           `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'})
                   -[edge:${input.edgeType}]->
                  (target:${input.target.type} {${targetIdProperty}: '${escapeCypher(input.target.id)}'})
-           SET edge.valid_to = '${new Date().toISOString()}',
+           SET edge.valid_to = '${validTo}',
                edge.deactivation_reason = '${escapeCypher(input.reason ?? 'soft_delete')}'`,
           '(edge agtype)'
         )
+
+        yield* sql`
+          INSERT INTO iiot.relationship_edge_audit (
+            edge_id,
+            action,
+            edge_type,
+            source_type,
+            source_id,
+            target_type,
+            target_id,
+            actor,
+            reason,
+            descriptor_version,
+            valid_to,
+            metadata
+          ) VALUES (
+            ${edgeId},
+            'soft_delete',
+            ${input.edgeType},
+            ${input.source.type},
+            ${input.source.id},
+            ${input.target.type},
+            ${input.target.id},
+            'system',
+            ${input.reason ?? 'soft_delete'},
+            1,
+            ${validTo},
+            '{}'::jsonb
+          )
+        `
       })
 
     /**
@@ -806,6 +897,7 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
 
     return {
       executeCypher,
+      executeReadOnlyCypher,
       getPlants,
       getLinesForPlant,
       getMachinesForLine,
