@@ -70,12 +70,15 @@ import type {
 import type { Plant, Line, Machine, Sensor, SensorHierarchy, SensorType, MeasurementUnit } from '../../schemas/assets'
 import { GraphQueryError, HierarchyError } from '../../schemas/errors'
 import {
+  getRelationshipEdgeDescriptor,
   isRelationshipAllowed,
+  RelationshipEndpoint,
   type RelationshipEdgeMetadata,
   type RelationshipEdgeType,
-  type RelationshipEndpoint,
   type RelationshipNodeType,
+  type RelationshipPropagationPolicy,
 } from '../../schemas/relationships'
+import type { ObservationSignal, ReactorObservation } from '../../schemas/reactor'
 import { IIoTPgClientLive } from './IIoTPgClient'
 
 // =============================================================================
@@ -99,6 +102,13 @@ export const DEFAULT_GRAPH_CONFIG: GraphConfig = {
 /** Raw result from Cypher query */
 export interface CypherResult {
   readonly rows: ReadonlyArray<Record<string, unknown>>
+}
+
+export interface PropagationTargetExpansion {
+  readonly edgeType: RelationshipEdgeType
+  readonly source: RelationshipEndpoint
+  readonly target: RelationshipEndpoint
+  readonly requestTarget: RelationshipEndpoint
 }
 
 // =============================================================================
@@ -601,6 +611,91 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
       })
 
     /**
+     * Expand a Reactor observation through a relationship-scoped propagation
+     * policy.
+     *
+     * This is the generic replacement for one-off helpers such as
+     * getWorkOrderIdsTargetingMachine. It does not know what the target entity
+     * should do with the request; it only resolves graph endpoints.
+     */
+    const expandPropagationTargets = (input: {
+      readonly observation: ReactorObservation
+      readonly policy: RelationshipPropagationPolicy
+      readonly signal: ObservationSignal
+    }): Effect.Effect<readonly PropagationTargetExpansion[], GraphQueryError> =>
+      Effect.gen(function* () {
+        const edge = getRelationshipEdgeDescriptor(input.policy.edgeType)
+        const subject = input.observation.subject
+        const subjectIdProperty = nodeIdProperty(subject.type)
+
+        if (input.policy.observedEndpoint === 'source') {
+          if (!edge.allowedSourceTypes.includes(subject.type)) return []
+
+          const expansions = yield* Effect.forEach(
+            edge.allowedTargetTypes,
+            (targetType) =>
+              Effect.gen(function* () {
+                const targetIdProperty = nodeIdProperty(targetType)
+                const result = yield* executeReadOnlyCypher(
+                  `MATCH (observed:${subject.type} {${subjectIdProperty}: '${escapeCypher(subject.id)}'})
+                          -[edge:${input.policy.edgeType}]->
+                         (target:${targetType})
+                   WHERE edge.valid_to IS NULL
+                   RETURN target.${targetIdProperty} AS request_id`,
+                  '(request_id agtype)',
+                )
+
+                return result.rows.map((row): PropagationTargetExpansion => {
+                  const source = subject
+                  const target = new RelationshipEndpoint({ type: targetType, id: String(row['requestId']) })
+                  return {
+                    edgeType: input.policy.edgeType,
+                    source,
+                    target,
+                    requestTarget: input.policy.requestEndpoint === 'source' ? source : target,
+                  }
+                })
+              }),
+            { concurrency: 'unbounded' },
+          )
+
+          return expansions.flat()
+        }
+
+        if (!edge.allowedTargetTypes.includes(subject.type)) return []
+
+        const expansions = yield* Effect.forEach(
+          edge.allowedSourceTypes,
+          (sourceType) =>
+            Effect.gen(function* () {
+              const sourceIdProperty = nodeIdProperty(sourceType)
+              const result = yield* executeReadOnlyCypher(
+                `MATCH (source:${sourceType})
+                        -[edge:${input.policy.edgeType}]->
+                       (observed:${subject.type} {${subjectIdProperty}: '${escapeCypher(subject.id)}'})
+                 WHERE edge.valid_to IS NULL
+                 RETURN source.${sourceIdProperty} AS request_id`,
+                '(request_id agtype)',
+              )
+
+              return result.rows.map((row): PropagationTargetExpansion => {
+                const source = new RelationshipEndpoint({ type: sourceType, id: String(row['requestId']) })
+                const target = subject
+                return {
+                  edgeType: input.policy.edgeType,
+                  source,
+                  target,
+                  requestTarget: input.policy.requestEndpoint === 'source' ? source : target,
+                }
+              })
+            }),
+          { concurrency: 'unbounded' },
+        )
+
+        return expansions.flat()
+      }).pipe(Effect.withSpan('iiot.graph.expandPropagationTargets'))
+
+    /**
      * Create or update a work order node in the graph.
      *
      * Work orders remain relationally authoritative in iiot.work_orders; this
@@ -908,6 +1003,7 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
       upsertRelationshipEdge,
       softDeleteRelationshipEdge,
       getRelationshipTargetIds,
+      expandPropagationTargets,
       upsertWorkOrderNode,
       linkWorkOrderToMachine,
       upsertWorkOrderTargetingMachine,

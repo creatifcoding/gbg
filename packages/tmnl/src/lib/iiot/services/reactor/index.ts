@@ -1,6 +1,48 @@
 /** IIoT Reactor consistency services. */
 
 export {
+  ReactorRegistry,
+  ReactorRegistryLayer,
+  makeReactorRegistry,
+  type EntityReactionCapability,
+  type EntityReactionContract,
+  type EventObservationSpec,
+  type ReactorRegistryConfig,
+  type ReactorRegistryShape,
+} from './ReactorRegistry'
+
+export {
+  ReactorPlanner,
+  ReactorPlannerLive,
+  type ReactorPlannerShape,
+} from './ReactorPlanner'
+
+export {
+  ReactorDispatcher,
+  ReactorDispatcherLive,
+  type ReactorDispatcherShape,
+} from './ReactorDispatcher'
+
+export {
+  Reactor,
+  ReactorLive,
+  type ReactorShape,
+} from './Reactor'
+
+export {
+  EquipmentStateChangedObservationSpec,
+} from './observations'
+
+export {
+  makeWorkOrderReactionContract,
+} from './contracts/work-order'
+
+export {
+  ReactorGenericLive,
+  ReactorGenericWorkOrderRegistryLive,
+} from './layers'
+
+export {
   MachineMaintenanceFact,
   RelationshipReactor,
   RelationshipReactorLive,
