@@ -1,7 +1,11 @@
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { ObservationSignal } from '../../../schemas/reactor'
-import { TargetsMachineUnavailableBlocksSource } from '../../../schemas/relationships'
+import {
+  RequiresEquipmentUnavailableBlocksSource,
+  TargetsMachineUnavailableBlocksSource,
+  getPropagationPoliciesForEdge,
+} from '../../../schemas/relationships'
 import { eligible } from '../../../schemas/relationships/eligibility'
 import { makeReactorRegistry, type EntityReactionContract } from '../ReactorRegistry'
 
@@ -21,10 +25,13 @@ const workOrderContract: EntityReactionContract = {
 }
 
 describe('ReactorRegistry', () => {
-  it('matches propagation policies by observation signal', () => {
+  it('matches all production equipment unavailable propagation policies by observation signal', () => {
     const registry = makeReactorRegistry({
       observations: [],
-      propagationPolicies: [TargetsMachineUnavailableBlocksSource],
+      propagationPolicies: [
+        TargetsMachineUnavailableBlocksSource,
+        RequiresEquipmentUnavailableBlocksSource,
+      ],
       entities: [workOrderContract],
     })
 
@@ -34,8 +41,19 @@ describe('ReactorRegistry', () => {
       value: 'unavailable',
     }))
 
-    expect(policies).toHaveLength(1)
-    expect(policies[0]?.id).toBe(TargetsMachineUnavailableBlocksSource.id)
+    expect(policies.map((policy) => policy.id)).toEqual([
+      TargetsMachineUnavailableBlocksSource.id,
+      RequiresEquipmentUnavailableBlocksSource.id,
+    ])
+  })
+
+  it('registers production policies on their relationship edge descriptors', () => {
+    expect(getPropagationPoliciesForEdge('targets').map((policy) => policy.id)).toContain(
+      TargetsMachineUnavailableBlocksSource.id,
+    )
+    expect(getPropagationPoliciesForEdge('requires').map((policy) => policy.id)).toContain(
+      RequiresEquipmentUnavailableBlocksSource.id,
+    )
   })
 
   it('does not match unrelated signals', () => {

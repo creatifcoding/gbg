@@ -31,6 +31,7 @@ import {
   RelationshipEdgeMetadata,
   RelationshipEndpoint,
   RelationshipPropagationPolicy,
+  RequiresEquipmentUnavailableBlocksSource,
   SignalMatcher,
   TargetsMachineUnavailableBlocksSource,
 } from '../../schemas/relationships/edge-types'
@@ -192,7 +193,10 @@ const GenericReactorTestRegistryLayer = Layer.effect(
 
     return ReactorRegistry.of(makeReactorRegistry({
       observations: [EquipmentStateChangedObservationSpec],
-      propagationPolicies: [TargetsMachineUnavailableBlocksSource],
+      propagationPolicies: [
+        TargetsMachineUnavailableBlocksSource,
+        RequiresEquipmentUnavailableBlocksSource,
+      ],
       entities: [contract],
     }))
   }),
@@ -330,6 +334,85 @@ describe('Generic Reactor integration', () => {
         kind: 'condition_asserted',
         value: 'unavailable',
       })
+      expect(run.results).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          target: expect.objectContaining({ type: 'work_order', id: workOrderId }),
+          outcome: 'dispatched',
+        }),
+      ]))
+
+      const updated = yield* state.get(workOrderId)
+      expect(updated.status).toBe('suspended')
+      expect(Option.getOrNull(updated.suspensionReason)).toBe('equipment_unavailable')
+    }).pipe(
+      Effect.ensuring(
+        Effect.gen(function* () {
+          const graph = yield* GraphClient
+          yield* graph.executeCypher(
+            `MATCH (wo:work_order {id: '${workOrderId}'}) DETACH DELETE wo`,
+            '(result agtype)',
+          ).pipe(Effect.ignore)
+        }),
+      ),
+      Effect.provide(WorkOrderStateInMemory),
+      Effect.provide(GraphIntegrationLayer),
+    )
+
+    await Effect.runPromise(program)
+  })
+
+  it('routes EquipmentStateChanged across production requires equipment dependency policy', async () => {
+    if (!dbAvailable) return
+
+    const suffix = Date.now()
+    const workOrderId = `TEST-WO-GENERIC-REACTOR-REQ-${suffix}` as WorkOrderId
+
+    const program = Effect.gen(function* () {
+      const graph = yield* GraphClient
+      const state = yield* WorkOrderState
+      const journal = yield* EventJournal.makeMemory
+
+      yield* state.set(makeWorkOrder(workOrderId, 'started'))
+      yield* graph.upsertRelationshipNode(
+        { type: 'machine', id: TEST_MACHINE_ID },
+        { name: 'Generic Reactor Required Machine' },
+      )
+      yield* graph.upsertRelationshipNode(
+        { type: 'work_order', id: workOrderId },
+        { status: 'started' },
+      )
+      yield* graph.upsertRelationshipEdge({
+        source: { type: 'work_order', id: workOrderId },
+        target: { type: 'machine', id: TEST_MACHINE_ID },
+        edgeType: 'requires',
+        metadata: new RelationshipEdgeMetadata({
+          createdBy: 'reactor-generic-test',
+          reason: 'required-equipment-proof',
+        }),
+      })
+
+      const propagationId = `PROP-GENERIC-REACTOR-REQ-${suffix}` as PropagationId
+      yield* Effect.gen(function* () {
+        const emitter = yield* DomainEventEmitter
+        yield* emitter.emitEquipmentStateChanged({
+          machineId: TEST_MACHINE_ID,
+          previousState: 'running',
+          newState: 'faulted',
+          reason: 'required machine fault',
+          triggeredBy: 'reactor-generic-test',
+          propagationId,
+        })
+      }).pipe(Effect.provide(makeEmitterLayer(journal)))
+
+      const entries = yield* journal.entries
+
+      const first = yield* Effect.gen(function* () {
+        const reactor = yield* Reactor
+        return yield* reactor.reactToJournalEntry(entries[0]!)
+      }).pipe(Effect.provide(GenericReactorTestLayer))
+
+      expect(Option.isSome(first)).toBe(true)
+      const run = Option.getOrThrow(first)
       expect(run.results).toEqual(expect.arrayContaining([
         expect.objectContaining({
           target: expect.objectContaining({ type: 'work_order', id: workOrderId }),

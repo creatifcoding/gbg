@@ -26,7 +26,11 @@ import {
 } from '../../infrastructure/eventlog-layer'
 import { WorkOrderState } from '../../state'
 import { eligible, skipped } from '../../schemas/relationships'
-import { TargetsMachineUnavailableBlocksSource } from '../../schemas/relationships/edge-types'
+import {
+  RelationshipEdgeMetadata,
+  RequiresEquipmentUnavailableBlocksSource,
+  TargetsMachineUnavailableBlocksSource,
+} from '../../schemas/relationships/edge-types'
 import type {
   AssetId,
   MachineId,
@@ -144,7 +148,10 @@ const ReactorSourceClaimE2ERegistryLayer = Layer.effect(
 
     return ReactorRegistry.of(makeReactorRegistry({
       observations: [EquipmentStateChangedObservationSpec],
-      propagationPolicies: [TargetsMachineUnavailableBlocksSource],
+      propagationPolicies: [
+        TargetsMachineUnavailableBlocksSource,
+        RequiresEquipmentUnavailableBlocksSource,
+      ],
       entities: [contract],
     }))
   }),
@@ -295,6 +302,127 @@ describe('Reactor source-claim production-path E2E', () => {
         expect(claimRows[0]?.outcome).toBe('processed')
         expect(claimRows[0]?.policyEpoch).toBe('reactor-policy-epoch.v1')
         expect(claimRows[0]?.registryFingerprint).toMatch(/^fnv1a32:/)
+
+        const checkpointRows = yield* sql<{ outcome: string }>`
+          SELECT outcome
+          FROM iiot.reactor_checkpoints
+          WHERE consumer_id = 'relationship-reactor-generic-v1'
+            AND source_entry_id = ${entry!.idString}
+        `
+        expect(checkpointRows).toHaveLength(1)
+        expect(checkpointRows[0]?.outcome).toBe('processed')
+
+        yield* graph.executeCypher(
+          `MATCH (wo:work_order {id: '${created.id}'}) DETACH DELETE wo`,
+          '(result agtype)',
+        ).pipe(Effect.ignore)
+      }).pipe(
+        Effect.ensuring(cleanupSourceClaimE2E),
+      )
+    ).pipe(Effect.provide(E2ELayer))
+
+    await Effect.runPromise(program)
+  })
+
+  it('claims SQL journal entry before dispatching the production requires equipment lane', async () => {
+    if (!dbAvailable) return
+
+    const suffix = Date.now()
+    const propagationId = `PROP-REACTOR-SOURCE-CLAIM-E2E-REQ-${suffix}` as PropagationId
+
+    const program = withCleanMachineDatabase(
+      Effect.gen(function* () {
+        yield* cleanupSourceClaimE2E
+
+        const graph = yield* GraphClient
+        const state = yield* WorkOrderState
+        const transitionRepo = yield* WorkOrderTransitionRepo
+        const journal = yield* EventJournal.EventJournal
+        const sql = yield* PgClient.PgClient
+
+        const created = yield* state.create({
+          workflowDefinitionId: 'WF-REACTOR-SOURCE-CLAIM-E2E' as WorkflowDefinitionId,
+          workflowVersion: '1.0.0',
+          title: `Reactor source claim requires E2E ${suffix}`,
+          description: 'Production-path source claim Reactor requires E2E',
+          type: 'preventive_maintenance',
+          priority: 'normal',
+          createdBy: 'reactor-source-claim-e2e',
+          scheduledStart: Option.none(),
+          dueDate: Option.none(),
+          parentWorkOrderId: Option.none(),
+          primaryAssetId: Option.some(TEST_MACHINE_ID as unknown as AssetId),
+          assignedTo: Option.none(),
+          metadata: { test: 'reactor-source-claim-requires-e2e' },
+        })
+
+        yield* state.set({
+          ...created,
+          status: 'started',
+          actualStart: Option.some(DateTime.unsafeNow()),
+        })
+
+        yield* graph.upsertRelationshipNode(
+          { type: 'machine', id: TEST_MACHINE_ID },
+          { name: 'Reactor Source Claim Requires E2E Machine' },
+        )
+        yield* graph.upsertRelationshipNode(
+          { type: 'work_order', id: created.id },
+          { status: 'started' },
+        )
+        yield* graph.upsertRelationshipEdge({
+          source: { type: 'work_order', id: created.id },
+          target: { type: 'machine', id: TEST_MACHINE_ID },
+          edgeType: 'requires',
+          metadata: new RelationshipEdgeMetadata({
+            createdBy: 'reactor-source-claim-e2e',
+            reason: 'requires-equipment-e2e',
+          }),
+        })
+
+        yield* Effect.gen(function* () {
+          const emitter = yield* DomainEventEmitter
+          yield* emitter.emitEquipmentStateChanged({
+            machineId: TEST_MACHINE_ID,
+            previousState: 'running',
+            newState: 'faulted',
+            reason: 'source claim requires e2e fault',
+            triggeredBy: 'reactor-source-claim-e2e',
+            propagationId,
+          })
+        }).pipe(Effect.provide(makeEmitterLayer(journal)))
+
+        const entries = yield* journal.entries
+        const entry = entries.find((candidate) =>
+          candidate.event === 'EquipmentStateChanged' &&
+          candidate.primaryKey === TEST_MACHINE_ID
+        )
+        expect(entry).toBeDefined()
+
+        const reactor = yield* Reactor
+        const first = yield* reactor.reactToJournalEntry(entry!)
+        const duplicate = yield* reactor.reactToJournalEntry(entry!)
+
+        expect(Option.isSome(first)).toBe(true)
+        expect(Option.isNone(duplicate)).toBe(true)
+
+        const updated = yield* state.get(created.id)
+        expect(updated.status).toBe('suspended')
+        expect(Option.getOrNull(updated.suspensionReason)).toBe('equipment_unavailable')
+
+        const inboundHandled = yield* transitionRepo.hasInboundPropagation(created.id, propagationId)
+        expect(inboundHandled).toBe(true)
+
+        const claimRows = yield* sql<{ claimStatus: string; outcome: string | null }>`
+          SELECT claim_status AS "claimStatus",
+                 outcome
+          FROM iiot.reactor_source_claims
+          WHERE consumer_id = 'relationship-reactor-generic-v1'
+            AND source_entry_id = ${entry!.idString}
+        `
+        expect(claimRows).toHaveLength(1)
+        expect(claimRows[0]?.claimStatus).toBe('completed')
+        expect(claimRows[0]?.outcome).toBe('processed')
 
         const checkpointRows = yield* sql<{ outcome: string }>`
           SELECT outcome

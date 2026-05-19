@@ -1,7 +1,10 @@
 /** Reactor layer presets. */
 
 import { Effect, Layer } from 'effect'
-import { TargetsMachineUnavailableBlocksSource } from '../../schemas/relationships'
+import {
+  RequiresEquipmentUnavailableBlocksSource,
+  TargetsMachineUnavailableBlocksSource,
+} from '../../schemas/relationships'
 import {
   makeReactorRegistry,
   ReactorRegistry,
@@ -23,7 +26,10 @@ export const ReactorGenericWorkOrderRegistryLive = Layer.effect(
 
     return ReactorRegistry.of(makeReactorRegistry({
       observations: [EquipmentStateChangedObservationSpec],
-      propagationPolicies: [TargetsMachineUnavailableBlocksSource],
+      propagationPolicies: [
+        TargetsMachineUnavailableBlocksSource,
+        RequiresEquipmentUnavailableBlocksSource,
+      ],
       entities: [workOrderContract],
     }))
   }),

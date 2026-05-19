@@ -216,7 +216,34 @@ export const TargetsMachineUnavailableBlocksSource = new RelationshipPropagation
   request: new EntityReactionRequestTemplate({
     capability: 'dependency.blocked' as never,
     reason: 'target_unavailable',
-    payloadDefaults: { dependencyKind: 'equipment' },
+    payloadDefaults: { dependencyKind: 'equipment', suspensionReason: 'equipment_unavailable' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * A required machine becoming unavailable blocks WorkOrders that require it.
+ *
+ * This is distinct from `targets`: `targets` means the WorkOrder is performed
+ * against an asset, while `requires` means the WorkOrder depends on an asset or
+ * system being available to proceed.
+ */
+export const RequiresEquipmentUnavailableBlocksSource = new RelationshipPropagationPolicy({
+  id: 'requires.equipment-unavailable.blocks-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'equipment.availability',
+    kind: 'condition_asserted',
+    value: 'unavailable',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: 'dependency.blocked' as never,
+    reason: 'required_equipment_unavailable',
+    payloadDefaults: { dependencyKind: 'equipment', suspensionReason: 'equipment_unavailable' },
   }),
   effect: 'blocking',
   idempotencyStrategy: 'source_propagation_id',
@@ -232,7 +259,14 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
     [MachineUnavailableSuspendsWorkOrder],
     [TargetsMachineUnavailableBlocksSource],
   ),
-  requires: descriptor('requires', 'directed', ['work_order'], ['external', 'machine', 'device']),
+  requires: descriptor(
+    'requires',
+    'directed',
+    ['work_order'],
+    ['external', 'machine', 'device'],
+    [],
+    [RequiresEquipmentUnavailableBlocksSource],
+  ),
   caused_by: descriptor('caused_by', 'directed', ['work_order', 'alarm'], ['alarm', 'machine', 'sensor', 'device', 'work_order']),
   depends_on: descriptor('depends_on', 'directed', ['work_order'], ['work_order']),
   related_to: descriptor('related_to', 'bidirectional', ['work_order', 'alarm', 'machine', 'sensor', 'device'], ['work_order', 'alarm', 'machine', 'sensor', 'device']),
