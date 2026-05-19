@@ -55,6 +55,23 @@ effect-sui sui-localnet-status
 effect-sui sui-localnet-down
 ```
 
+E2E harness modes:
+
+```bash
+# Fast config/compile smoke; does not start Docker
+EFFECT_SUI_E2E_MODE=skip bun run test:e2e
+
+# Default: start Docker localnet (testcontainers when installed, Docker CLI fallback otherwise)
+bun run test:e2e
+
+# Reuse an externally managed localnet
+EFFECT_SUI_E2E_MODE=external \
+  SUI_FULLNODE_URL=http://127.0.0.1:9000 \
+  SUI_FAUCET_URL=http://127.0.0.1:9123 \
+  SUI_GRAPHQL_URL=http://127.0.0.1:9125/graphql \
+  bun run test:e2e
+```
+
 The localnet path is intentionally isolated from `~/.sui`:
 
 - Sui config: `.direnv/sui/config`

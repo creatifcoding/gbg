@@ -1,0 +1,7 @@
+[package]
+name = "effect_sui_counter"
+version = "0.0.1"
+edition = "2024.beta"
+
+[addresses]
+effect_sui_counter = "0x0"

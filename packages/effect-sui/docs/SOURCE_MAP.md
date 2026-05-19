@@ -50,6 +50,11 @@ This is the grounding map for implementation work. Read the relevant source befo
 | Sui/Move/gRPC/Postgres/Docker tools | `nix/modules/sui.nix` |
 | Localnet lifecycle scripts | `nix/modules/localnet.nix` |
 | Nix eval/shell smoke checks | `nix/modules/tests.nix` |
+| Vitest localnet global setup | `test/e2e/utils/globalSetup.ts` |
+| Vitest localnet env injection | `test/e2e/utils/setupEnv.ts` |
+| Move fixture compile/prepublish seam | `test/e2e/utils/prepublish.ts` |
+| Transport smoke tests | `test/e2e/localnet.smoke.test.ts` |
+| Minimal shared counter fixture | `move/fixtures/counter` |
 
 ## Package seams
 
