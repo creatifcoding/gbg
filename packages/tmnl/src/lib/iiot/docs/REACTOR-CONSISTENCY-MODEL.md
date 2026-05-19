@@ -202,6 +202,43 @@ consume a stream alongside its RPC mailbox, for example:
 Until then, `toLayer` remains the command boundary and the Reactor remains a
 separate service.
 
+### 6.3 Immediate correction: source-entry claim before dispatch
+
+The sidecar-vs-entity decision does not remove the need for a durable ownership
+claim. A checkpoint written only after dispatch is too late: two Reactor runners
+can both see an unprocessed journal entry, plan with different local policy
+epochs, and dispatch before either writes the checkpoint.
+
+Before any production singleton/worker implementation, Reactor must acquire an
+atomic source-entry claim keyed by:
+
+```text
+(consumer_id, source_entry_id)
+```
+
+The claim row freezes:
+
+- `owner_key` — usually `relationship-reactor:<subject.type>:<subject.id>`;
+- `policy_epoch` — the policy epoch used for this source entry;
+- `registry_fingerprint` — deterministic hash of loaded declarations;
+- `claim_token` — fresh per acquisition/reacquisition;
+- `lease_expires_at` — crash recovery boundary.
+
+Policy epoch is deliberately **not** part of the physical owner key. Including it
+would let two deployed epochs process the same source entry under different
+entity ids. The first safe production shape is:
+
+```text
+Event adapter / sidecar
+  -> derive stable subject owner key
+  -> Reactor source-entry claim
+  -> optional ReactorWorkerEntity(owner_key)
+  -> target entity RPC
+  -> final checkpoint
+```
+
+Detailed design: [`REACTOR-SOURCE-CLAIM-DESIGN.md`](./REACTOR-SOURCE-CLAIM-DESIGN.md).
+
 ---
 
 ## 7. Formal Flow
@@ -445,6 +482,8 @@ fairy tales in the margins.
 - [x] Reactor is a sidecar service/fiber for v1.
 - [x] Bounded concurrency per source event and per target entity type.
 - [ ] Deduplicate event delivery across hot/warm/cold tiers.
+- [ ] Acquire an atomic source-entry claim before planning or dispatch so policy
+      epoch split-brain cannot create duplicate target commands.
 - [ ] Treat `LISTEN/NOTIFY` as an accelerator only; always catch up from journal.
 - [x] Use `Effect.withSpan` around plan, filter, dispatch, and reconciliation.
 - [x] Persist Reactor checkpoints only after target dispatch attempt outcomes are

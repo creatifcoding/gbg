@@ -255,24 +255,36 @@ Manual semantics are unavoidable. The system cannot infer from TypeScript shape 
 
 ```txt
 1. Consume durable EventJournal entry.
-2. Check Reactor checkpoint for source entry + consumer.
-3. Find EventObservationSpec for entry.event.
-4. Decode payload and produce ReactorObservation.
-5. For each ObservationSignal:
+2. Find EventObservationSpec for entry.event.
+3. Decode payload and produce ReactorObservation.
+4. Derive stable Reactor owner key from observation.subject.
+5. Resolve current policy epoch + registry fingerprint.
+6. Acquire atomic source-entry claim for (consumer_id, source_entry_id).
+   a. If completed, skip.
+   b. If busy, defer/skip.
+   c. If epoch conflict or registry drift, block and do not dispatch.
+   d. If acquired/reacquired, continue.
+7. For each ObservationSignal:
    a. Find relationship propagation policies whose signal matcher accepts it.
    b. Query graph relationships connected to observation.subject.
    c. Select edges where observed endpoint matches subject side.
    d. Resolve request endpoint target entities.
-6. For each target entity:
+8. For each target entity:
    a. Find EntityReactionContract by entity type.
    b. Find requested capability.
    c. Ask contract to classify eligibility.
    d. If eligible, build and dispatch request/command.
    e. If skipped/deferred, record reason.
-7. Persist Reactor checkpoint outcome.
-8. Target entities emit their own durable domain events.
-9. Reactor may consume those events in later cycles.
+9. Complete source-entry claim with the final outcome.
+10. Persist Reactor checkpoint outcome.
+11. Target entities emit their own durable domain events.
+12. Reactor may consume those events in later cycles.
 ```
+
+The source-entry claim is a production prerequisite for singleton ownership. A
+checkpoint written after dispatch is not sufficient to prevent duplicate dispatch
+races or policy epoch split-brain. See
+[`REACTOR-SOURCE-CLAIM-DESIGN.md`](./REACTOR-SOURCE-CLAIM-DESIGN.md).
 
 ---
 
@@ -595,7 +607,15 @@ WorkOrder maps `dependency.blocked` to suspension only if local state permits it
 - Prefer an alarm or structural event path because durable event truth now exists there.
 - Plan-only is acceptable if no safe target command semantics exist yet.
 
-### Phase 7 — Replay and hardening
+### Phase 7 — Source-entry ownership claim
+
+- Add `iiot.reactor_source_claims` as the pre-dispatch ownership table.
+- Add `ReactorSourceClaimRepo` with acquire, heartbeat, complete, and block operations.
+- Add registry `policyEpoch` and deterministic `registryFingerprint`.
+- Update Reactor execution so source-entry claim acquisition happens before graph planning or target dispatch.
+- Test duplicate delivery races, epoch conflicts, stale claim tokens, and crash-after-dispatch retry behavior.
+
+### Phase 8 — Replay and hardening
 
 - Add replay/dry-run surface over durable EventJournal rows.
 - Add bounded concurrency controls, retry/dead-letter policy, and span metrics keyed by `propagationId`.
@@ -610,6 +630,8 @@ WorkOrder maps `dependency.blocked` to suspension only if local state permits it
 - Machine unavailable -> WorkOrder suspend still works.
 - Target WorkOrder skip reasons remain typed and replay-stable.
 - Reactor checkpoint dedupe still skips duplicate source journal entries.
+- Reactor source-entry claim prevents duplicate pre-checkpoint dispatch races.
+- Reactor source-entry claim blocks policy epoch split-brain instead of dispatching under two epochs.
 - At least two propagation policies can be planned by the same core loop.
 - New public contracts are Schema-backed.
 
