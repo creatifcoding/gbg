@@ -297,7 +297,21 @@ const WorkOrderStateSqlTestLayer = Layer.effect(
         repo.update({
           id: wo.id,
           status: wo.status,
+          actualStart: wo.actualStart !== undefined
+            ? Option.map(wo.actualStart, (dt) => new Date(Number(dt.epochMillis)))
+            : undefined,
+          actualEnd: wo.actualEnd !== undefined
+            ? Option.map(wo.actualEnd, (dt) => new Date(Number(dt.epochMillis)))
+            : undefined,
+          expectedResume: wo.expectedResume !== undefined
+            ? Option.map(wo.expectedResume, (dt) => new Date(Number(dt.epochMillis)))
+            : undefined,
           summary: wo.summary !== undefined ? wo.summary : undefined,
+          failureReason: wo.failureReason !== undefined ? wo.failureReason : undefined,
+          cancellationReason: wo.cancellationReason !== undefined ? wo.cancellationReason : undefined,
+          outcome: wo.outcome !== undefined ? wo.outcome : undefined,
+          suspensionReason: wo.suspensionReason !== undefined ? wo.suspensionReason : undefined,
+          finalStatus: wo.finalStatus !== undefined ? wo.finalStatus : undefined,
         } as any).pipe(Effect.map(workOrderModelToDomain)),
 
       delete: (id) =>
