@@ -27,6 +27,7 @@
  * 0024 - Work Order transition propagation metadata
  * 0025 - Equipment State transitions audit trail
  * 0026 - Relationship edge audit trail
+ * 0027 - Reactor source-entry claims
  *
  * @module
  */
@@ -109,6 +110,7 @@ import { createEventJournalSchema } from './_event-journal.ddl'
 
 // Reactor DDL
 import { createReactorCheckpointsTable } from './reactor/ReactorCheckpointModel.ddl'
+import { createReactorSourceClaimsTable } from './reactor/ReactorSourceClaimModel.ddl'
 import { createRelationshipEdgeAuditTable } from './relationships/EdgeAuditModel.ddl'
 
 // =============================================================================
@@ -210,6 +212,9 @@ export const iiotMigrations = {
 
   // Relationship edge audit trail for graph topology changes
   '0026_relationship_edge_audit': createRelationshipEdgeAuditTable,
+
+  // Reactor source-entry claims (pre-dispatch authority + lease/recovery)
+  '0027_reactor_source_claims': createReactorSourceClaimsTable,
 } as const
 
 // =============================================================================

@@ -18,6 +18,8 @@ import {
   EntityReactionRequest,
   ObservationSignal,
   ReactorObservation,
+  type ReactorPolicyEpoch,
+  type ReactorRegistryFingerprint,
 } from '../../schemas/reactor'
 import {
   RelationshipNodeType,
@@ -47,12 +49,16 @@ export interface EntityReactionContract {
 }
 
 export interface ReactorRegistryConfig {
+  readonly policyEpoch?: ReactorPolicyEpoch
+  readonly registryFingerprint?: ReactorRegistryFingerprint
   readonly observations: readonly EventObservationSpec[]
   readonly propagationPolicies: readonly RelationshipPropagationPolicy[]
   readonly entities: readonly EntityReactionContract[]
 }
 
 export interface ReactorRegistryShape {
+  readonly policyEpoch: ReactorPolicyEpoch
+  readonly registryFingerprint: ReactorRegistryFingerprint
   readonly observe: (entry: EventJournal.Entry) => Effect.Effect<Option.Option<ReactorObservation>, unknown>
   readonly policiesForSignal: (signal: ObservationSignal) => readonly RelationshipPropagationPolicy[]
   readonly contractFor: (entityType: RelationshipNodeType) => Option.Option<EntityReactionContract>
@@ -86,6 +92,62 @@ const assertUnique = <A>(
   }
 }
 
+export const DEFAULT_REACTOR_POLICY_EPOCH = 'reactor-policy-epoch.v1' as ReactorPolicyEpoch
+
+const stableStringify = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, nested]) => `${JSON.stringify(key)}:${stableStringify(nested)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+const fnv1a32 = (value: string): string => {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16).padStart(8, '0')
+}
+
+export const fingerprintReactorRegistryConfig = (config: Pick<
+  ReactorRegistryConfig,
+  'observations' | 'propagationPolicies' | 'entities'
+>): ReactorRegistryFingerprint => {
+  const payload = {
+    observations: config.observations
+      .map((spec) => ({ id: spec.id, eventTag: spec.eventTag }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    propagationPolicies: config.propagationPolicies
+      .map((policy) => ({
+        id: policy.id,
+        version: policy.version,
+        edgeType: policy.edgeType,
+        observedEndpoint: policy.observedEndpoint,
+        requestEndpoint: policy.requestEndpoint,
+        signal: policy.accepts,
+        capability: policy.request.capability,
+        effect: policy.effect,
+        idempotencyStrategy: policy.idempotencyStrategy,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    entities: config.entities
+      .map((contract) => ({
+        entityType: contract.entityType,
+        capabilities: Array.from(contract.capabilities.values())
+          .map((capability) => capability.id)
+          .sort(),
+      }))
+      .sort((a, b) => a.entityType.localeCompare(b.entityType)),
+  }
+
+  return `fnv1a32:${fnv1a32(stableStringify(payload))}` as ReactorRegistryFingerprint
+}
+
 const signalMatches = (
   signal: ObservationSignal,
   policy: RelationshipPropagationPolicy,
@@ -105,8 +167,13 @@ export const makeReactorRegistry = (config: ReactorRegistryConfig): ReactorRegis
 
   const observationsByEvent = new Map(config.observations.map((spec) => [spec.eventTag, spec] as const))
   const contractsByEntity = new Map(config.entities.map((contract) => [contract.entityType, contract] as const))
+  const policyEpoch = config.policyEpoch ?? DEFAULT_REACTOR_POLICY_EPOCH
+  const registryFingerprint = config.registryFingerprint ?? fingerprintReactorRegistryConfig(config)
 
   return {
+    policyEpoch,
+    registryFingerprint,
+
     observe: (entry) => {
       const spec = observationsByEvent.get(entry.event)
       if (!spec) return Effect.succeed(Option.none())

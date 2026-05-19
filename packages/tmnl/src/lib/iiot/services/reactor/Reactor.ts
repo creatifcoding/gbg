@@ -11,12 +11,15 @@
 import { Context, Effect, Layer, Option } from 'effect'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import { ReactorCheckpointRepo } from '../../repos/ReactorCheckpointRepo'
-import type { ReactorCheckpointOutcome } from '../../schemas/reactor'
+import { ReactorSourceClaimRepo } from '../../repos/ReactorSourceClaimRepo'
+import type { ReactorCheckpointOutcome, ReactorClaimToken, ReactorOwnerKey, ReactorSourceEntryId } from '../../schemas/reactor'
 import { ReactorPlan, ReactorRun } from '../../schemas/reactor'
 import { ReactorDispatcher } from './ReactorDispatcher'
 import { ReactorPlanner } from './ReactorPlanner'
+import { ReactorRegistry } from './ReactorRegistry'
 
 const GENERIC_REACTOR_CONSUMER_ID = 'relationship-reactor-generic-v1' as never
+const GENERIC_REACTOR_CLAIMED_BY = `relationship-reactor-generic:${crypto.randomUUID()}`
 
 export interface ReactorShape {
   readonly planJournalEntry: (entry: EventJournal.Entry) => Effect.Effect<Option.Option<ReactorPlan>, unknown>
@@ -36,39 +39,118 @@ export const ReactorLive = Layer.effect(
   Effect.gen(function* () {
     const planner = yield* ReactorPlanner
     const dispatcher = yield* ReactorDispatcher
+    const registry = yield* ReactorRegistry
     const checkpoints = yield* Effect.serviceOption(ReactorCheckpointRepo)
+    const sourceClaims = yield* Effect.serviceOption(ReactorSourceClaimRepo)
 
     const execute = (plan: ReactorPlan) => dispatcher.execute(plan)
 
     const planJournalEntry = (entry: EventJournal.Entry) => planner.planJournalEntry(entry)
 
+    const repairCheckpointFromCompletedClaim = (claim: {
+      readonly sourceEntryId: ReactorSourceEntryId
+      readonly sourceEvent: string
+      readonly primaryKey: string
+      readonly outcome?: ReactorCheckpointOutcome
+      readonly attempt: number
+      readonly policyEpoch: unknown
+      readonly registryFingerprint: unknown
+    }) =>
+      Option.isSome(checkpoints)
+        ? checkpoints.value.markProcessed({
+          consumerId: GENERIC_REACTOR_CONSUMER_ID,
+          sourceEntryId: claim.sourceEntryId,
+          sourceEvent: claim.sourceEvent,
+          primaryKey: claim.primaryKey,
+          outcome: claim.outcome ?? 'processed',
+          metadata: {
+            repairedFromCompletedClaim: true,
+            claimAttempt: claim.attempt,
+            policyEpoch: String(claim.policyEpoch),
+            registryFingerprint: String(claim.registryFingerprint),
+          },
+        }).pipe(Effect.asVoid)
+        : Effect.void
+
     const reactToJournalEntry = (entry: EventJournal.Entry) =>
       Effect.gen(function* () {
+        const sourceEntryId = entry.idString as ReactorSourceEntryId
+
         if (Option.isSome(checkpoints)) {
           const alreadyProcessed = yield* checkpoints.value.hasProcessed({
             consumerId: GENERIC_REACTOR_CONSUMER_ID,
-            sourceEntryId: entry.idString as never,
+            sourceEntryId,
           })
           if (alreadyProcessed) return Option.none<ReactorRun>()
         }
 
-        const plan = yield* planJournalEntry(entry)
-        if (Option.isNone(plan)) return Option.none<ReactorRun>()
+        const observation = yield* registry.observe(entry)
+        if (Option.isNone(observation)) return Option.none<ReactorRun>()
 
-        const run = yield* execute(plan.value)
+        let activeClaimToken: ReactorClaimToken | undefined
+
+        if (Option.isSome(sourceClaims)) {
+          const ownerKey = `relationship-reactor:${observation.value.subject.type}:${observation.value.subject.id}` as ReactorOwnerKey
+          const acquire = yield* sourceClaims.value.tryAcquire({
+            consumerId: GENERIC_REACTOR_CONSUMER_ID,
+            sourceEntryId,
+            sourceEvent: entry.event,
+            primaryKey: entry.primaryKey,
+            ownerKey,
+            policyEpoch: registry.policyEpoch,
+            registryFingerprint: registry.registryFingerprint,
+            claimedBy: GENERIC_REACTOR_CLAIMED_BY,
+            metadata: {
+              subjectType: observation.value.subject.type,
+              subjectId: observation.value.subject.id,
+            },
+          })
+
+          switch (acquire._tag) {
+            case 'ReactorClaimAcquired':
+            case 'ReactorClaimReacquired':
+              activeClaimToken = acquire.claim.claimToken
+              break
+            case 'ReactorClaimCompleted':
+              yield* repairCheckpointFromCompletedClaim(acquire.claim)
+              return Option.none<ReactorRun>()
+            case 'ReactorClaimBusy':
+            case 'ReactorClaimDeferred':
+            case 'ReactorClaimBlocked':
+            case 'ReactorClaimEpochConflict':
+            case 'ReactorClaimRegistryDrift':
+              return Option.none<ReactorRun>()
+          }
+        }
+
+        const plan = yield* planner.planObservation(observation.value)
+        const run = yield* execute(plan)
+        const outcome = checkpointOutcome(run)
+        const metadata = {
+          decisionCount: run.results.length,
+          dispatchedCount: run.results.filter((result) => result.outcome === 'dispatched').length,
+          failedCount: run.results.filter((result) => result.outcome === 'failed').length,
+        }
+
+        if (Option.isSome(sourceClaims) && activeClaimToken !== undefined) {
+          const completedClaim = yield* sourceClaims.value.complete({
+            consumerId: GENERIC_REACTOR_CONSUMER_ID,
+            sourceEntryId,
+            claimToken: activeClaimToken,
+            outcome,
+            metadata,
+          })
+          if (!completedClaim) return Option.some(run)
+        }
 
         if (Option.isSome(checkpoints)) {
           yield* checkpoints.value.markProcessed({
             consumerId: GENERIC_REACTOR_CONSUMER_ID,
-            sourceEntryId: entry.idString as never,
+            sourceEntryId,
             sourceEvent: entry.event,
             primaryKey: entry.primaryKey,
-            outcome: checkpointOutcome(run),
-            metadata: {
-              decisionCount: run.results.length,
-              dispatchedCount: run.results.filter((result) => result.outcome === 'dispatched').length,
-              failedCount: run.results.filter((result) => result.outcome === 'failed').length,
-            },
+            outcome,
+            metadata,
           })
         }
 

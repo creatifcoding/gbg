@@ -9,6 +9,10 @@
 
 import { Effect } from 'effect'
 import { SqlClient } from '@effect/sql'
+import { ReactorCheckpointOutcomes } from '../../schemas/reactor'
+import { enumValues, sqlTextLiteralList } from '../_ddl-helpers'
+
+const CHECKPOINT_OUTCOMES_SQL = sqlTextLiteralList(enumValues(ReactorCheckpointOutcomes))
 
 export const createReactorCheckpointsTable = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
@@ -19,7 +23,7 @@ export const createReactorCheckpointsTable = Effect.gen(function* () {
       source_entry_id  TEXT NOT NULL,
       source_event     TEXT NOT NULL,
       primary_key      TEXT NOT NULL,
-      outcome          TEXT NOT NULL CHECK (outcome IN ('processed', 'skipped', 'failed')),
+      outcome          TEXT NOT NULL CHECK (outcome IN (${sql.unsafe(CHECKPOINT_OUTCOMES_SQL)})),
       processed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       metadata         JSONB NOT NULL DEFAULT '{}'::jsonb,
 
