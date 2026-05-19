@@ -41,6 +41,9 @@ export {
 
 export {
   EquipmentStateChangedObservationSpec,
+  FaultDetectedObservationSpec,
+  MaintenanceModeEnteredObservationSpec,
+  ReactiveEquipmentStateObservationSpecs,
 } from './observations'
 
 export {

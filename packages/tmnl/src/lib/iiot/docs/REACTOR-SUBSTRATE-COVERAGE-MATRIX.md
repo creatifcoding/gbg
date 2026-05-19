@@ -17,7 +17,7 @@ This document prevents silent gaps. If an event or relationship is not reactive,
 
 | Layer | Production declarations | Current coverage |
 | --- | ---: | --- |
-| Event observation specs | 1 | `EquipmentStateChangedObservationSpec` |
+| Event observation specs | 3 | `EquipmentStateChangedObservationSpec`, `MaintenanceModeEnteredObservationSpec`, `FaultDetectedObservationSpec` |
 | Relationship propagation policies | 2 | `TargetsMachineUnavailableBlocksSource`, `RequiresEquipmentUnavailableBlocksSource` |
 | Entity reaction contracts | 1 | `work_order.dependency.blocked` |
 | Source-entry authority | 1 mechanism | SQL `reactor_source_claims` keyed by `(consumer_id, source_entry_id)` |
@@ -27,21 +27,21 @@ This document prevents silent gaps. If an event or relationship is not reactive,
 Current proven production lanes:
 
 ```text
-EquipmentStateChanged
-  -> ReactorObservation(subject = machine, signal equipment.availability)
+EquipmentStateChanged | MaintenanceModeEntered | FaultDetected
+  -> ReactorObservation(subject = machine, signal equipment.availability = unavailable)
   -> targets.machine-unavailable.blocks-source
   -> graph: work_order -[:targets]-> machine
   -> WorkOrder dependency.blocked
   -> WorkOrder suspend
   -> source claim complete + checkpoint
 
-EquipmentStateChanged
-  -> ReactorObservation(subject = machine, signal equipment.availability)
+EquipmentStateChanged | MaintenanceModeEntered | FaultDetected
+  -> ReactorObservation(subject = machine, signal equipment.availability = unavailable)
   -> requires.equipment-unavailable.blocks-source
   -> graph: work_order -[:requires]-> machine
   -> WorkOrder dependency.blocked
   -> WorkOrder suspend
-  -> checkpoint/idempotency
+  -> source claim complete + checkpoint
 ```
 
 ---
@@ -89,14 +89,14 @@ MachineDecommissioned / DeviceDecommissioned / SensorDecommissioned
 
 | Event | Status | Current/future signal | Notes |
 | --- | --- | --- | --- |
-| `EquipmentStateChanged` | **Reactive** | `equipment.availability = unavailable|available` | Current production lane. |
-| `MaintenanceModeEntered` | Candidate reactive | `equipment.availability = unavailable` | Should likely reuse the same WorkOrder dependency policy. |
+| `EquipmentStateChanged` | **Reactive** | `equipment.availability = unavailable|available` | Production lane. Unavailable routes to WorkOrder dependency blocking. Available has no resume/unblock policy yet. |
+| `MaintenanceModeEntered` | **Reactive** | `equipment.availability = unavailable` | Production lane. Reuses WorkOrder dependency blocking across `targets` and `requires`. |
 | `MaintenanceModeExited` | Candidate reactive | `equipment.availability = available` | Requires explicit unblock/resume policy before dispatch. |
 | `PerformanceDegraded` | Candidate reactive | `equipment.performance = degraded` | Informational or degraded-capacity policy, not current suspend lane. |
-| `FaultDetected` | Candidate reactive | `equipment.availability = unavailable` or `equipment.fault = detected` | Should likely block dependent WorkOrders for severe faults. |
+| `FaultDetected` | **Reactive** | `equipment.availability = unavailable` | Production lane. Reuses WorkOrder dependency blocking across `targets` and `requires`. |
 | `FaultCleared` | Candidate reactive | `equipment.availability = available` or `equipment.fault = cleared` | Requires explicit unblock/resume policy. |
 
-Current production coverage is **not complete for this group**. Only `EquipmentStateChanged` is wired.
+Current production coverage intentionally handles unavailable pressure only. Available/unblock semantics remain out of scope until target-owned resume policy is designed.
 
 ### 2.4 AlarmEvents — candidate reactive
 

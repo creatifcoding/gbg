@@ -12,7 +12,7 @@ import {
 import { ReactorDispatcherLive } from './ReactorDispatcher'
 import { ReactorLive } from './Reactor'
 import { ReactorPlannerLive } from './ReactorPlanner'
-import { EquipmentStateChangedObservationSpec } from './observations'
+import { ReactiveEquipmentStateObservationSpecs } from './observations'
 import { makeWorkOrderReactionContract } from './contracts/work-order'
 
 /**
@@ -25,7 +25,7 @@ export const ReactorGenericWorkOrderRegistryLive = Layer.effect(
     const workOrderContract = yield* makeWorkOrderReactionContract
 
     return ReactorRegistry.of(makeReactorRegistry({
-      observations: [EquipmentStateChangedObservationSpec],
+      observations: ReactiveEquipmentStateObservationSpecs,
       propagationPolicies: [
         TargetsMachineUnavailableBlocksSource,
         RequiresEquipmentUnavailableBlocksSource,

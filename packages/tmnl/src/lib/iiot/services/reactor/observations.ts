@@ -29,6 +29,33 @@ const eventEnvelopeFromEntry = (entry: EventJournal.Entry) =>
     occurredAt: entry.createdAt,
   })
 
+const equipmentAvailabilityObservation = (input: {
+  readonly entry: EventJournal.Entry
+  readonly machineId: string
+  readonly value: 'available' | 'unavailable'
+  readonly reason: string
+  readonly previousValue?: string
+  readonly propagationId?: PropagationId
+  readonly payload: unknown
+}): ReactorObservation =>
+  new ReactorObservation({
+    event: eventEnvelopeFromEntry(input.entry),
+    subject: new RelationshipEndpoint({ type: 'machine', id: input.machineId }),
+    signals: [
+      new ObservationSignal({
+        axis: 'equipment.availability',
+        kind: 'condition_asserted',
+        value: input.value,
+        previousValue: input.previousValue,
+        reason: input.reason,
+      }),
+    ],
+    causality: new ReactorCausality({
+      propagationId: input.propagationId ?? (input.entry.idString as PropagationId),
+    }),
+    payload: input.payload,
+  })
+
 export const EquipmentStateChangedObservationSpec: EventObservationSpec = {
   id: 'equipment-state-changed-observation',
   eventTag: 'EquipmentStateChanged',
@@ -39,22 +66,59 @@ export const EquipmentStateChangedObservationSpec: EventObservationSpec = {
       const unavailable = unavailableEquipmentStates.has(payload.newState)
       const reason = Option.isSome(payload.reason) ? payload.reason.value : payload.newState
 
-      return new ReactorObservation({
-        event: eventEnvelopeFromEntry(entry),
-        subject: new RelationshipEndpoint({ type: 'machine', id: payload.machineId }),
-        signals: [
-          new ObservationSignal({
-            axis: 'equipment.availability',
-            kind: 'condition_asserted',
-            value: unavailable ? 'unavailable' : 'available',
-            previousValue: payload.previousState,
-            reason,
-          }),
-        ],
-        causality: new ReactorCausality({
-          propagationId: payload.propagationId ?? (entry.idString as PropagationId),
-        }),
+      return equipmentAvailabilityObservation({
+        entry,
+        machineId: payload.machineId,
+        value: unavailable ? 'unavailable' : 'available',
+        previousValue: payload.previousState,
+        reason,
+        propagationId: payload.propagationId,
         payload,
       })
     }),
 }
+
+export const MaintenanceModeEnteredObservationSpec: EventObservationSpec = {
+  id: 'maintenance-mode-entered-observation',
+  eventTag: 'MaintenanceModeEntered',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = EquipmentStateEvents.events.MaintenanceModeEntered
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+      const note = Option.isSome(payload.notes) ? payload.notes.value : payload.maintenanceType
+
+      return equipmentAvailabilityObservation({
+        entry,
+        machineId: payload.machineId,
+        value: 'unavailable',
+        previousValue: 'operational',
+        reason: `maintenance:${note}`,
+        payload,
+      })
+    }),
+}
+
+export const FaultDetectedObservationSpec: EventObservationSpec = {
+  id: 'fault-detected-observation',
+  eventTag: 'FaultDetected',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = EquipmentStateEvents.events.FaultDetected
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return equipmentAvailabilityObservation({
+        entry,
+        machineId: payload.machineId,
+        value: 'unavailable',
+        previousValue: 'operational',
+        reason: `${payload.faultSeverity}:${payload.faultCode}`,
+        payload,
+      })
+    }),
+}
+
+export const ReactiveEquipmentStateObservationSpecs = [
+  EquipmentStateChangedObservationSpec,
+  MaintenanceModeEnteredObservationSpec,
+  FaultDetectedObservationSpec,
+] as const
