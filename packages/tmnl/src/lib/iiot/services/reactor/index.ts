@@ -30,6 +30,16 @@ export {
 } from './Reactor'
 
 export {
+  ProcessJournalEntryRpc,
+  ReactorWorkerEntity,
+  ReactorWorkerEntityHandlers,
+  ReactorWorkerEntityType,
+  ReactorWorkerError,
+  ReactorWorkerProcessJournalEntryTag,
+  ReactorWorkerProcessResult,
+} from './ReactorWorkerEntity'
+
+export {
   EquipmentStateChangedObservationSpec,
 } from './observations'
 
