@@ -26,6 +26,8 @@
       "@gbg/schema-render": ["packages/schema-render/src/index.ts"],
       "@gbg/schema-render-core": ["packages/schema-render-core/src/index.ts"],
       "@gbg/schema-render-react": ["packages/schema-render-react/src/index.ts"],
+      "@tmnl/effect-sui": ["packages/effect-sui/src/index.ts"],
+      "@tmnl/effect-sui/*": ["packages/effect-sui/src/*"],
       "@tmnl/msh": ["packages/msh/src/index.ts"],
       "@tmnl/msh/*": ["packages/msh/src/*"]
     }

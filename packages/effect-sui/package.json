@@ -1,0 +1,99 @@
+{
+  "name": "@tmnl/effect-sui",
+  "version": "0.0.1",
+  "description": "Effect-smol-first executable Sui SDK layer — Schema domains, Effectable PTBs/queries/flows, STM reservations, and Mysten SDK adapters",
+  "type": "module",
+  "sideEffects": false,
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/effect-sui"
+  },
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./schema": {
+      "import": "./dist/schema/index.js",
+      "types": "./dist/schema/index.d.ts"
+    },
+    "./effectable": {
+      "import": "./dist/effectable/index.js",
+      "types": "./dist/effectable/index.d.ts"
+    },
+    "./services": {
+      "import": "./dist/services/index.js",
+      "types": "./dist/services/index.d.ts"
+    },
+    "./ptb": {
+      "import": "./dist/ptb/index.js",
+      "types": "./dist/ptb/index.d.ts"
+    },
+    "./query": {
+      "import": "./dist/query/index.js",
+      "types": "./dist/query/index.d.ts"
+    },
+    "./flow": {
+      "import": "./dist/flow/index.js",
+      "types": "./dist/flow/index.d.ts"
+    },
+    "./adapter": {
+      "import": "./dist/adapter/index.js",
+      "types": "./dist/adapter/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/testing/index.js",
+      "types": "./dist/testing/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:unit": "vitest run src test/unit",
+    "test:property": "vitest run test/property --passWithNoTests",
+    "test:integration": "vitest run test/integration --passWithNoTests",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts --passWithNoTests",
+    "clean": "rm -rf dist reports coverage",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "@mysten/bcs": "^2.0.5",
+    "@mysten/sui": "^2.16.3",
+    "effect-v4": "npm:effect@4.0.0-beta.59"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^11.11.0",
+    "@types/node": "^25.0.8",
+    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59",
+    "fast-check": "^4.6.0",
+    "testcontainers": "^11.11.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "effect-ts",
+    "effect-smol",
+    "effect-v4",
+    "sui",
+    "mysten",
+    "blockchain",
+    "stm",
+    "ptb"
+  ]
+}
