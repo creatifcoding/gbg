@@ -26,7 +26,14 @@ import type {
   WorkflowDefinitionId,
 } from '../../schemas/identifiers'
 import { eligible, skipped } from '../../schemas/relationships'
-import { TargetsMachineUnavailableBlocksSource } from '../../schemas/relationships/edge-types'
+import {
+  EntityReactionRequestTemplate,
+  RelationshipEdgeMetadata,
+  RelationshipEndpoint,
+  RelationshipPropagationPolicy,
+  SignalMatcher,
+  TargetsMachineUnavailableBlocksSource,
+} from '../../schemas/relationships/edge-types'
 import {
   Reactor,
   ReactorDispatcherLive,
@@ -36,11 +43,63 @@ import {
   EquipmentStateChangedObservationSpec,
   makeReactorRegistry,
   type EntityReactionContract,
+  type EventObservationSpec,
 } from '../../services/reactor'
+import {
+  ObservationSignal,
+  ReactorCausality,
+  ReactorEventEnvelope,
+  ReactorObservation,
+} from '../../schemas/reactor'
 import { ReactorCheckpointRepoInMemory } from '../../repos/ReactorCheckpointRepo'
 import { GraphIntegrationLayer, isDatabaseAvailable } from './layer'
 
 const TEST_MACHINE_ID = 'MCH-GENERIC-REACTOR-001' as MachineId
+const TEST_EXTERNAL_ID = 'TEST-EXT-GENERIC-REACTOR-001'
+
+const RequiresExternalUnavailableBlocksWorkOrder = new RelationshipPropagationPolicy({
+  id: 'requires.external-unavailable.blocks-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'external.availability',
+    kind: 'condition_asserted',
+    value: 'unavailable',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: 'dependency.blocked' as never,
+    reason: 'external_unavailable',
+    payloadDefaults: { dependencyKind: 'external' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'event_journal_entry_id',
+  version: '1',
+})
+
+const ExternalDependencyChangedObservationSpec: EventObservationSpec = {
+  id: 'external-dependency-changed',
+  eventTag: 'ExternalDependencyChanged',
+  observe: (entry) => Effect.succeed(new ReactorObservation({
+    event: new ReactorEventEnvelope({
+      entryId: entry.idString as never,
+      tag: entry.event,
+      primaryKey: entry.primaryKey,
+      occurredAt: entry.createdAt,
+    }),
+    subject: new RelationshipEndpoint({ type: 'external', id: entry.primaryKey }),
+    signals: [new ObservationSignal({
+      axis: 'external.availability',
+      kind: 'condition_asserted',
+      value: 'unavailable',
+      reason: 'external_dependency_unavailable',
+    })],
+    causality: new ReactorCausality({
+      propagationId: `PROP-${entry.idString}` as PropagationId,
+    }),
+    payload: {},
+  })),
+}
 
 const makeWorkOrder = (id: WorkOrderId, status: WorkOrderStatus) => new WorkOrder({
   id,
@@ -146,6 +205,67 @@ const GenericReactorTestLayer = ReactorLive.pipe(
   Layer.provide(ReactorCheckpointRepoInMemory),
 )
 
+const ExternalDependencyReactorTestRegistryLayer = Layer.effect(
+  ReactorRegistry,
+  Effect.gen(function* () {
+    const state = yield* WorkOrderState
+
+    const contract: EntityReactionContract = {
+      entityType: 'work_order',
+      capabilities: new Map([
+        ['dependency.blocked', {
+          id: 'dependency.blocked',
+          classify: (request) =>
+            state.get(request.target.id as WorkOrderId).pipe(
+              Effect.map((workOrder) => workOrder.status === 'started' || workOrder.status === 'resumed'
+                ? eligible({
+                  entityType: 'work_order',
+                  entityId: workOrder.id,
+                  currentState: workOrder.status,
+                  targetState: 'suspended',
+                })
+                : skipped({
+                  entityType: 'work_order',
+                  entityId: workOrder.id,
+                  currentState: workOrder.status,
+                  targetState: 'suspended',
+                  reason: workOrder.status === 'suspended' ? 'already_suspended' : 'terminal_state',
+                })),
+              Effect.catchAll(() => Effect.succeed(skipped({
+                entityType: 'work_order',
+                entityId: request.target.id,
+                targetState: 'suspended',
+                reason: 'not_found',
+              }))),
+            ),
+          dispatch: (request) =>
+            Effect.gen(function* () {
+              const current = yield* state.get(request.target.id as WorkOrderId)
+              yield* state.set(new WorkOrder({
+                ...current,
+                status: 'suspended',
+                suspensionReason: Option.some('external_dependency'),
+              }))
+            }),
+        }],
+      ]),
+    }
+
+    return ReactorRegistry.of(makeReactorRegistry({
+      observations: [ExternalDependencyChangedObservationSpec],
+      propagationPolicies: [RequiresExternalUnavailableBlocksWorkOrder],
+      entities: [contract],
+    }))
+  }),
+)
+
+const ExternalDependencyReactorTestLayer = ReactorLive.pipe(
+  Layer.provide(ReactorDispatcherLive),
+  Layer.provide(ReactorPlannerLive),
+  Layer.provide(ExternalDependencyReactorTestRegistryLayer),
+  Layer.provide(ReactorCheckpointRepoInMemory),
+)
+
 describe('Generic Reactor integration', () => {
   let dbAvailable = false
 
@@ -226,6 +346,87 @@ describe('Generic Reactor integration', () => {
           const graph = yield* GraphClient
           yield* graph.executeCypher(
             `MATCH (wo:work_order {id: '${workOrderId}'}) DETACH DELETE wo`,
+            '(result agtype)',
+          ).pipe(Effect.ignore)
+        }),
+      ),
+      Effect.provide(WorkOrderStateInMemory),
+      Effect.provide(GraphIntegrationLayer),
+    )
+
+    await Effect.runPromise(program)
+  })
+
+  it('routes a second propagation policy across requires external dependency edges', async () => {
+    if (!dbAvailable) return
+
+    const suffix = Date.now()
+    const workOrderId = `TEST-WO-GENERIC-REACTOR-EXT-${suffix}` as WorkOrderId
+    const externalId = `${TEST_EXTERNAL_ID}-${suffix}`
+
+    const program = Effect.gen(function* () {
+      const graph = yield* GraphClient
+      const state = yield* WorkOrderState
+
+      yield* state.set(makeWorkOrder(workOrderId, 'started'))
+      yield* graph.upsertRelationshipNode(
+        { type: 'work_order', id: workOrderId },
+        { status: 'started' },
+      )
+      yield* graph.upsertRelationshipNode(
+        { type: 'external', id: externalId },
+        { name: 'External dependency proof' },
+      )
+      yield* graph.upsertRelationshipEdge({
+        source: { type: 'work_order', id: workOrderId },
+        target: { type: 'external', id: externalId },
+        edgeType: 'requires',
+        metadata: new RelationshipEdgeMetadata({
+          createdBy: 'reactor-generic-test',
+          reason: 'external_dependency_proof',
+          context: { proof: 'second-policy' },
+        }),
+      })
+
+      const entry = new EventJournal.Entry({
+        id: EventJournal.makeEntryId(),
+        event: 'ExternalDependencyChanged',
+        primaryKey: externalId,
+        payload: new Uint8Array(),
+      })
+
+      const { first, duplicate } = yield* Effect.gen(function* () {
+        const reactor = yield* Reactor
+        const first = yield* reactor.reactToJournalEntry(entry)
+        const duplicate = yield* reactor.reactToJournalEntry(entry)
+        return { first, duplicate }
+      }).pipe(Effect.provide(ExternalDependencyReactorTestLayer))
+
+      expect(Option.isSome(first)).toBe(true)
+      expect(Option.isNone(duplicate)).toBe(true)
+
+      const run = Option.getOrThrow(first)
+      expect(run.plan.observation.subject).toMatchObject({ type: 'external', id: externalId })
+      expect(run.results).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          target: expect.objectContaining({ type: 'work_order', id: workOrderId }),
+          outcome: 'dispatched',
+        }),
+      ]))
+
+      const updated = yield* state.get(workOrderId)
+      expect(updated.status).toBe('suspended')
+      expect(Option.getOrNull(updated.suspensionReason)).toBe('external_dependency')
+    }).pipe(
+      Effect.ensuring(
+        Effect.gen(function* () {
+          const graph = yield* GraphClient
+          yield* graph.executeCypher(
+            `MATCH (wo:work_order {id: '${workOrderId}'}) DETACH DELETE wo`,
+            '(result agtype)',
+          ).pipe(Effect.ignore)
+          yield* graph.executeCypher(
+            `MATCH (ext:external {id: '${externalId}'}) DETACH DELETE ext`,
             '(result agtype)',
           ).pipe(Effect.ignore)
         }),
