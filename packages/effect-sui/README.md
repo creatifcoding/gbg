@@ -12,7 +12,7 @@ This package will wrap Mysten's Sui TypeScript SDK with:
 
 ## Current status
 
-Scaffold only. The stable module seams are present so implementation slices can land behind explicit test and commit gates.
+Workspace scaffold and package-local Sui development infrastructure are present. The stable module seams are ready for implementation slices behind explicit test and commit gates.
 
 ## Grounding
 
@@ -34,5 +34,31 @@ bunx nx run @tmnl/effect-sui:typecheck
 bunx nx run @tmnl/effect-sui:test
 bunx nx run @tmnl/effect-sui:build
 ```
+
+## Package-local Sui environment
+
+Enter the package shell from `packages/effect-sui`:
+
+```bash
+source_up
+use flake
+# or: nix develop .#effect-sui
+```
+
+Mission-control entrypoint:
+
+```bash
+effect-sui info
+effect-sui sui-env-init
+effect-sui sui-localnet-up-docker
+effect-sui sui-localnet-status
+effect-sui sui-localnet-down
+```
+
+The localnet path is intentionally isolated from `~/.sui`:
+
+- Sui config: `.direnv/sui/config`
+- Sui data: `.direnv/sui/data`
+- Docker localnet: `mysten/sui-tools:${SUI_TOOLS_TAG}` + `postgres:16`
 
 Prime directive: stage explicit paths only. No `git add -A`.

@@ -44,6 +44,12 @@ This is the grounding map for implementation work. Read the relevant source befo
 | TS SDK e2e env injection | `../../submodules/ts-sdks/packages/sui/test/e2e/utils/setupEnv.ts` |
 | TS SDK e2e Vitest config | `../../submodules/ts-sdks/packages/sui/test/e2e/vitest.config.mts` |
 | Experimental forked network | `../../submodules/sui/crates/sui-fork/README.md` |
+| Package Nix shell entrypoint | `flake.nix` |
+| Nix module aggregator | `nix/default.nix` |
+| Core tools and mission-control wrapper | `nix/modules/core.nix` |
+| Sui/Move/gRPC/Postgres/Docker tools | `nix/modules/sui.nix` |
+| Localnet lifecycle scripts | `nix/modules/localnet.nix` |
+| Nix eval/shell smoke checks | `nix/modules/tests.nix` |
 
 ## Package seams
 

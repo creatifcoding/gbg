@@ -1,0 +1,7 @@
+dist/
+reports/
+coverage/
+.direnv/
+.local/
+.sui/
+*.tsbuildinfo
