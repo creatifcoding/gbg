@@ -5,11 +5,12 @@ Effect-smol-first executable Sui SDK layer.
 This package will wrap Mysten's Sui TypeScript SDK with:
 
 - `Schema.Class` / `Schema.TaggedClass` durable domain nouns and typed errors.
-- Public `Effectable.Class` capabilities centered on Sui's object/transaction/package ontology:
+- Public `Effectable.Class` capabilities centered on Sui's object / PTB / transaction / package ontology:
   - `SuiObject` — onchain state + object capability around refs, ownership, content, refresh, transfer, and mutation.
-  - `SuiTx` — transaction capability around PTB planning, simulation, signing/execution, effects, events, and object changes.
-  - `SuiPackage` / `SuiModule` — immutable package/module surface that manufactures typed objects and transactions.
-- Internal/power-user execution algebras: `SuiPTB`, `SuiQuery`, and `SuiFlow`.
+  - `SuiPTB` — full programmable transaction block build program over inputs, commands, and result references.
+  - `SuiTx` — payable/authenticated transaction lifecycle around simulation, signing/execution, effects, events, and object changes.
+  - `SuiPackage` / `SuiModule` — immutable package/module surface that manufactures typed objects, PTBs, and transactions.
+- Supporting execution algebras: `SuiQuery` and `SuiFlow`.
 - `Effect.tx` / `Tx*` STM state for object refs, gas/coin reservations, queues, and signer/session state.
 - Transport-safe gRPC / GraphQL / Core client integration.
 - A Mysten `$extend` adapter after the Effect-first core is real.
@@ -24,11 +25,12 @@ The public Effectable model is documented in [`docs/ONTOLOGY.md`](./docs/ONTOLOG
 
 ```text
 SuiObject  — onchain state + object capability
-SuiTx      — transaction/state-transition capability
+SuiPTB     — full programmable transaction block build program
+SuiTx      — payable/authenticated transaction lifecycle
 SuiPackage — immutable package/module factory surface
 ```
 
-`SuiPTB`, `SuiQuery`, and `SuiFlow` remain supporting execution algebras.
+`SuiQuery` and `SuiFlow` remain supporting execution algebras. Design decisions are tracked in [`docs/DESIGN_DECISIONS.md`](./docs/DESIGN_DECISIONS.md), and the service ecosystem behind the Effectable facades is specified in [`docs/SERVICE_ECOSYSTEM.md`](./docs/SERVICE_ECOSYSTEM.md).
 
 ## Grounding
 

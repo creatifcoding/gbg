@@ -70,16 +70,18 @@ This is the grounding map for implementation work. Read the relevant source befo
 | Concern | Source |
 |---|---|
 | Public Effectable ontology | `docs/ONTOLOGY.md` |
+| Durable design decisions | `docs/DESIGN_DECISIONS.md` |
+| Service ecosystem and normalized service form | `docs/SERVICE_ECOSYSTEM.md` |
 | Grand proposal / realization plan | `../../packages/tmnl/thoughts/shared/plans/effect-sui-grand-proposal.md` |
 
 ## Package seams
 
 | Module | Future contents |
 |---|---|
-| `src/schema` | IDs, refs, Move tags, object/transaction/package nouns, execution results, typed errors |
-| `src/effectable` | `SuiEffect`; public `SuiObject`, `SuiTx`, `SuiPackage` / `SuiModule`; internal `SuiPTB`, `SuiQuery`, `SuiFlow` |
-| `src/services` | Context services and live/test layers |
-| `src/ptb` | PTB AST, passes, compiler, combinators backing `SuiTx` |
+| `src/schema` | IDs, refs, Move tags, object/PTB/transaction/package nouns, execution results, typed errors |
+| `src/effectable` | `SuiEffect`; public `SuiObject`, `SuiPTB`, `SuiTx`, `SuiPackage` / `SuiModule`; supporting `SuiQuery`, `SuiFlow` |
+| `src/services` | Context services and live/test layers per `docs/SERVICE_ECOSYSTEM.md` |
+| `src/ptb` | Full PTB AST, input/argument/result graph, passes, compiler, combinators backing `SuiPTB` and `SuiTx` |
 | `src/query` | Object reads, BCS decode, GraphQL/gRPC reads, streams backing `SuiObject` |
 | `src/flow` | Execution orchestration and schedules; lifecycle glue, not the third ontology noun |
 | `src/adapter` | Mysten `$extend` registration and Promise facade |
