@@ -44,6 +44,7 @@ import {
   NatsKVService, NatsKVServiceLive,
   NatsStreamService, NatsStreamServiceLive,
   NatsMicroService, NatsMicroServiceLive,
+  MshMicroEndpointHost, MshMicroEndpointHostLive,
   NatsServiceDiscoveryService, NatsServiceDiscoveryServiceLive,
 } from './nats';
 import { MshAuthService, MshAuthServiceLive, MshJwtService, MshJwtServiceLive } from './auth';
@@ -79,6 +80,8 @@ export const Msh = {
   StreamLive: NatsStreamServiceLive,
   Micro: NatsMicroService,
   MicroLive: NatsMicroServiceLive,
+  MicroHost: MshMicroEndpointHost,
+  MicroHostLive: MshMicroEndpointHostLive,
   MicroDiscovery: NatsServiceDiscoveryService,
   MicroDiscoveryLive: NatsServiceDiscoveryServiceLive,
   Auth: MshAuthService,

@@ -13,4 +13,5 @@ export * from './pubsub';
 export * from './kv';
 export * from './stream';
 export * from './micro';
+export * from './micro-host';
 export * from './micro-discovery';

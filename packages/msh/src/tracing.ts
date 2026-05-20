@@ -122,6 +122,12 @@ export const MshSpan = {
     client: 'msh.micro.client',
   },
 
+  // ─── Micro Endpoint Host ───────────────────────────────────────────────
+  MicroHost: {
+    host: 'msh.microHost.host',
+    handle: 'msh.microHost.handle',
+  },
+
   // ─── Discovery ──────────────────────────────────────────────────────────
   Discovery: {
     ping: 'msh.discovery.ping',

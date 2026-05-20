@@ -18,6 +18,7 @@ MSH provides typed, observable NATS services with Schema-validated messages, aut
 | `NatsKVService` | KV with Schema codecs, watch, list, history |
 | `NatsStreamService` | JetStream publish/subscribe with typed messages |
 | `NatsMicroService` | NATS microservices (add, stop, client) |
+| `MshMicroEndpointHost` | Schema-backed NATS micro endpoint host seam |
 | `NatsServiceDiscoveryService` | Service discovery (ping, info, stats) |
 | `SubjectRegistry` | Runtime subject registration + catalog introspection |
 | `MshStreamProcessor` | Durable streaming with consumer-based offset tracking |
@@ -117,8 +118,9 @@ Note: `@nats-io/jwt` documents that the JavaScript package builds JWTs but does
 not exhaustively validate server acceptance. Final validation remains with
 `nats-server`/`nsc`/the Go JWT library.
 
-## Composition roadmap
+## Architecture and composition roadmap
 
+- [`docs/system-atlas.md`](./docs/system-atlas.md) is the living MSH architecture atlas: service graph, subsystem ledger, flow notes, testing map, and candidate feature suites.
 - [`docs/pct-lnk-composition-rfc.md`](./docs/pct-lnk-composition-rfc.md) defines how `@tmnl/pct` and `@tmnl/lnk` layer over `@tmnl/msh` without leaking protocol/domain semantics into the mesh substrate.
 - [`docs/consumer-migration-inventory.md`](./docs/consumer-migration-inventory.md) tracks remaining legacy Holonet consumers and the strict no-v3/v4-bridge migration guardrail.
 
