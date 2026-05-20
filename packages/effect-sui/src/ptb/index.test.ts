@@ -86,6 +86,31 @@ describe('SuiPTB AST and compiler', () => {
     expect(() => analyzePtb(ast.label, ast.inputs, ast.commands)).toThrow(/unavailable result 0/);
   });
 
+  it('rejects invalid Result shorthand and GasCoin by-value positions known statically', () => {
+    const badResult = new SuiPtbAst({
+      label: 'bad-result-shorthand',
+      inputs: [pure({ name: 'recipient', typeTag: address, value: sender })],
+      commands: [
+        new SuiPtbSplitCoins({ coin: gas(), amounts: [input(0, 'pure'), input(0, 'pure')] }),
+        new SuiPtbTransferObjects({ objects: [result(0)], address: input(0, 'pure') }),
+      ],
+    });
+
+    expect(() => analyzePtb(badResult.label, badResult.inputs, badResult.commands)).toThrow(
+      /uses Result\(0\) but command 0 has 2 results/,
+    );
+
+    const badGasAmount = new SuiPtbAst({
+      label: 'bad-gas-amount',
+      inputs: [],
+      commands: [new SuiPtbSplitCoins({ coin: gas(), amounts: [gas()] })],
+    });
+
+    expect(() => analyzePtb(badGasAmount.label, badGasAmount.inputs, badGasAmount.commands)).toThrow(
+      /SplitCoins amount 0 cannot use GasCoin by value/,
+    );
+  });
+
   it('compiles to a Mysten Transaction without submitting', () => {
     const ast = new SuiPtbAst({
       label: 'split-and-transfer',

@@ -246,17 +246,23 @@ export function analyzePtb(
 
   parsedCommands.forEach((command, commandIndex) => {
     const args = commandArguments(command);
-    args.forEach((arg, argIndex) => validateArgument(arg, commandIndex, argIndex, parsedInputs.length));
+    args.forEach((arg, argIndex) =>
+      validateArgument(arg, commandIndex, argIndex, parsedInputs.length, parsedCommands),
+    );
 
     switch (command._tag) {
       case 'SplitCoins':
         if (command.amounts.length === 0) diagnostics.push(`command ${commandIndex} SplitCoins has no amounts`);
+        command.amounts.forEach((amount, amountIndex) =>
+          rejectGasCoin(amount, `command ${commandIndex} SplitCoins amount ${amountIndex}`),
+        );
         break;
       case 'MergeCoins':
         if (command.sources.length === 0) diagnostics.push(`command ${commandIndex} MergeCoins has no sources`);
         break;
       case 'TransferObjects':
         if (command.objects.length === 0) diagnostics.push(`command ${commandIndex} TransferObjects has no objects`);
+        rejectGasCoin(command.address, `command ${commandIndex} TransferObjects address`);
         break;
       case 'MoveCall':
         if (!command.module || !command.functionName) {
@@ -271,6 +277,7 @@ export function analyzePtb(
         break;
       case 'Upgrade':
         if (command.modules.length === 0) diagnostics.push(`command ${commandIndex} Upgrade has no modules`);
+        rejectGasCoin(command.ticket, `command ${commandIndex} Upgrade ticket`);
         break;
     }
   });
@@ -392,6 +399,7 @@ function validateArgument(
   commandIndex: number,
   argIndex: number,
   inputCount: number,
+  commands: ReadonlyArray<SuiPtbCommandAst>,
 ): void {
   switch (arg._tag) {
     case 'Input':
@@ -399,18 +407,55 @@ function validateArgument(
         throw new Error(`command ${commandIndex} arg ${argIndex} references missing input ${arg.index}`);
       }
       return;
-    case 'Result':
+    case 'Result': {
       if (arg.index >= commandIndex) {
         throw new Error(`command ${commandIndex} arg ${argIndex} references unavailable result ${arg.index}`);
       }
+      const arity = knownCommandResultArity(commands[arg.index]);
+      if (arity !== undefined && arity !== 1) {
+        throw new Error(
+          `command ${commandIndex} arg ${argIndex} uses Result(${arg.index}) but command ${arg.index} has ${arity} results`,
+        );
+      }
       return;
-    case 'NestedResult':
+    }
+    case 'NestedResult': {
       if (arg.index >= commandIndex) {
         throw new Error(`command ${commandIndex} arg ${argIndex} references unavailable nested result ${arg.index}`);
       }
+      const arity = knownCommandResultArity(commands[arg.index]);
+      if (arity !== undefined && arg.nestedIndex >= arity) {
+        throw new Error(
+          `command ${commandIndex} arg ${argIndex} references missing nested result ${arg.index}.${arg.nestedIndex}`,
+        );
+      }
       return;
+    }
     case 'GasCoin':
       return;
+  }
+}
+
+function rejectGasCoin(arg: SuiPtbArgument, context: string): void {
+  if (arg._tag === 'GasCoin') {
+    throw new Error(`${context} cannot use GasCoin by value`);
+  }
+}
+
+function knownCommandResultArity(command: SuiPtbCommandAst | undefined): number | undefined {
+  switch (command?._tag) {
+    case 'SplitCoins':
+      return command.amounts.length;
+    case 'MergeCoins':
+    case 'TransferObjects':
+      return 0;
+    case 'MakeMoveVec':
+    case 'Publish':
+    case 'Upgrade':
+      return 1;
+    case 'MoveCall':
+    case undefined:
+      return undefined;
   }
 }
 
