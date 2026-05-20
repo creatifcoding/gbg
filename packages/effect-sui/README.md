@@ -5,14 +5,30 @@ Effect-smol-first executable Sui SDK layer.
 This package will wrap Mysten's Sui TypeScript SDK with:
 
 - `Schema.Class` / `Schema.TaggedClass` durable domain nouns and typed errors.
-- `Effectable.Class` executable programs: `SuiPTB`, `SuiQuery`, and `SuiFlow`.
+- Public `Effectable.Class` capabilities centered on Sui's object/transaction/package ontology:
+  - `SuiObject` — onchain state + object capability around refs, ownership, content, refresh, transfer, and mutation.
+  - `SuiTx` — transaction capability around PTB planning, simulation, signing/execution, effects, events, and object changes.
+  - `SuiPackage` / `SuiModule` — immutable package/module surface that manufactures typed objects and transactions.
+- Internal/power-user execution algebras: `SuiPTB`, `SuiQuery`, and `SuiFlow`.
 - `Effect.tx` / `Tx*` STM state for object refs, gas/coin reservations, queues, and signer/session state.
 - Transport-safe gRPC / GraphQL / Core client integration.
 - A Mysten `$extend` adapter after the Effect-first core is real.
 
 ## Current status
 
-Workspace scaffold and package-local Sui development infrastructure are present. The stable module seams are ready for implementation slices behind explicit test and commit gates.
+Workspace scaffold, package-local Sui development infrastructure, localnet e2e harness, and Schema-backed domain/error core are present. The stable module seams are ready for implementation slices behind explicit test and commit gates.
+
+## Ontology
+
+The public Effectable model is documented in [`docs/ONTOLOGY.md`](./docs/ONTOLOGY.md):
+
+```text
+SuiObject  — onchain state + object capability
+SuiTx      — transaction/state-transition capability
+SuiPackage — immutable package/module factory surface
+```
+
+`SuiPTB`, `SuiQuery`, and `SuiFlow` remain supporting execution algebras.
 
 ## Grounding
 
@@ -25,6 +41,10 @@ Before implementation, consult:
 - `../../submodules/ts-sdks/packages/sui/src/client/core.ts`
 - `../../submodules/ts-sdks/packages/sui/src/transactions/Transaction.ts`
 - `../../submodules/ts-sdks/packages/sui/test/e2e/utils/globalSetup.ts`
+- `../../submodules/sui/docs/content/develop/transactions/txn-overview.mdx`
+- `../../submodules/sui/docs/content/develop/transactions/ptbs/prog-txn-blocks.mdx`
+- `../../submodules/sui/docs/content/develop/sui-architecture/object-model.mdx`
+- `../../submodules/sui/docs/content/develop/write-move/package-overview.mdx`
 - `../../submodules/sui/docs/content/getting-started/onboarding/local-network.mdx`
 
 ## Commands

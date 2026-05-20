@@ -35,6 +35,15 @@ This is the grounding map for implementation work. Read the relevant source befo
 | BCS runtime type | `../../submodules/ts-sdks/packages/bcs/src/bcs-type.ts` |
 | Move codegen helpers | `../../submodules/ts-sdks/packages/codegen/src/generate-utils.ts` |
 
+## Sui ontology and transaction model
+
+| Concern | Source |
+|---|---|
+| Transaction/object DAG and transaction response surface | `../../submodules/sui/docs/content/develop/transactions/txn-overview.mdx` |
+| PTB inputs, commands, arguments, borrowing, atomic effects | `../../submodules/sui/docs/content/develop/transactions/ptbs/prog-txn-blocks.mdx` |
+| Object model, refs, ownership, package objects, DAG | `../../submodules/sui/docs/content/develop/sui-architecture/object-model.mdx` |
+| Move package/module/object concepts | `../../submodules/sui/docs/content/develop/write-move/package-overview.mdx` |
+
 ## Sui localnet / infra
 
 | Concern | Source |
@@ -56,15 +65,22 @@ This is the grounding map for implementation work. Read the relevant source befo
 | Transport smoke tests | `test/e2e/localnet.smoke.test.ts` |
 | Minimal shared counter fixture | `move/fixtures/counter` |
 
+## Package design docs
+
+| Concern | Source |
+|---|---|
+| Public Effectable ontology | `docs/ONTOLOGY.md` |
+| Grand proposal / realization plan | `../../packages/tmnl/thoughts/shared/plans/effect-sui-grand-proposal.md` |
+
 ## Package seams
 
 | Module | Future contents |
 |---|---|
-| `src/schema` | IDs, refs, Move tags, execution results, typed errors |
-| `src/effectable` | `SuiEffect`, `SuiPTB`, `SuiQuery`, `SuiFlow` |
+| `src/schema` | IDs, refs, Move tags, object/transaction/package nouns, execution results, typed errors |
+| `src/effectable` | `SuiEffect`; public `SuiObject`, `SuiTx`, `SuiPackage` / `SuiModule`; internal `SuiPTB`, `SuiQuery`, `SuiFlow` |
 | `src/services` | Context services and live/test layers |
-| `src/ptb` | PTB AST, passes, compiler, combinators |
-| `src/query` | Object reads, BCS decode, GraphQL/gRPC reads, streams |
-| `src/flow` | Execution orchestration and schedules |
+| `src/ptb` | PTB AST, passes, compiler, combinators backing `SuiTx` |
+| `src/query` | Object reads, BCS decode, GraphQL/gRPC reads, streams backing `SuiObject` |
+| `src/flow` | Execution orchestration and schedules; lifecycle glue, not the third ontology noun |
 | `src/adapter` | Mysten `$extend` registration and Promise facade |
 | `src/testing` | Fake clients, fixtures, localnet helpers |
