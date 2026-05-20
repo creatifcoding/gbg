@@ -15,6 +15,7 @@ import {
 import { RELATIONSHIP_EDGE_REGISTRY } from '../../../schemas/relationships/edge-types'
 import { ReactiveEquipmentStateObservationSpecs } from '../observations'
 import {
+  getEventRoutingContracts,
   getIiotEventGroupTags,
   getReactorTopologyAtlas,
 } from '../topology-atlas'
@@ -79,6 +80,43 @@ describe('Reactor topology atlas', () => {
         'requires.equipment-unavailable.blocks-source',
       ])
     }
+  })
+
+  it('derives Event Routing Contracts for every event coverage entry', () => {
+    const atlas = getReactorTopologyAtlas('2026-05-19T00:00:00.000Z')
+    const contracts = getEventRoutingContracts()
+
+    expect(atlas.eventRoutingContracts).toEqual(contracts)
+    expect(contracts).toHaveLength(atlas.eventCoverage.length)
+
+    const maintenance = contracts.find((contract) => contract.eventTag === 'MaintenanceModeEntered')
+    expect(maintenance).toMatchObject({
+      id: 'EquipmentStateEvents.MaintenanceModeEntered',
+      status: 'reactive',
+      routingKind: 'reactor_dispatch',
+      targetOwner: 'work_order',
+      targetCapabilities: ['dependency.blocked'],
+      productionPolicyIds: [
+        'targets.machine-unavailable.blocks-source',
+        'requires.equipment-unavailable.blocks-source',
+      ],
+      proofRequirements: [
+        'observation_decode_test',
+        'registry_policy_test',
+        'graph_expansion_test',
+        'source_claim_e2e',
+        'target_contract_test',
+      ],
+    })
+    expect(maintenance?.subject).toMatchObject({ entityType: 'machine' })
+    expect(maintenance?.relationshipPaths[0]?.edgeTypes).toEqual(['targets', 'requires'])
+
+    const created = contracts.find((contract) => contract.eventTag === 'EnterpriseCreated')
+    expect(created).toMatchObject({
+      status: 'non_reactive',
+      routingKind: 'audit_only',
+      proofRequirements: ['documentation_only'],
+    })
   })
 
   it('enumerates every relationship registry edge and mirrors production policies', () => {

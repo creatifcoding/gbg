@@ -60,6 +60,60 @@ export const ReactorRelationshipCoverageStatus = Schema.Literal(
 )
 export type ReactorRelationshipCoverageStatus = typeof ReactorRelationshipCoverageStatus.Type
 
+export const EventRoutingKind = Schema.Literal(
+  'reactor_dispatch',
+  'candidate_dispatch',
+  'relationship_projection',
+  'candidate_projection',
+  'aggregate_internal',
+  'audit_only',
+)
+export type EventRoutingKind = typeof EventRoutingKind.Type
+
+export const EventRoutingProofRequirement = Schema.Literal(
+  'observation_decode_test',
+  'registry_policy_test',
+  'graph_expansion_test',
+  'source_claim_e2e',
+  'target_contract_test',
+  'projection_handler_test',
+  'aggregate_test',
+  'documentation_only',
+)
+export type EventRoutingProofRequirement = typeof EventRoutingProofRequirement.Type
+
+export class EventRoutingSubject extends Schema.TaggedClass<EventRoutingSubject>()('EventRoutingSubject', {
+  entityType: Schema.optional(RelationshipNodeType),
+  source: Schema.String,
+  notes: Schema.optional(Schema.String),
+}) {}
+export type EventRoutingSubject = typeof EventRoutingSubject.Type
+
+export class EventRoutingRelationshipPath extends Schema.TaggedClass<EventRoutingRelationshipPath>()('EventRoutingRelationshipPath', {
+  edgeTypes: Schema.Array(RelationshipEdgeType),
+  notes: Schema.String,
+}) {}
+export type EventRoutingRelationshipPath = typeof EventRoutingRelationshipPath.Type
+
+export class EventRoutingContract extends Schema.TaggedClass<EventRoutingContract>()('EventRoutingContract', {
+  id: Schema.String,
+  group: ReactorEventGroupName,
+  eventTag: Schema.String,
+  status: ReactorEventCoverageStatus,
+  routingKind: EventRoutingKind,
+  subject: EventRoutingSubject,
+  signals: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  relationshipPaths: Schema.optionalWith(Schema.Array(EventRoutingRelationshipPath), { default: () => [] }),
+  targetOwner: Schema.optional(Schema.String),
+  targetCapabilities: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  productionObservationIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  productionPolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  proofRequirements: Schema.Array(EventRoutingProofRequirement),
+  rationale: Schema.String,
+  parkingRationale: Schema.optional(Schema.String),
+}) {}
+export type EventRoutingContract = typeof EventRoutingContract.Type
+
 export class ReactorEventCoverageEntry extends Schema.TaggedClass<ReactorEventCoverageEntry>()('ReactorEventCoverageEntry', {
   group: ReactorEventGroupName,
   tag: Schema.String,
@@ -103,6 +157,7 @@ export type ReactorTopologyStats = typeof ReactorTopologyStats.Type
 export class ReactorTopologyAtlas extends Schema.TaggedClass<ReactorTopologyAtlas>()('ReactorTopologyAtlas', {
   generatedAtIso: Schema.String,
   eventCoverage: Schema.Array(ReactorEventCoverageEntry),
+  eventRoutingContracts: Schema.Array(EventRoutingContract),
   relationshipCoverage: Schema.Array(ReactorRelationshipCoverageEntry),
   stats: ReactorTopologyStats,
 }) {}
@@ -127,6 +182,7 @@ type EventGroupLike = {
 }
 
 type RelationshipEdgeTypeValue = typeof RelationshipEdgeType.Type
+type RelationshipNodeTypeValue = typeof RelationshipNodeType.Type
 
 type EventCoverageSeed = {
   readonly status: ReactorEventCoverageStatus
@@ -525,6 +581,120 @@ export const getReactorEventCoverageEntries = (): readonly ReactorEventCoverageE
   return entries.sort((a, b) => a.group.localeCompare(b.group) || a.tag.localeCompare(b.tag))
 }
 
+const subjectTypeFromStructuralTag = (tag: string): RelationshipNodeTypeValue | undefined => {
+  if (tag.startsWith('Enterprise')) return 'enterprise'
+  if (tag.startsWith('Site')) return 'site'
+  if (tag.startsWith('Area')) return 'area'
+  if (tag.startsWith('Plant')) return 'plant'
+  if (tag.startsWith('Line')) return 'line'
+  if (tag.startsWith('WorkCell')) return 'workcell'
+  if (tag.startsWith('Machine')) return 'machine'
+  if (tag.startsWith('Sensor')) return 'sensor'
+  if (tag.startsWith('Device')) return 'device'
+  return undefined
+}
+
+const subjectForEvent = (entry: ReactorEventCoverageEntry): EventRoutingSubject => {
+  const entityType = entry.group === 'EquipmentStateEvents'
+    ? 'machine'
+    : entry.group === 'AlarmEvents'
+      ? 'alarm'
+      : entry.group === 'WorkOrderEvents'
+        ? 'work_order'
+        : entry.group === 'StructuralEvents'
+          ? subjectTypeFromStructuralTag(entry.tag)
+          : undefined
+
+  return new EventRoutingSubject({
+    entityType,
+    source: entityType
+      ? `payload primary key / graph node: ${entityType}`
+      : `payload primary key for ${entry.group}; graph subject requires event-specific projection`,
+    notes: entry.group === 'ContextEvents'
+      ? 'Context events often materialize or close relationship edges rather than dispatching directly.'
+      : undefined,
+  })
+}
+
+const routingKindForEvent = (entry: ReactorEventCoverageEntry): EventRoutingKind => {
+  if (entry.status === 'reactive') return 'reactor_dispatch'
+  if (entry.status === 'non_reactive') return 'audit_only'
+  if (entry.group === 'ContextEvents') return 'candidate_projection'
+  if (entry.group === 'TaskEvents') return 'aggregate_internal'
+  if (entry.candidateRelationshipEdges.length > 0 || entry.targetCapabilities.length > 0) return 'candidate_dispatch'
+  return 'candidate_projection'
+}
+
+const proofRequirementsForEvent = (entry: ReactorEventCoverageEntry): EventRoutingProofRequirement[] => {
+  if (entry.status === 'reactive') {
+    return [
+      'observation_decode_test',
+      'registry_policy_test',
+      'graph_expansion_test',
+      'source_claim_e2e',
+      'target_contract_test',
+    ]
+  }
+
+  if (entry.status === 'non_reactive') return ['documentation_only']
+
+  if (entry.group === 'ContextEvents') {
+    return ['projection_handler_test', 'graph_expansion_test']
+  }
+
+  if (entry.group === 'TaskEvents') {
+    return ['aggregate_test', 'documentation_only']
+  }
+
+  return [
+    'observation_decode_test',
+    'registry_policy_test',
+    'graph_expansion_test',
+    'target_contract_test',
+    'source_claim_e2e',
+  ]
+}
+
+const targetOwnerForEvent = (entry: ReactorEventCoverageEntry): string | undefined => {
+  if (entry.status === 'non_reactive') return undefined
+  if (entry.targetCapabilities.some((capability) => capability.startsWith('dependency.') || capability.startsWith('safety.'))) {
+    return 'work_order'
+  }
+  if (entry.targetCapabilities.some((capability) => capability.startsWith('quality.'))) return 'quality/work_order'
+  if (entry.targetCapabilities.some((capability) => capability.startsWith('approval.'))) return 'approval/work_order'
+  if (entry.targetCapabilities.some((capability) => capability.startsWith('lifecycle.'))) return 'structural_entity'
+  return 'tbd'
+}
+
+const relationshipPathsForEvent = (entry: ReactorEventCoverageEntry): EventRoutingRelationshipPath[] => {
+  if (entry.candidateRelationshipEdges.length === 0) return []
+  return [new EventRoutingRelationshipPath({
+    edgeTypes: Array.from(entry.candidateRelationshipEdges),
+    notes: entry.status === 'reactive'
+      ? 'Production traversal set; runtime policy matching chooses concrete edge policies.'
+      : 'Candidate traversal set; promotion requires explicit policy and proof requirements.',
+  })]
+}
+
+export const getEventRoutingContracts = (): readonly EventRoutingContract[] =>
+  getReactorEventCoverageEntries().map((entry) => new EventRoutingContract({
+    id: `${entry.group}.${entry.tag}`,
+    group: entry.group,
+    eventTag: entry.tag,
+    status: entry.status,
+    routingKind: routingKindForEvent(entry),
+    subject: subjectForEvent(entry),
+    signals: Array.from(entry.signals),
+    relationshipPaths: relationshipPathsForEvent(entry),
+    targetOwner: targetOwnerForEvent(entry),
+    targetCapabilities: Array.from(entry.targetCapabilities),
+    productionObservationIds: Array.from(entry.productionObservationIds),
+    productionPolicyIds: Array.from(entry.productionPolicyIds),
+    proofRequirements: proofRequirementsForEvent(entry),
+    rationale: entry.rationale,
+    parkingRationale: entry.status === 'non_reactive' ? entry.rationale : undefined,
+  }))
+
 const relationshipCoverageSeeds: Record<RelationshipEdgeTypeValue, RelationshipCoverageSeed> = {
   targets: {
     status: 'production',
@@ -607,6 +777,7 @@ export const getReactorRelationshipCoverageEntries = (): readonly ReactorRelatio
 
 export const getReactorTopologyAtlas = (generatedAtIso = new Date().toISOString()): ReactorTopologyAtlas => {
   const eventCoverage = getReactorEventCoverageEntries()
+  const eventRoutingContracts = getEventRoutingContracts()
   const relationshipCoverage = getReactorRelationshipCoverageEntries()
   const stats = new ReactorTopologyStats({
     eventGroupCount: Object.keys(EVENT_GROUPS).length,
@@ -622,6 +793,7 @@ export const getReactorTopologyAtlas = (generatedAtIso = new Date().toISOString(
   return new ReactorTopologyAtlas({
     generatedAtIso,
     eventCoverage: Array.from(eventCoverage),
+    eventRoutingContracts: Array.from(eventRoutingContracts),
     relationshipCoverage: Array.from(relationshipCoverage),
     stats,
   })

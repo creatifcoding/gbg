@@ -27,6 +27,10 @@ const eventRows = atlas.eventCoverage
   .map((entry) => `| ${mdCell(entry.group)} | ${mdCell(entry.tag)} | ${entry.status} | ${mdCell(joinList(entry.signals))} | ${mdCell(joinList(entry.productionObservationIds))} | ${mdCell(joinList(entry.productionPolicyIds))} | ${mdCell(entry.rationale)} |`)
   .join('\n')
 
+const routingContractRows = atlas.eventRoutingContracts
+  .map((contract) => `| ${mdCell(contract.id)} | ${contract.routingKind} | ${mdCell(contract.subject.entityType ?? '—')} | ${mdCell(joinList(contract.relationshipPaths.flatMap((path) => path.edgeTypes)))} | ${mdCell(contract.targetOwner ?? '—')} | ${mdCell(joinList(contract.targetCapabilities))} | ${mdCell(joinList(contract.proofRequirements))} |`)
+  .join('\n')
+
 const relationshipRows = atlas.relationshipCoverage
   .map((entry) => `| ${entry.edgeType} | ${entry.status} | ${entry.directionality} | ${mdCell(joinList(entry.allowedSourceTypes))} | ${mdCell(joinList(entry.allowedTargetTypes))} | ${entry.allowedPairCount} | ${mdCell(joinList(entry.productionPolicyIds))} | ${mdCell(joinList(entry.candidateSignals))} | ${mdCell(entry.rationale)} |`)
   .join('\n')
@@ -69,6 +73,12 @@ ${productionLanes.map(({ event, policyId }) => `| ${event.tag} | ${mdCell(joinLi
 | --- | --- | --- | --- | --- | ---: | --- | --- | --- |
 ${relationshipRows}
 
+## Event Routing Contracts
+
+| Contract | Routing kind | Subject | Relationship paths | Target owner | Capabilities | Proof requirements |
+| --- | --- | --- | --- | --- | --- | --- |
+${routingContractRows}
+
 ## Event coverage
 
 | Group | Tag | Status | Signals | Observation specs | Production policies | Rationale |
@@ -85,6 +95,12 @@ const chipList = (items: readonly string[], className = 'chip') => items.length 
 const groupedEvents = atlas.eventCoverage.reduce<Record<string, typeof atlas.eventCoverage>>((groups, entry) => {
   groups[entry.group] = groups[entry.group] ?? []
   groups[entry.group].push(entry)
+  return groups
+}, {})
+
+const groupedContracts = atlas.eventRoutingContracts.reduce<Record<string, typeof atlas.eventRoutingContracts>>((groups, contract) => {
+  groups[contract.group] = groups[contract.group] ?? []
+  groups[contract.group].push(contract)
   return groups
 }, {})
 
@@ -200,6 +216,30 @@ const html = `<!doctype html>
         </article>
       `).join('')}
     </section>
+
+    <h2>Event Routing Contracts</h2>
+    ${Object.entries(groupedContracts).map(([group, contracts]) => `
+      <details ${group === 'EquipmentStateEvents' ? 'open' : ''}>
+        <summary>${escapeHtml(group)} · ${contracts.length} routing contracts</summary>
+        <div class="details-body">
+          <table>
+            <thead><tr><th>Event</th><th>Kind</th><th>Subject</th><th>Paths</th><th>Owner</th><th>Proofs</th></tr></thead>
+            <tbody>
+              ${contracts.map((contract) => `
+                <tr>
+                  <td><strong>${escapeHtml(contract.eventTag)}</strong></td>
+                  <td>${statusLabel(contract.routingKind)}</td>
+                  <td>${escapeHtml(contract.subject.entityType ?? '—')}<br><span class="muted">${escapeHtml(contract.subject.source)}</span></td>
+                  <td>${chipList(contract.relationshipPaths.flatMap((path) => path.edgeTypes))}</td>
+                  <td>${escapeHtml(contract.targetOwner ?? '—')}</td>
+                  <td>${chipList(contract.proofRequirements)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    `).join('')}
 
     <h2>Event coverage by group</h2>
     ${Object.entries(groupedEvents).map(([group, entries]) => `

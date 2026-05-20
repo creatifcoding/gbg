@@ -1,7 +1,7 @@
 # Reactor Topology Atlas
 
 Status: **generated rolling artifact**
-Generated: 2026-05-19T23:46:49.383Z
+Generated: 2026-05-20T02:03:27.461Z
 
 This atlas is generated from code-adjacent Reactor audit data. It is the working map for durable event coverage, relationship multiplicity, and production/candidate consistency lanes.
 
@@ -45,6 +45,112 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | supervises | candidate | directed | external | work_order, alarm | 2 | — | approval.state, external.availability | Can route supervisor/approval escalation and external outage semantics once external actor availability exists. |
 | targets | production | directed | work_order | machine, line, workcell, plant, sensor, device | 6 | targets.machine-unavailable.blocks-source | equipment.availability, alarm.safety, quality.hold | Production lane: machine availability observed on target routes dependency.blocked to source WorkOrder. |
 | triggered_by | candidate | directed | alarm | sensor, device | 2 | — | alarm.state = triggered\|cleared, alarm.severity | Alarm trigger provenance can connect alarm severity to sensor/device and then to impacted WorkOrders. |
+
+## Event Routing Contracts
+
+| Contract | Routing kind | Subject | Relationship paths | Target owner | Capabilities | Proof requirements |
+| --- | --- | --- | --- | --- | --- | --- |
+| AlarmEvents.AlarmAcknowledged | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmCleared | candidate_dispatch | alarm | triggered_by, monitors, targets, requires | work_order | safety.release | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| AlarmEvents.AlarmConfigChanged | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmEscalated | candidate_dispatch | alarm | triggered_by, monitors, targets, requires | work_order | safety.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| AlarmEvents.AlarmOutOfService | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmReturnedToService | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmShelved | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmSuppressed | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmTriggered | candidate_dispatch | alarm | triggered_by, monitors, targets, requires | work_order | safety.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| AlarmEvents.AlarmUnshelved | audit_only | alarm | — | — | — | documentation_only |
+| ApprovalEvents.ApprovalCompleted | audit_only | — | — | — | — | documentation_only |
+| ApprovalEvents.ApprovalEscalated | candidate_dispatch | — | supervises, related_to | tbd | — | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| ApprovalEvents.ApprovalExpired | candidate_dispatch | — | requires, supervises | approval/work_order | approval.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| ApprovalEvents.ApprovalGranted | audit_only | — | — | — | — | documentation_only |
+| ApprovalEvents.ApprovalRejected | candidate_dispatch | — | supervises, related_to | approval/work_order | approval.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| ApprovalEvents.ApprovalRequested | audit_only | — | — | — | — | documentation_only |
+| BatchEvents.BatchCompleted | audit_only | — | — | — | — | documentation_only |
+| BatchEvents.BatchDeviation | candidate_dispatch | — | produces, related_to | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| BatchEvents.BatchStarted | audit_only | — | — | — | — | documentation_only |
+| BatchEvents.ParameterRecorded | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.AssetAttached | candidate_projection | — | targets, related_to | tbd | — | projection_handler_test, graph_expansion_test |
+| ContextEvents.AssetDetached | candidate_projection | — | targets, related_to | tbd | — | projection_handler_test, graph_expansion_test |
+| ContextEvents.ChildWorkOrderSpawned | candidate_projection | — | depends_on, caused_by | tbd | — | projection_handler_test, graph_expansion_test |
+| ContextEvents.ContextCreated | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ContextSnapshotted | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ContextUpdated | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ExternalRefLinked | candidate_projection | — | requires, produces, related_to | tbd | — | projection_handler_test, graph_expansion_test |
+| ContextEvents.ExternalRefUnlinked | candidate_projection | — | requires, produces, related_to | tbd | — | projection_handler_test, graph_expansion_test |
+| ContextEvents.ResourceAllocated | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ResourceReleased | audit_only | — | — | — | — | documentation_only |
+| EquipmentStateEvents.EquipmentStateChanged | reactor_dispatch | machine | targets, requires | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, source_claim_e2e, target_contract_test |
+| EquipmentStateEvents.FaultCleared | candidate_dispatch | machine | targets, requires | work_order | dependency.released | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| EquipmentStateEvents.FaultDetected | reactor_dispatch | machine | targets, requires | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, source_claim_e2e, target_contract_test |
+| EquipmentStateEvents.MaintenanceModeEntered | reactor_dispatch | machine | targets, requires | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, source_claim_e2e, target_contract_test |
+| EquipmentStateEvents.MaintenanceModeExited | candidate_dispatch | machine | targets, requires | work_order | dependency.released | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| EquipmentStateEvents.PerformanceDegraded | candidate_dispatch | machine | targets, requires | tbd | capacity.degraded | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| OperationalEvents.BaseOperationalEvent | audit_only | — | — | — | — | documentation_only |
+| OperatorEvents.ManualAcknowledgment | audit_only | — | — | — | — | documentation_only |
+| OperatorEvents.OperatorLogin | audit_only | — | — | — | — | documentation_only |
+| OperatorEvents.OperatorLogout | audit_only | — | — | — | — | documentation_only |
+| OperatorEvents.ParameterOverride | audit_only | — | — | — | — | documentation_only |
+| OperatorEvents.ShiftHandoff | audit_only | — | — | — | — | documentation_only |
+| QualityEvents.CAPACreated | candidate_dispatch | — | related_to | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| QualityEvents.CAPAResolved | candidate_dispatch | — | related_to | quality/work_order | quality.release | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| QualityEvents.InspectionCompleted | candidate_dispatch | — | related_to, produces | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| QualityEvents.NCRClosed | candidate_dispatch | — | related_to, produces | quality/work_order | quality.release | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| QualityEvents.NCROpened | candidate_dispatch | — | related_to, produces | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.AreaCreated | audit_only | area | — | — | — | documentation_only |
+| StructuralEvents.AreaDecommissioned | candidate_dispatch | area | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.AreaUpdated | audit_only | area | — | — | — | documentation_only |
+| StructuralEvents.DeviceCreated | audit_only | device | — | — | — | documentation_only |
+| StructuralEvents.DeviceDecommissioned | candidate_dispatch | device | targets, requires, triggered_by | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.DeviceUpdated | audit_only | device | — | — | — | documentation_only |
+| StructuralEvents.EnterpriseCreated | audit_only | enterprise | — | — | — | documentation_only |
+| StructuralEvents.EnterpriseDecommissioned | candidate_dispatch | enterprise | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.EnterpriseUpdated | audit_only | enterprise | — | — | — | documentation_only |
+| StructuralEvents.LineConfigChanged | audit_only | line | — | — | — | documentation_only |
+| StructuralEvents.LineCreated | audit_only | line | — | — | — | documentation_only |
+| StructuralEvents.LineDecommissioned | candidate_dispatch | line | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.LineRelocated | audit_only | line | — | — | — | documentation_only |
+| StructuralEvents.LineUpdated | audit_only | line | — | — | — | documentation_only |
+| StructuralEvents.MachineConfigChanged | audit_only | machine | — | — | — | documentation_only |
+| StructuralEvents.MachineCreated | audit_only | machine | — | — | — | documentation_only |
+| StructuralEvents.MachineDecommissioned | candidate_dispatch | machine | targets, requires | work_order | dependency.blocked, terminal.review_hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.MachineRelocated | audit_only | machine | — | — | — | documentation_only |
+| StructuralEvents.MachineUpdated | audit_only | machine | — | — | — | documentation_only |
+| StructuralEvents.PlantCreated | audit_only | plant | — | — | — | documentation_only |
+| StructuralEvents.PlantDecommissioned | candidate_dispatch | plant | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.PlantRelocated | audit_only | plant | — | — | — | documentation_only |
+| StructuralEvents.PlantUpdated | audit_only | plant | — | — | — | documentation_only |
+| StructuralEvents.SensorCalibrated | audit_only | sensor | — | — | — | documentation_only |
+| StructuralEvents.SensorCreated | audit_only | sensor | — | — | — | documentation_only |
+| StructuralEvents.SensorDecommissioned | candidate_dispatch | sensor | monitors, triggered_by | tbd | — | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.SensorThresholdChanged | audit_only | sensor | — | — | — | documentation_only |
+| StructuralEvents.SensorUpdated | audit_only | sensor | — | — | — | documentation_only |
+| StructuralEvents.SiteCreated | audit_only | site | — | — | — | documentation_only |
+| StructuralEvents.SiteDecommissioned | candidate_dispatch | site | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.SiteUpdated | audit_only | site | — | — | — | documentation_only |
+| StructuralEvents.WorkCellCreated | audit_only | workcell | — | — | — | documentation_only |
+| StructuralEvents.WorkCellDecommissioned | candidate_dispatch | workcell | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.WorkCellUpdated | audit_only | workcell | — | — | — | documentation_only |
+| TaskEvents.TaskBecameReady | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskBlocked | aggregate_internal | — | — | work_order | dependency.blocked | aggregate_test, documentation_only |
+| TaskEvents.TaskCompensated | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskCompleted | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskFailed | aggregate_internal | — | — | work_order | dependency.blocked | aggregate_test, documentation_only |
+| TaskEvents.TaskProgressUpdated | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskSkipped | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskStarted | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskUnblocked | aggregate_internal | — | — | work_order | dependency.released | aggregate_test, documentation_only |
+| WorkOrderEvents.WorkOrderApproved | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderCancelled | candidate_dispatch | work_order | depends_on | work_order | dependency.blocked, dependency.replan_required | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| WorkOrderEvents.WorkOrderClosed | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderCompleted | candidate_dispatch | work_order | depends_on | work_order | dependency.satisfied | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| WorkOrderEvents.WorkOrderCreated | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderFailed | candidate_dispatch | work_order | depends_on | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| WorkOrderEvents.WorkOrderRejected | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderResumed | candidate_dispatch | work_order | depends_on | work_order | dependency.released | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| WorkOrderEvents.WorkOrderStarted | candidate_dispatch | work_order | depends_on | tbd | — | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| WorkOrderEvents.WorkOrderSubmitted | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderSuspended | candidate_dispatch | work_order | depends_on | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 
 ## Event coverage
 

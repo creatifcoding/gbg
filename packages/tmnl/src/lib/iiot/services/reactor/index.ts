@@ -47,6 +47,11 @@ export {
 } from './observations'
 
 export {
+  EventRoutingContract,
+  EventRoutingKind,
+  EventRoutingProofRequirement,
+  EventRoutingRelationshipPath,
+  EventRoutingSubject,
   ReactorEventCoverageEntry,
   ReactorEventCoverageStatus,
   ReactorEventGroupName,
@@ -54,6 +59,7 @@ export {
   ReactorRelationshipCoverageStatus,
   ReactorTopologyAtlas,
   ReactorTopologyStats,
+  getEventRoutingContracts,
   getIiotEventGroupTags,
   getReactorEventCoverageEntries,
   getReactorRelationshipCoverageEntries,
