@@ -161,6 +161,7 @@ export class SuiPaymentService extends Context.Service<
 
 export interface SuiAuthResult {
   readonly signatures: ReadonlyArray<string>;
+  readonly transactionBytes?: Uint8Array;
   readonly walletPayload?: unknown;
   readonly offlinePayload?: unknown;
 }
@@ -169,6 +170,8 @@ export interface SuiAuthServiceShape {
   readonly authorize: (
     tx: SuiTx<unknown, unknown, unknown>,
     payment: SuiPaymentPlan,
+    artifact?: SuiPtbBuildArtifact<unknown>,
+    gasPlan?: SuiGasPlan,
   ) => Effect.Effect<SuiAuthResult, unknown, never>;
 }
 
