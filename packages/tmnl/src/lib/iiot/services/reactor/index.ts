@@ -47,6 +47,20 @@ export {
 } from './observations'
 
 export {
+  ReactorEventCoverageEntry,
+  ReactorEventCoverageStatus,
+  ReactorEventGroupName,
+  ReactorRelationshipCoverageEntry,
+  ReactorRelationshipCoverageStatus,
+  ReactorTopologyAtlas,
+  ReactorTopologyStats,
+  getIiotEventGroupTags,
+  getReactorEventCoverageEntries,
+  getReactorRelationshipCoverageEntries,
+  getReactorTopologyAtlas,
+} from './topology-atlas'
+
+export {
   makeWorkOrderReactionContract,
 } from './contracts/work-order'
 

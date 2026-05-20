@@ -16,6 +16,12 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { Effect, Stream, Chunk } from 'effect'
 import { GraphClient } from '../../services/l1/GraphClient'
 import type { DeviceId, PlantId, LineId, MachineId, WorkOrderId } from '../../schemas/identifiers'
+import {
+  RELATIONSHIP_EDGE_REGISTRY,
+  RelationshipEdgeMetadata,
+  type RelationshipEdgeType,
+  type RelationshipNodeType,
+} from '../../schemas/relationships/edge-types'
 import { GraphIntegrationLayer, isDatabaseAvailable } from './layer'
 
 // =============================================================================
@@ -27,6 +33,30 @@ const MOCK_PLANT_ID = 'PLANT-A' as PlantId
 const MOCK_LINE_ID = 'LINE-001' as LineId
 const MOCK_MACHINE_ID = 'MCH-001' as MachineId
 const MOCK_SENSOR_ID = 'TMP-001' as DeviceId
+
+const TEST_RELATIONSHIP_NODE_TYPES: readonly RelationshipNodeType[] = [
+  'enterprise',
+  'site',
+  'area',
+  'plant',
+  'line',
+  'workcell',
+  'machine',
+  'sensor',
+  'device',
+  'alarm',
+  'work_order',
+  'external',
+]
+
+const relationshipNodeId = (input: {
+  readonly suffix: string
+  readonly role: 'source' | 'target'
+  readonly nodeType: RelationshipNodeType
+}) => `TEST-REL-${input.role}-${input.nodeType}-${input.suffix}`
+
+const nodeIdProperty = (nodeType: RelationshipNodeType): 'id' | 'device_id' =>
+  nodeType === 'sensor' || nodeType === 'device' ? 'device_id' : 'id'
 
 // =============================================================================
 // Database Availability Check
@@ -350,6 +380,102 @@ describe('GraphClient Integration Tests', () => {
           `MATCH (wo:work_order {id: '${workOrderId}'}) DETACH DELETE wo`,
           '(result agtype)'
         )
+      }).pipe(Effect.provide(GraphIntegrationLayer))
+
+      await Effect.runPromise(program)
+    })
+
+    it('should create, query, and soft-delete every allowed relationship edge pair', async () => {
+      if (!dbAvailable) return
+
+      const suffix = `${Date.now()}`
+
+      const program = Effect.gen(function* () {
+        const client = yield* GraphClient
+        const cleanupRelationshipMatrixNodes = Effect.forEach(
+          TEST_RELATIONSHIP_NODE_TYPES,
+          (nodeType) => Effect.forEach(
+            ['source', 'target'] as const,
+            (role) => client.executeCypher(
+              `MATCH (n:${nodeType} {${nodeIdProperty(nodeType)}: '${relationshipNodeId({ suffix, role, nodeType })}'}) DETACH DELETE n`,
+              '(result agtype)',
+            ).pipe(Effect.ignore),
+            { concurrency: 1 },
+          ),
+          { concurrency: 1 },
+        )
+
+        yield* cleanupRelationshipMatrixNodes
+
+        yield* Effect.forEach(
+          TEST_RELATIONSHIP_NODE_TYPES,
+          (nodeType) => Effect.all([
+            client.upsertRelationshipNode(
+              { type: nodeType, id: relationshipNodeId({ suffix, role: 'source', nodeType }) },
+              { name: `source ${nodeType}` },
+            ),
+            client.upsertRelationshipNode(
+              { type: nodeType, id: relationshipNodeId({ suffix, role: 'target', nodeType }) },
+              { name: `target ${nodeType}` },
+            ),
+          ]),
+          { concurrency: 1 },
+        )
+
+        const allowedPairs = Object.entries(RELATIONSHIP_EDGE_REGISTRY).flatMap(([edgeType, descriptor]) =>
+          descriptor.allowedSourceTypes.flatMap((sourceType) =>
+            descriptor.allowedTargetTypes.map((targetType) => ({
+              edgeType: edgeType as RelationshipEdgeType,
+              sourceType,
+              targetType,
+            })),
+          ),
+        )
+
+        expect(allowedPairs).toHaveLength(87)
+
+        yield* Effect.forEach(
+          allowedPairs,
+          ({ edgeType, sourceType, targetType }) => Effect.gen(function* () {
+            const sourceId = relationshipNodeId({ suffix, role: 'source', nodeType: sourceType })
+            const targetId = relationshipNodeId({ suffix, role: 'target', nodeType: targetType })
+
+            yield* client.upsertRelationshipEdge({
+              source: { type: sourceType, id: sourceId },
+              target: { type: targetType, id: targetId },
+              edgeType,
+              metadata: new RelationshipEdgeMetadata({
+                createdBy: 'graph-relationship-matrix-test',
+                reason: `relationship-matrix:${edgeType}`,
+                context: { sourceType, targetType },
+              }),
+            })
+
+            const targetIds = yield* client.getRelationshipTargetIds({
+              source: { type: sourceType, id: sourceId },
+              edgeType,
+              targetType,
+            })
+            expect(targetIds).toContain(targetId)
+
+            yield* client.softDeleteRelationshipEdge({
+              source: { type: sourceType, id: sourceId },
+              target: { type: targetType, id: targetId },
+              edgeType,
+              reason: 'relationship-matrix-cleanup',
+            })
+
+            const afterDelete = yield* client.getRelationshipTargetIds({
+              source: { type: sourceType, id: sourceId },
+              edgeType,
+              targetType,
+            })
+            expect(afterDelete).not.toContain(targetId)
+          }),
+          { concurrency: 1 },
+        )
+
+        yield* cleanupRelationshipMatrixNodes
       }).pipe(Effect.provide(GraphIntegrationLayer))
 
       await Effect.runPromise(program)
