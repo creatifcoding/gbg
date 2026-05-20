@@ -20,11 +20,11 @@ import {
 import {
   gas,
   input,
+  makeSuiPtbBuilder,
   makeSuiPTB,
   nestedResult,
   pure,
   SuiPtbAst,
-  SuiPtbLive,
   SuiPtbSplitCoins,
   SuiPtbTransferObjects,
 } from '../../src/ptb';
@@ -67,7 +67,9 @@ describeLocalnet('@tmnl/effect-sui payment/gas/auth localnet proof', () => {
       execute: () => Effect.void,
     });
 
-    const artifact = Effect.runSync(ptb.pipe(Effect.provide(SuiPtbLive)));
+    const builder = makeSuiPtbBuilder();
+    const artifact = builder.buildSync(ptb);
+    await builder.dispose();
     const gasPlan = await Effect.runPromise(makeSuiGasPlanner(client).plan(tx));
     const paymentPlan = Effect.runSync(makeSuiPaymentService().plan(tx, gasPlan));
     const authResult = await Effect.runPromise(

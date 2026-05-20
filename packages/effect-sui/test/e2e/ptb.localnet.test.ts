@@ -1,18 +1,17 @@
 import { requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
 import { SuiJsonRpcClient, JsonRpcHTTPTransport } from '@mysten/sui/jsonRpc';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import * as Effect from 'effect-v4/Effect';
 import { describe, expect, inject, it } from 'vitest';
 
 import { decodeSuiAddress, decodeSuiTypeTagString } from '../../src/schema';
 import {
   gas,
   input,
+  makeSuiPtbBuilder,
   makeSuiPTB,
   nestedResult,
   pure,
   SuiPtbAst,
-  SuiPtbLive,
   SuiPtbSplitCoins,
   SuiPtbTransferObjects,
 } from '../../src/ptb';
@@ -44,7 +43,9 @@ describeLocalnet('@tmnl/effect-sui SuiPTB localnet proof', () => {
       ],
     });
 
-    const artifact = Effect.runSync(makeSuiPTB(ast).pipe(Effect.provide(SuiPtbLive)));
+    const builder = makeSuiPtbBuilder();
+    const artifact = builder.buildSync(makeSuiPTB(ast));
+    await builder.dispose();
     const transaction = artifact.transaction;
     expect(transaction).toBeDefined();
 

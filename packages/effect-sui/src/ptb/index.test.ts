@@ -8,12 +8,12 @@ import {
   analyzePtb,
   gas,
   input,
+  makeSuiPtbBuilder,
   makeSuiPTB,
   nestedResult,
   pure,
   result,
   SuiPtbAst,
-  SuiPtbLive,
   SuiPtbMoveCall,
   SuiPtbSplitCoins,
   SuiPtbTransferObjects,
@@ -111,7 +111,7 @@ describe('SuiPTB AST and compiler', () => {
     );
   });
 
-  it('compiles to a Mysten Transaction without submitting', () => {
+  it('compiles to a Mysten Transaction through a ManagedRuntime builder without submitting', async () => {
     const ast = new SuiPtbAst({
       label: 'split-and-transfer',
       inputs: [
@@ -124,7 +124,9 @@ describe('SuiPTB AST and compiler', () => {
       ],
     });
 
-    const artifact = Effect.runSync(makeSuiPTB(ast).pipe(Effect.provide(SuiPtbLive)));
+    const builder = makeSuiPtbBuilder();
+    const artifact = builder.buildSync(makeSuiPTB(ast));
+    await builder.dispose();
 
     expect(artifact.transaction).toBeInstanceOf(Transaction);
     expect(artifact.inputs).toHaveLength(2);
@@ -135,16 +137,16 @@ describe('SuiPTB AST and compiler', () => {
     expect(data.commands?.map((command) => command.$kind)).toEqual(['SplitCoins', 'TransferObjects']);
   });
 
-  it('normalizes live compiler failures as SuiInvariantViolation', () => {
+  it('normalizes live compiler failures as SuiInvariantViolation through the ManagedRuntime builder', async () => {
     const ast = new SuiPtbAst({
       label: 'bad-compiler-ref',
       inputs: [],
       commands: [new SuiPtbSplitCoins({ coin: gas(), amounts: [input(99, 'pure')] })],
     });
 
-    const error = Effect.runSync(
-      Effect.flip(makeSuiPTB(ast).pipe(Effect.provide(SuiPtbLive))),
-    );
+    const builder = makeSuiPtbBuilder();
+    const error = builder.runtime.runSync(Effect.flip(makeSuiPTB(ast)));
+    await builder.dispose();
 
     expect(error).toBeInstanceOf(SuiInvariantViolation);
     expect(error.invariant).toBe('SuiPTB.analyze');
