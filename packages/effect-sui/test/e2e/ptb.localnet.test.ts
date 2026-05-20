@@ -7,8 +7,8 @@ import { decodeSuiAddress, decodeSuiTypeTagString } from '../../src/schema';
 import {
   gas,
   input,
-  makeSuiPtbBuilder,
-  makeSuiPTB,
+  makeBuilder,
+  make,
   nestedResult,
   pure,
   SuiPtbAst,
@@ -43,8 +43,8 @@ describeLocalnet('@tmnl/effect-sui SuiPTB localnet proof', () => {
       ],
     });
 
-    const builder = makeSuiPtbBuilder();
-    const artifact = builder.buildSync(makeSuiPTB(ast));
+    const builder = makeBuilder();
+    const artifact = builder.buildSync(make(ast));
     await builder.dispose();
     const transaction = artifact.transaction;
     expect(transaction).toBeDefined();

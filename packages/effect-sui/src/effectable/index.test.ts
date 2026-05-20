@@ -1,7 +1,7 @@
 import * as Effect from 'effect-v4/Effect';
 import { describe, expect, it } from 'vitest';
 
-import { decodeSuiObjectId } from '../schema';
+import { decodeSuiObjectId, SuiInvariantViolation } from '../schema';
 import { SuiModule, SuiObject, SuiPackage, SuiPTB, SuiTx } from './index';
 
 describe('Effectable ontology layer', () => {
@@ -84,7 +84,7 @@ describe('Effectable ontology layer', () => {
       label: 'CounterPackage',
     });
 
-    const mod = pkg.module('counter');
+    const mod = Effect.runSync(pkg.module('counter'));
     const object = mod.object({
       id: objectId,
       refresh: (self) => Effect.succeed({
@@ -132,6 +132,8 @@ describe('Effectable ontology layer', () => {
   it('rejects undeclared module handles at the package boundary', () => {
     const pkg = new SuiPackage({ packageId, modules: ['counter'] });
 
-    expect(() => pkg.module('missing')).toThrow(/not declared/);
+    const error = Effect.runSync(Effect.flip(pkg.module('missing')));
+    expect(error).toBeInstanceOf(SuiInvariantViolation);
+    expect(error.message).toMatch(/not declared/);
   });
 });

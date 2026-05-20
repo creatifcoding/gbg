@@ -204,92 +204,91 @@ export const receivingObject = (ref: SuiObjectRef, name?: string): SuiPtbReceivi
 
 // ─── Analyzer ────────────────────────────────────────────────────────────────
 
-export const makeSuiPtbAnalyzer = (): SuiPtbAnalyzerShape => ({
-  analyze: (ptb) => Effect.try({
-    try: () => analyzePtb(ptb.label, ptb.inputs, ptb.commands),
-    catch: (cause) => normalizePtbError('analyze', cause),
-  }),
+export const makeAnalyzer = (): SuiPtbAnalyzerShape => ({
+  analyze: (ptb) => analyzePtb(ptb.label, ptb.inputs, ptb.commands),
 });
 
-export const SuiPtbAnalyzerLive = Layer.succeed(SuiPtbAnalyzer)(makeSuiPtbAnalyzer());
+export const SuiPtbAnalyzerLive = Layer.succeed(SuiPtbAnalyzer)(makeAnalyzer());
 
 export function analyzePtb(
   label: string,
   inputs: ReadonlyArray<unknown>,
   commands: ReadonlyArray<unknown>,
-): SuiPtbAnalysis {
-  const parsedInputs = inputs.map((entry, index) => decodeInput(entry, index));
-  const parsedCommands = commands.map((entry, index) => decodeCommand(entry, index));
-  const diagnostics: string[] = [];
-  const objectIds = new Set<SuiObjectId>();
+): Effect.Effect<SuiPtbAnalysis, SuiInvariantViolation> {
+  return Effect.gen(function* () {
+    const parsedInputs = yield* Effect.all(inputs.map((entry, index) => decodeInput(entry, index)));
+    const parsedCommands = yield* Effect.all(commands.map((entry, index) => decodeCommand(entry, index)));
+    const diagnostics: string[] = [];
+    const objectIds = new Set<SuiObjectId>();
 
-  const seenNames = new Set<string>();
-  for (const entry of parsedInputs) {
-    if (entry.name) {
-      if (seenNames.has(entry.name)) diagnostics.push(`duplicate input name: ${entry.name}`);
-      seenNames.add(entry.name);
+    const seenNames = new Set<string>();
+    for (const entry of parsedInputs) {
+      if (entry.name) {
+        if (seenNames.has(entry.name)) diagnostics.push(`duplicate input name: ${entry.name}`);
+        seenNames.add(entry.name);
+      }
+
+      switch (entry._tag) {
+        case 'ObjectInput':
+          objectIds.add(entry.objectId);
+          break;
+        case 'ObjectRefInput':
+        case 'ReceivingObjectInput':
+          objectIds.add(entry.ref.objectId);
+          break;
+        case 'SharedObjectInput':
+          objectIds.add(entry.ref.objectId);
+          break;
+        case 'PureInput':
+          break;
+      }
     }
 
-    switch (entry._tag) {
-      case 'ObjectInput':
-        objectIds.add(entry.objectId);
-        break;
-      case 'ObjectRefInput':
-      case 'ReceivingObjectInput':
-        objectIds.add(entry.ref.objectId);
-        break;
-      case 'SharedObjectInput':
-        objectIds.add(entry.ref.objectId);
-        break;
-      case 'PureInput':
-        break;
-    }
-  }
+    for (const [commandIndex, command] of parsedCommands.entries()) {
+      const args = commandArguments(command);
+      for (const [argIndex, arg] of args.entries()) {
+        yield* validateArgument(arg, commandIndex, argIndex, parsedInputs.length, parsedCommands);
+      }
 
-  parsedCommands.forEach((command, commandIndex) => {
-    const args = commandArguments(command);
-    args.forEach((arg, argIndex) =>
-      validateArgument(arg, commandIndex, argIndex, parsedInputs.length, parsedCommands),
-    );
-
-    switch (command._tag) {
-      case 'SplitCoins':
-        if (command.amounts.length === 0) diagnostics.push(`command ${commandIndex} SplitCoins has no amounts`);
-        command.amounts.forEach((amount, amountIndex) =>
-          rejectGasCoin(amount, `command ${commandIndex} SplitCoins amount ${amountIndex}`),
-        );
-        break;
-      case 'MergeCoins':
-        if (command.sources.length === 0) diagnostics.push(`command ${commandIndex} MergeCoins has no sources`);
-        break;
-      case 'TransferObjects':
-        if (command.objects.length === 0) diagnostics.push(`command ${commandIndex} TransferObjects has no objects`);
-        rejectGasCoin(command.address, `command ${commandIndex} TransferObjects address`);
-        break;
-      case 'MoveCall':
-        if (!command.module || !command.functionName) {
-          diagnostics.push(`command ${commandIndex} MoveCall is missing module/function`);
-        }
-        break;
-      case 'MakeMoveVec':
-        if (command.elements.length === 0) diagnostics.push(`command ${commandIndex} MakeMoveVec has no elements`);
-        break;
-      case 'Publish':
-        if (command.modules.length === 0) diagnostics.push(`command ${commandIndex} Publish has no modules`);
-        break;
-      case 'Upgrade':
-        if (command.modules.length === 0) diagnostics.push(`command ${commandIndex} Upgrade has no modules`);
-        rejectGasCoin(command.ticket, `command ${commandIndex} Upgrade ticket`);
-        break;
+      switch (command._tag) {
+        case 'SplitCoins':
+          if (command.amounts.length === 0) diagnostics.push(`command ${commandIndex} SplitCoins has no amounts`);
+          for (const [amountIndex, amount] of command.amounts.entries()) {
+            yield* rejectGasCoin(amount, `command ${commandIndex} SplitCoins amount ${amountIndex}`);
+          }
+          break;
+        case 'MergeCoins':
+          if (command.sources.length === 0) diagnostics.push(`command ${commandIndex} MergeCoins has no sources`);
+          break;
+        case 'TransferObjects':
+          if (command.objects.length === 0) diagnostics.push(`command ${commandIndex} TransferObjects has no objects`);
+          yield* rejectGasCoin(command.address, `command ${commandIndex} TransferObjects address`);
+          break;
+        case 'MoveCall':
+          if (!command.module || !command.functionName) {
+            diagnostics.push(`command ${commandIndex} MoveCall is missing module/function`);
+          }
+          break;
+        case 'MakeMoveVec':
+          if (command.elements.length === 0) diagnostics.push(`command ${commandIndex} MakeMoveVec has no elements`);
+          break;
+        case 'Publish':
+          if (command.modules.length === 0) diagnostics.push(`command ${commandIndex} Publish has no modules`);
+          break;
+        case 'Upgrade':
+          if (command.modules.length === 0) diagnostics.push(`command ${commandIndex} Upgrade has no modules`);
+          yield* rejectGasCoin(command.ticket, `command ${commandIndex} Upgrade ticket`);
+          break;
+      }
     }
+
+    return {
+      inputs: parsedInputs,
+      commands: parsedCommands,
+      objectIds: [...objectIds],
+      diagnostics: diagnostics.map((message) => `${label}: ${message}`),
+    };
   });
-
-  return {
-    inputs: parsedInputs,
-    commands: parsedCommands,
-    objectIds: [...objectIds],
-    diagnostics: diagnostics.map((message) => `${label}: ${message}`),
-  };
 }
 
 // ─── Compiler ────────────────────────────────────────────────────────────────
@@ -298,20 +297,17 @@ export interface SuiPtbCompileOptions {
   readonly transaction?: Transaction;
 }
 
-export const makeSuiPtbCompiler = (options: SuiPtbCompileOptions = {}): SuiPtbCompilerShape => ({
-  compile: ({ ptb, analysis }) => Effect.try({
-    try: () => compilePtb({
-      transaction: options.transaction ?? new Transaction(),
-      label: ptb.label,
-      inputs: analysis?.inputs ?? ptb.inputs,
-      commands: analysis?.commands ?? ptb.commands,
-      requirements: ptb.requirements,
-    }),
-    catch: (cause) => normalizePtbError('compile', cause),
+export const makeCompiler = (options: SuiPtbCompileOptions = {}): SuiPtbCompilerShape => ({
+  compile: ({ ptb, analysis }) => compilePtb({
+    transaction: options.transaction ?? new Transaction(),
+    label: ptb.label,
+    inputs: analysis?.inputs ?? ptb.inputs,
+    commands: analysis?.commands ?? ptb.commands,
+    requirements: ptb.requirements,
   }),
 });
 
-export const SuiPtbCompilerLive = Layer.succeed(SuiPtbCompiler)(makeSuiPtbCompiler());
+export const SuiPtbCompilerLive = Layer.succeed(SuiPtbCompiler)(makeCompiler());
 export const SuiPtbLive = Layer.merge(SuiPtbAnalyzerLive, SuiPtbCompilerLive);
 
 export type SuiPtbRuntime = ManagedRuntime.ManagedRuntime<SuiPtbAnalyzer | SuiPtbCompiler, never>;
@@ -330,11 +326,11 @@ export interface SuiPtbBuilder {
   readonly dispose: () => Promise<void>;
 }
 
-export const makeSuiPtbRuntime = (
+export const makeRuntime = (
   layer: Layer.Layer<SuiPtbAnalyzer | SuiPtbCompiler, never, never> = SuiPtbLive,
 ): SuiPtbRuntime => ManagedRuntime.make(layer);
 
-export const makeSuiPtbBuilder = (runtime: SuiPtbRuntime = makeSuiPtbRuntime()): SuiPtbBuilder => ({
+export const makeBuilder = (runtime: SuiPtbRuntime = makeRuntime()): SuiPtbBuilder => ({
   runtime,
   build: (ptb, options) => runtime.runPromise(ptb, options),
   buildSync: (ptb) => runtime.runSync(ptb),
@@ -348,25 +344,27 @@ export function compilePtb(options: {
   readonly inputs: ReadonlyArray<unknown>;
   readonly commands: ReadonlyArray<unknown>;
   readonly requirements?: SuiPtbBuildArtifact<Transaction>['requirements'];
-}): SuiPtbBuildArtifact<Transaction> {
-  const tx = options.transaction ?? new Transaction();
-  const parsedInputs = options.inputs.map((entry, index) => decodeInput(entry, index));
-  const parsedCommands = options.commands.map((entry, index) => decodeCommand(entry, index));
-  const inputArgs = parsedInputs.map((entry) => compileInput(tx, entry));
+}): Effect.Effect<SuiPtbBuildArtifact<Transaction>, SuiInvariantViolation> {
+  return Effect.gen(function* () {
+    const tx = options.transaction ?? new Transaction();
+    const parsedInputs = yield* Effect.all(options.inputs.map((entry, index) => decodeInput(entry, index)));
+    const parsedCommands = yield* Effect.all(options.commands.map((entry, index) => decodeCommand(entry, index)));
+    const inputArgs = yield* Effect.all(parsedInputs.map((entry) => compileInput(tx, entry)));
 
-  parsedCommands.forEach((command, commandIndex) => {
-    compileCommand(tx, command, commandIndex, inputArgs);
+    for (const [commandIndex, command] of parsedCommands.entries()) {
+      yield* compileCommand(tx, command, commandIndex, inputArgs);
+    }
+
+    return {
+      transaction: tx,
+      inputs: parsedInputs,
+      commands: parsedCommands,
+      requirements: options.requirements ?? { requiresProvider: true, requiresPayment: true, requiresAuth: true },
+    };
   });
-
-  return {
-    transaction: tx,
-    inputs: parsedInputs,
-    commands: parsedCommands,
-    requirements: options.requirements ?? { requiresProvider: true, requiresPayment: true, requiresAuth: true },
-  };
 }
 
-export const makeSuiPTB = (ast: SuiPtbAst): SuiPTB<Transaction, unknown, SuiPtbAnalyzer | SuiPtbCompiler> =>
+export const make = (ast: SuiPtbAst): SuiPTB<Transaction, unknown, SuiPtbAnalyzer | SuiPtbCompiler> =>
   new SuiPTB<Transaction, unknown, SuiPtbAnalyzer | SuiPtbCompiler>({
     label: ast.label,
     inputs: ast.inputs,
@@ -385,6 +383,7 @@ export const makeSuiPTB = (ast: SuiPtbAst): SuiPTB<Transaction, unknown, SuiPtbA
       ),
   });
 
+
 // ─── Internals ───────────────────────────────────────────────────────────────
 
 type MystenArgument =
@@ -393,16 +392,18 @@ type MystenArgument =
   | { readonly $kind: 'Result'; readonly Result: number }
   | { readonly $kind: 'NestedResult'; readonly NestedResult: [number, number] };
 
-function decodeInput(entry: unknown, index: number): SuiPtbInputAst {
-  return Schema.decodeUnknownSync(SuiPtbInputAst)(entry, {
-    errors: 'all',
-  } as never) as SuiPtbInputAst;
+function decodeInput(entry: unknown, index: number): Effect.Effect<SuiPtbInputAst, SuiInvariantViolation> {
+  return Effect.try({
+    try: () => Schema.decodeUnknownSync(SuiPtbInputAst)(entry, { errors: 'all' } as never) as SuiPtbInputAst,
+    catch: (cause) => normalizePtbError(`input.${index}`, cause),
+  });
 }
 
-function decodeCommand(entry: unknown, index: number): SuiPtbCommandAst {
-  return Schema.decodeUnknownSync(SuiPtbCommandAst)(entry, {
-    errors: 'all',
-  } as never) as SuiPtbCommandAst;
+function decodeCommand(entry: unknown, index: number): Effect.Effect<SuiPtbCommandAst, SuiInvariantViolation> {
+  return Effect.try({
+    try: () => Schema.decodeUnknownSync(SuiPtbCommandAst)(entry, { errors: 'all' } as never) as SuiPtbCommandAst,
+    catch: (cause) => normalizePtbError(`command.${index}`, cause),
+  });
 }
 
 function commandArguments(command: SuiPtbCommandAst): ReadonlyArray<SuiPtbArgument> {
@@ -430,46 +431,45 @@ function validateArgument(
   argIndex: number,
   inputCount: number,
   commands: ReadonlyArray<SuiPtbCommandAst>,
-): void {
+): Effect.Effect<void, SuiInvariantViolation> {
   switch (arg._tag) {
     case 'Input':
-      if (arg.index >= inputCount) {
-        throw new Error(`command ${commandIndex} arg ${argIndex} references missing input ${arg.index}`);
-      }
-      return;
+      return arg.index >= inputCount
+        ? Effect.fail(ptbInvariant('analyze', `command ${commandIndex} arg ${argIndex} references missing input ${arg.index}`))
+        : Effect.void;
     case 'Result': {
       if (arg.index >= commandIndex) {
-        throw new Error(`command ${commandIndex} arg ${argIndex} references unavailable result ${arg.index}`);
+        return Effect.fail(ptbInvariant('analyze', `command ${commandIndex} arg ${argIndex} references unavailable result ${arg.index}`));
       }
       const arity = knownCommandResultArity(commands[arg.index]);
-      if (arity !== undefined && arity !== 1) {
-        throw new Error(
-          `command ${commandIndex} arg ${argIndex} uses Result(${arg.index}) but command ${arg.index} has ${arity} results`,
-        );
-      }
-      return;
+      return arity !== undefined && arity !== 1
+        ? Effect.fail(ptbInvariant(
+            'analyze',
+            `command ${commandIndex} arg ${argIndex} uses Result(${arg.index}) but command ${arg.index} has ${arity} results`,
+          ))
+        : Effect.void;
     }
     case 'NestedResult': {
       if (arg.index >= commandIndex) {
-        throw new Error(`command ${commandIndex} arg ${argIndex} references unavailable nested result ${arg.index}`);
+        return Effect.fail(ptbInvariant('analyze', `command ${commandIndex} arg ${argIndex} references unavailable nested result ${arg.index}`));
       }
       const arity = knownCommandResultArity(commands[arg.index]);
-      if (arity !== undefined && arg.nestedIndex >= arity) {
-        throw new Error(
-          `command ${commandIndex} arg ${argIndex} references missing nested result ${arg.index}.${arg.nestedIndex}`,
-        );
-      }
-      return;
+      return arity !== undefined && arg.nestedIndex >= arity
+        ? Effect.fail(ptbInvariant(
+            'analyze',
+            `command ${commandIndex} arg ${argIndex} references missing nested result ${arg.index}.${arg.nestedIndex}`,
+          ))
+        : Effect.void;
     }
     case 'GasCoin':
-      return;
+      return Effect.void;
   }
 }
 
-function rejectGasCoin(arg: SuiPtbArgument, context: string): void {
-  if (arg._tag === 'GasCoin') {
-    throw new Error(`${context} cannot use GasCoin by value`);
-  }
+function rejectGasCoin(arg: SuiPtbArgument, context: string): Effect.Effect<void, SuiInvariantViolation> {
+  return arg._tag === 'GasCoin'
+    ? Effect.fail(ptbInvariant('analyze', `${context} cannot use GasCoin by value`))
+    : Effect.void;
 }
 
 function knownCommandResultArity(command: SuiPtbCommandAst | undefined): number | undefined {
@@ -489,19 +489,24 @@ function knownCommandResultArity(command: SuiPtbCommandAst | undefined): number 
   }
 }
 
-function compileInput(tx: Transaction, entry: SuiPtbInputAst): MystenArgument {
-  switch (entry._tag) {
-    case 'PureInput':
-      return entry.bytes ? tx.pure(entry.bytes) : tx.pure(entry.typeTag as never, entry.value as never);
-    case 'ObjectInput':
-      return tx.object(entry.objectId) as MystenArgument;
-    case 'ObjectRefInput':
-      return tx.objectRef(entry.ref.toMysten()) as MystenArgument;
-    case 'SharedObjectInput':
-      return tx.sharedObjectRef(entry.ref.toMysten()) as MystenArgument;
-    case 'ReceivingObjectInput':
-      return tx.receivingRef(entry.ref.toMysten()) as MystenArgument;
-  }
+function compileInput(tx: Transaction, entry: SuiPtbInputAst): Effect.Effect<MystenArgument, SuiInvariantViolation> {
+  return Effect.try({
+    try: () => {
+      switch (entry._tag) {
+        case 'PureInput':
+          return entry.bytes ? tx.pure(entry.bytes) : tx.pure(entry.typeTag as never, entry.value as never);
+        case 'ObjectInput':
+          return tx.object(entry.objectId) as MystenArgument;
+        case 'ObjectRefInput':
+          return tx.objectRef(entry.ref.toMysten()) as MystenArgument;
+        case 'SharedObjectInput':
+          return tx.sharedObjectRef(entry.ref.toMysten()) as MystenArgument;
+        case 'ReceivingObjectInput':
+          return tx.receivingRef(entry.ref.toMysten()) as MystenArgument;
+      }
+    },
+    catch: (cause) => normalizePtbError(`compile.input.${entry._tag}`, cause),
+  });
 }
 
 function compileCommand(
@@ -509,69 +514,105 @@ function compileCommand(
   command: SuiPtbCommandAst,
   commandIndex: number,
   inputs: ReadonlyArray<MystenArgument>,
-): void {
-  switch (command._tag) {
-    case 'SplitCoins':
-      tx.splitCoins(compileArg(command.coin, inputs), command.amounts.map((amount) => compileArg(amount, inputs)));
-      return;
-    case 'MergeCoins':
-      tx.mergeCoins(compileArg(command.destination, inputs), command.sources.map((source) => compileArg(source, inputs)));
-      return;
-    case 'TransferObjects':
-      tx.transferObjects(
-        command.objects.map((objectArg) => compileArg(objectArg, inputs)),
-        compileArg(command.address, inputs),
-      );
-      return;
-    case 'MoveCall':
-      tx.moveCall({
-        target: `${command.packageId}::${command.module}::${command.functionName}`,
-        typeArguments: command.typeArguments ? [...command.typeArguments] : undefined,
-        arguments: command.arguments.map((arg) => compileArg(arg, inputs)),
-      });
-      return;
-    case 'MakeMoveVec':
-      tx.makeMoveVec({
-        type: command.type,
-        elements: command.elements.map((element) => compileArg(element, inputs)),
-      });
-      return;
-    case 'Publish':
-      tx.publish({
-        modules: command.modules.map((moduleBytes) => [...moduleBytes]),
-        dependencies: [...command.dependencies],
-      });
-      return;
-    case 'Upgrade':
-      tx.upgrade({
-        modules: command.modules.map((moduleBytes) => [...moduleBytes]),
-        dependencies: [...command.dependencies],
-        package: command.packageId,
-        ticket: compileArg(command.ticket, inputs),
-      });
-      return;
-    default:
-      throw new Error(`Unsupported command at index ${commandIndex}`);
-  }
+): Effect.Effect<void, SuiInvariantViolation> {
+  return Effect.gen(function* () {
+    switch (command._tag) {
+      case 'SplitCoins': {
+        const coin = yield* compileArg(command.coin, inputs);
+        const amounts = yield* Effect.all(command.amounts.map((amount) => compileArg(amount, inputs)));
+        yield* applyCommand(commandIndex, () => tx.splitCoins(coin, amounts));
+        return;
+      }
+      case 'MergeCoins': {
+        const destination = yield* compileArg(command.destination, inputs);
+        const sources = yield* Effect.all(command.sources.map((source) => compileArg(source, inputs)));
+        yield* applyCommand(commandIndex, () => tx.mergeCoins(destination, sources));
+        return;
+      }
+      case 'TransferObjects': {
+        const objects = yield* Effect.all(command.objects.map((objectArg) => compileArg(objectArg, inputs)));
+        const address = yield* compileArg(command.address, inputs);
+        yield* applyCommand(commandIndex, () => tx.transferObjects(objects, address));
+        return;
+      }
+      case 'MoveCall': {
+        const args = yield* Effect.all(command.arguments.map((arg) => compileArg(arg, inputs)));
+        yield* applyCommand(commandIndex, () =>
+          tx.moveCall({
+            target: `${command.packageId}::${command.module}::${command.functionName}`,
+            typeArguments: command.typeArguments ? [...command.typeArguments] : undefined,
+            arguments: args,
+          }),
+        );
+        return;
+      }
+      case 'MakeMoveVec': {
+        const elements = yield* Effect.all(command.elements.map((element) => compileArg(element, inputs)));
+        yield* applyCommand(commandIndex, () => tx.makeMoveVec({ type: command.type, elements }));
+        return;
+      }
+      case 'Publish':
+        yield* applyCommand(commandIndex, () =>
+          tx.publish({
+            modules: command.modules.map((moduleBytes) => [...moduleBytes]),
+            dependencies: [...command.dependencies],
+          }),
+        );
+        return;
+      case 'Upgrade': {
+        const ticket = yield* compileArg(command.ticket, inputs);
+        yield* applyCommand(commandIndex, () =>
+          tx.upgrade({
+            modules: command.modules.map((moduleBytes) => [...moduleBytes]),
+            dependencies: [...command.dependencies],
+            package: command.packageId,
+            ticket,
+          }),
+        );
+        return;
+      }
+    }
+  });
 }
 
-function compileArg(arg: SuiPtbArgument, inputs: ReadonlyArray<MystenArgument>): MystenArgument {
+function applyCommand(
+  commandIndex: number,
+  apply: () => unknown,
+): Effect.Effect<void, SuiInvariantViolation> {
+  return Effect.try({
+    try: () => {
+      apply();
+    },
+    catch: (cause) => normalizePtbError(`compile.command.${commandIndex}`, cause),
+  });
+}
+
+function compileArg(arg: SuiPtbArgument, inputs: ReadonlyArray<MystenArgument>): Effect.Effect<MystenArgument, SuiInvariantViolation> {
   switch (arg._tag) {
     case 'GasCoin':
-      return { $kind: 'GasCoin', GasCoin: true };
+      return Effect.succeed({ $kind: 'GasCoin', GasCoin: true });
     case 'Input': {
       const resolved = inputs[arg.index];
-      if (!resolved) throw new Error(`Missing input ${arg.index}`);
-      return resolved;
+      return resolved
+        ? Effect.succeed(resolved)
+        : Effect.fail(ptbInvariant('compile', `Missing input ${arg.index}`));
     }
     case 'Result':
-      return { $kind: 'Result', Result: arg.index };
+      return Effect.succeed({ $kind: 'Result', Result: arg.index });
     case 'NestedResult':
-      return { $kind: 'NestedResult', NestedResult: [arg.index, arg.nestedIndex] };
+      return Effect.succeed({ $kind: 'NestedResult', NestedResult: [arg.index, arg.nestedIndex] });
   }
 }
 
-function normalizePtbError(phase: 'analyze' | 'compile', cause: unknown): SuiInvariantViolation {
+function ptbInvariant(phase: 'analyze' | 'compile', message: string, cause?: unknown): SuiInvariantViolation {
+  return new SuiInvariantViolation({
+    invariant: `SuiPTB.${phase}`,
+    message,
+    cause,
+  });
+}
+
+function normalizePtbError(phase: string, cause: unknown): SuiInvariantViolation {
   if (cause instanceof SuiInvariantViolation) return cause;
   return new SuiInvariantViolation({
     invariant: `SuiPTB.${phase}`,

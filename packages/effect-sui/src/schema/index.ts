@@ -200,37 +200,44 @@ export type PrimitiveTypeTagName = typeof PrimitiveTypeTagName.Type;
 
 const primitiveTypeTags = new Set<string>(PrimitiveTypeTagName.literals);
 
-export function normalizeSuiTypeTag(value: string): string {
+function normalizeSuiTypeTagOption(value: string): string | undefined {
   const type = value.trim();
   if (primitiveTypeTags.has(type)) return type;
 
   if (type.startsWith('vector<')) {
-    if (!type.endsWith('>')) throw new Error(`Invalid vector type tag: ${value}`);
-    return `vector<${normalizeSuiTypeTag(type.slice('vector<'.length, -1))}>`;
+    if (!type.endsWith('>')) return undefined;
+    const inner = normalizeSuiTypeTagOption(type.slice('vector<'.length, -1));
+    return inner ? `vector<${inner}>` : undefined;
   }
 
-  if (!type.includes('::')) throw new Error(`Invalid Sui type tag: ${value}`);
+  if (!type.includes('::')) return undefined;
 
-  const parsed = parseStructTag(type);
-  const normalizedParams = parsed.typeParams.map((param) =>
-    typeof param === 'string' ? normalizeSuiTypeTag(param) : normalizeStructTag(param),
-  );
+  try {
+    const parsed = parseStructTag(type);
+    const normalizedParams: string[] = [];
+    for (const param of parsed.typeParams) {
+      const normalized = typeof param === 'string'
+        ? normalizeSuiTypeTagOption(param)
+        : normalizeSuiTypeTagOption(normalizeStructTag(param));
+      if (!normalized) return undefined;
+      normalizedParams.push(normalized);
+    }
 
-  return normalizeStructTag({
-    ...parsed,
-    typeParams: normalizedParams,
-  });
+    return normalizeStructTag({
+      ...parsed,
+      typeParams: normalizedParams,
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+export function normalizeSuiTypeTag(value: string): string {
+  return normalizeSuiTypeTagOption(value) ?? value.trim();
 }
 
 const validSuiTypeTag = Schema.makeFilter<string>(
-  (value) => {
-    try {
-      normalizeSuiTypeTag(value);
-      return true;
-    } catch {
-      return false;
-    }
-  },
+  (value) => normalizeSuiTypeTagOption(value) !== undefined,
   { expected: 'a Sui primitive, vector, or struct type tag' },
 );
 

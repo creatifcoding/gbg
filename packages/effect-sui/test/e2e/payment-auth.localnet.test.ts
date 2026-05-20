@@ -13,15 +13,15 @@ import {
   KeypairAuthPolicy,
 } from '../../src/schema';
 import {
-  makeSuiAuthService,
-  makeSuiGasPlanner,
-  makeSuiPaymentService,
+  makeAuthService,
+  makeGasPlanner,
+  makePaymentService,
 } from '../../src/flow';
 import {
   gas,
   input,
-  makeSuiPtbBuilder,
-  makeSuiPTB,
+  makeBuilder,
+  make,
   nestedResult,
   pure,
   SuiPtbAst,
@@ -55,7 +55,7 @@ describeLocalnet('@tmnl/effect-sui payment/gas/auth localnet proof', () => {
         new SuiPtbTransferObjects({ objects: [nestedResult(0, 0)], address: input(0, 'pure') }),
       ],
     });
-    const ptb = makeSuiPTB(ast);
+    const ptb = make(ast);
     const tx = new SuiTx({
       label: 'localnet.payment-auth.tx',
       ptb,
@@ -67,13 +67,13 @@ describeLocalnet('@tmnl/effect-sui payment/gas/auth localnet proof', () => {
       execute: () => Effect.void,
     });
 
-    const builder = makeSuiPtbBuilder();
+    const builder = makeBuilder();
     const artifact = builder.buildSync(ptb);
     await builder.dispose();
-    const gasPlan = await Effect.runPromise(makeSuiGasPlanner(client).plan(tx));
-    const paymentPlan = Effect.runSync(makeSuiPaymentService().plan(tx, gasPlan));
+    const gasPlan = await Effect.runPromise(makeGasPlanner(client).plan(tx));
+    const paymentPlan = Effect.runSync(makePaymentService().plan(tx, gasPlan));
     const authResult = await Effect.runPromise(
-      makeSuiAuthService(client).authorize(tx, paymentPlan, artifact, gasPlan),
+      makeAuthService(client).authorize(tx, paymentPlan, artifact, gasPlan),
     );
 
     expect(gasPlan.price).toBeDefined();

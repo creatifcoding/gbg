@@ -13,8 +13,8 @@ import {
 } from '../schema';
 import { object } from '../ptb';
 import {
-  makeSuiGasPlanner,
-  makeSuiPaymentService,
+  makeGasPlanner,
+  makePaymentService,
 } from './index';
 
 describe('Sui payment/gas/auth policies', () => {
@@ -23,7 +23,7 @@ describe('Sui payment/gas/auth policies', () => {
   const gasRef = new SuiObjectRef({ objectId, version: '1', digest });
 
   it('plans explicit gas budgets with reference gas price from Core client', async () => {
-    const planner = makeSuiGasPlanner({
+    const planner = makeGasPlanner({
       core: {
         getReferenceGasPrice: async () => ({ referenceGasPrice: '1000' }),
       },
@@ -45,7 +45,7 @@ describe('Sui payment/gas/auth policies', () => {
   });
 
   it('marks auto gas as dry-run-required when no explicit budget is present', async () => {
-    const planner = makeSuiGasPlanner({
+    const planner = makeGasPlanner({
       core: {
         getReferenceGasPrice: async () => ({ referenceGasPrice: '1000' }),
       },
@@ -64,7 +64,7 @@ describe('Sui payment/gas/auth policies', () => {
   });
 
   it('plans address-balance payment by default', () => {
-    const service = makeSuiPaymentService();
+    const service = makePaymentService();
     const tx = new SuiTx({
       label: 'payment.auto',
       paymentPolicy: new AutoPaymentPolicy({ addressBalance: true }),
@@ -81,7 +81,7 @@ describe('Sui payment/gas/auth policies', () => {
   });
 
   it('rejects explicit gas payment overlap with PTB object inputs', () => {
-    const service = makeSuiPaymentService();
+    const service = makePaymentService();
     const ptb = new SuiPTB({
       label: 'payment.overlap.ptb',
       inputs: [object(objectId, 'coin')],

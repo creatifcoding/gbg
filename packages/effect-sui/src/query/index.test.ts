@@ -7,8 +7,8 @@ import { SuiObject } from '../effectable';
 import { decodeSuiObjectId, decodeSuiObjectDigest, SuiObjectVersion } from '../schema';
 import { SuiBcsBridge, SuiObjectResolver } from '../services';
 import {
-  makeSuiBcsBridge,
-  makeSuiObjectResolver,
+  makeBcsBridge,
+  makeObjectResolver,
   SuiBcsBridgeLive,
   type ClientWithCoreReads,
 } from './index';
@@ -17,8 +17,8 @@ describe('Sui query services', () => {
   const objectId = decodeSuiObjectId('0x7');
   const digest = decodeSuiObjectDigest('11111111111111111111111111111112');
 
-  it('encodes pure values through Mysten BCS codecs', () => {
-    const bytes = Effect.runSync(
+  it('encodes pure values through Mysten BCS codecs', async () => {
+    const bytes = await Effect.runPromise(
       SuiBcsBridge.use((bridge) => bridge.encodePure({ value: 9n, typeTag: 'u64' as never })).pipe(
         Effect.provide(SuiBcsBridgeLive),
       ),
@@ -27,11 +27,11 @@ describe('Sui query services', () => {
     expect([...bytes]).toEqual([9, 0, 0, 0, 0, 0, 0, 0]);
   });
 
-  it('decodes BCS bytes through codec parse and optional Effect Schema', () => {
-    const bridge = makeSuiBcsBridge();
+  it('decodes BCS bytes through codec parse and optional Effect Schema', async () => {
+    const bridge = makeBcsBridge();
     const bytes = bcs.u64().serialize(42n).toBytes();
 
-    const decoded = Effect.runSync(
+    const decoded = await Effect.runPromise(
       bridge.decode({
         bytes,
         codec: bcs.u64(),
@@ -58,7 +58,7 @@ describe('Sui query services', () => {
         }),
       },
     };
-    const resolver = makeSuiObjectResolver(client);
+    const resolver = makeObjectResolver(client);
 
     const resolved = await Effect.runPromise(resolver.resolve({ id: objectId, decodeContent: true }));
 
@@ -83,7 +83,7 @@ describe('Sui query services', () => {
         }),
       },
     };
-    const resolver = makeSuiObjectResolver(client);
+    const resolver = makeObjectResolver(client);
     const object = new SuiObject({
       id: objectId,
       refresh: (self) => SuiObjectResolver.use((service) => service.refresh(self)),

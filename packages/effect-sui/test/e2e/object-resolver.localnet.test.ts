@@ -4,7 +4,7 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import * as Effect from 'effect-v4/Effect';
 import { describe, expect, inject, it } from 'vitest';
 
-import { makeSuiObjectResolver } from '../../src/query';
+import { makeObjectResolver } from '../../src/query';
 import { decodeSuiObjectId } from '../../src/schema';
 import type { EffectSuiLocalnetContext } from './utils/globalSetup';
 
@@ -26,7 +26,7 @@ describeLocalnet('@tmnl/effect-sui object resolver localnet proof', () => {
     const coin = coins.objects[0];
     expect(coin).toBeDefined();
 
-    const resolver = makeSuiObjectResolver(client as never);
+    const resolver = makeObjectResolver(client as never);
     const resolved = await Effect.runPromise(
       resolver.resolve({ id: decodeSuiObjectId(coin.objectId), decodeContent: true }),
     );

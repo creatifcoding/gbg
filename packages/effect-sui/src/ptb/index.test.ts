@@ -8,8 +8,8 @@ import {
   analyzePtb,
   gas,
   input,
-  makeSuiPtbBuilder,
-  makeSuiPTB,
+  make,
+  makeBuilder,
   nestedResult,
   pure,
   result,
@@ -60,7 +60,7 @@ describe('SuiPTB AST and compiler', () => {
       ],
     });
 
-    const analysis = analyzePtb(ast.label, ast.inputs, ast.commands);
+    const analysis = Effect.runSync(analyzePtb(ast.label, ast.inputs, ast.commands));
 
     expect(analysis.inputs).toHaveLength(2);
     expect(analysis.commands.map((command) => command._tag)).toEqual(['SplitCoins', 'TransferObjects']);
@@ -83,7 +83,9 @@ describe('SuiPTB AST and compiler', () => {
       ],
     });
 
-    expect(() => analyzePtb(ast.label, ast.inputs, ast.commands)).toThrow(/unavailable result 0/);
+    const error = Effect.runSync(Effect.flip(analyzePtb(ast.label, ast.inputs, ast.commands)));
+    expect(error).toBeInstanceOf(SuiInvariantViolation);
+    expect(error.message).toMatch(/unavailable result 0/);
   });
 
   it('rejects invalid Result shorthand and GasCoin by-value positions known statically', () => {
@@ -96,9 +98,9 @@ describe('SuiPTB AST and compiler', () => {
       ],
     });
 
-    expect(() => analyzePtb(badResult.label, badResult.inputs, badResult.commands)).toThrow(
-      /uses Result\(0\) but command 0 has 2 results/,
-    );
+    const badResultError = Effect.runSync(Effect.flip(analyzePtb(badResult.label, badResult.inputs, badResult.commands)));
+    expect(badResultError).toBeInstanceOf(SuiInvariantViolation);
+    expect(badResultError.message).toMatch(/uses Result\(0\) but command 0 has 2 results/);
 
     const badGasAmount = new SuiPtbAst({
       label: 'bad-gas-amount',
@@ -106,9 +108,11 @@ describe('SuiPTB AST and compiler', () => {
       commands: [new SuiPtbSplitCoins({ coin: gas(), amounts: [gas()] })],
     });
 
-    expect(() => analyzePtb(badGasAmount.label, badGasAmount.inputs, badGasAmount.commands)).toThrow(
-      /SplitCoins amount 0 cannot use GasCoin by value/,
+    const badGasAmountError = Effect.runSync(
+      Effect.flip(analyzePtb(badGasAmount.label, badGasAmount.inputs, badGasAmount.commands)),
     );
+    expect(badGasAmountError).toBeInstanceOf(SuiInvariantViolation);
+    expect(badGasAmountError.message).toMatch(/SplitCoins amount 0 cannot use GasCoin by value/);
   });
 
   it('compiles to a Mysten Transaction through a ManagedRuntime builder without submitting', async () => {
@@ -124,8 +128,8 @@ describe('SuiPTB AST and compiler', () => {
       ],
     });
 
-    const builder = makeSuiPtbBuilder();
-    const artifact = builder.buildSync(makeSuiPTB(ast));
+    const builder = makeBuilder();
+    const artifact = builder.buildSync(make(ast));
     await builder.dispose();
 
     expect(artifact.transaction).toBeInstanceOf(Transaction);
@@ -144,8 +148,8 @@ describe('SuiPTB AST and compiler', () => {
       commands: [new SuiPtbSplitCoins({ coin: gas(), amounts: [input(99, 'pure')] })],
     });
 
-    const builder = makeSuiPtbBuilder();
-    const error = builder.runtime.runSync(Effect.flip(makeSuiPTB(ast)));
+    const builder = makeBuilder();
+    const error = builder.runtime.runSync(Effect.flip(make(ast)));
     await builder.dispose();
 
     expect(error).toBeInstanceOf(SuiInvariantViolation);

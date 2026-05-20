@@ -3,7 +3,7 @@
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 
-import { decodeSuiObjectId, decodeSuiTransactionDigest } from '../schema';
+import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiInvariantViolation } from '../schema';
 import type { SuiPackageDescriptor } from '../effectable';
 import {
   SuiAuthService,
@@ -179,11 +179,15 @@ export const makeFakePackageRegistry = (
     register: (descriptor) => Effect.sync(() => {
       descriptors.set(descriptor.packageId, descriptor);
     }),
-    get: (packageId) => Effect.sync(() => {
+    get: (packageId) => {
       const descriptor = descriptors.get(packageId);
-      if (!descriptor) throw new Error(`Unknown fake package ${packageId}`);
-      return descriptor;
-    }),
+      return descriptor
+        ? Effect.succeed(descriptor)
+        : Effect.fail(new SuiInvariantViolation({
+            invariant: 'FakeSuiPackageRegistry.get',
+            message: `Unknown fake package ${packageId}`,
+          }));
+    },
     ...overrides,
   };
 };

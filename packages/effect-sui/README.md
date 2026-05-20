@@ -32,6 +32,27 @@ SuiPackage — immutable package/module factory surface
 
 `SuiQuery` and `SuiFlow` remain supporting execution algebras. Design decisions are tracked in [`docs/DESIGN_DECISIONS.md`](./docs/DESIGN_DECISIONS.md), and the service ecosystem behind the Effectable facades is specified in [`docs/SERVICE_ECOSYSTEM.md`](./docs/SERVICE_ECOSYSTEM.md).
 
+## API shape
+
+Effect-Sui follows Effect's namespace API style: import a module namespace and call short verbs on it.
+
+```ts
+import * as SuiPTB from '@tmnl/effect-sui/ptb';
+import * as SuiFlow from '@tmnl/effect-sui/flow';
+import * as SuiQuery from '@tmnl/effect-sui/query';
+
+const ptb = SuiPTB.make(ast);
+const builder = SuiPTB.makeBuilder();
+const artifact = builder.buildSync(ptb);
+
+const gas = SuiFlow.makeGasPlanner(client);
+const auth = SuiFlow.makeAuthService(client);
+
+const resolver = SuiQuery.makeObjectResolver(client);
+```
+
+No long compatibility aliases are kept; the namespace is the public API surface.
+
 ## Grounding
 
 Before implementation, consult:

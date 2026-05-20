@@ -15,6 +15,7 @@
 import * as Effect from 'effect-v4/Effect';
 import * as Effectable from 'effect-v4/Effectable';
 
+import { SuiInvariantViolation } from '../schema';
 import type {
   SuiAddress,
   SuiAuthPolicy,
@@ -212,11 +213,13 @@ export class SuiPackage<E = never, R = never> extends SuiEffect<SuiPackageDescri
     this.label = options.label ?? `SuiPackage(${options.packageId})`;
   }
 
-  module(name: string): SuiModule<E, R> {
-    if (!this.modules.includes(name)) {
-      throw new Error(`Module ${name} is not declared on ${this.label}`);
-    }
-    return new SuiModule({ package: this, name });
+  module(name: string): Effect.Effect<SuiModule<E, R>, SuiInvariantViolation> {
+    return this.modules.includes(name)
+      ? Effect.succeed(new SuiModule({ package: this, name }))
+      : Effect.fail(new SuiInvariantViolation({
+          invariant: 'SuiPackage.module',
+          message: `Module ${name} is not declared on ${this.label}`,
+        }));
   }
 
   override asEffect(): Effect.Effect<SuiPackageDescriptor, E, R> {
