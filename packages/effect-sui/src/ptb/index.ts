@@ -2,6 +2,7 @@
 
 import { Transaction } from '@mysten/sui/transactions';
 import * as Effect from 'effect-v4/Effect';
+import type * as Exit from 'effect-v4/Exit';
 import * as Layer from 'effect-v4/Layer';
 import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
 import * as Schema from 'effect-v4/Schema';
@@ -325,7 +326,7 @@ export interface SuiPtbBuilder {
   readonly buildExit: <A, E>(
     ptb: SuiPTB<A, E, SuiPtbAnalyzer | SuiPtbCompiler>,
     options?: { readonly signal?: AbortSignal },
-  ) => Promise<unknown>;
+  ) => Promise<Exit.Exit<SuiPtbBuildArtifact<A>, E>>;
   readonly dispose: () => Promise<void>;
 }
 
