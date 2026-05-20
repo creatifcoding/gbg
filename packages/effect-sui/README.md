@@ -57,6 +57,8 @@ bunx nx run @tmnl/effect-sui:test
 bunx nx run @tmnl/effect-sui:build
 ```
 
+Testing policy is localnet-first for chain semantics. Fast unit/property/fake tests are contract checks; PTB, object, payment, auth, execution, finality, and package behavior require localnet proof before feature closure. See [`test/README.md`](./test/README.md).
+
 ## Package-local Sui environment
 
 Enter the package shell from `packages/effect-sui`:
