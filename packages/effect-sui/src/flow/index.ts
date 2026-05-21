@@ -10,6 +10,7 @@ import * as Ref from 'effect-v4/Ref';
 
 import type { SuiPtbBuildArtifact, SuiTx } from '../effectable';
 import { SuiPtbLive } from '../ptb';
+import { SuiReservationServiceLive } from '../reservation';
 import {
   AutoGasPolicy,
   AutoPaymentPolicy,
@@ -45,6 +46,10 @@ import {
   type SuiPreflightRequest,
   type SuiPreflightResult,
   type SuiPreflightServiceShape,
+  SuiReservationService,
+  type SuiReservationRequest,
+  type SuiReservationServiceShape,
+  type SuiReservationToken,
   SuiPtbAnalyzer,
   type SuiPtbAnalyzerShape,
   SuiPtbCompiler,
@@ -173,6 +178,7 @@ export interface SuiTxRunnerDependencies {
   readonly preflightService: SuiPreflightServiceShape;
   readonly executionService: SuiExecutionServiceShape;
   readonly finalityService: SuiFinalityServiceShape;
+  readonly reservationService: SuiReservationServiceShape;
 }
 
 export interface SuiTxRunnerOptions {
@@ -201,7 +207,8 @@ export const makeTxRunnerLayer = (options: SuiTxRunnerOptions = {}) => Layer.eff
     const preflightService = yield* SuiPreflightService;
     const executionService = yield* SuiExecutionService;
     const finalityService = yield* SuiFinalityService;
-    return makeTxRunner({ ptbAnalyzer, ptbCompiler, gasPlanner, paymentService, authService, preflightService, executionService, finalityService }, options);
+    const reservationService = yield* SuiReservationService;
+    return makeTxRunner({ ptbAnalyzer, ptbCompiler, gasPlanner, paymentService, authService, preflightService, executionService, finalityService, reservationService }, options);
   }),
 );
 
@@ -213,6 +220,7 @@ export const SuiTxLifecycleServices = Layer.mergeAll(
   SuiPreflightServiceFromClient,
   SuiExecutionServiceFromClient,
   SuiFinalityServiceFromClient,
+  SuiReservationServiceLive,
 );
 
 export const makeTxLifecycleLayer = (options: SuiTxRunnerOptions = {}) =>
@@ -230,6 +238,7 @@ export type SuiFlowServices =
   | SuiPreflightService
   | SuiExecutionService
   | SuiFinalityService
+  | SuiReservationService
   | SuiTxRunner;
 
 export type SuiFlowRuntime = ManagedRuntime.ManagedRuntime<SuiFlowServices, never>;
@@ -595,6 +604,7 @@ function runTxLifecycle(
 ): Effect.Effect<SuiTxLifecycleResult, unknown, never> {
   return Effect.gen(function* () {
     const partialRef = yield* Ref.make<Partial<SuiTxLifecycleResult> & { tx: SuiTx<unknown, unknown, unknown> }>({ tx });
+    const reservationRef = yield* Ref.make<SuiReservationToken | undefined>(undefined);
     const remember = (patch: Partial<SuiTxLifecycleResult>) => Ref.update(partialRef, (partial) => ({ ...partial, ...patch }));
 
     const program = Effect.gen(function* () {
@@ -608,6 +618,9 @@ function runTxLifecycle(
 
       const payment = yield* dependencies.paymentService.plan(tx, gasPlan);
       yield* remember({ payment });
+
+      const reservation = yield* dependencies.reservationService.acquire(makeLifecycleReservationRequest(tx, artifact, payment));
+      yield* Ref.set(reservationRef, reservation);
 
       const auth = yield* dependencies.authService.authorize(tx, payment, artifact, gasPlan);
       yield* remember({ auth });
@@ -630,12 +643,58 @@ function runTxLifecycle(
       return yield* completeLifecycle(partialRef);
     });
 
-    return yield* Effect.onExit(program, (exit) =>
-      options.reconcile
-        ? Ref.get(partialRef).pipe(Effect.flatMap((partial) => options.reconcile!(partial, exit)))
-        : Effect.void,
-    );
+    return yield* Effect.onExit(program, (exit) => Effect.gen(function* () {
+      const token = yield* Ref.get(reservationRef);
+      const partial = yield* Ref.get(partialRef);
+      if (token) {
+        yield* dependencies.reservationService.reconcile(token, { partial, exit });
+      }
+      if (options.reconcile) {
+        yield* options.reconcile(partial, exit);
+      }
+    }));
   });
+}
+
+function makeLifecycleReservationRequest(
+  tx: SuiTx<unknown, unknown, unknown>,
+  artifact: SuiPtbBuildArtifact<unknown>,
+  payment: SuiPaymentPlan,
+): SuiReservationRequest {
+  return {
+    objectRefs: collectArtifactObjectRefs(artifact),
+    objectIds: collectArtifactObjectIds(artifact),
+    gasRefs: payment.gasPayment,
+    sender: tx.sender,
+    sponsor: payment.sponsored ? payment.gasOwner : undefined,
+    intent: tx.label,
+  };
+}
+
+function collectArtifactObjectRefs(artifact: SuiPtbBuildArtifact<unknown>): ReadonlyArray<SuiObjectRef> {
+  const refs: Array<SuiObjectRef> = [];
+  for (const input of artifact.inputs) {
+    const entry = input as {
+      readonly _tag?: string;
+      readonly ref?: SuiObjectRef;
+    };
+    if ((entry._tag === 'ObjectRefInput' || entry._tag === 'ReceivingObjectInput') && entry.ref) {
+      refs.push(entry.ref);
+    }
+  }
+  return refs;
+}
+
+function collectArtifactObjectIds(artifact: SuiPtbBuildArtifact<unknown>): ReadonlyArray<SuiObjectId> {
+  const ids: Array<SuiObjectId> = [];
+  for (const input of artifact.inputs) {
+    const entry = input as {
+      readonly _tag?: string;
+      readonly objectId?: SuiObjectId;
+    };
+    if (entry._tag === 'ObjectInput' && entry.objectId) ids.push(entry.objectId);
+  }
+  return ids;
 }
 
 function requirePtb(

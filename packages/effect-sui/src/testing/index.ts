@@ -167,7 +167,7 @@ export const makeFakeFinalityService = (
 export const makeFakeReservationService = (
   overrides: Partial<SuiReservationServiceShape> = {},
 ): SuiReservationServiceShape => ({
-  acquire: (request) => Effect.succeed({ id: `fake-reservation:${request.intent}`, intent: request.intent }),
+  acquire: (request) => Effect.succeed({ id: `fake-reservation:${request.intent}`, intent: request.intent, resourceKeys: [] }),
   release: () => Effect.void,
   reconcile: () => Effect.void,
   ...overrides,
@@ -254,6 +254,7 @@ export const FakeSuiRuntimeLayer = (overrides: FakeSuiServiceOverrides = {}) => 
   const preflightService = makeFakePreflightService(overrides.preflightService);
   const executionService = makeFakeExecutionService(overrides.executionService);
   const finalityService = makeFakeFinalityService(overrides.finalityService);
+  const reservationService = makeFakeReservationService(overrides.reservationService);
 
   return Layer.mergeAll(
     SuiClientService.layer(overrides.client ?? fakeClient),
@@ -276,8 +277,9 @@ export const FakeSuiRuntimeLayer = (overrides: FakeSuiServiceOverrides = {}) => 
       preflightService,
       executionService,
       finalityService,
+      reservationService,
     })),
-    Layer.succeed(SuiReservationService)(makeFakeReservationService(overrides.reservationService)),
+    Layer.succeed(SuiReservationService)(reservationService),
     Layer.succeed(SuiPackageRegistry)(makeFakePackageRegistry(overrides.packageRegistry)),
     Layer.succeed(SuiDiagnostics)(makeFakeDiagnostics(overrides.diagnostics)),
   );

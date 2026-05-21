@@ -15,6 +15,7 @@ import type {
   SuiAddress,
   SuiObjectId,
   SuiObjectRef,
+  SuiReservationConflict,
   SuiTransactionDigest,
   SuiTypeTagString,
 } from '../schema';
@@ -276,6 +277,7 @@ export class SuiTxRunner extends Context.Service<SuiTxRunner, SuiTxRunnerShape>(
 
 export interface SuiReservationRequest {
   readonly objectRefs: ReadonlyArray<SuiObjectRef>;
+  readonly objectIds?: ReadonlyArray<SuiObjectId>;
   readonly gasRefs: ReadonlyArray<SuiObjectRef>;
   readonly sender?: SuiAddress;
   readonly sponsor?: SuiAddress;
@@ -285,12 +287,13 @@ export interface SuiReservationRequest {
 export interface SuiReservationToken {
   readonly id: string;
   readonly intent: string;
+  readonly resourceKeys: ReadonlyArray<string>;
 }
 
 export interface SuiReservationServiceShape {
-  readonly acquire: (request: SuiReservationRequest) => Effect.Effect<SuiReservationToken, unknown, never>;
+  readonly acquire: (request: SuiReservationRequest) => Effect.Effect<SuiReservationToken, SuiReservationConflict, never>;
   readonly release: (token: SuiReservationToken) => Effect.Effect<void, never, never>;
-  readonly reconcile: (token: SuiReservationToken, result: unknown) => Effect.Effect<void, unknown, never>;
+  readonly reconcile: (token: SuiReservationToken, result: unknown) => Effect.Effect<void, never, never>;
 }
 
 export class SuiReservationService extends Context.Service<

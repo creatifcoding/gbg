@@ -196,15 +196,15 @@ When `SuiReservationService` becomes stateful, the runtime becomes mandatory:
 - reservations must survive across multiple transaction runs;
 - disposal must release/close runtime-owned state.
 
-This should plug into `SuiFlow.makeRuntime(client, { reservations: ... })`, not a separate ad-hoc global.
+This now plugs into `SuiFlow.makeRuntime(client)` through `SuiReservationServiceLive`, not a separate ad-hoc global.
 
 Reservation lifetime contract:
 
 1. `SuiReservationService` state is allocated by the Flow runtime layer, not by individual transactions.
-2. `SuiTxRunner` acquires before gas/payment/execution conflict-sensitive phases and releases/reconciles in `Effect.ensuring` / `Effect.onExit` style finalizers.
-3. No RPC, signing, wallet prompt, or external callback runs inside STM; STM only reserves local identities and queue permits.
-4. Runtime `dispose()` closes the layer scope; any reservation fibers/queues must finalize there.
-5. Fake runtime may use an in-memory reservation service, but localnet remains the concurrency proof surface.
+2. `SuiTxRunner` acquires after payment planning and reconciles in `Effect.onExit` finalizers.
+3. No RPC, signing, wallet prompt, or external callback runs inside STM; STM only reserves local identities.
+4. Runtime `dispose()` closes the layer scope; reservation state belongs to that runtime lifetime.
+5. Fake runtime may use an in-memory reservation service, but localnet remains the chain proof surface.
 
 ## Naming convention
 

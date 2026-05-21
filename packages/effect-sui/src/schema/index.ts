@@ -436,6 +436,28 @@ export class SuiExecutionError extends Schema.TaggedErrorClass<SuiExecutionError
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
+export const SuiReservationConflictKind = Schema.Literals([
+  'object',
+  'gas',
+  'sender',
+  'sponsor',
+  'duplicate',
+  'unknown',
+] as const);
+export type SuiReservationConflictKind = typeof SuiReservationConflictKind.Type;
+
+export class SuiReservationConflict extends Schema.TaggedErrorClass<SuiReservationConflict>(
+  '@tmnl/effect-sui/SuiReservationConflict',
+)('Sui/ReservationConflict', {
+  kind: SuiReservationConflictKind,
+  resourceKey: Schema.String,
+  intent: Schema.String,
+  heldBy: Schema.optional(Schema.String),
+  requestedBy: Schema.optional(Schema.String),
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
+
 export class SuiInvariantViolation extends Schema.TaggedErrorClass<SuiInvariantViolation>(
   '@tmnl/effect-sui/SuiInvariantViolation',
 )('Sui/InvariantViolation', {
@@ -450,6 +472,7 @@ export type SuiError =
   | SuiObjectLoadError
   | SuiTransportError
   | SuiExecutionError
+  | SuiReservationConflict
   | SuiInvariantViolation;
 
 // ─── Transaction policy schemas ──────────────────────────────────────────────

@@ -41,6 +41,7 @@ import * as SuiPTB from '@tmnl/effect-sui/ptb';
 import * as SuiFlow from '@tmnl/effect-sui/flow';
 import * as SuiQuery from '@tmnl/effect-sui/query';
 import * as SuiAdapter from '@tmnl/effect-sui/adapter';
+import * as SuiReservation from '@tmnl/effect-sui/reservation';
 
 const ptb = SuiPTB.make(ast);
 const builder = SuiPTB.makeBuilder();

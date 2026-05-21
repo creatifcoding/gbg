@@ -85,5 +85,6 @@ This is the grounding map for implementation work. Read the relevant source befo
 | `src/ptb` | Full PTB AST, input/argument/result graph, passes, compiler, combinators backing `SuiPTB` and `SuiTx` |
 | `src/query` | Object reads, BCS decode, GraphQL/gRPC reads, streams backing `SuiObject` |
 | `src/flow` | Execution orchestration and schedules; lifecycle glue, not the third ontology noun |
+| `src/reservation` | Runtime-owned STM state for object/gas/sender/sponsor reservations |
 | `src/adapter` | Mysten `$extend` registration and Promise facade |
 | `src/testing` | Fake clients, fixtures, localnet helpers |

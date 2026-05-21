@@ -216,9 +216,9 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Dependencies | `Effect.tx`, `TxRef`, `TxHashMap`, `TxQueue`, `TxSemaphore`. |
 | Invariants | No RPC, signing, or wallet prompts inside STM; reservations are released or reconciled on every exit path. |
 | Failures | future `SuiReservationConflict`, `SuiObjectStale`, `SuiGasCoinConflict`. |
-| STM / concurrency | This is the STM owner; concurrency is explicit by object/gas/sender key. |
-| Observability | Span around acquire/release with reservation keys and conflict class. |
-| Tests | Concurrent property tests; acquireRelease finalization tests; conflict matrix tests. |
+| STM / concurrency | Implemented with `TxRef` token sequencing and `TxHashMap` live/completed maps. Owned object and gas refs share `owned:<objectId>` keys so payment and object-use conflict. Sender/sponsor keys serialize dispatch classes. |
+| Observability | Span around acquire/release/reconcile with intent and token ID. |
+| Tests | Unit and property tests cover conflict rejection, release/reacquire, reconcile cleanup, non-overlap concurrency, and arbitrary object/sender cases. |
 
 ### `SuiPackageRegistry`
 
