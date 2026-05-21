@@ -72,6 +72,7 @@ This is the grounding map for implementation work. Read the relevant source befo
 | Public Effectable ontology | `docs/ONTOLOGY.md` |
 | Durable design decisions | `docs/DESIGN_DECISIONS.md` |
 | Service ecosystem and normalized service form | `docs/SERVICE_ECOSYSTEM.md` |
+| ManagedRuntime insertion strategy | `docs/MANAGED_RUNTIME_STRATEGY.md` |
 | Grand proposal / realization plan | `../../packages/tmnl/thoughts/shared/plans/effect-sui-grand-proposal.md` |
 
 ## Package seams

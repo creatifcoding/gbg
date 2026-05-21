@@ -179,15 +179,24 @@ export class SuiAuthService extends Context.Service<SuiAuthService, SuiAuthServi
   '@tmnl/effect-sui/SuiAuthService',
 ) {}
 
+export interface SuiPreflightRequest {
+  readonly tx: SuiTx<unknown, unknown, unknown>;
+  readonly artifact: SuiPtbBuildArtifact<unknown>;
+  readonly auth: SuiAuthResult;
+  readonly gasPlan: SuiGasPlan;
+  readonly payment: SuiPaymentPlan;
+}
+
 export interface SuiPreflightResult {
   readonly status: 'success' | 'failure';
   readonly gasUsed?: unknown;
   readonly diagnostics: ReadonlyArray<string>;
+  readonly raw?: unknown;
 }
 
 export interface SuiPreflightServiceShape {
   readonly dryRun: (
-    artifact: SuiPtbBuildArtifact<unknown>,
+    request: SuiPreflightRequest,
   ) => Effect.Effect<SuiPreflightResult, unknown, never>;
 }
 
@@ -201,10 +210,18 @@ export interface SuiExecutionResultEnvelope {
   readonly raw: unknown;
 }
 
+export interface SuiExecutionRequest {
+  readonly tx: SuiTx<unknown, unknown, unknown>;
+  readonly artifact: SuiPtbBuildArtifact<unknown>;
+  readonly auth: SuiAuthResult;
+  readonly gasPlan: SuiGasPlan;
+  readonly payment: SuiPaymentPlan;
+  readonly preflight?: SuiPreflightResult;
+}
+
 export interface SuiExecutionServiceShape {
   readonly execute: (
-    artifact: SuiPtbBuildArtifact<unknown>,
-    auth: SuiAuthResult,
+    request: SuiExecutionRequest,
   ) => Effect.Effect<SuiExecutionResultEnvelope, unknown, never>;
 }
 
@@ -220,9 +237,14 @@ export interface SuiFinalityResult {
   readonly events?: ReadonlyArray<unknown>;
 }
 
+export interface SuiFinalityRequest {
+  readonly tx: SuiTx<unknown, unknown, unknown>;
+  readonly execution: SuiExecutionResultEnvelope;
+}
+
 export interface SuiFinalityServiceShape {
   readonly wait: (
-    result: SuiExecutionResultEnvelope,
+    request: SuiFinalityRequest,
   ) => Effect.Effect<SuiFinalityResult, unknown, never>;
 }
 
@@ -230,6 +252,27 @@ export class SuiFinalityService extends Context.Service<
   SuiFinalityService,
   SuiFinalityServiceShape
 >()('@tmnl/effect-sui/SuiFinalityService') {}
+
+export interface SuiTxLifecycleResult {
+  readonly tx: SuiTx<unknown, unknown, unknown>;
+  readonly artifact: SuiPtbBuildArtifact<unknown>;
+  readonly gasPlan: SuiGasPlan;
+  readonly payment: SuiPaymentPlan;
+  readonly auth: SuiAuthResult;
+  readonly preflight?: SuiPreflightResult;
+  readonly execution?: SuiExecutionResultEnvelope;
+  readonly finality?: SuiFinalityResult;
+}
+
+export interface SuiTxRunnerShape {
+  readonly run: (
+    tx: SuiTx<unknown, unknown, unknown>,
+  ) => Effect.Effect<SuiTxLifecycleResult, unknown, never>;
+}
+
+export class SuiTxRunner extends Context.Service<SuiTxRunner, SuiTxRunnerShape>()(
+  '@tmnl/effect-sui/SuiTxRunner',
+) {}
 
 export interface SuiReservationRequest {
   readonly objectRefs: ReadonlyArray<SuiObjectRef>;

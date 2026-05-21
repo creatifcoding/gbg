@@ -1,4 +1,7 @@
 import * as Effect from 'effect-v4/Effect';
+import * as Exit from 'effect-v4/Exit';
+import * as Layer from 'effect-v4/Layer';
+import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
 import { describe, expect, it } from 'vitest';
 
 import { SuiPTB, SuiTx } from '../effectable';
@@ -9,12 +12,17 @@ import {
   decodeSuiObjectId,
   ExplicitGasPolicy,
   ExplicitPaymentPolicy,
+  SuiInvariantViolation,
   SuiObjectRef,
 } from '../schema';
 import { object } from '../ptb';
+import { SuiTxRunner } from '../services';
 import {
+  makeClient,
   makeGasPlanner,
   makePaymentService,
+  runTx,
+  type SuiFlowRuntime,
 } from './index';
 
 describe('Sui payment/gas/auth policies', () => {
@@ -99,5 +107,51 @@ describe('Sui payment/gas/auth policies', () => {
     );
 
     expect(String(error)).toContain('Gas payment overlaps PTB object input');
+  });
+
+  it('runs lifecycle programs through a ManagedRuntime-backed Flow client', async () => {
+    const runtime = ManagedRuntime.make(
+      Layer.succeed(SuiTxRunner)({
+        run: (tx) => Effect.succeed({
+          tx,
+          artifact: { inputs: [], commands: [], requirements: {} },
+          gasPlan: { requiresDryRun: false, rationale: 'fake-runtime' },
+          payment: { gasPayment: [], sponsored: false, addressBalance: true },
+          auth: { signatures: ['sig'], transactionBytes: new Uint8Array([1]) },
+        }),
+      }),
+    ) as SuiFlowRuntime;
+    const client = makeClient(runtime);
+    const tx = new SuiTx({ label: 'runtime.ok', execute: (self) => runTx(self) });
+
+    const result = await client.run(tx);
+    await client.dispose();
+
+    expect(result.tx.label).toBe('runtime.ok');
+    expect(result.auth.signatures).toEqual(['sig']);
+  });
+
+  it('exposes runPromiseExit and disposal semantics at the Flow runtime edge', async () => {
+    const runtime = ManagedRuntime.make(
+      Layer.succeed(SuiTxRunner)({
+        run: (tx) => tx.label === 'runtime.fail'
+          ? Effect.fail(new SuiInvariantViolation({ invariant: 'test', message: 'planned failure' }))
+          : Effect.succeed({
+              tx,
+              artifact: { inputs: [], commands: [], requirements: {} },
+              gasPlan: { requiresDryRun: false, rationale: 'fake-runtime' },
+              payment: { gasPayment: [], sponsored: false, addressBalance: true },
+              auth: { signatures: [] },
+            }),
+      }),
+    ) as SuiFlowRuntime;
+    const client = makeClient(runtime);
+
+    const failed = await client.runExit(new SuiTx({ label: 'runtime.fail', execute: (self) => runTx(self) }));
+    expect(Exit.isFailure(failed)).toBe(true);
+
+    await client.dispose();
+    const afterDispose = await client.runExit(new SuiTx({ label: 'runtime.ok', execute: (self) => runTx(self) }));
+    expect(Exit.isFailure(afterDispose)).toBe(true);
   });
 });

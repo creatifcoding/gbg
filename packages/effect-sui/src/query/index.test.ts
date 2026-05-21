@@ -1,5 +1,6 @@
 import { bcs } from '@mysten/sui/bcs';
 import * as Effect from 'effect-v4/Effect';
+import * as Exit from 'effect-v4/Exit';
 import * as Schema from 'effect-v4/Schema';
 import { describe, expect, it } from 'vitest';
 
@@ -8,7 +9,9 @@ import { decodeSuiObjectId, decodeSuiObjectDigest, SuiObjectVersion } from '../s
 import { SuiBcsBridge, SuiObjectResolver } from '../services';
 import {
   makeBcsBridge,
+  makeClient,
   makeObjectResolver,
+  resolve,
   SuiBcsBridgeLive,
   type ClientWithCoreReads,
 } from './index';
@@ -95,5 +98,44 @@ describe('Sui query services', () => {
 
     expect(snapshot.ref?.version).toBe('5');
     expect(snapshot.content).toEqual({ balance: '123' });
+  });
+
+  it('resolves objects through a ManagedRuntime-backed Query client', async () => {
+    const client: ClientWithCoreReads = {
+      core: {
+        getObject: async () => ({
+          object: {
+            objectId,
+            version: '8',
+            digest,
+            type: '0x2::coin::Coin<0x2::sui::SUI>',
+            json: { balance: '456' },
+          },
+        }),
+      },
+    };
+    const query = makeClient(client);
+
+    const resolved = await query.run(resolve({ id: objectId, decodeContent: true }));
+    await query.dispose();
+
+    expect(resolved.ref?.version).toBe('8');
+    expect(resolved.snapshot?.content).toEqual({ balance: '456' });
+  });
+
+  it('exposes Query runExit and disposal semantics', async () => {
+    const client: ClientWithCoreReads = {
+      core: {
+        getObject: async () => ({ object: undefined as never }),
+      },
+    };
+    const query = makeClient(client);
+
+    const failed = await query.resolveExit({ id: objectId, decodeContent: true });
+    expect(Exit.isFailure(failed)).toBe(true);
+
+    await query.dispose();
+    const afterDispose = await query.resolveExit({ id: objectId, decodeContent: true });
+    expect(Exit.isFailure(afterDispose)).toBe(true);
   });
 });

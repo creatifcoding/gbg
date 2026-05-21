@@ -1,10 +1,9 @@
 import { requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
 import { SuiJsonRpcClient, JsonRpcHTTPTransport } from '@mysten/sui/jsonRpc';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import * as Effect from 'effect-v4/Effect';
 import { describe, expect, inject, it } from 'vitest';
 
-import { makeObjectResolver } from '../../src/query';
+import { makeClient as makeQueryClient } from '../../src/query';
 import { decodeSuiObjectId } from '../../src/schema';
 import type { EffectSuiLocalnetContext } from './utils/globalSetup';
 
@@ -26,10 +25,10 @@ describeLocalnet('@tmnl/effect-sui object resolver localnet proof', () => {
     const coin = coins.objects[0];
     expect(coin).toBeDefined();
 
-    const resolver = makeObjectResolver(client as never);
-    const resolved = await Effect.runPromise(
-      resolver.resolve({ id: decodeSuiObjectId(coin.objectId), decodeContent: true }),
-    );
+    const query = makeQueryClient(client as never);
+    const resolved = await query
+      .resolve({ id: decodeSuiObjectId(coin.objectId), decodeContent: true })
+      .finally(() => query.dispose());
 
     expect(resolved.id).toBe(decodeSuiObjectId(coin.objectId));
     expect(resolved.ref?.objectId).toBe(decodeSuiObjectId(coin.objectId));

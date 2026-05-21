@@ -1,8 +1,12 @@
 /** Test layers, fake clients, fixtures, and localnet harness helpers. */
 
 import * as Effect from 'effect-v4/Effect';
+import * as Exit from 'effect-v4/Exit';
 import * as Layer from 'effect-v4/Layer';
+import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
 
+import { makeClient as makeFlowClient, makeTxRunner, type SuiFlowClient, type SuiFlowRuntime } from '../flow';
+import { makeClient as makeQueryClient, type SuiQueryClient, type SuiQueryRuntime } from '../query';
 import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiInvariantViolation } from '../schema';
 import type { SuiPackageDescriptor } from '../effectable';
 import {
@@ -33,6 +37,7 @@ import {
   type SuiPtbCompilerShape,
   SuiReservationService,
   type SuiReservationServiceShape,
+  SuiTxRunner,
 } from '../services';
 
 export const fakePackageId = decodeSuiObjectId('0x2');
@@ -151,9 +156,9 @@ export const makeFakeExecutionService = (
 export const makeFakeFinalityService = (
   overrides: Partial<SuiFinalityServiceShape> = {},
 ): SuiFinalityServiceShape => ({
-  wait: (result) => Effect.succeed({
-    digest: result.digest,
-    transaction: result.raw,
+  wait: (request) => Effect.succeed({
+    digest: request.execution.digest,
+    transaction: request.execution.raw,
     events: [],
   }),
   ...overrides,
@@ -200,20 +205,100 @@ export const makeFakeDiagnostics = (
   ...overrides,
 });
 
-export const FakeSuiRuntimeLayer = (overrides: FakeSuiServiceOverrides = {}) =>
-  Layer.mergeAll(
+export type FakeSuiRuntimeServices =
+  | SuiClientService
+  | SuiObjectResolver
+  | SuiBcsBridge
+  | SuiPtbAnalyzer
+  | SuiPtbCompiler
+  | SuiGasPlanner
+  | SuiPaymentService
+  | SuiAuthService
+  | SuiPreflightService
+  | SuiExecutionService
+  | SuiFinalityService
+  | SuiTxRunner
+  | SuiReservationService
+  | SuiPackageRegistry
+  | SuiDiagnostics;
+
+export type FakeSuiRuntime = ManagedRuntime.ManagedRuntime<FakeSuiRuntimeServices, never>;
+
+export interface FakeSuiRuntimeOptions {
+  readonly memoMap?: Layer.MemoMap;
+}
+
+export interface FakeSuiClient {
+  readonly runtime: FakeSuiRuntime;
+  readonly flow: SuiFlowClient;
+  readonly query: SuiQueryClient;
+  readonly run: <A, E, R extends FakeSuiRuntimeServices>(
+    effect: Effect.Effect<A, E, R>,
+    options?: { readonly signal?: AbortSignal },
+  ) => Promise<A>;
+  readonly runExit: <A, E, R extends FakeSuiRuntimeServices>(
+    effect: Effect.Effect<A, E, R>,
+    options?: { readonly signal?: AbortSignal },
+  ) => Promise<Exit.Exit<A, E>>;
+  readonly dispose: () => Promise<void>;
+}
+
+export const FakeSuiRuntimeLayer = (overrides: FakeSuiServiceOverrides = {}) => {
+  const objectResolver = makeFakeObjectResolver(overrides.objectResolver);
+  const bcsBridge = makeFakeBcsBridge(overrides.bcsBridge);
+  const ptbAnalyzer = makeFakePtbAnalyzer(overrides.ptbAnalyzer);
+  const ptbCompiler = makeFakePtbCompiler(overrides.ptbCompiler);
+  const gasPlanner = makeFakeGasPlanner(overrides.gasPlanner);
+  const paymentService = makeFakePaymentService(overrides.paymentService);
+  const authService = makeFakeAuthService(overrides.authService);
+  const preflightService = makeFakePreflightService(overrides.preflightService);
+  const executionService = makeFakeExecutionService(overrides.executionService);
+  const finalityService = makeFakeFinalityService(overrides.finalityService);
+
+  return Layer.mergeAll(
     SuiClientService.layer(overrides.client ?? fakeClient),
-    Layer.succeed(SuiObjectResolver)(makeFakeObjectResolver(overrides.objectResolver)),
-    Layer.succeed(SuiBcsBridge)(makeFakeBcsBridge(overrides.bcsBridge)),
-    Layer.succeed(SuiPtbAnalyzer)(makeFakePtbAnalyzer(overrides.ptbAnalyzer)),
-    Layer.succeed(SuiPtbCompiler)(makeFakePtbCompiler(overrides.ptbCompiler)),
-    Layer.succeed(SuiGasPlanner)(makeFakeGasPlanner(overrides.gasPlanner)),
-    Layer.succeed(SuiPaymentService)(makeFakePaymentService(overrides.paymentService)),
-    Layer.succeed(SuiAuthService)(makeFakeAuthService(overrides.authService)),
-    Layer.succeed(SuiPreflightService)(makeFakePreflightService(overrides.preflightService)),
-    Layer.succeed(SuiExecutionService)(makeFakeExecutionService(overrides.executionService)),
-    Layer.succeed(SuiFinalityService)(makeFakeFinalityService(overrides.finalityService)),
+    Layer.succeed(SuiObjectResolver)(objectResolver),
+    Layer.succeed(SuiBcsBridge)(bcsBridge),
+    Layer.succeed(SuiPtbAnalyzer)(ptbAnalyzer),
+    Layer.succeed(SuiPtbCompiler)(ptbCompiler),
+    Layer.succeed(SuiGasPlanner)(gasPlanner),
+    Layer.succeed(SuiPaymentService)(paymentService),
+    Layer.succeed(SuiAuthService)(authService),
+    Layer.succeed(SuiPreflightService)(preflightService),
+    Layer.succeed(SuiExecutionService)(executionService),
+    Layer.succeed(SuiFinalityService)(finalityService),
+    Layer.succeed(SuiTxRunner)(makeTxRunner({
+      ptbAnalyzer,
+      ptbCompiler,
+      gasPlanner,
+      paymentService,
+      authService,
+      preflightService,
+      executionService,
+      finalityService,
+    })),
     Layer.succeed(SuiReservationService)(makeFakeReservationService(overrides.reservationService)),
     Layer.succeed(SuiPackageRegistry)(makeFakePackageRegistry(overrides.packageRegistry)),
     Layer.succeed(SuiDiagnostics)(makeFakeDiagnostics(overrides.diagnostics)),
   );
+};
+
+export const makeFakeRuntime = (
+  overrides: FakeSuiServiceOverrides = {},
+  options: FakeSuiRuntimeOptions = {},
+): FakeSuiRuntime => ManagedRuntime.make(FakeSuiRuntimeLayer(overrides), { memoMap: options.memoMap });
+
+export const makeFakeClient = (
+  overrides: FakeSuiServiceOverrides = {},
+  options: FakeSuiRuntimeOptions = {},
+): FakeSuiClient => {
+  const runtime = makeFakeRuntime(overrides, options);
+  return {
+    runtime,
+    flow: makeFlowClient(runtime as unknown as SuiFlowRuntime),
+    query: makeQueryClient(runtime as unknown as SuiQueryRuntime),
+    run: (effect, runOptions) => runtime.runPromise(effect, runOptions),
+    runExit: (effect, runOptions) => runtime.runPromiseExit(effect, runOptions),
+    dispose: () => runtime.dispose(),
+  };
+};

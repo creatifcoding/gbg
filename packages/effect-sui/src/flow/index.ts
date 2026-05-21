@@ -2,13 +2,19 @@
 
 import { Transaction } from '@mysten/sui/transactions';
 import * as Effect from 'effect-v4/Effect';
+import * as Exit from 'effect-v4/Exit';
+import type * as Fiber from 'effect-v4/Fiber';
 import * as Layer from 'effect-v4/Layer';
+import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
+import * as Ref from 'effect-v4/Ref';
 
 import type { SuiPtbBuildArtifact, SuiTx } from '../effectable';
+import { SuiPtbLive } from '../ptb';
 import {
   AutoGasPolicy,
   AutoPaymentPolicy,
   decodeSuiAddress,
+  decodeSuiTransactionDigest,
   ExplicitGasPolicy,
   ExplicitPaymentPolicy,
   KeypairAuthPolicy,
@@ -35,6 +41,25 @@ import {
   SuiPaymentService,
   type SuiPaymentPlan,
   type SuiPaymentServiceShape,
+  SuiPreflightService,
+  type SuiPreflightRequest,
+  type SuiPreflightResult,
+  type SuiPreflightServiceShape,
+  SuiPtbAnalyzer,
+  type SuiPtbAnalyzerShape,
+  SuiPtbCompiler,
+  type SuiPtbCompilerShape,
+  SuiTxRunner,
+  type SuiTxLifecycleResult,
+  type SuiTxRunnerShape,
+  SuiExecutionService,
+  type SuiExecutionRequest,
+  type SuiExecutionResultEnvelope,
+  type SuiExecutionServiceShape,
+  SuiFinalityService,
+  type SuiFinalityRequest,
+  type SuiFinalityResult,
+  type SuiFinalityServiceShape,
 } from '../services';
 
 export interface ClientWithCoreGas {
@@ -45,6 +70,25 @@ export interface ClientWithCoreGas {
 
 export interface ClientWithTransactionBuild extends ClientWithCoreGas {
   readonly core: ClientWithCoreGas['core'];
+}
+
+export interface ClientWithTransactionLifecycle extends ClientWithTransactionBuild {
+  readonly core: ClientWithTransactionBuild['core'] & {
+    readonly simulateTransaction?: (options: {
+      readonly transaction: Uint8Array;
+      readonly include?: { readonly effects?: boolean; readonly transaction?: boolean; readonly events?: boolean; readonly balanceChanges?: boolean };
+    }) => Promise<unknown>;
+    readonly executeTransaction?: (options: {
+      readonly transaction: Uint8Array;
+      readonly signatures: ReadonlyArray<string>;
+      readonly include?: { readonly effects?: boolean; readonly transaction?: boolean; readonly events?: boolean; readonly balanceChanges?: boolean };
+    }) => Promise<unknown>;
+    readonly waitForTransaction?: (options: {
+      readonly digest: string;
+      readonly include?: { readonly effects?: boolean; readonly transaction?: boolean; readonly events?: boolean; readonly balanceChanges?: boolean };
+      readonly timeout?: number;
+    }) => Promise<unknown>;
+  };
 }
 
 export interface SignerLike {
@@ -95,6 +139,158 @@ export const SuiPaymentAuthLive = Layer.mergeAll(
   SuiPaymentServiceLive,
   SuiAuthServiceFromClient,
 );
+
+export const makePreflightService = (client: ClientWithTransactionLifecycle): SuiPreflightServiceShape => ({
+  dryRun: (request) => dryRunTransaction(client, request),
+});
+
+export const SuiPreflightServiceFromClient = Layer.effect(SuiPreflightService)(
+  SuiClientService.useSync((service) => makePreflightService(service.client as ClientWithTransactionLifecycle)),
+);
+
+export const makeExecutionService = (client: ClientWithTransactionLifecycle): SuiExecutionServiceShape => ({
+  execute: (request) => executeTransaction(client, request),
+});
+
+export const SuiExecutionServiceFromClient = Layer.effect(SuiExecutionService)(
+  SuiClientService.useSync((service) => makeExecutionService(service.client as ClientWithTransactionLifecycle)),
+);
+
+export const makeFinalityService = (client: ClientWithTransactionLifecycle): SuiFinalityServiceShape => ({
+  wait: (request) => waitForTransaction(client, request),
+});
+
+export const SuiFinalityServiceFromClient = Layer.effect(SuiFinalityService)(
+  SuiClientService.useSync((service) => makeFinalityService(service.client as ClientWithTransactionLifecycle)),
+);
+
+export interface SuiTxRunnerDependencies {
+  readonly ptbAnalyzer: SuiPtbAnalyzerShape;
+  readonly ptbCompiler: SuiPtbCompilerShape;
+  readonly gasPlanner: SuiGasPlannerShape;
+  readonly paymentService: SuiPaymentServiceShape;
+  readonly authService: SuiAuthServiceShape;
+  readonly preflightService: SuiPreflightServiceShape;
+  readonly executionService: SuiExecutionServiceShape;
+  readonly finalityService: SuiFinalityServiceShape;
+}
+
+export interface SuiTxRunnerOptions {
+  readonly reconcile?: (
+    partial: Partial<SuiTxLifecycleResult> & { readonly tx: SuiTx<unknown, unknown, unknown> },
+    exit: Exit.Exit<SuiTxLifecycleResult, unknown>,
+  ) => Effect.Effect<void, unknown, never>;
+}
+
+export const makeTxRunner = (
+  dependencies: SuiTxRunnerDependencies,
+  options: SuiTxRunnerOptions = {},
+): SuiTxRunnerShape => ({
+  run: (tx) => runTxLifecycle(tx, dependencies, options).pipe(
+    Effect.withSpan('@tmnl/effect-sui/SuiTxRunner.run', { attributes: { label: tx.label, mode: tx.buildMode ?? 'execute' } }),
+  ),
+});
+
+export const makeTxRunnerLayer = (options: SuiTxRunnerOptions = {}) => Layer.effect(SuiTxRunner)(
+  Effect.gen(function* () {
+    const ptbAnalyzer = yield* SuiPtbAnalyzer;
+    const ptbCompiler = yield* SuiPtbCompiler;
+    const gasPlanner = yield* SuiGasPlanner;
+    const paymentService = yield* SuiPaymentService;
+    const authService = yield* SuiAuthService;
+    const preflightService = yield* SuiPreflightService;
+    const executionService = yield* SuiExecutionService;
+    const finalityService = yield* SuiFinalityService;
+    return makeTxRunner({ ptbAnalyzer, ptbCompiler, gasPlanner, paymentService, authService, preflightService, executionService, finalityService }, options);
+  }),
+);
+
+export const SuiTxRunnerLive = makeTxRunnerLayer();
+
+export const SuiTxLifecycleServices = Layer.mergeAll(
+  SuiPtbLive,
+  SuiPaymentAuthLive,
+  SuiPreflightServiceFromClient,
+  SuiExecutionServiceFromClient,
+  SuiFinalityServiceFromClient,
+);
+
+export const makeTxLifecycleLayer = (options: SuiTxRunnerOptions = {}) =>
+  makeTxRunnerLayer(options).pipe(Layer.provideMerge(SuiTxLifecycleServices));
+
+export const SuiTxLifecycleLive = makeTxLifecycleLayer();
+
+export type SuiFlowServices =
+  | SuiClientService
+  | SuiPtbAnalyzer
+  | SuiPtbCompiler
+  | SuiGasPlanner
+  | SuiPaymentService
+  | SuiAuthService
+  | SuiPreflightService
+  | SuiExecutionService
+  | SuiFinalityService
+  | SuiTxRunner;
+
+export type SuiFlowRuntime = ManagedRuntime.ManagedRuntime<SuiFlowServices, never>;
+
+export interface SuiFlowRuntimeOptions extends SuiTxRunnerOptions {
+  readonly memoMap?: Layer.MemoMap;
+}
+
+export interface SuiFlowClient {
+  readonly runtime: SuiFlowRuntime;
+  readonly run: (
+    tx: SuiTx<unknown, unknown, unknown>,
+    options?: { readonly signal?: AbortSignal },
+  ) => Promise<SuiTxLifecycleResult>;
+  readonly runExit: (
+    tx: SuiTx<unknown, unknown, unknown>,
+    options?: { readonly signal?: AbortSignal },
+  ) => Promise<Exit.Exit<SuiTxLifecycleResult, unknown>>;
+  readonly runFork: (
+    tx: SuiTx<unknown, unknown, unknown>,
+    options?: Effect.RunOptions,
+  ) => Fiber.Fiber<SuiTxLifecycleResult, unknown>;
+  readonly runCallback: (
+    tx: SuiTx<unknown, unknown, unknown>,
+    options: Effect.RunOptions & { readonly onExit: (exit: Exit.Exit<SuiTxLifecycleResult, unknown>) => void },
+  ) => (interruptor?: number | undefined) => void;
+  readonly dispose: () => Promise<void>;
+}
+
+export const makeLayer = (
+  client: ClientWithTransactionLifecycle,
+  options: SuiTxRunnerOptions = {},
+): Layer.Layer<SuiFlowServices, never, never> => makeTxLifecycleLayer(options).pipe(
+  Layer.provideMerge(SuiClientService.layer(client)),
+);
+
+export const makeRuntime = (
+  client: ClientWithTransactionLifecycle,
+  options: SuiFlowRuntimeOptions = {},
+): SuiFlowRuntime => ManagedRuntime.make(makeLayer(client, options), { memoMap: options.memoMap });
+
+export const makeClient = (
+  clientOrRuntime: ClientWithTransactionLifecycle | SuiFlowRuntime,
+  options: SuiFlowRuntimeOptions = {},
+): SuiFlowClient => {
+  const runtime = ManagedRuntime.isManagedRuntime(clientOrRuntime)
+    ? clientOrRuntime as SuiFlowRuntime
+    : makeRuntime(clientOrRuntime as ClientWithTransactionLifecycle, options);
+  return {
+    runtime,
+    run: (tx, runOptions) => runtime.runPromise(runTx(tx), runOptions),
+    runExit: (tx, runOptions) => runtime.runPromiseExit(runTx(tx), runOptions),
+    runFork: (tx, runOptions) => runtime.runFork(runTx(tx), runOptions),
+    runCallback: (tx, runOptions) => runtime.runCallback(runTx(tx), runOptions),
+    dispose: () => runtime.dispose(),
+  };
+};
+
+export const runTx = (
+  tx: SuiTx<unknown, unknown, unknown>,
+): Effect.Effect<SuiTxLifecycleResult, unknown, SuiTxRunner> => SuiTxRunner.use((runner) => runner.run(tx));
 
 function resolveGasPrice(
   policy: SuiGasPolicy,
@@ -306,9 +502,211 @@ function buildTransaction(
 
 function signTransaction(signer: SignerLike, transactionBytes: Uint8Array): Effect.Effect<string, SuiExecutionError> {
   return Effect.tryPromise({
-    try: async () => (await signer.signTransaction(transactionBytes)).signature,
+    try: () => signer.signTransaction(transactionBytes).then((result) => result.signature),
     catch: (cause) => execution('SuiAuthService.signTransaction', cause),
   });
+}
+
+function dryRunTransaction(
+  client: ClientWithTransactionLifecycle,
+  request: SuiPreflightRequest,
+): Effect.Effect<SuiPreflightResult, SuiExecutionError | SuiInvariantViolation> {
+  if (!client.core.simulateTransaction) {
+    return Effect.fail(invariant('SuiPreflightService.client', 'Client does not expose core.simulateTransaction'));
+  }
+
+  return Effect.gen(function* () {
+    const transactionBytes = yield* requireTransactionBytes(request.auth, 'SuiPreflightService.transactionBytes');
+    const raw = yield* Effect.tryPromise({
+      try: () => client.core.simulateTransaction!({
+        transaction: transactionBytes,
+        include: { effects: true, transaction: true, events: true, balanceChanges: true },
+      }),
+      catch: (cause) => execution('SuiPreflightService.simulateTransaction', cause),
+    });
+    const transaction = transactionPayload(raw);
+    const status = transactionStatus(raw);
+    return {
+      status: status.success ? 'success' : 'failure',
+      gasUsed: transaction?.effects?.gasUsed,
+      diagnostics: status.diagnostics,
+      raw,
+    } satisfies SuiPreflightResult;
+  });
+}
+
+function executeTransaction(
+  client: ClientWithTransactionLifecycle,
+  request: SuiExecutionRequest,
+): Effect.Effect<SuiExecutionResultEnvelope, SuiExecutionError | SuiInvariantViolation> {
+  if (!client.core.executeTransaction) {
+    return Effect.fail(invariant('SuiExecutionService.client', 'Client does not expose core.executeTransaction'));
+  }
+
+  return Effect.gen(function* () {
+    const transactionBytes = yield* requireTransactionBytes(request.auth, 'SuiExecutionService.transactionBytes');
+    if (request.auth.signatures.length === 0) {
+      return yield* Effect.fail(invariant('SuiExecutionService.signatures', 'Execution requires at least one signature'));
+    }
+    const raw = yield* Effect.tryPromise({
+      try: () => client.core.executeTransaction!({
+        transaction: transactionBytes,
+        signatures: [...request.auth.signatures],
+        include: { effects: true, transaction: true, events: true, balanceChanges: true },
+      }),
+      catch: (cause) => execution('SuiExecutionService.executeTransaction', cause),
+    });
+    const digest = yield* digestFromTransactionResult(raw, 'SuiExecutionService.executeTransaction');
+    return { digest, raw } satisfies SuiExecutionResultEnvelope;
+  });
+}
+
+function waitForTransaction(
+  client: ClientWithTransactionLifecycle,
+  request: SuiFinalityRequest,
+): Effect.Effect<SuiFinalityResult, SuiExecutionError | SuiInvariantViolation> {
+  if (!client.core.waitForTransaction) {
+    return Effect.fail(invariant('SuiFinalityService.client', 'Client does not expose core.waitForTransaction'));
+  }
+
+  return Effect.gen(function* () {
+    const raw = yield* Effect.tryPromise({
+      try: () => client.core.waitForTransaction!({
+        digest: request.execution.digest,
+        include: { effects: true, transaction: true, events: true, balanceChanges: true },
+        timeout: 60_000,
+      }),
+      catch: (cause) => execution('SuiFinalityService.waitForTransaction', cause),
+    });
+    const transaction = transactionPayload(raw);
+    return {
+      digest: request.execution.digest,
+      transaction: raw,
+      effects: transaction?.effects,
+      events: transaction?.events ?? [],
+    } satisfies SuiFinalityResult;
+  });
+}
+
+function runTxLifecycle(
+  tx: SuiTx<unknown, unknown, unknown>,
+  dependencies: SuiTxRunnerDependencies,
+  options: SuiTxRunnerOptions,
+): Effect.Effect<SuiTxLifecycleResult, unknown, never> {
+  return Effect.gen(function* () {
+    const partialRef = yield* Ref.make<Partial<SuiTxLifecycleResult> & { tx: SuiTx<unknown, unknown, unknown> }>({ tx });
+    const remember = (patch: Partial<SuiTxLifecycleResult>) => Ref.update(partialRef, (partial) => ({ ...partial, ...patch }));
+
+    const program = Effect.gen(function* () {
+      const ptb = yield* requirePtb(tx);
+      const analysis = yield* dependencies.ptbAnalyzer.analyze(ptb);
+      const artifact = yield* dependencies.ptbCompiler.compile({ ptb, analysis, buildMode: tx.buildMode });
+      yield* remember({ artifact });
+
+      const gasPlan = yield* dependencies.gasPlanner.plan(tx);
+      yield* remember({ gasPlan });
+
+      const payment = yield* dependencies.paymentService.plan(tx, gasPlan);
+      yield* remember({ payment });
+
+      const auth = yield* dependencies.authService.authorize(tx, payment, artifact, gasPlan);
+      yield* remember({ auth });
+
+      const preflight = shouldPreflight(tx, gasPlan)
+        ? yield* dependencies.preflightService.dryRun({ tx, artifact, auth, gasPlan, payment })
+        : undefined;
+      if (preflight) yield* remember({ preflight });
+
+      if (tx.buildMode === 'build-only' || tx.buildMode === 'dry-run') {
+        return yield* completeLifecycle(partialRef);
+      }
+
+      const executionResult = yield* dependencies.executionService.execute({ tx, artifact, auth, gasPlan, payment, preflight });
+      yield* remember({ execution: executionResult });
+
+      const finality = yield* dependencies.finalityService.wait({ tx, execution: executionResult });
+      yield* remember({ finality });
+
+      return yield* completeLifecycle(partialRef);
+    });
+
+    return yield* Effect.onExit(program, (exit) =>
+      options.reconcile
+        ? Ref.get(partialRef).pipe(Effect.flatMap((partial) => options.reconcile!(partial, exit)))
+        : Effect.void,
+    );
+  });
+}
+
+function requirePtb(
+  tx: SuiTx<unknown, unknown, unknown>,
+): Effect.Effect<NonNullable<SuiTx<unknown, unknown, unknown>['ptb']>, SuiInvariantViolation> {
+  return tx.ptb
+    ? Effect.succeed(tx.ptb)
+    : Effect.fail(invariant('SuiTxRunner.ptb', `SuiTx ${tx.label} has no PTB`));
+}
+
+function completeLifecycle(
+  partialRef: Ref.Ref<Partial<SuiTxLifecycleResult> & { tx: SuiTx<unknown, unknown, unknown> }>,
+): Effect.Effect<SuiTxLifecycleResult, SuiInvariantViolation> {
+  return Effect.gen(function* () {
+    const partial = yield* Ref.get(partialRef);
+    if (!partial.artifact) return yield* Effect.fail(invariant('SuiTxRunner.artifact', 'Lifecycle completed without a PTB artifact'));
+    if (!partial.gasPlan) return yield* Effect.fail(invariant('SuiTxRunner.gasPlan', 'Lifecycle completed without a gas plan'));
+    if (!partial.payment) return yield* Effect.fail(invariant('SuiTxRunner.payment', 'Lifecycle completed without a payment plan'));
+    if (!partial.auth) return yield* Effect.fail(invariant('SuiTxRunner.auth', 'Lifecycle completed without auth result'));
+    return partial as SuiTxLifecycleResult;
+  });
+}
+
+function shouldPreflight(tx: SuiTx<unknown, unknown, unknown>, gasPlan: SuiGasPlan): boolean {
+  return tx.buildMode === 'dry-run' || tx.buildMode === 'execute' || tx.buildMode === undefined || gasPlan.requiresDryRun;
+}
+
+function requireTransactionBytes(auth: SuiAuthResult, invariantName: string): Effect.Effect<Uint8Array, SuiInvariantViolation> {
+  return auth.transactionBytes
+    ? Effect.succeed(auth.transactionBytes)
+    : Effect.fail(invariant(invariantName, 'Auth result does not include transaction bytes'));
+}
+
+function digestFromTransactionResult(result: unknown, command: string): Effect.Effect<ReturnType<typeof decodeSuiTransactionDigest>, SuiExecutionError> {
+  const digest = transactionPayload(result)?.digest;
+  return digest
+    ? Effect.try({
+        try: () => decodeSuiTransactionDigest(digest),
+        catch: (cause) => execution(command, cause),
+      })
+    : Effect.fail(execution(command, 'Transaction result did not include a digest'));
+}
+
+type TransactionPayloadLike = {
+  readonly digest?: string;
+  readonly status?: { readonly success?: boolean; readonly error?: unknown };
+  readonly effects?: { readonly gasUsed?: unknown; readonly status?: { readonly success?: boolean; readonly error?: unknown } };
+  readonly events?: ReadonlyArray<unknown>;
+};
+
+function transactionPayload(result: unknown): TransactionPayloadLike | undefined {
+  const envelope = result as {
+    readonly Transaction?: TransactionPayloadLike;
+    readonly FailedTransaction?: TransactionPayloadLike;
+    readonly digest?: string;
+    readonly effects?: TransactionPayloadLike['effects'];
+    readonly events?: ReadonlyArray<unknown>;
+  };
+  return envelope.Transaction ?? envelope.FailedTransaction ?? (
+    envelope.digest ? { digest: envelope.digest, effects: envelope.effects, events: envelope.events } : undefined
+  );
+}
+
+function transactionStatus(result: unknown): { readonly success: boolean; readonly diagnostics: ReadonlyArray<string> } {
+  const envelope = result as { readonly $kind?: string };
+  const transaction = transactionPayload(result);
+  const status = transaction?.status ?? transaction?.effects?.status;
+  const failedByKind = envelope.$kind === 'FailedTransaction';
+  const success = failedByKind ? false : status?.success !== false;
+  const diagnostics = success ? [] : [String(status?.error ?? 'transaction simulation failed')];
+  return { success, diagnostics };
 }
 
 function invariant(invariantName: string, cause: unknown): SuiInvariantViolation {

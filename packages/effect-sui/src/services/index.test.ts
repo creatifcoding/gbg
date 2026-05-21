@@ -18,6 +18,7 @@ import {
   SuiPtbAnalyzer,
   SuiPtbCompiler,
   SuiReservationService,
+  SuiTxRunner,
 } from './index';
 
 describe('Effect-Sui service contracts', () => {
@@ -35,6 +36,7 @@ describe('Effect-Sui service contracts', () => {
     expect(SuiPreflightService.key).toBe('@tmnl/effect-sui/SuiPreflightService');
     expect(SuiExecutionService.key).toBe('@tmnl/effect-sui/SuiExecutionService');
     expect(SuiFinalityService.key).toBe('@tmnl/effect-sui/SuiFinalityService');
+    expect(SuiTxRunner.key).toBe('@tmnl/effect-sui/SuiTxRunner');
     expect(SuiReservationService.key).toBe('@tmnl/effect-sui/SuiReservationService');
     expect(SuiPackageRegistry.key).toBe('@tmnl/effect-sui/SuiPackageRegistry');
     expect(SuiDiagnostics.key).toBe('@tmnl/effect-sui/SuiDiagnostics');
@@ -113,8 +115,14 @@ describe('Effect-Sui service contracts', () => {
                   Effect.flatMap(auth.authorize(self, paymentPlan), (authResult) =>
                     SuiExecutionService.use((executor) =>
                       Effect.flatMap(
-                        executor.execute({ inputs: [], commands: [], requirements: {} }, authResult),
-                        (execution) => SuiFinalityService.use((finality) => finality.wait(execution)),
+                        executor.execute({
+                          tx: self,
+                          artifact: { inputs: [], commands: [], requirements: {} },
+                          auth: authResult,
+                          gasPlan,
+                          payment: paymentPlan,
+                        }),
+                        (execution) => SuiFinalityService.use((finality) => finality.wait({ tx: self, execution })),
                       ),
                     ),
                   ),
@@ -140,7 +148,7 @@ describe('Effect-Sui service contracts', () => {
           execute: () => Effect.succeed({ digest, raw: { ok: true } }),
         }),
         Effect.provideService(SuiFinalityService, {
-          wait: (execution) => Effect.succeed({ digest: execution.digest, transaction: execution.raw }),
+          wait: (request) => Effect.succeed({ digest: request.execution.digest, transaction: request.execution.raw }),
         }),
       ),
     );

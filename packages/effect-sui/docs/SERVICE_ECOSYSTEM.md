@@ -40,6 +40,17 @@ A `SuiTx` lifecycle is normalized into phases. Not every mode runs every phase, 
 | 11 | Finality + visibility | `SuiFinalityService` | indexed transaction + effects/events |
 | 12 | Reconciliation | `SuiTxState` | released or refreshed reservations |
 
+## ManagedRuntime edge clients
+
+ManagedRuntime clients are package/application edges, not service internals. They own cached `Context`, runtime-scoped fibers, and disposal.
+
+| Client | Runtime services | Public edge |
+|---|---|---|
+| `SuiFlowClient` | `SuiClientService`, `SuiPTB` services, gas/payment/auth, preflight/execution/finality, `SuiTxRunner` | `run`, `runExit`, `runFork`, `runCallback`, `dispose` |
+| `SuiQueryClient` | `SuiClientService`, `SuiObjectResolver`, `SuiBcsBridge` | `resolve`, `refresh`, `decode`, `encodePure`, `serialize`, `run`, `runExit`, `dispose` |
+| `FakeSuiClient` | Full fake service stack | shared `flow`, shared `query`, generic `run`, `runExit`, `dispose` |
+| `EffectSuiAdapterClient` | Shared `SuiFlowClient` + `SuiQueryClient` per Mysten client | `$extend` registration, `runTx`, `runTxExit`, `resolveObject`, idempotent `dispose` |
+
 ## Services
 
 ### `SuiObjectResolver`
@@ -181,6 +192,19 @@ A `SuiTx` lifecycle is normalized into phases. Not every mode runs every phase, 
 | STM / concurrency | Network I/O outside STM; updates local state only during reconciliation. |
 | Observability | Span records digest, wait duration, checkpoint, event count, object change count. |
 | Tests | Fake wait tests; localnet waitForTransaction smoke; event decode fixture tests. |
+
+### `SuiTxRunner`
+
+| Field | Spec |
+|---|---|
+| Responsibility | Compose the lifecycle services into `build → gas/payment → auth → preflight → execute → finality`. |
+| Consumes | `SuiTx`, `SuiPTB`, gas/payment/auth policies, lifecycle service dependencies. |
+| Produces | `SuiTxLifecycleResult` containing artifact, plans, auth, preflight, execution, and finality envelopes. |
+| Dependencies | `SuiPtbAnalyzer`, `SuiPtbCompiler`, `SuiGasPlanner`, `SuiPaymentService`, `SuiAuthService`, `SuiPreflightService`, `SuiExecutionService`, `SuiFinalityService`. |
+| Invariants | `build-only` stops after auth/build bytes, `dry-run` stops after preflight, `execute` waits for finality. |
+| STM / concurrency | Accepts reconcile hooks now; reservation-backed reconcile plugs in during `SuiReservationService` work. |
+| Observability | Lifecycle span records transaction label and build mode. |
+| Tests | Fake lifecycle test and localnet execute/finality proof. |
 
 ### `SuiReservationService` / `SuiTxState`
 

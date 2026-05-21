@@ -40,6 +40,7 @@ Effect-Sui follows Effect's namespace API style: import a module namespace and c
 import * as SuiPTB from '@tmnl/effect-sui/ptb';
 import * as SuiFlow from '@tmnl/effect-sui/flow';
 import * as SuiQuery from '@tmnl/effect-sui/query';
+import * as SuiAdapter from '@tmnl/effect-sui/adapter';
 
 const ptb = SuiPTB.make(ast);
 const builder = SuiPTB.makeBuilder();
@@ -48,10 +49,21 @@ const artifact = builder.buildSync(ptb);
 const gas = SuiFlow.makeGasPlanner(client);
 const auth = SuiFlow.makeAuthService(client);
 
-const resolver = SuiQuery.makeObjectResolver(client);
+// Long-lived runtime edge for repeated transaction lifecycle runs.
+const flow = SuiFlow.makeClient(client);
+const result = await flow.run(tx);
+await flow.dispose();
+
+const query = SuiQuery.makeClient(client);
+const resolved = await query.resolve({ id, decodeContent: true });
+await query.dispose();
+
+const extended = client.$extend(SuiAdapter.effectSui());
+await extended.effectSui.resolveObject(id);
+await extended.effectSui.dispose();
 ```
 
-No long compatibility aliases are kept; the namespace is the public API surface.
+No long compatibility aliases are kept; the namespace is the public API surface. Services remain Effect-returning; ManagedRuntime-backed clients live at package/application edges. Tests can use `SuiTesting.makeFakeClient()` for one disposable fake runtime with shared Flow and Query facades.
 
 ## Grounding
 
