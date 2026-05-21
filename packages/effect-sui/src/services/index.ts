@@ -15,6 +15,7 @@ import type {
   SuiAddress,
   SuiObjectId,
   SuiObjectRef,
+  SuiPackageDescriptor,
   SuiReservationConflict,
   SuiTransactionDigest,
   SuiTypeTagString,
@@ -22,7 +23,6 @@ import type {
 import type {
   SuiObject,
   SuiObjectSnapshot,
-  SuiPackageDescriptor,
   SuiPTB,
   SuiPtbBuildArtifact,
   SuiPtbCommand,

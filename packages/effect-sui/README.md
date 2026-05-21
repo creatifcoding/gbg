@@ -37,10 +37,12 @@ SuiPackage — immutable package/module factory surface
 Effect-Sui follows Effect's namespace API style: import a module namespace and call short verbs on it.
 
 ```ts
+import * as Effect from 'effect-v4/Effect';
 import * as SuiPTB from '@tmnl/effect-sui/ptb';
 import * as SuiFlow from '@tmnl/effect-sui/flow';
 import * as SuiQuery from '@tmnl/effect-sui/query';
 import * as SuiAdapter from '@tmnl/effect-sui/adapter';
+import * as SuiPackage from '@tmnl/effect-sui/package';
 import * as SuiReservation from '@tmnl/effect-sui/reservation';
 
 const ptb = SuiPTB.make(ast);
@@ -62,6 +64,10 @@ await query.dispose();
 const extended = client.$extend(SuiAdapter.effectSui());
 await extended.effectSui.resolveObject(id);
 await extended.effectSui.dispose();
+
+const counter = SuiPackage.counterFixtureDescriptor(packageId);
+const pkg = SuiPackage.make(counter);
+const module = await Effect.runPromise(SuiPackage.module(pkg, 'counter'));
 ```
 
 No long compatibility aliases are kept; the namespace is the public API surface. Services remain Effect-returning; ManagedRuntime-backed clients live at package/application edges. Tests can use `SuiTesting.makeFakeClient()` for one disposable fake runtime with shared Flow and Query facades.

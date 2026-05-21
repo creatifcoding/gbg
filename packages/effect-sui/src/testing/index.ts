@@ -7,8 +7,7 @@ import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
 
 import { makeClient as makeFlowClient, makeTxRunner, type SuiFlowClient, type SuiFlowRuntime } from '../flow';
 import { makeClient as makeQueryClient, type SuiQueryClient, type SuiQueryRuntime } from '../query';
-import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiInvariantViolation } from '../schema';
-import type { SuiPackageDescriptor } from '../effectable';
+import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
 import {
   SuiAuthService,
   type SuiAuthServiceShape,
@@ -177,7 +176,7 @@ export const makeFakePackageRegistry = (
   overrides: Partial<SuiPackageRegistryShape> = {},
 ): SuiPackageRegistryShape => {
   const descriptors = new Map<string, SuiPackageDescriptor>([
-    [fakePackageId, { packageId: fakePackageId, modules: ['counter'] }],
+    [fakePackageId, new SuiPackageDescriptor({ packageId: fakePackageId, modules: ['counter'] })],
   ]);
 
   return {

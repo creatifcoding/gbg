@@ -225,14 +225,14 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Field | Spec |
 |---|---|
 | Responsibility | Register package/module descriptors, type tags, generated calls, object factories, and codecs. |
-| Consumes | package descriptor, generated codegen metadata, Move manifest/build output, onchain package ID. |
+| Consumes | Schema-backed `SuiPackageDescriptor`, generated codegen metadata, Move manifest/build output, onchain package ID. |
 | Produces | `SuiPackage`, `SuiModule`, typed object factories, PTB/tx builders, BCS codecs. |
 | Dependencies | `SuiBcsBridge`, `SuiObjectResolver`, codegen artifacts, optional package query service. |
 | Invariants | Package IDs are canonical; module names exist; generated codecs match type tags. |
 | Failures | future `SuiPackageError`, `SuiModuleNotFound`, `SuiTypeNotRegistered`. |
-| STM / concurrency | Registry reads are parallel; writes should be atomic at package registration boundary. |
-| Observability | Span records package ID, module count, type count, codec count. |
-| Tests | Registry unit tests; generated counter fixture registration; package/module lookup tests. |
+| STM / concurrency | Runtime-owned `TxHashMap` registry; writes are atomic at package registration boundary. |
+| Observability | Span records package ID and module count for register/get. |
+| Tests | Registry unit tests; generated counter fixture registration; package/module lookup tests; localnet Move build proof for counter fixture. |
 
 ### `SuiDiagnostics`
 

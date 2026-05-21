@@ -119,7 +119,10 @@ describe('Effectable ontology layer', () => {
     );
 
     expect(mod).toBeInstanceOf(SuiModule);
-    expect(Effect.runSync(pkg)).toEqual({ packageId, modules: ['counter'] });
+    const descriptor = Effect.runSync(pkg);
+    expect(descriptor._tag).toBe('SuiPackageDescriptor');
+    expect(descriptor.packageId).toBe(packageId);
+    expect(descriptor.modules).toEqual(['counter']);
     expect(Effect.runSync(ptb).commands).toHaveLength(1);
     expect(Effect.runSync(tx)).toEqual({
       objectId,

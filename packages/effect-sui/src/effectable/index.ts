@@ -15,7 +15,7 @@
 import * as Effect from 'effect-v4/Effect';
 import * as Effectable from 'effect-v4/Effectable';
 
-import { SuiInvariantViolation } from '../schema';
+import { SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
 import type {
   SuiAddress,
   SuiAuthPolicy,
@@ -190,12 +190,10 @@ export class SuiTx<A = unknown, E = never, R = never> extends SuiEffect<A, E, R>
   }
 }
 
-export interface SuiPackageDescriptor {
+export interface SuiPackageOptions<E = never, R = never> {
   readonly packageId: SuiObjectId;
   readonly modules: ReadonlyArray<string>;
-}
-
-export interface SuiPackageOptions<E = never, R = never> extends SuiPackageDescriptor {
+  readonly moduleDescriptors?: SuiPackageDescriptor['moduleDescriptors'];
   readonly label?: string;
   readonly load?: (self: SuiPackage<E, R>) => Effect.Effect<SuiPackageDescriptor, E, R>;
 }
@@ -204,12 +202,14 @@ export class SuiPackage<E = never, R = never> extends SuiEffect<SuiPackageDescri
   readonly kind = 'SuiPackage' as const;
   readonly packageId: SuiObjectId;
   readonly modules: ReadonlyArray<string>;
+  readonly moduleDescriptors?: SuiPackageDescriptor['moduleDescriptors'];
   readonly label: string;
 
   constructor(readonly options: SuiPackageOptions<E, R>) {
     super();
     this.packageId = options.packageId;
     this.modules = options.modules;
+    this.moduleDescriptors = options.moduleDescriptors;
     this.label = options.label ?? `SuiPackage(${options.packageId})`;
   }
 
@@ -223,10 +223,11 @@ export class SuiPackage<E = never, R = never> extends SuiEffect<SuiPackageDescri
   }
 
   override asEffect(): Effect.Effect<SuiPackageDescriptor, E, R> {
-    return this.options.load?.(this) ?? Effect.succeed({
+    return this.options.load?.(this) ?? Effect.succeed(new SuiPackageDescriptor({
       packageId: this.packageId,
       modules: this.modules,
-    });
+      moduleDescriptors: this.moduleDescriptors,
+    }));
   }
 }
 

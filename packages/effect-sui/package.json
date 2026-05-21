@@ -46,6 +46,10 @@
       "import": "./dist/reservation/index.js",
       "types": "./dist/reservation/index.d.ts"
     },
+    "./package": {
+      "import": "./dist/package/index.js",
+      "types": "./dist/package/index.d.ts"
+    },
     "./adapter": {
       "import": "./dist/adapter/index.js",
       "types": "./dist/adapter/index.d.ts"
