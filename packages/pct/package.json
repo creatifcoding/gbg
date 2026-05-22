@@ -38,6 +38,10 @@
     "./federation": {
       "import": "./dist/federation/index.js",
       "types": "./dist/federation/index.d.ts"
+    },
+    "./frames": {
+      "import": "./dist/frames/index.js",
+      "types": "./dist/frames/index.d.ts"
     }
   },
   "files": [
