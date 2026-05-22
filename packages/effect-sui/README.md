@@ -95,9 +95,10 @@ Before implementation, consult:
 bunx nx run @tmnl/effect-sui:typecheck
 bunx nx run @tmnl/effect-sui:test
 bunx nx run @tmnl/effect-sui:build
+bunx nx run @tmnl/effect-sui:quality
 ```
 
-Testing policy is localnet-first for chain semantics. Fast unit/property/fake tests are contract checks; PTB, object, payment, auth, execution, finality, and package behavior require localnet proof before feature closure. See [`test/README.md`](./test/README.md).
+Testing policy is localnet-first for chain semantics. Fast unit/property/fake tests are contract checks; PTB, object, payment, auth, execution, finality, and package behavior require localnet proof before feature closure. See [`test/README.md`](./test/README.md) and [`docs/QUALITY_GATES.md`](./docs/QUALITY_GATES.md).
 
 ## Package-local Sui environment
 

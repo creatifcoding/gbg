@@ -74,6 +74,10 @@
     "test:property": "vitest run test/property --passWithNoTests",
     "test:integration": "vitest run test/integration --passWithNoTests",
     "test:e2e": "vitest run --config vitest.e2e.config.ts --passWithNoTests",
+    "test:e2e:skip": "EFFECT_SUI_E2E_MODE=skip bun run test:e2e",
+    "audit:boundaries": "bash scripts/audit-boundaries.sh",
+    "quality": "bun run audit:boundaries && bun run typecheck && bun run test:run && bun run test:property && bun run test:e2e:skip && bun run build",
+    "quality:localnet": "bun run quality && bun run test:e2e",
     "clean": "rm -rf dist reports coverage",
     "prepublishOnly": "bun run clean && bun run build"
   },

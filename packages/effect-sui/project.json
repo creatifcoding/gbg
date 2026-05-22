@@ -70,6 +70,42 @@
       "cache": false,
       "inputs": ["default", "^default"]
     },
+    "test:e2e:skip": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:e2e:skip",
+        "cwd": "packages/effect-sui"
+      },
+      "cache": false,
+      "inputs": ["default", "^default"]
+    },
+    "audit:boundaries": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run audit:boundaries",
+        "cwd": "packages/effect-sui"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "quality": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run quality",
+        "cwd": "packages/effect-sui"
+      },
+      "cache": false,
+      "inputs": ["default", "^default"]
+    },
+    "quality:localnet": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run quality:localnet",
+        "cwd": "packages/effect-sui"
+      },
+      "cache": false,
+      "inputs": ["default", "^default"]
+    },
     "clean": {
       "executor": "nx:run-commands",
       "options": {
