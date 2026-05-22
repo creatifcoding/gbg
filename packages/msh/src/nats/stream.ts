@@ -13,13 +13,12 @@ import * as Stream from 'effect-v4/Stream';
 import * as Schema from 'effect-v4/Schema';
 import * as Result from 'effect-v4/Result';
 import { pipe } from 'effect-v4/Function';
-import type { StreamInfo, Consumer, ConsumerMessages, PubAck, JsMsg } from 'nats.ws';
+import type { StreamInfo, Consumer, PubAck } from 'nats.ws';
 
-import { NatsInnerService, type StreamConfigInput, type ConsumerConfigInput } from './inner';
+import { NatsInnerService, type InnerJsMessage, type StreamConfigInput, type ConsumerConfigInput } from './inner';
 import { Inner, Stream as StreamErrors, Codec } from './errors';
 import { NatsCodec } from './codec';
 import { MshSpan } from '../tracing';
-import { fromAsyncIterable } from '../utils/stream';
 
 // =============================================================================
 // Types
@@ -41,6 +40,7 @@ export interface PublishOptions {
   readonly expectStream?: string;
   readonly expectLastMsgId?: string;
   readonly expectLastSequence?: number;
+  readonly expectLastSubjectSequence?: number;
 }
 
 export interface SubscribeOptions {
@@ -111,32 +111,21 @@ export class NatsStreamService extends Context.Service<
       const inner = yield* NatsInnerService;
 
       const decodeMessage = <S extends Schema.Top>(
-        msg: JsMsg, schema: S,
+        msg: InnerJsMessage, schema: S,
       ): Effect.Effect<TypedJsMessage<S['Type']>, Codec.DecodeError, S['DecodingServices']> =>
         pipe(
           NatsCodec.decodeJson(schema, { subject: msg.subject, seq: msg.seq })(msg.data),
           Effect.map((data): TypedJsMessage<S['Type']> => ({
-            subject: msg.subject, data, seq: msg.seq,
-            time: msg.info.timestampNanos
-              ? new Date(Number(msg.info.timestampNanos) / 1_000_000)
-              : new Date(),
-            ack: () => Effect.sync(() => msg.ack()),
-            nak: (delay?: number) => Effect.sync(() => msg.nak(delay)),
-            working: () => Effect.sync(() => msg.working()),
-            term: (reason?: string) => Effect.sync(() => msg.term(reason)),
+            subject: msg.subject,
+            data,
+            seq: msg.seq,
+            time: msg.time,
+            ack: msg.ack,
+            nak: msg.nak,
+            working: msg.working,
+            term: msg.term,
           })),
         );
-
-      const collectMessages = (messages: ConsumerMessages, limit?: number): Effect.Effect<JsMsg[]> =>
-        Effect.promise(async () => {
-          const r: JsMsg[] = [];
-          try {
-            for await (const msg of messages) { r.push(msg); if (limit && r.length >= limit) break; }
-            return r;
-          } finally {
-            try { messages.stop?.(); } catch { /* best-effort iterator cleanup */ }
-          }
-        });
 
       const sameArray = (left: readonly string[] | undefined, right: readonly string[] | undefined): boolean => {
         if (!left && !right) return true;
@@ -191,7 +180,12 @@ export class NatsStreamService extends Context.Service<
           const bytes = yield* NatsCodec.encodeJson(schema, data);
           return yield* inner.jsPublish(subject, bytes, {
             msgID: opts?.msgId,
-            expect: { streamName: opts?.expectStream, lastMsgID: opts?.expectLastMsgId, lastSequence: opts?.expectLastSequence },
+            expect: {
+              streamName: opts?.expectStream,
+              lastMsgID: opts?.expectLastMsgId,
+              lastSequence: opts?.expectLastSequence,
+              lastSubjectSequence: opts?.expectLastSubjectSequence,
+            },
           });
         });
 
@@ -221,12 +215,7 @@ export class NatsStreamService extends Context.Service<
             consumer = yield* inner.consumers.get(streamName);
           }
 
-          const messages = yield* inner.consumers.consume(consumer);
-          const rawStream = fromAsyncIterable<JsMsg, Inner.Consumers.ConsumeError>(
-            messages,
-            (err) => new Inner.Consumers.ConsumeError({ message: `Consumer error on '${streamName}'`, streamName, cause: err }),
-            () => { messages.stop?.(); },
-          );
+          const rawStream = yield* inner.consumers.consumeMessages(consumer, streamName);
           return pipe(rawStream, Stream.mapEffect((msg) => decodeMessage(msg, schema)));
         });
 
@@ -245,11 +234,10 @@ export class NatsStreamService extends Context.Service<
 
       const fetch: NatsStreamServiceShape['fetch'] = (consumer, schema, opts) =>
         Effect.gen(function* () {
-          const messages = yield* inner.consumers.fetch(consumer, {
+          const rawMsgs = yield* inner.consumers.fetchMessages(consumer, 'unknown', {
             max_messages: opts?.max ?? 100, max_bytes: opts?.maxBytes,
             expires: opts?.expires ?? 5000, idle_heartbeat: opts?.idleHeartbeat,
-          });
-          const rawMsgs = yield* collectMessages(messages, opts?.max);
+          }, opts?.max);
           const results: TypedJsMessage<any>[] = [];
           for (const msg of rawMsgs) results.push(yield* decodeMessage(msg, schema));
           return results;
@@ -257,7 +245,7 @@ export class NatsStreamService extends Context.Service<
 
       const next: NatsStreamServiceShape['next'] = (consumer, schema, opts) =>
         Effect.gen(function* () {
-          const msg = yield* inner.consumers.next(consumer, { expires: opts?.expires });
+          const msg = yield* inner.consumers.nextMessage(consumer, 'unknown', { expires: opts?.expires });
           if (!msg) return null;
           return yield* decodeMessage(msg, schema);
         });

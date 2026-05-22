@@ -86,6 +86,68 @@ liveDescribe('live NATS infrastructure semantics', () => {
     expect(result.missing).toBeNull();
   }, 10_000);
 
+  it('honors real NATS KV revision CAS wrappers', async () => {
+    const layers = makeLiveLayers(server);
+    const suffix = Date.now();
+    const bucket = `MSH_LIVE_CAS_${suffix}`;
+    const key = 'records.cas';
+
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const kv = yield* NatsKVService;
+          const inner = yield* NatsInnerService;
+
+          const firstRevision = yield* kv.create(bucket, key, LiveRecord, { id: 'cas', value: 1 });
+          const firstEntry = yield* kv.getEntry(bucket, key, LiveRecord);
+          const duplicateCreate = yield* Effect.result(kv.create(bucket, key, LiveRecord, { id: 'cas', value: 2 }));
+          const staleUpdate = yield* Effect.result(kv.updateIfRevision(bucket, key, LiveRecord, { id: 'cas', value: 3 }, firstRevision + 100));
+          const secondRevision = yield* kv.updateIfRevision(bucket, key, LiveRecord, { id: 'cas', value: 4 }, firstEntry!.revision);
+          const secondEntry = yield* kv.getEntry(bucket, key, LiveRecord);
+          const staleDelete = yield* Effect.result(kv.deleteIfRevision(bucket, key, firstRevision));
+          yield* kv.deleteIfRevision(bucket, key, secondEntry!.revision);
+          const missing = yield* kv.getEntry(bucket, key, LiveRecord);
+          const recreatedRevision = yield* kv.create(bucket, key, LiveRecord, { id: 'cas', value: 5 });
+          const recreated = yield* kv.getEntry(bucket, key, LiveRecord);
+          yield* inner.streams.delete(`KV_${bucket}`).pipe(Effect.orElseSucceed(() => false));
+
+          return {
+            firstRevision,
+            firstEntry,
+            duplicateCreate,
+            staleUpdate,
+            secondRevision,
+            secondEntry,
+            staleDelete,
+            missing,
+            recreatedRevision,
+            recreated,
+          };
+        }),
+      ).pipe(Effect.provide(Layer.mergeAll(layers.inner, layers.kv))),
+    );
+
+    expect(result.firstRevision).toBeGreaterThanOrEqual(1);
+    expect(result.firstEntry?.revision).toBe(result.firstRevision);
+    expect(result.duplicateCreate._tag).toBe('Failure');
+    if (result.duplicateCreate._tag === 'Failure') {
+      expect(result.duplicateCreate.failure._tag).toBe('Inner/KV/RevisionConflict');
+    }
+    expect(result.staleUpdate._tag).toBe('Failure');
+    if (result.staleUpdate._tag === 'Failure') {
+      expect(result.staleUpdate.failure._tag).toBe('Inner/KV/RevisionConflict');
+    }
+    expect(result.secondRevision).toBeGreaterThan(result.firstRevision);
+    expect(result.secondEntry?.value).toEqual({ id: 'cas', value: 4 });
+    expect(result.staleDelete._tag).toBe('Failure');
+    if (result.staleDelete._tag === 'Failure') {
+      expect(result.staleDelete.failure._tag).toBe('Inner/KV/RevisionConflict');
+    }
+    expect(result.missing).toBeNull();
+    expect(result.recreatedRevision).toBeGreaterThan(result.secondRevision);
+    expect(result.recreated?.value).toEqual({ id: 'cas', value: 5 });
+  }, 10_000);
+
   it('honors JetStream by_start_sequence delivery on a real stream', async () => {
     const layers = makeLiveLayers(server);
     const suffix = Date.now();

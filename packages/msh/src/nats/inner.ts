@@ -40,6 +40,7 @@ import type {
 import { NatsConnectionService } from './connection';
 import { Inner } from './errors';
 import { MshSpan } from '../tracing';
+import { fromAsyncIterable } from '../utils/stream';
 
 const errorMessage = (err: unknown): string => {
   if (typeof err === 'object' && err !== null && 'message' in err) {
@@ -53,6 +54,20 @@ const isStreamNotFoundError = (err: unknown): boolean =>
 
 const isObjectNotFoundError = (err: unknown): boolean =>
   errorMessage(err).toLowerCase().includes('object not found');
+
+const getJetStreamApiErrCode = (err: unknown): number | undefined => {
+  if (typeof err !== 'object' || err === null || !('api_error' in err)) return undefined;
+  const apiError = (err as { readonly api_error?: { readonly err_code?: unknown } }).api_error;
+  return typeof apiError?.err_code === 'number' ? apiError.err_code : undefined;
+};
+
+const isKvRevisionConflictError = (err: unknown): boolean => {
+  const message = errorMessage(err).toLowerCase();
+  return getJetStreamApiErrCode(err) === 10071
+    || message.includes('wrong last sequence')
+    || message.includes('wrong last seq')
+    || message.includes('last sequence mismatch');
+};
 
 const wrapJsm = <A, E>(
   operation: () => A | PromiseLike<A>,
@@ -165,6 +180,17 @@ export interface ConsumerConfigInput {
   readonly idleHeartbeat?: number;
 }
 
+export interface InnerJsMessage {
+  readonly subject: string;
+  readonly data: Uint8Array;
+  readonly seq: number;
+  readonly time: Date;
+  readonly ack: () => Effect.Effect<void>;
+  readonly nak: (delay?: number) => Effect.Effect<void>;
+  readonly working: () => Effect.Effect<void>;
+  readonly term: (reason?: string) => Effect.Effect<void>;
+}
+
 // =============================================================================
 // Service Shape
 // =============================================================================
@@ -208,14 +234,30 @@ export interface NatsInnerServiceShape {
       consumer: Consumer,
       opts?: Partial<ConsumeOptions>,
     ) => Effect.Effect<ConsumerMessages, Inner.Consumers.ConsumeError>;
+    readonly consumeMessages: (
+      consumer: Consumer,
+      streamName: string,
+      opts?: Partial<ConsumeOptions>,
+    ) => Effect.Effect<Stream.Stream<InnerJsMessage, Inner.Consumers.ConsumeError>, Inner.Consumers.ConsumeError>;
     readonly fetch: (
       consumer: Consumer,
       opts?: Partial<FetchOptions>,
     ) => Effect.Effect<ConsumerMessages, Inner.Consumers.ConsumeError>;
+    readonly fetchMessages: (
+      consumer: Consumer,
+      streamName: string,
+      opts?: Partial<FetchOptions>,
+      limit?: number,
+    ) => Effect.Effect<ReadonlyArray<InnerJsMessage>, Inner.Consumers.ConsumeError>;
     readonly next: (
       consumer: Consumer,
       opts?: { expires?: number },
     ) => Effect.Effect<JsMsg | null, Inner.Consumers.ConsumeError>;
+    readonly nextMessage: (
+      consumer: Consumer,
+      streamName: string,
+      opts?: { expires?: number },
+    ) => Effect.Effect<InnerJsMessage | null, Inner.Consumers.ConsumeError>;
     readonly add: (
       stream: string,
       config: ConsumerConfigInput,
@@ -277,12 +319,25 @@ export interface NatsInnerServiceShape {
       bucket: KV,
       key: string,
       value: Uint8Array,
-    ) => Effect.Effect<number, Inner.KV.PutError>;
+    ) => Effect.Effect<number, Inner.KV.PutError | Inner.KV.RevisionConflictError>;
+    readonly update: (
+      bucketName: string,
+      bucket: KV,
+      key: string,
+      value: Uint8Array,
+      expectedRevision: number,
+    ) => Effect.Effect<number, Inner.KV.PutError | Inner.KV.RevisionConflictError>;
     readonly delete: (
       bucketName: string,
       bucket: KV,
       key: string,
     ) => Effect.Effect<void, Inner.KV.DeleteError>;
+    readonly deleteIfRevision: (
+      bucketName: string,
+      bucket: KV,
+      key: string,
+      expectedRevision: number,
+    ) => Effect.Effect<void, Inner.KV.DeleteError | Inner.KV.RevisionConflictError>;
     readonly purge: (
       bucketName: string,
       bucket: KV,
@@ -441,6 +496,97 @@ export class NatsInnerService extends Context.Service<
 
       // ─── CONSUMERS ──────────────────────────────────────────────────────
 
+      const consumerStreamName = (consumer: Consumer): string => (consumer as any).stream ?? 'unknown';
+
+      const stopConsumerMessages = (messages: ConsumerMessages): void => {
+        try { messages.stop?.(); } catch { /* best-effort iterator cleanup */ }
+      };
+
+      const toInnerJsMessage = (msg: JsMsg): InnerJsMessage => ({
+        subject: msg.subject,
+        data: msg.data,
+        seq: msg.seq,
+        time: msg.info.timestampNanos
+          ? new Date(Number(msg.info.timestampNanos) / 1_000_000)
+          : new Date(),
+        ack: () => Effect.sync(() => msg.ack()),
+        nak: (delay?: number) => Effect.sync(() => msg.nak(delay)),
+        working: () => Effect.sync(() => msg.working()),
+        term: (reason?: string) => Effect.sync(() => msg.term(reason)),
+      });
+
+      const collectConsumerMessages = (
+        messages: ConsumerMessages,
+        streamName: string,
+        limit?: number,
+      ): Effect.Effect<ReadonlyArray<InnerJsMessage>, Inner.Consumers.ConsumeError> =>
+        Effect.tryPromise({
+          try: async () => {
+            const collected: JsMsg[] = [];
+            try {
+              for await (const msg of messages) {
+                collected.push(msg);
+                if (limit && collected.length >= limit) break;
+              }
+              return collected.map(toInnerJsMessage);
+            } finally {
+              stopConsumerMessages(messages);
+            }
+          },
+          catch: (err) => new Inner.Consumers.ConsumeError({
+            message: `Consumer iteration failed on '${streamName}'`,
+            streamName,
+            cause: err,
+          }),
+        });
+
+      const streamConsumerMessages = (
+        messages: ConsumerMessages,
+        streamName: string,
+      ): Stream.Stream<InnerJsMessage, Inner.Consumers.ConsumeError> =>
+        fromAsyncIterable<JsMsg, Inner.Consumers.ConsumeError>(
+          messages,
+          (err) => new Inner.Consumers.ConsumeError({
+            message: `Consumer stream failed on '${streamName}'`,
+            streamName,
+            cause: err,
+          }),
+          () => stopConsumerMessages(messages),
+        ).pipe(Stream.map(toInnerJsMessage));
+
+      const consumeRaw = (consumer: Consumer, opts?: Partial<ConsumeOptions>) =>
+        Effect.tryPromise({
+          try: () => consumer.consume(opts),
+          catch: (err) =>
+            new Inner.Consumers.ConsumeError({
+              message: 'Failed to start consuming',
+              streamName: consumerStreamName(consumer),
+              cause: err,
+            }),
+        }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.consume));
+
+      const fetchRaw = (consumer: Consumer, opts?: Partial<FetchOptions>) =>
+        Effect.tryPromise({
+          try: () => consumer.fetch(opts),
+          catch: (err) =>
+            new Inner.Consumers.ConsumeError({
+              message: 'Failed to fetch',
+              streamName: consumerStreamName(consumer),
+              cause: err,
+            }),
+        }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.fetch));
+
+      const nextRaw = (consumer: Consumer, opts?: { expires?: number }) =>
+        Effect.tryPromise({
+          try: () => consumer.next(opts),
+          catch: (err) =>
+            new Inner.Consumers.ConsumeError({
+              message: 'Failed to get next',
+              streamName: consumerStreamName(consumer),
+              cause: err,
+            }),
+        }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.next));
+
       const consumers: NatsInnerServiceShape['consumers'] = {
         get: (stream, name) =>
           Effect.tryPromise({
@@ -454,38 +600,29 @@ export class NatsInnerService extends Context.Service<
               }),
           }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.get)),
 
-        consume: (consumer, opts) =>
-          Effect.tryPromise({
-            try: () => consumer.consume(opts),
-            catch: (err) =>
-              new Inner.Consumers.ConsumeError({
-                message: 'Failed to start consuming',
-                streamName: (consumer as any).stream ?? 'unknown',
-                cause: err,
-              }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.consume)),
+        consume: consumeRaw,
 
-        fetch: (consumer, opts) =>
-          Effect.tryPromise({
-            try: () => consumer.fetch(opts),
-            catch: (err) =>
-              new Inner.Consumers.ConsumeError({
-                message: 'Failed to fetch',
-                streamName: (consumer as any).stream ?? 'unknown',
-                cause: err,
-              }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.fetch)),
+        consumeMessages: (consumer, streamName, opts) =>
+          consumeRaw(consumer, opts).pipe(
+            Effect.map((messages) => streamConsumerMessages(messages, streamName)),
+            Effect.withSpan(MshSpan.Inner.Consumers.consumeMessages),
+          ),
 
-        next: (consumer, opts) =>
-          Effect.tryPromise({
-            try: () => consumer.next(opts),
-            catch: (err) =>
-              new Inner.Consumers.ConsumeError({
-                message: 'Failed to get next',
-                streamName: (consumer as any).stream ?? 'unknown',
-                cause: err,
-              }),
-          }).pipe(Effect.withSpan(MshSpan.Inner.Consumers.next)),
+        fetch: fetchRaw,
+
+        fetchMessages: (consumer, streamName, opts, limit) =>
+          fetchRaw(consumer, opts).pipe(
+            Effect.flatMap((messages) => collectConsumerMessages(messages, streamName, limit)),
+            Effect.withSpan(MshSpan.Inner.Consumers.fetchMessages),
+          ),
+
+        next: nextRaw,
+
+        nextMessage: (consumer, _streamName, opts) =>
+          nextRaw(consumer, opts).pipe(
+            Effect.map((msg) => msg ? toInnerJsMessage(msg) : null),
+            Effect.withSpan(MshSpan.Inner.Consumers.nextMessage),
+          ),
 
         add: (stream, cfg) =>
           wrapJsmWith(
@@ -656,16 +793,50 @@ export class NatsInnerService extends Context.Service<
         create: (bn, bucket, key, value) =>
           Effect.tryPromise({
             try: () => bucket.create(key, value),
-            catch: (err) => new Inner.KV.PutError({ message: `Failed to create '${key}'`, bucketName: bn, key, cause: err }),
+            catch: (err) => isKvRevisionConflictError(err)
+              ? new Inner.KV.RevisionConflictError({
+                message: `KV create conflict for '${key}'`,
+                bucketName: bn,
+                key,
+                expectedRevision: 0,
+                cause: err,
+              })
+              : new Inner.KV.PutError({ message: `Failed to create '${key}'`, bucketName: bn, key, cause: err }),
           }).pipe(Effect.withSpan(MshSpan.Inner.KV.create)),
+        update: (bn, bucket, key, value, expectedRevision) =>
+          Effect.tryPromise({
+            try: () => bucket.update(key, value, expectedRevision),
+            catch: (err) => isKvRevisionConflictError(err)
+              ? new Inner.KV.RevisionConflictError({
+                message: `KV update conflict for '${key}' at revision ${expectedRevision}`,
+                bucketName: bn,
+                key,
+                expectedRevision,
+                cause: err,
+              })
+              : new Inner.KV.PutError({ message: `Failed to update '${key}'`, bucketName: bn, key, cause: err }),
+          }).pipe(Effect.withSpan(MshSpan.Inner.KV.update)),
         delete: (bn, bucket, key) =>
           Effect.tryPromise({
-            try: async () => { await bucket.delete(key); },
+            try: () => bucket.delete(key),
             catch: (err) => new Inner.KV.DeleteError({ message: `Failed to delete '${key}'`, bucketName: bn, key, cause: err }),
           }).pipe(Effect.withSpan(MshSpan.Inner.KV.delete)),
+        deleteIfRevision: (bn, bucket, key, expectedRevision) =>
+          Effect.tryPromise({
+            try: () => bucket.delete(key, { previousSeq: expectedRevision }),
+            catch: (err) => isKvRevisionConflictError(err)
+              ? new Inner.KV.RevisionConflictError({
+                message: `KV delete conflict for '${key}' at revision ${expectedRevision}`,
+                bucketName: bn,
+                key,
+                expectedRevision,
+                cause: err,
+              })
+              : new Inner.KV.DeleteError({ message: `Failed to delete '${key}'`, bucketName: bn, key, cause: err }),
+          }).pipe(Effect.withSpan(MshSpan.Inner.KV.deleteIfRevision)),
         purge: (bn, bucket, key) =>
           Effect.tryPromise({
-            try: async () => { await bucket.purge(key); },
+            try: () => bucket.purge(key),
             catch: (err) => new Inner.KV.DeleteError({ message: `Failed to purge '${key}'`, bucketName: bn, key, cause: err }),
           }).pipe(Effect.withSpan(MshSpan.Inner.KV.purge)),
         watch: (bucket, opts) =>

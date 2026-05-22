@@ -144,6 +144,45 @@ describe('mock NATS transport', () => {
     expect(result.listed).toHaveLength(1);
   });
 
+  it('supports high-level JetStream publish subject-sequence expectations', async () => {
+    const fixture = makeMockNatsFixture();
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const stream = yield* NatsStreamService;
+        yield* stream.ensureStream({ name: 'EVENTS', subjects: ['events.>'] });
+        const first = yield* stream.publish(
+          'events.created',
+          TestEvent,
+          { id: '1', value: 1 },
+          { msgId: 'm1', expectStream: 'EVENTS', expectLastSubjectSequence: 0 },
+        );
+        const stale = yield* Effect.result(stream.publish(
+          'events.created',
+          TestEvent,
+          { id: '2', value: 2 },
+          { msgId: 'm2', expectStream: 'EVENTS', expectLastSubjectSequence: 0 },
+        ));
+        const duplicate = yield* stream.publish(
+          'events.created',
+          TestEvent,
+          { id: '1', value: 1 },
+          { msgId: 'm1', expectStream: 'EVENTS', expectLastSubjectSequence: 1 },
+        );
+        return { first, stale, duplicate };
+      }).pipe(Effect.provide(makeStreamLayer(fixture))),
+    );
+
+    expect(result.first.seq).toBe(1);
+    expect(result.first.duplicate).toBe(false);
+    expect(result.stale._tag).toBe('Failure');
+    if (result.stale._tag === 'Failure') {
+      expect(result.stale.failure._tag).toBe('Inner/Publish/Publish');
+    }
+    expect(result.duplicate.seq).toBe(1);
+    expect(result.duplicate.duplicate).toBe(true);
+  });
+
   it('classifies object-store info absence separately from operational failures', async () => {
     const fixture = makeMockNatsFixture();
 
@@ -187,6 +226,70 @@ describe('mock NATS transport', () => {
     expect(result.keys).toEqual(['a']);
     expect(result.list.map((entry) => entry.value)).toEqual([{ id: 'a', value: 7 }]);
     expect(result.history.map((entry) => entry.value)).toEqual([{ id: 'a', value: 7 }]);
+  });
+
+  it('supports high-level KV revision CAS create/update/delete wrappers', async () => {
+    const fixture = makeMockNatsFixture();
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const kv = yield* NatsKVService;
+        const firstRevision = yield* kv.create('events', 'cas', TestEvent, { id: 'cas', value: 1 });
+        const duplicateCreate = yield* Effect.result(
+          kv.create('events', 'cas', TestEvent, { id: 'cas', value: 2 }),
+        );
+        const firstEntry = yield* kv.getEntry('events', 'cas', TestEvent);
+        const staleUpdate = yield* Effect.result(
+          kv.updateIfRevision('events', 'cas', TestEvent, { id: 'cas', value: 3 }, firstRevision + 100),
+        );
+        const secondRevision = yield* kv.updateIfRevision(
+          'events',
+          'cas',
+          TestEvent,
+          { id: 'cas', value: 4 },
+          firstEntry!.revision,
+        );
+        const secondEntry = yield* kv.getEntry('events', 'cas', TestEvent);
+        const staleDelete = yield* Effect.result(kv.deleteIfRevision('events', 'cas', firstRevision));
+        yield* kv.deleteIfRevision('events', 'cas', secondEntry!.revision);
+        const missing = yield* kv.getEntry('events', 'cas', TestEvent);
+        const recreatedRevision = yield* kv.create('events', 'cas', TestEvent, { id: 'cas', value: 5 });
+        const recreated = yield* kv.getEntry('events', 'cas', TestEvent);
+        return {
+          firstRevision,
+          duplicateCreate,
+          firstEntry,
+          staleUpdate,
+          secondRevision,
+          secondEntry,
+          staleDelete,
+          missing,
+          recreatedRevision,
+          recreated,
+        };
+      }).pipe(Effect.provide(makeKvLayer(fixture))),
+    );
+
+    expect(result.firstRevision).toBe(1);
+    expect(result.firstEntry?.revision).toBe(1);
+    expect(result.firstEntry?.value).toEqual({ id: 'cas', value: 1 });
+    expect(result.duplicateCreate._tag).toBe('Failure');
+    if (result.duplicateCreate._tag === 'Failure') {
+      expect(result.duplicateCreate.failure._tag).toBe('Inner/KV/RevisionConflict');
+    }
+    expect(result.staleUpdate._tag).toBe('Failure');
+    if (result.staleUpdate._tag === 'Failure') {
+      expect(result.staleUpdate.failure._tag).toBe('Inner/KV/RevisionConflict');
+    }
+    expect(result.secondRevision).toBe(2);
+    expect(result.secondEntry?.value).toEqual({ id: 'cas', value: 4 });
+    expect(result.staleDelete._tag).toBe('Failure');
+    if (result.staleDelete._tag === 'Failure') {
+      expect(result.staleDelete.failure._tag).toBe('Inner/KV/RevisionConflict');
+    }
+    expect(result.missing).toBeNull();
+    expect(result.recreatedRevision).toBeGreaterThan(result.secondRevision);
+    expect(result.recreated?.value).toEqual({ id: 'cas', value: 5 });
   });
 
   it('rejects ensureStream when an existing stream has incompatible material config', async () => {

@@ -157,6 +157,19 @@ export namespace Inner {
     }) {}
 
     /**
+     * KV optimistic-concurrency revision mismatch.
+     */
+    export class RevisionConflictError extends Schema.TaggedErrorClass<RevisionConflictError>(
+      '@tmnl/msh/Inner.KV.RevisionConflictError',
+    )('Inner/KV/RevisionConflict', {
+      message: Schema.String,
+      bucketName: Schema.String,
+      key: Schema.String,
+      expectedRevision: Schema.Number,
+      cause: Schema.optional(Schema.Unknown),
+    }) {}
+
+    /**
      * Failed to delete key from KV.
      */
     export class DeleteError extends Schema.TaggedErrorClass<DeleteError>(
@@ -181,7 +194,7 @@ export namespace Inner {
     }) {}
 
     /** Union for KV operations */
-    export type Error = BucketError | GetError | PutError | DeleteError | WatchError;
+    export type Error = BucketError | GetError | PutError | RevisionConflictError | DeleteError | WatchError;
   }
 
   // ─── Stream Management (jsm.streams) ────────────────────────────────────────
@@ -393,8 +406,8 @@ export namespace KV {
   }) {}
 
   export type GetError = Inner.KV.BucketError | Inner.KV.GetError | NotFoundError | Codec.DecodeError;
-  export type PutError = Inner.KV.BucketError | Inner.KV.PutError | Codec.EncodeError;
-  export type DeleteError = Inner.KV.BucketError | Inner.KV.DeleteError;
+  export type PutError = Inner.KV.BucketError | Inner.KV.PutError | Inner.KV.RevisionConflictError | Codec.EncodeError;
+  export type DeleteError = Inner.KV.BucketError | Inner.KV.DeleteError | Inner.KV.RevisionConflictError;
   export type WatchError = Inner.KV.BucketError | Inner.KV.WatchError | Codec.DecodeError;
 
   export type Error = Inner.KV.Error | NotFoundError | Codec.Error;

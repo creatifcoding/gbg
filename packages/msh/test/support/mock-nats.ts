@@ -32,7 +32,7 @@ import type { MshConfig } from '../../src/schemas/config';
 
 export interface MockStreamRecord {
   readonly config: Partial<StreamConfig> & { name: string };
-  readonly messages: Array<{ subject: string; data: Uint8Array; seq: number; time: Date }>;
+  readonly messages: Array<{ subject: string; data: Uint8Array; seq: number; time: Date; msgID?: string }>;
   readonly consumers: Map<string, MockConsumerState>;
 }
 
@@ -276,21 +276,43 @@ const makeKvEntry = (entry: MockKvEntry): KvEntry => ({
   operation: entry.deleted ? 'DEL' : 'PUT',
 } as unknown as KvEntry);
 
+const revisionConflict = (key: string, expectedRevision: number): Error =>
+  Object.assign(new Error(`wrong last sequence for ${key}: expected ${expectedRevision}`), {
+    api_error: { err_code: 10071 },
+  });
+
 const makeKvBucket = (bucket: MockKvBucketState): KV => ({
   get: (key: string) => Promise.resolve(bucket.entries.get(key) ? makeKvEntry(bucket.entries.get(key)!) : null),
-  put: (key: string, value: Uint8Array) => {
+  put: (key: string, value: Uint8Array, opts?: { previousSeq?: number }) => {
+    const existing = bucket.entries.get(key);
+    if (opts?.previousSeq !== undefined && (existing?.revision ?? 0) !== opts.previousSeq) {
+      return Promise.reject(revisionConflict(key, opts.previousSeq));
+    }
     bucket.revision += 1;
     bucket.entries.set(key, { key, value, revision: bucket.revision, created: new Date() });
     return Promise.resolve(bucket.revision);
   },
   create: (key: string, value: Uint8Array) => {
-    if (bucket.entries.has(key)) return Promise.reject(new Error(`key exists: ${key}`));
+    const existing = bucket.entries.get(key);
+    if (existing && !existing.deleted) return Promise.reject(revisionConflict(key, 0));
     bucket.revision += 1;
     bucket.entries.set(key, { key, value, revision: bucket.revision, created: new Date() });
     return Promise.resolve(bucket.revision);
   },
-  delete: (key: string) => {
-    bucket.entries.delete(key);
+  update: (key: string, value: Uint8Array, version: number) => {
+    const existing = bucket.entries.get(key);
+    if (!existing || existing.revision !== version) return Promise.reject(revisionConflict(key, version));
+    bucket.revision += 1;
+    bucket.entries.set(key, { key, value, revision: bucket.revision, created: new Date() });
+    return Promise.resolve(bucket.revision);
+  },
+  delete: (key: string, opts?: { previousSeq?: number }) => {
+    const existing = bucket.entries.get(key);
+    if (opts?.previousSeq !== undefined && (existing?.revision ?? 0) !== opts.previousSeq) {
+      return Promise.reject(revisionConflict(key, opts.previousSeq));
+    }
+    bucket.revision += 1;
+    bucket.entries.set(key, { key, value: new Uint8Array(), revision: bucket.revision, created: new Date(), deleted: true });
     return Promise.resolve();
   },
   purge: (key: string) => {
@@ -299,7 +321,10 @@ const makeKvBucket = (bucket: MockKvBucketState): KV => ({
   },
   watch: () => Promise.resolve(asyncIterableFrom(Array.from(bucket.entries.values()).map(makeKvEntry))),
   keys: (filter?: string) => Promise.resolve(asyncIterableFrom(
-    Array.from(bucket.entries.keys()).filter((key) => !filter || matchesSubject(filter, key)),
+    Array.from(bucket.entries.entries())
+      .filter(([, entry]) => !entry.deleted)
+      .map(([key]) => key)
+      .filter((key) => !filter || matchesSubject(filter, key)),
   )),
   history: ({ key }: { key: string }) => Promise.resolve(asyncIterableFrom(
     Array.from(bucket.entries.values()).filter((entry) => entry.key === key).map(makeKvEntry),
@@ -396,11 +421,37 @@ const makeConnectionShape = (
   } as unknown as JetStreamManager;
 
   const js: JetStreamClient = {
-    publish: (subject: string, data: Uint8Array): Promise<PubAck> => {
+    publish: (subject: string, data: Uint8Array, opts?: {
+      msgID?: string;
+      expect?: {
+        streamName?: string;
+        lastMsgID?: string;
+        lastSequence?: number;
+        lastSubjectSequence?: number;
+      };
+    }): Promise<PubAck> => {
       const stream = findStreamForSubject(state, subject);
       if (!stream) return Promise.reject(new Error(`no stream for subject: ${subject}`));
+      if (opts?.expect?.streamName !== undefined && opts.expect.streamName !== stream.config.name) {
+        return Promise.reject(new Error(`wrong stream: expected ${opts.expect.streamName}`));
+      }
+      const lastStreamMessage = stream.messages.at(-1);
+      const lastSubjectMessage = stream.messages.filter((message) => message.subject === subject).at(-1);
+      if (opts?.expect?.lastSequence !== undefined && (lastStreamMessage?.seq ?? 0) !== opts.expect.lastSequence) {
+        return Promise.reject(revisionConflict(subject, opts.expect.lastSequence));
+      }
+      if (opts?.expect?.lastSubjectSequence !== undefined && (lastSubjectMessage?.seq ?? 0) !== opts.expect.lastSubjectSequence) {
+        return Promise.reject(revisionConflict(subject, opts.expect.lastSubjectSequence));
+      }
+      if (opts?.expect?.lastMsgID !== undefined && lastStreamMessage?.msgID !== opts.expect.lastMsgID) {
+        return Promise.reject(new Error(`wrong last msg id: expected ${opts.expect.lastMsgID}`));
+      }
+      if (opts?.msgID !== undefined) {
+        const duplicate = stream.messages.find((message) => message.msgID === opts.msgID);
+        if (duplicate) return Promise.resolve({ stream: stream.config.name, seq: duplicate.seq, duplicate: true } as unknown as PubAck);
+      }
       const seq = stream.messages.length + 1;
-      stream.messages.push({ subject, data, seq, time: new Date() });
+      stream.messages.push({ subject, data, seq, time: new Date(), ...(opts?.msgID !== undefined ? { msgID: opts.msgID } : {}) });
       return Promise.resolve({ stream: stream.config.name, seq, duplicate: false } as unknown as PubAck);
     },
     consumers: {

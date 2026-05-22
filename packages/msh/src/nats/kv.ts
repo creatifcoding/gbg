@@ -47,6 +47,10 @@ export interface NatsKVServiceShape {
     bucketName: string, key: string, schema: S,
   ) => Effect.Effect<S['Type'], KVErrors.GetError, S['DecodingServices']>;
 
+  readonly getEntry: <S extends Schema.Top>(
+    bucketName: string, key: string, schema: S,
+  ) => Effect.Effect<TypedKVEntry<S['Type']> | null, Inner.KV.BucketError | Inner.KV.GetError | Codec.DecodeError, S['DecodingServices']>;
+
   readonly getOrNull: <S extends Schema.Top>(
     bucketName: string, key: string, schema: S,
   ) => Effect.Effect<S['Type'] | null, Inner.KV.BucketError | Inner.KV.GetError | Codec.DecodeError, S['DecodingServices']>;
@@ -55,7 +59,16 @@ export interface NatsKVServiceShape {
     bucketName: string, key: string, schema: S, value: S['Type'],
   ) => Effect.Effect<number, KVErrors.PutError, S['EncodingServices']>;
 
+  readonly create: <S extends Schema.Top>(
+    bucketName: string, key: string, schema: S, value: S['Type'],
+  ) => Effect.Effect<number, KVErrors.PutError, S['EncodingServices']>;
+
+  readonly updateIfRevision: <S extends Schema.Top>(
+    bucketName: string, key: string, schema: S, value: S['Type'], expectedRevision: number,
+  ) => Effect.Effect<number, KVErrors.PutError, S['EncodingServices']>;
+
   readonly delete: (bucketName: string, key: string) => Effect.Effect<void, KVErrors.DeleteError>;
+  readonly deleteIfRevision: (bucketName: string, key: string, expectedRevision: number) => Effect.Effect<void, KVErrors.DeleteError>;
   readonly purge: (bucketName: string, key: string) => Effect.Effect<void, KVErrors.DeleteError>;
 
   readonly watch: <S extends Schema.Top>(
@@ -127,26 +140,52 @@ export class NatsKVService extends Context.Service<
           return yield* NatsCodec.decodeJson(schema, { subject: `kv.${bucketName}.${key}` })(entry.value);
         });
 
-      const getOrNull: NatsKVServiceShape['getOrNull'] = (bucketName, key, schema) =>
+      const getEntry: NatsKVServiceShape['getEntry'] = (bucketName, key, schema) =>
         Effect.gen(function* () {
           const bucket = yield* getBucket(bucketName);
           const entry = yield* inner.kv.get(bucketName, bucket, key);
           if (!hasPutValue(entry)) return null;
-          return yield* NatsCodec.decodeJson(schema, { subject: `kv.${bucketName}.${key}` })(entry.value);
+          return yield* decodeEntry(entry, schema, bucketName);
         });
+
+      const getOrNull: NatsKVServiceShape['getOrNull'] = (bucketName, key, schema) =>
+        Effect.gen(function* () {
+          const entry = yield* getEntry(bucketName, key, schema);
+          return entry?.value ?? null;
+        });
+
+      const encodeValue = <S extends Schema.Top>(bucketName: string, key: string, schema: S, value: S['Type']) =>
+        pipe(
+          NatsCodec.encodeJson(schema, value),
+          Effect.mapError((e) => new Codec.EncodeError({ message: `Encode failed '${bucketName}.${key}'`, cause: e })),
+        );
 
       const put: NatsKVServiceShape['put'] = (bucketName, key, schema, value) =>
         Effect.gen(function* () {
           const bucket = yield* getBucket(bucketName);
-          const bytes = yield* pipe(
-            NatsCodec.encodeJson(schema, value),
-            Effect.mapError((e) => new Codec.EncodeError({ message: `Encode failed '${bucketName}.${key}'`, cause: e })),
-          );
+          const bytes = yield* encodeValue(bucketName, key, schema, value);
           return yield* inner.kv.put(bucketName, bucket, key, bytes);
+        });
+
+      const create: NatsKVServiceShape['create'] = (bucketName, key, schema, value) =>
+        Effect.gen(function* () {
+          const bucket = yield* getBucket(bucketName);
+          const bytes = yield* encodeValue(bucketName, key, schema, value);
+          return yield* inner.kv.create(bucketName, bucket, key, bytes);
+        });
+
+      const updateIfRevision: NatsKVServiceShape['updateIfRevision'] = (bucketName, key, schema, value, expectedRevision) =>
+        Effect.gen(function* () {
+          const bucket = yield* getBucket(bucketName);
+          const bytes = yield* encodeValue(bucketName, key, schema, value);
+          return yield* inner.kv.update(bucketName, bucket, key, bytes, expectedRevision);
         });
 
       const del: NatsKVServiceShape['delete'] = (bucketName, key) =>
         Effect.gen(function* () { const b = yield* getBucket(bucketName); yield* inner.kv.delete(bucketName, b, key); });
+
+      const deleteIfRevision: NatsKVServiceShape['deleteIfRevision'] = (bucketName, key, expectedRevision) =>
+        Effect.gen(function* () { const b = yield* getBucket(bucketName); yield* inner.kv.deleteIfRevision(bucketName, b, key, expectedRevision); });
 
       const purge: NatsKVServiceShape['purge'] = (bucketName, key) =>
         Effect.gen(function* () { const b = yield* getBucket(bucketName); yield* inner.kv.purge(bucketName, b, key); });
@@ -202,9 +241,13 @@ export class NatsKVService extends Context.Service<
 
       return NatsKVService.of({
         get: (b, k, s) => get(b, k, s).pipe(Effect.withSpan(MshSpan.KV.get)),
+        getEntry: (b, k, s) => getEntry(b, k, s).pipe(Effect.withSpan(MshSpan.KV.getEntry)),
         getOrNull: (b, k, s) => getOrNull(b, k, s).pipe(Effect.withSpan(MshSpan.KV.getOrNull)),
         put: (b, k, s, v) => put(b, k, s, v).pipe(Effect.withSpan(MshSpan.KV.put)),
+        create: (b, k, s, v) => create(b, k, s, v).pipe(Effect.withSpan(MshSpan.KV.create)),
+        updateIfRevision: (b, k, s, v, r) => updateIfRevision(b, k, s, v, r).pipe(Effect.withSpan(MshSpan.KV.updateIfRevision)),
         delete: (b, k) => del(b, k).pipe(Effect.withSpan(MshSpan.KV.delete)),
+        deleteIfRevision: (b, k, r) => deleteIfRevision(b, k, r).pipe(Effect.withSpan(MshSpan.KV.deleteIfRevision)),
         purge: (b, k) => purge(b, k).pipe(Effect.withSpan(MshSpan.KV.purge)),
         watch: (b, s, o) => watch(b, s, o).pipe(Effect.withSpan(MshSpan.KV.watch)),
         keys: (b, f) => keys(b, f).pipe(Effect.withSpan(MshSpan.KV.keys)),
