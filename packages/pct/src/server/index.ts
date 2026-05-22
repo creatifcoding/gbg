@@ -10,12 +10,25 @@
  */
 
 export { layerFromConfig as journalLayerFromConfig } from "./Journal.js"
+export {
+  DEFAULT_PCT_NATS_CONTROL_PLANE_OPTIONS,
+  PctNatsControlPlane,
+  PctNatsSchemaNotFound,
+  layer as natsControlPlaneLayer,
+  make as makeNatsControlPlane,
+  resolvePctNatsControlPlaneOptions,
+  type PctNatsControlPlaneOptions,
+  type PctNatsControlPlaneShape,
+  type ResolvedPctNatsControlPlaneOptions,
+} from "./NatsControlPlane.js"
 export { Routes } from "./Routes.js"
 export {
   type ErrorBody,
   ErrorBody as ErrorBodySchema,
+  CapabilitiesGetRequest,
   GetSchemaParams,
   GetSchemaResponse,
+  SchemaGetRequest,
   PublishedProcedureResponse,
   PublishProcedureGroupRequest,
   PublishProcedureGroupResponse,

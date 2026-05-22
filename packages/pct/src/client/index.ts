@@ -17,3 +17,13 @@ export {
   layer as schemaResolverLayer,
   layerFromPactClient as schemaResolverLayerFromPactClient,
 } from "./SchemaResolverLayer.js"
+export {
+  DEFAULT_NATS_SCHEMA_RESOLVER_OPTIONS,
+  SchemaGetRequest,
+  SchemaGetResponse,
+  layer as natsSchemaResolverLayer,
+  make as makeNatsSchemaResolver,
+  resolveNatsSchemaResolverOptions,
+  type NatsSchemaResolverOptions,
+  type ResolvedNatsSchemaResolverOptions,
+} from "./NatsSchemaResolverLayer.js"

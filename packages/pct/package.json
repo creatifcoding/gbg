@@ -73,8 +73,10 @@
     "pact": "./bin/pact.ts"
   },
   "dependencies": {
+    "@tmnl/lnk": "workspace:*",
+    "@tmnl/msh": "workspace:*",
     "effect-v4": "npm:effect@4.0.0-beta.59",
-    "@tmnl/lnk": "workspace:*"
+    "nats.ws": "^1.30.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

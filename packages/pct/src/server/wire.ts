@@ -94,7 +94,13 @@ export type PublishProcedureGroupResponse =
  * `manifest/Manifest.ts`.
  */
 
-// ─── /schemas/:schemaId ────────────────────────────────────────────────────
+// ─── /schemas/:schemaId + NATS schema.get ─────────────────────────────────
+
+export const SchemaGetRequest = Schema.Struct({
+  /** Compound schema-id — e.g. "orders/Order@1.0.0". */
+  schemaId: Schema.String,
+})
+export type SchemaGetRequest = typeof SchemaGetRequest.Type
 
 export const GetSchemaParams = Schema.Struct({
   /** Compound schema-id, URL-encoded — e.g. "orders%2FOrder%401.0.0". */
@@ -118,6 +124,11 @@ export const GetSchemaResponse = Schema.Struct({
     }),
   ),
 })
+
+// ─── NATS capabilities.get ─────────────────────────────────────────────────
+
+export const CapabilitiesGetRequest = Schema.Struct({})
+export type CapabilitiesGetRequest = typeof CapabilitiesGetRequest.Type
 
 // ─── Error envelope ────────────────────────────────────────────────────────
 
