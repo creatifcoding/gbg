@@ -10,12 +10,13 @@
  * @module @tmnl/lnk/services/wire/nats-bridge/NatsBridgeWire
  */
 
+import * as Duration from "effect-v4/Duration"
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 
 import { FetchError } from "../../../contracts/errors.js"
 import { Wire, type WireShape } from "../Wire.js"
-import { NatsBridgePort } from "./Port.js"
+import { NatsBridgePort, type NatsBridgePortShape } from "./Port.js"
 
 export interface NatsBridgeWireOptions {
   /** Internal subject root for future MSH JetStream messages. */
@@ -76,6 +77,54 @@ const makeNotImplementedWire = (
   delete: () => Effect.fail(notImplemented("delete", options)),
 })
 
+const hasRealOffset = (offset: unknown): boolean =>
+  offset !== undefined && offset !== "-"
+
+type WirePutInput = Parameters<WireShape["put"]>[0]
+type WirePostInput = Parameters<WireShape["post"]>[0]
+type WireGetInput = Parameters<WireShape["get"]>[0]
+type PortCreateInput = Parameters<NatsBridgePortShape["create"]>[0]
+type PortAppendInput = Parameters<NatsBridgePortShape["append"]>[0]
+type PortReadInput = Parameters<NatsBridgePortShape["read"]>[0]
+type Writable<T> = { -readonly [K in keyof T]: T[K] }
+
+const toPortCreateInput = (input: WirePutInput): PortCreateInput => {
+  const out: Writable<PortCreateInput> = {
+    streamId: input.streamId,
+    contentType: input.contentType,
+  }
+  if (input.body !== undefined) out.body = input.body
+  if (input.streamClosed === true) out.streamClosed = true
+  if (input.streamTtl !== undefined) out.ttl = input.streamTtl
+  if (input.streamExpiresAt !== undefined) out.expiresAt = input.streamExpiresAt
+  if (input.schemaId !== undefined) out.schemaId = input.schemaId
+  return out
+}
+
+const toPortAppendInput = (input: WirePostInput): PortAppendInput => {
+  const out: Writable<PortAppendInput> = {
+    streamId: input.streamId,
+    body: input.body,
+  }
+  if (input.contentType !== undefined) out.contentType = input.contentType
+  if (input.producer !== undefined) out.producer = input.producer
+  if (input.streamSeq !== undefined) out.streamSeq = input.streamSeq
+  if (input.streamClosed === true) out.streamClosed = true
+  return out
+}
+
+const toPortReadInput = (input: WireGetInput): PortReadInput => {
+  const out: Writable<PortReadInput> = {
+    streamId: input.streamId,
+    position: input.position,
+  }
+  if (input.limit !== undefined) out.limit = input.limit
+  if (input.live !== undefined) out.live = input.live
+  if (input.timeout !== undefined) out.timeout = Duration.millis(input.timeout)
+  if (input.cursor !== undefined) out.cursor = input.cursor
+  return out
+}
+
 export class NatsBridgeWire {
   /**
    * Skeleton Layer. It provides the Wire tag with explicit 501-style failures.
@@ -89,18 +138,54 @@ export class NatsBridgeWire {
   }
 
   /**
-   * Contract-preserving seam for the future live implementation. Currently the
-   * port is required only to prove composition shape; operations remain guarded.
+   * Wire adapter over a bridge port. The default `layer` stays guarded until a
+   * concrete MSH-backed port is provided; this seam is real and testable now.
    */
   static readonly layerFromPort = (
     options: NatsBridgeWireOptions = {},
   ): Layer.Layer<Wire, never, NatsBridgePort> => {
     const resolved = resolveNatsBridgeWireOptions(options)
+    void resolved
     return Layer.effect(
       Wire,
       Effect.gen(function* () {
-        yield* NatsBridgePort
-        return Wire.of(makeNotImplementedWire(resolved))
+        const port = yield* NatsBridgePort
+        return Wire.of({
+          put: (input) =>
+            port.create(toPortCreateInput(input)).pipe(
+              Effect.map((metadata) => ({
+                streamId: metadata.streamId,
+                contentType: metadata.contentType,
+                created: metadata.created,
+                closed: metadata.closed,
+                ...(hasRealOffset(metadata.nextOffset) ? { nextOffset: metadata.nextOffset } : {}),
+              })),
+            ),
+          post: (input) =>
+            port.append(toPortAppendInput(input)),
+          get: (input) =>
+            port.read(toPortReadInput(input)).pipe(
+              Effect.map((result) => ({
+                body: result.body,
+                upToDate: result.upToDate === true,
+                closed: result.closed === true,
+                ...(result.nextOffset !== undefined ? { nextOffset: result.nextOffset } : {}),
+                ...(result.cursor !== undefined ? { cursor: result.cursor } : {}),
+              })),
+            ),
+          head: (input) =>
+            port.metadata(input.streamId).pipe(
+              Effect.map((metadata) => ({
+                contentType: metadata.contentType,
+                closed: metadata.closed,
+                ...(hasRealOffset(metadata.nextOffset) ? { nextOffset: metadata.nextOffset } : {}),
+                ...(metadata.ttl !== undefined ? { ttl: metadata.ttl } : {}),
+                ...(metadata.expiresAt !== undefined ? { expiresAt: metadata.expiresAt } : {}),
+                ...(metadata.schemaId !== undefined ? { schemaId: metadata.schemaId } : {}),
+              })),
+            ),
+          delete: (input) => port.delete(input.streamId),
+        })
       }),
     )
   }

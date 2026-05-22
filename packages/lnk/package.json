@@ -76,6 +76,7 @@
     "prepublishOnly": "bun run clean && bun run build"
   },
   "dependencies": {
+    "@tmnl/msh": "workspace:*",
     "effect-v4": "npm:effect@4.0.0-beta.59"
   },
   "peerDependencies": {

@@ -1,6 +1,6 @@
-# NatsBridgeWire Port Contract
+# MshBridgeWire / NatsBridgeWire Port Contract
 
-Status: foundation skeleton. The exported package surface exists; the live MSH-backed implementation is intentionally guarded until the JetStream/KV translation is complete.
+Status: concrete MSH-backed bridge available. `MshBridgeWire` is the public name for the production bridge backed by `@tmnl/msh`; `NatsBridgeWire` remains the compatibility name on the existing `nats-bridge` subpath. `NatsBridgeWire.layer(...)` intentionally stays guarded with explicit 501 failures, while `MshBridgeWire.layer(...)` composes the live MSH connection, KV, JetStream, CAS metadata store, batch publisher, shard guard, and Wire adapter.
 
 ## Legacy inventory
 
@@ -31,17 +31,37 @@ Legacy Holonet durable-streams v1 provided three relevant surfaces:
 
 No MSH code should learn LNK domain concepts such as `Stream-Next-Offset`, producer epochs, JSON stream framing, or close semantics.
 
-## Port shape
+## Port and CAS shape
 
-The canonical type-level seam is `src/services/wire/nats-bridge/Port.ts`:
+The compatibility port seam is `src/services/wire/nats-bridge/Port.ts`; public aliases live in `MshBridgePort.ts`:
 
-- `NatsBridgePort.create`
-- `NatsBridgePort.append`
-- `NatsBridgePort.read`
-- `NatsBridgePort.metadata`
-- `NatsBridgePort.delete`
+- `MshBridgePort.create`
+- `MshBridgePort.append`
+- `MshBridgePort.read`
+- `MshBridgePort.metadata`
+- `MshBridgePort.delete`
 
-The public `NatsBridgeWire.layer(...)` currently provides `Wire` with explicit `FetchError(status: 501)` failures. Future implementation should replace the guarded methods with calls through `NatsBridgePort`, then provide a concrete MSH-backed port layer.
+The CAS foundation is split into small LNK-owned modules:
+
+- `kernel.ts` — schema-backed metadata, MSH offset codec, DurableBatch envelope, create/append planners.
+- `CasMetadataStore.ts` — abstract revisioned metadata store; concrete MSH adapter should use typed `NatsKVService.getEntry/create/updateIfRevision/deleteIfRevision`.
+- `BatchPublisher.ts` — abstract JetStream publisher using `msgID` + `expectedLastSubjectSequence`.
+- `ShardGuard.ts` — local same-shard serialization for CAS attempts.
+- `CasAppend.ts` — bounded CAS append loop: load metadata → plan → publish envelope → update metadata by revision → retry conflicts.
+
+The public `NatsBridgeWire.layer(...)` still provides explicit `FetchError(status: 501)` failures. `NatsBridgeWire.layerFromPort(...)` / `MshBridgeWire.layerFromPort(...)` map real Wire operations through the provided port. `MshBridgeWire.layerFromMshServices(...)` is available when the host already provides `NatsKVService` and `NatsStreamService`; `MshBridgeWire.layer(...)` is the fully composed live layer.
+
+## C-lite intent cleanup
+
+Bridge optionality is centralized at the Wire/Port boundary instead of being scattered through append hot paths:
+
+- `intents.ts` defines schema-backed append intents: `AppendMessages`, `AppendAndClose`, and `CloseStream`.
+- `makeAppendIntent(...)` classifies command intent once, including optional producer and stream sequence metadata.
+- `toDurableAppendInput(...)` converts `OptionFromOptionalKey` fields to exact durable append inputs without leaking `undefined` keys.
+- `toDurableCreateInput(...)` performs the same exact-optional normalization for create metadata.
+- `MshBridgePortLive.read` models live waiting as tagged state data (`Readable` / `Waiting`) and separates LNK live wait duration from the NATS pull fetch expiration floor.
+
+This keeps the CAS kernel focused on Durable Streams rules and keeps MSH as substrate plumbing only.
 
 ## Default namespace proposal
 
@@ -50,10 +70,40 @@ The public `NatsBridgeWire.layer(...)` currently provides `Wire` with explicit `
 - Metadata bucket: `TMNL_LNK_META`
 - Consumer prefix: `tmnl-lnk`
 
-## Implementation notes for the next phase
+## PCT configuration and migration
 
-1. Metadata in KV: content-type, schema-id, closed flag, tail offset/sequence, producer fencing state.
-2. Messages in JetStream: one subject namespace per configured root.
-3. Offset translation stays in LNK. JetStream sequence numbers are an implementation detail.
-4. Producer dedupe may use JetStream `msgID`; producer fencing still needs KV state.
-5. Live read should be implemented above the same `Wire.get` semantics, not as a separate app-facing protocol.
+`@tmnl/pct` now treats `msh-bridge` as the canonical configured backend for LNK routes:
+
+```json
+{
+  "lnk": {
+    "backend": "msh-bridge",
+    "msh": {
+      "servers": "ws://localhost:9222",
+      "subjectRoot": "_tmnl.lnk.stream",
+      "metadataBucket": "TMNL_LNK_META",
+      "streamNamePrefix": "TMNL_LNK",
+      "consumerNamePrefix": "tmnl-lnk",
+      "shardCount": 32
+    }
+  }
+}
+```
+
+Environment equivalents use `PCT_LNK_MSH_*`, for example:
+
+```bash
+PCT_LNK_BACKEND=msh-bridge
+PCT_LNK_MSH_SERVERS=ws://localhost:9222
+PCT_LNK_MSH_SUBJECT_ROOT=_tmnl.lnk.stream
+PCT_LNK_MSH_METADATA_BUCKET=TMNL_LNK_META
+PCT_LNK_MSH_SHARD_COUNT=32
+```
+
+Migration notes:
+
+1. Prefer `lnk.backend = "msh-bridge"` for new deployments.
+2. `lnk.backend = "nats-bridge"` remains accepted as a legacy alias in PCT and maps to the concrete `MshBridgeWire.layer(...)`.
+3. Existing `lnk.nats.{subjectRoot,streamNamePrefix,metadataBucket,consumerNamePrefix}` keys remain a legacy alias. New config should use `lnk.msh.*`; when both are present, `lnk.msh.*` wins.
+4. `NatsBridgeWire.layer(...)` itself is still guarded. Host applications that want the real bridge should select `MshBridgeWire.layer(...)` (or PCT `msh-bridge`).
+5. Live reads use LNK timeout semantics independently from the NATS pull `expires` guardrail; do not lower NATS fetch expiry below the substrate floor.

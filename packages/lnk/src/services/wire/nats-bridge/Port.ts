@@ -25,6 +25,7 @@
  */
 
 import * as Context from "effect-v4/Context"
+import type * as Duration from "effect-v4/Duration"
 import type * as Effect from "effect-v4/Effect"
 import type * as Stream from "effect-v4/Stream"
 
@@ -34,6 +35,7 @@ import type { Epoch, ProducerId, Seq } from "../../../contracts/Producer.js"
 import type { StreamId } from "../../../contracts/StreamId.js"
 import type {
   FetchError,
+  InvalidOffsetError,
   InvalidPayloadError,
   RetentionDroppedError,
   SequenceGapError,
@@ -49,6 +51,8 @@ export interface NatsBridgeStreamMetadata {
   readonly schemaId?: string
   readonly closed: boolean
   readonly nextOffset?: Offset
+  readonly ttl?: number
+  readonly expiresAt?: string
 }
 
 export interface NatsBridgeAppendInput {
@@ -76,8 +80,8 @@ export interface NatsBridgeReadInput {
   readonly streamId: StreamId
   readonly position: ReadPosition
   readonly limit?: number
-  readonly live?: "poll" | "sse"
-  readonly timeout?: number
+  readonly live?: "long-poll" | "sse"
+  readonly timeout?: Duration.Input
   readonly cursor?: string
 }
 
@@ -123,6 +127,7 @@ export interface NatsBridgePortShape {
     | FetchError
     | StreamNotFoundError
     | RetentionDroppedError
+    | InvalidOffsetError
   >
 
   readonly metadata: (

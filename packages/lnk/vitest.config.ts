@@ -41,6 +41,8 @@ export default defineConfig({
         __dirname,
         'src/contracts/index.ts',
       ),
+      '@tmnl/msh/nats': path.resolve(__dirname, '../msh/src/nats/index.ts'),
+      '@tmnl/msh': path.resolve(__dirname, '../msh/src/index.ts'),
       '@tmnl/stx': path.resolve(__dirname, '../stx/src/index.ts'),
     },
   },
