@@ -18,6 +18,7 @@
  *   - `federation` — Flow B peer polling controls for `pact serve`
  *   - `journal`  — EventJournal backend selection
  *   - `lnk`      — Durable Streams backend selection for mounted LNK routes
+ *   - `natsControl` — PCT NATS control-plane hosting for `pact serve`
  *
  * # Service shape
  *
@@ -57,7 +58,8 @@ import * as Sources from "./Sources.js"
  *     "peers": ["http://peer-a:8080"]
  *   },
  *   "journal": { "backend": "memory" },
- *   "lnk": { "backend": "in-memory" }
+ *   "lnk": { "backend": "msh-bridge", "msh": { "servers": "ws://localhost:9222" } },
+ *   "natsControl": { "mode": "auto", "subjectRoot": "pct.v1" }
  * }
  * ```
  *
@@ -77,8 +79,13 @@ import * as Sources from "./Sources.js"
  *   PCT_JOURNAL_DATABASE=pct-registry
  *   PCT_JOURNAL_ENTRY_TABLE=pct_event_journal
  *   PCT_JOURNAL_REMOTES_TABLE=pct_event_remotes
- *   PCT_LNK_BACKEND=in-memory
- *   PCT_LNK_NATS_SUBJECT_ROOT=_tmnl.lnk.stream
+ *   PCT_LNK_BACKEND=msh-bridge
+ *   PCT_LNK_MSH_SERVERS=ws://localhost:9222
+ *   PCT_LNK_MSH_SUBJECT_ROOT=_tmnl.lnk.stream
+ *   PCT_LNK_NATS_SUBJECT_ROOT=_tmnl.lnk.stream (legacy alias)
+ *   PCT_NATS_CONTROL_MODE=auto
+ *   PCT_NATS_CONTROL_SUBJECT_ROOT=pct.v1
+ *   PCT_NATS_CONTROL_SERVERS=ws://localhost:9222
  */
 export const PactConfigSchema = Schema.Struct({
   node: Schema.Struct({
@@ -132,15 +139,53 @@ export const PactConfigSchema = Schema.Struct({
     /** SQL remote sequence table name for postgres backend. */
     remotesTable: Schema.optional(Schema.String),
   }),
+  natsControl: Schema.Struct({
+    /**
+     * NATS-first hosting mode for the PCT control plane.
+     *
+     * - `auto`: host when the configured LNK backend uses MSH/NATS, or when
+     *   natsControl supplies explicit servers.
+     * - `enabled`: always host and fail fast if NATS is unavailable.
+     * - `disabled`: never host from `pact serve` (programmatic layer remains available).
+     */
+    mode: Schema.Literals(["auto", "enabled", "disabled"]),
+    /** PCT micro subject root, e.g. `pct.v1` or `_tmnl.pct.v1`. */
+    subjectRoot: Schema.String,
+    serviceName: Schema.String,
+    serviceVersion: Schema.String,
+    serviceDescription: Schema.String,
+    queue: Schema.optional(Schema.String),
+    /** Optional NATS connection override. Falls back to `lnk.msh.servers`, then MSH default. */
+    servers: Schema.optional(Schema.Union([Schema.String, Schema.Array(Schema.String)])),
+    name: Schema.optional(Schema.String),
+    reconnect: Schema.optional(Schema.Boolean),
+    maxReconnectAttempts: Schema.optional(Schema.Int),
+    reconnectDelayMs: Schema.optional(Schema.Int),
+    debug: Schema.optional(Schema.Boolean),
+  }),
   lnk: Schema.Struct({
-    /** Durable Streams backend for mounted LNK routes. */
-    backend: Schema.Literals(["in-memory", "nats-bridge"]),
-    /** Options for the future MSH-backed NatsBridgeWire. */
+    /** Durable Streams backend for mounted LNK routes. `nats-bridge` is a legacy alias. */
+    backend: Schema.Literals(["in-memory", "msh-bridge", "nats-bridge"]),
+    /** Legacy options for the original NATS bridge name. Prefer `msh`. */
     nats: Schema.Struct({
       subjectRoot: Schema.optional(Schema.String),
       streamNamePrefix: Schema.optional(Schema.String),
       metadataBucket: Schema.optional(Schema.String),
       consumerNamePrefix: Schema.optional(Schema.String),
+    }),
+    /** Options for the concrete MSH-backed bridge. */
+    msh: Schema.Struct({
+      subjectRoot: Schema.optional(Schema.String),
+      streamNamePrefix: Schema.optional(Schema.String),
+      metadataBucket: Schema.optional(Schema.String),
+      consumerNamePrefix: Schema.optional(Schema.String),
+      servers: Schema.optional(Schema.Union([Schema.String, Schema.Array(Schema.String)])),
+      name: Schema.optional(Schema.String),
+      reconnect: Schema.optional(Schema.Boolean),
+      maxReconnectAttempts: Schema.optional(Schema.Int),
+      reconnectDelayMs: Schema.optional(Schema.Int),
+      debug: Schema.optional(Schema.Boolean),
+      shardCount: Schema.optional(Schema.Int),
     }),
   }),
 })
@@ -170,7 +215,14 @@ const DEFAULTS: PactConfigValue = {
     eventLogRemote: { enabled: false, peers: [] },
   },
   journal: { backend: "memory" },
-  lnk: { backend: "in-memory", nats: {} },
+  natsControl: {
+    mode: "auto",
+    subjectRoot: "pct.v1",
+    serviceName: "pct-control-plane",
+    serviceVersion: "0.1.0",
+    serviceDescription: "PCT NATS control plane",
+  },
+  lnk: { backend: "in-memory", nats: {}, msh: {} },
 }
 
 /**

@@ -76,7 +76,14 @@ describe("Config — Sources stacking", () => {
       peers: [],
       eventLogRemote: { enabled: false, peers: [] },
     })
-    expect(result.lnk).toEqual({ backend: "in-memory", nats: {} })
+    expect(result.natsControl).toEqual({
+      mode: "auto",
+      subjectRoot: "pct.v1",
+      serviceName: "pct-control-plane",
+      serviceVersion: "0.1.0",
+      serviceDescription: "PCT NATS control plane",
+    })
+    expect(result.lnk).toEqual({ backend: "in-memory", nats: {}, msh: {} })
   })
 
   it("project file alone: walks up from cwd to find pact.config.json", async () => {
@@ -433,7 +440,7 @@ describe("Config — Sources stacking", () => {
     expect(result.journal.remotesTable).toBe("env_remotes")
   })
 
-  it("lnk backend config supports the nats-bridge skeleton and env overrides", async () => {
+  it("lnk backend config supports msh-bridge plus legacy nats alias overrides", async () => {
     const files = new Map([
       [
         "/workspace/pact.config.json",
@@ -444,6 +451,7 @@ describe("Config — Sources stacking", () => {
           lnk: {
             backend: "in-memory",
             nats: { metadataBucket: "FILE_BUCKET" },
+            msh: { streamNamePrefix: "FILE_STREAM", servers: "ws://file.example:9222" },
           },
         }),
       ],
@@ -456,8 +464,10 @@ describe("Config — Sources stacking", () => {
           Config.layer({
             cwd: "/workspace/nested",
             env: new Map([
-              ["PCT_LNK_BACKEND", "nats-bridge"],
-              ["PCT_LNK_NATS_SUBJECT_ROOT", "_test.lnk.stream"],
+              ["PCT_LNK_BACKEND", "msh-bridge"],
+              ["PCT_LNK_NATS_SUBJECT_ROOT", "_legacy.lnk.stream"],
+              ["PCT_LNK_MSH_SUBJECT_ROOT", "_test.lnk.stream"],
+              ["PCT_LNK_MSH_SHARD_COUNT", "8"],
             ]),
           }),
         ),
@@ -465,9 +475,77 @@ describe("Config — Sources stacking", () => {
       ),
     )
 
-    expect(result.lnk.backend).toBe("nats-bridge")
+    expect(result.lnk.backend).toBe("msh-bridge")
     expect(result.lnk.nats.metadataBucket).toBe("FILE_BUCKET")
-    expect(result.lnk.nats.subjectRoot).toBe("_test.lnk.stream")
+    expect(result.lnk.nats.subjectRoot).toBe("_legacy.lnk.stream")
+    expect(result.lnk.msh.streamNamePrefix).toBe("FILE_STREAM")
+    expect(result.lnk.msh.servers).toBe("ws://file.example:9222")
+    expect(result.lnk.msh.subjectRoot).toBe("_test.lnk.stream")
+    expect(result.lnk.msh.shardCount).toBe(8)
+  })
+
+  it("nats control config reads file values and env overrides", async () => {
+    const files = new Map([
+      [
+        "/workspace/pact.config.json",
+        JSON.stringify({
+          server: { port: 9090, host: "127.0.0.1" },
+          client: { baseUrl: "http://from-file:9090" },
+          node: {},
+          natsControl: {
+            mode: "disabled",
+            subjectRoot: "pct.file",
+            serviceName: "pct-file-control",
+            serviceVersion: "0.2.0",
+            serviceDescription: "file description",
+            servers: "ws://file.example:9222",
+          },
+        }),
+      ],
+    ])
+    const dirs = new Set(["/workspace/.git"])
+
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([
+              ["PCT_NATS_CONTROL_MODE", "enabled"],
+              ["PCT_NATS_CONTROL_SUBJECT_ROOT", "pct.env"],
+              ["PCT_NATS_CONTROL_NAME", "pct-env-connection"],
+              ["PCT_NATS_CONTROL_RECONNECT", "false"],
+            ]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(files, dirs)),
+      ),
+    )
+
+    expect(result.natsControl.mode).toBe("enabled")
+    expect(result.natsControl.subjectRoot).toBe("pct.env")
+    expect(result.natsControl.serviceName).toBe("pct-file-control")
+    expect(result.natsControl.serviceVersion).toBe("0.2.0")
+    expect(result.natsControl.serviceDescription).toBe("file description")
+    expect(result.natsControl.servers).toBe("ws://file.example:9222")
+    expect(result.natsControl.name).toBe("pct-env-connection")
+    expect(result.natsControl.reconnect).toBe(false)
+  })
+
+  it("lnk backend config still accepts nats-bridge as legacy alias", async () => {
+    const result = await Effect.runPromise(
+      Config.PactConfig.asEffect().pipe(
+        Effect.provide(
+          Config.layer({
+            cwd: "/workspace/nested",
+            env: new Map([["PCT_LNK_BACKEND", "nats-bridge"]]),
+          }),
+        ),
+        Effect.provide(PlatformLayer(new Map(), new Set(["/workspace/.git"]))),
+      ),
+    )
+
+    expect(result.lnk.backend).toBe("nats-bridge")
   })
 
   it("missing file is not fatal: falls through to defaults", async () => {

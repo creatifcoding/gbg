@@ -129,7 +129,14 @@ export const DEFAULTS_PROVIDER: ConfigProvider.ConfigProvider =
       eventLogRemote: { enabled: false, peers: [] },
     },
     journal: { backend: "memory" },
-    lnk: { backend: "in-memory", nats: {} },
+    natsControl: {
+      mode: "auto",
+      subjectRoot: "pct.v1",
+      serviceName: "pct-control-plane",
+      serviceVersion: "0.1.0",
+      serviceDescription: "PCT NATS control plane",
+    },
+    lnk: { backend: "in-memory", nats: {}, msh: {} },
   })
 
 // ─── File loaders ───────────────────────────────────────────────────────────

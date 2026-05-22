@@ -45,6 +45,11 @@ import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
 import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
 
 import { Services as LnkServices } from "@tmnl/lnk"
+import type { MshConfigInput } from "@tmnl/msh"
+import {
+  MshMicroEndpointHost,
+  NatsConnectionService,
+} from "@tmnl/msh/nats"
 
 import * as Config from "../config/index.js"
 import { DeltaRoutes as FederationDeltaRoutes } from "../federation/DeltaRoutes.js"
@@ -59,6 +64,7 @@ import * as IdentityLayers from "../identity/Layers.js"
 import * as NotaryDefault from "../notary/Default.js"
 import * as RegistryMemory from "../registry/Memory.js"
 import { layerFromConfig as journalLayerFromConfig } from "../server/Journal.js"
+import { layer as natsControlPlaneLayer } from "../server/NatsControlPlane.js"
 import { Routes as PactRoutes } from "../server/Routes.js"
 
 // ─── Server runtime detection ───────────────────────────────────────────────
@@ -157,6 +163,109 @@ const hostOverrideFlag = Flag.string("host").pipe(
   Flag.optional,
 )
 
+type LnkConfig = Config.PactConfigValue["lnk"]
+type NatsControlConfig = Config.PactConfigValue["natsControl"]
+interface MshBridgeOptions {
+  readonly subjectRoot?: string
+  readonly streamNamePrefix?: string
+  readonly metadataBucket?: string
+  readonly consumerNamePrefix?: string
+  readonly servers?: string | ReadonlyArray<string>
+  readonly name?: string
+  readonly reconnect?: boolean
+  readonly maxReconnectAttempts?: number
+  readonly reconnectDelayMs?: number
+  readonly debug?: boolean
+  readonly shardCount?: number
+}
+
+type LnkWireLayer = typeof LnkServices.Wire.InMemory.InMemoryWire.layer
+interface MshBridgeWireRuntime {
+  readonly layer: (options?: MshBridgeOptions) => LnkWireLayer
+}
+
+const MshBridgeWireRuntime = (
+  LnkServices.Wire.NatsBridge as unknown as { readonly MshBridgeWire: MshBridgeWireRuntime }
+).MshBridgeWire
+
+type Writable<T> = { -readonly [K in keyof T]: T[K] }
+
+const mshBridgeOptionsFromConfig = (lnk: LnkConfig): MshBridgeOptions => {
+  const out: Writable<MshBridgeOptions> = {}
+  if (lnk.nats.subjectRoot !== undefined) out.subjectRoot = lnk.nats.subjectRoot
+  if (lnk.nats.streamNamePrefix !== undefined) out.streamNamePrefix = lnk.nats.streamNamePrefix
+  if (lnk.nats.metadataBucket !== undefined) out.metadataBucket = lnk.nats.metadataBucket
+  if (lnk.nats.consumerNamePrefix !== undefined) out.consumerNamePrefix = lnk.nats.consumerNamePrefix
+
+  if (lnk.msh.subjectRoot !== undefined) out.subjectRoot = lnk.msh.subjectRoot
+  if (lnk.msh.streamNamePrefix !== undefined) out.streamNamePrefix = lnk.msh.streamNamePrefix
+  if (lnk.msh.metadataBucket !== undefined) out.metadataBucket = lnk.msh.metadataBucket
+  if (lnk.msh.consumerNamePrefix !== undefined) out.consumerNamePrefix = lnk.msh.consumerNamePrefix
+  if (lnk.msh.servers !== undefined) out.servers = lnk.msh.servers
+  if (lnk.msh.name !== undefined) out.name = lnk.msh.name
+  if (lnk.msh.reconnect !== undefined) out.reconnect = lnk.msh.reconnect
+  if (lnk.msh.maxReconnectAttempts !== undefined) out.maxReconnectAttempts = lnk.msh.maxReconnectAttempts
+  if (lnk.msh.reconnectDelayMs !== undefined) out.reconnectDelayMs = lnk.msh.reconnectDelayMs
+  if (lnk.msh.debug !== undefined) out.debug = lnk.msh.debug
+  if (lnk.msh.shardCount !== undefined) out.shardCount = lnk.msh.shardCount
+  return out
+}
+
+const isMshBridgeBackend = (backend: LnkConfig["backend"]): boolean =>
+  backend === "msh-bridge" || backend === "nats-bridge"
+
+const natsControlEnabledFromConfig = (
+  config: Config.PactConfigValue,
+): boolean => {
+  switch (config.natsControl.mode) {
+    case "enabled":
+      return true
+    case "disabled":
+      return false
+    case "auto":
+      return isMshBridgeBackend(config.lnk.backend) || config.natsControl.servers !== undefined
+  }
+}
+
+const natsControlConnectionOptionsFromConfig = (
+  config: Config.PactConfigValue,
+): MshConfigInput => ({
+  servers:
+    config.natsControl.servers ??
+    config.lnk.msh.servers ??
+    "ws://localhost:9222",
+  name: config.natsControl.name ?? "pct-nats-control-plane",
+  reconnect:
+    config.natsControl.reconnect ??
+    config.lnk.msh.reconnect ??
+    true,
+  maxReconnectAttempts:
+    config.natsControl.maxReconnectAttempts ??
+    config.lnk.msh.maxReconnectAttempts ??
+    10,
+  reconnectDelayMs:
+    config.natsControl.reconnectDelayMs ??
+    config.lnk.msh.reconnectDelayMs ??
+    2_000,
+  debug:
+    config.natsControl.debug ??
+    config.lnk.msh.debug ??
+    false,
+})
+
+const natsControlPlaneOptionsFromConfig = (
+  config: Config.PactConfigValue,
+) => {
+  const out: Writable<Parameters<typeof natsControlPlaneLayer>[0]> = {
+    subjectRoot: config.natsControl.subjectRoot,
+    serviceName: config.natsControl.serviceName,
+    serviceVersion: config.natsControl.serviceVersion,
+    serviceDescription: config.natsControl.serviceDescription,
+  }
+  if (config.natsControl.queue !== undefined) out.queue = config.natsControl.queue
+  return out
+}
+
 export const serveCommand = Command.make(
   "serve",
   {
@@ -216,15 +325,35 @@ export const serveCommand = Command.make(
             Layer.provideMerge(JournalLayer),
           )
 
-      const LnkWireLayer = config.lnk.backend === "nats-bridge"
-        ? LnkServices.Wire.NatsBridge.NatsBridgeWire.layer(config.lnk.nats)
+      const LnkWireLayer = isMshBridgeBackend(config.lnk.backend)
+        ? MshBridgeWireRuntime.layer(mshBridgeOptionsFromConfig(config.lnk))
         : LnkServices.Wire.InMemory.InMemoryWire.layer
 
-      const ServicesLayer = Layer.mergeAll(
-        pctServices,
-        JournalLayer,
-        LnkWireLayer,
+      const natsControlEnabled = natsControlEnabledFromConfig(config)
+      const NatsControlLayer = natsControlPlaneLayer(
+        natsControlPlaneOptionsFromConfig(config),
+      ).pipe(
+        Layer.provideMerge(MshMicroEndpointHost.layer),
+        Layer.provideMerge(pctServices),
+        Layer.provideMerge(
+          NatsConnectionService.layerCustom(
+            natsControlConnectionOptionsFromConfig(config),
+          ),
+        ),
       )
+
+      const ServicesLayer = natsControlEnabled
+        ? Layer.mergeAll(
+            pctServices,
+            JournalLayer,
+            LnkWireLayer,
+            NatsControlLayer,
+          )
+        : Layer.mergeAll(
+            pctServices,
+            JournalLayer,
+            LnkWireLayer,
+          )
 
       const EventLogRemoteRouteLayer = EventLogRemoteRoutes().pipe(
         Layer.provide(ServicesLayer),
@@ -312,6 +441,9 @@ export const serveCommand = Command.make(
       )
       yield* Console.log(
         `  ┃ FlowC ${config.federation.eventLogRemote.enabled ? `enabled (${config.federation.eventLogRemote.peers.length} peers)` : "disabled"}`,
+      )
+      yield* Console.log(
+        `  ┃ NATS ${natsControlEnabled ? `control-plane enabled (${config.natsControl.mode}, root=${config.natsControl.subjectRoot})` : `control-plane disabled (${config.natsControl.mode})`}`,
       )
       yield* Console.log(``)
 
