@@ -12,6 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "paths": {},
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "noUncheckedIndexedAccess": true,
