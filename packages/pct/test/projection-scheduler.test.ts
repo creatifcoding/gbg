@@ -372,4 +372,129 @@ describe("ProjectionWorkerScheduler", () => {
     expect(result.pressure.completed).toBe(1)
     expect(result.pressure.parked).toBeGreaterThan(0)
   })
+
+  it("drains parked replay/backfill work by lane priority", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const admission = yield* ProjectionAdmissionController
+        const plan = compileTimescaleProjectionUnsafe(vitalsSpec)
+        const baseConfig = ProjectionWorkerConfig.make({
+          workerId: "worker-a",
+          spec: vitalsSpec,
+          plan,
+          mode: "tail",
+          maxMessagesPerTick: 1,
+          idlePollMs: 10,
+        })
+        const holder = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "priority-holder",
+          targetKey: "priority-holder-target",
+          lane: "hot",
+          now: 1,
+        })
+        const hot = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "priority-hot",
+          targetKey: "priority-hot-target",
+          lane: "hot",
+          now: 2,
+        })
+        const replay = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "priority-replay",
+          targetKey: "priority-replay-target",
+          lane: "replay",
+          now: 3,
+        })
+        const backfill = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "priority-backfill",
+          targetKey: "priority-backfill-target",
+          lane: "backfill",
+          now: 4,
+        })
+
+        const [, parked] = yield* Effect.all(
+          [
+            admission.runAdmitted(holder, Effect.sleep(Duration.millis(40)).pipe(Effect.as("holder"))),
+            Effect.gen(function* () {
+              yield* Effect.sleep(Duration.millis(5))
+              const parkedHot = yield* admission.runAdmitted(hot, Effect.succeed("hot"))
+              const parkedReplay = yield* admission.runAdmitted(replay, Effect.succeed("replay"))
+              const parkedBackfill = yield* admission.runAdmitted(backfill, Effect.succeed("backfill"))
+              return [parkedHot, parkedReplay, parkedBackfill]
+            }),
+          ],
+          { concurrency: "unbounded" },
+        )
+        const ready = yield* admission.drainReady({ limit: 3, now: Date.now() + 1_000 })
+        return { parked, ready }
+      }).pipe(
+        Effect.provide(
+          projectionAdmissionControllerLayerMemory.pipe(
+            Layer.provide(
+              projectionSchedulerTuningLayer({
+                maxConcurrentTicks: 1,
+                maxInFlightPerTarget: 10,
+                defaultRetryDelayMs: 0,
+              }),
+            ),
+          ),
+        ),
+      ),
+    )
+
+    expect(result.parked.map((entry) => entry.decision.status)).toEqual(["parked", "parked", "parked"])
+    expect(result.ready.map((work) => work.lane)).toEqual(["hot", "replay", "backfill"])
+    expect(result.ready.map((work) => work.attempt)).toEqual([1, 1, 1])
+  })
+
+  it("rejects parked work when retry budget is exhausted", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const admission = yield* ProjectionAdmissionController
+        const plan = compileTimescaleProjectionUnsafe(vitalsSpec)
+        const baseConfig = ProjectionWorkerConfig.make({
+          workerId: "worker-a",
+          spec: vitalsSpec,
+          plan,
+          mode: "tail",
+          maxMessagesPerTick: 1,
+          idlePollMs: 10,
+        })
+        const holder = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "retry-holder",
+          targetKey: "retry-target",
+          now: 1,
+        })
+        const retry = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "retry-candidate",
+          targetKey: "retry-target",
+          attempt: 1,
+          now: 2,
+        })
+
+        const [, exhausted] = yield* Effect.all(
+          [
+            admission.runAdmitted(holder, Effect.sleep(Duration.millis(40)).pipe(Effect.as("holder"))),
+            Effect.gen(function* () {
+              yield* Effect.sleep(Duration.millis(5))
+              return yield* admission.runAdmitted(retry, Effect.succeed("retry"))
+            }),
+          ],
+          { concurrency: "unbounded" },
+        )
+        const pressure = yield* admission.pressure
+        return { exhausted, pressure }
+      }).pipe(
+        Effect.provide(
+          projectionAdmissionControllerLayerMemory.pipe(
+            Layer.provide(projectionSchedulerTuningLayer({ maxConcurrentTicks: 2, maxInFlightPerTarget: 1, maxRetryAttempts: 1 })),
+          ),
+        ),
+      ),
+    )
+
+    expect(result.exhausted.decision.status).toBe("rejected")
+    expect(result.exhausted.decision.reason).toBe("hot-key-busy")
+    expect(result.exhausted.result).toBeUndefined()
+    expect(result.pressure.rejected).toBe(1)
+  })
 })

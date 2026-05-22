@@ -483,6 +483,10 @@ export const projectionAdmissionControllerLayerMemory: Layer.Layer<
         }
         const targetCount = state.targetInFlight.get(work.targetKey) ?? 0
         if (targetCount >= tuning.maxInFlightPerTarget) {
+          if (work.attempt >= tuning.maxRetryAttempts) {
+            const rejected = decision(work, "rejected", "hot-key-busy", "projection scheduler retry budget exhausted")
+            return [rejected, { ...state, decisions: [...state.decisions, rejected] }] as const
+          }
           const parked = parkingRecord(work, "hot-key-busy", "projection target key is saturated", tuning.defaultRetryDelayMs)
           const parkedDecision = decision(work, "parked", "hot-key-busy", "projection target key is saturated")
           return [
