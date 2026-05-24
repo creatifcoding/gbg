@@ -23,12 +23,14 @@ import {
   AlarmEvents,
   EquipmentStateEvents,
   WorkOrderEvents,
+  ContextEvents,
 } from '../schemas/events/groups'
 import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-event-journal'
 import { AlarmEventHandlers } from '../handlers/alarm-handlers'
 import { EquipmentStateEventHandlers } from '../handlers/equipment-handlers'
 import { WorkOrderEventHandlers } from '../handlers/work-order-handlers'
 import { StructuralEventHandlers } from '../handlers/structural-handlers'
+import { ContextEventHandlers } from '../handlers/context-handlers'
 
 // =============================================================================
 // EventLog Schema
@@ -60,7 +62,8 @@ export const IIoTEventLogSchema = EventLog.schema(
   OperationalEvents,
   AlarmEvents,
   EquipmentStateEvents,
-  WorkOrderEvents
+  WorkOrderEvents,
+  ContextEvents
 )
 
 export type IIoTEventLogSchema = typeof IIoTEventLogSchema
@@ -175,6 +178,7 @@ export const IIoTDomainEventHandlersLayer = Layer.mergeAll(
   AlarmEventHandlers,
   EquipmentStateEventHandlers,
   WorkOrderEventHandlers,
+  ContextEventHandlers,
 )
 
 // =============================================================================
