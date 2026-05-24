@@ -71,12 +71,12 @@ Independent utilities:
 | Auth | `MshAuthService` | `nats.ws` authenticator plus auth lifecycle state | `MshConfigTag`, credential reader | Explicit 8-state FSM; secrets stay redacted; fail closed. |
 | Auth | `MshJwtService` | NKey generation, JWT encode/decode, `.creds` formatting | none | Wraps `@nats-io/jwt`; server acceptance remains validated by NATS/nsc/go JWT tooling. |
 | NATS foundation | `NatsConnectionService` | Scoped `nc`, `js`, lazy `getJsm()` | `MshConfigTag`, optional `MshAuthService` | Core pub/sub does not require eager JetStream-manager permission. |
-| NATS foundation | `NatsInnerService` | Low-level Effect wrappers for core, JS, streams, consumers, KV, object store | `NatsConnectionService` | Converts NATS failures to structured `Schema.TaggedErrorClass` errors. |
+| NATS foundation | `NatsInnerService` | Low-level Effect wrappers for core, JS, streams, consumers, KV, object store | `NatsConnectionService` | Converts NATS failures to structured `Schema.TaggedErrorClass` errors; safe consumer wrappers normalize stop/drain/fetch failure edges. |
 | Codec | `NatsCodec` / `NatsCodecService` | Schema encode/decode for JSON bytes, stream/batch transforms | none | Batch concurrency is honored through stream-native `mapEffect`. |
 | Pub/Sub | `NatsHubService` | Shared raw NATS subscriptions with local PubSub fan-out | `NatsInnerService` | Raw fanout; decode happens per subscriber schema. |
 | Pub/Sub | `NatsPubSubService` | Typed publish, subscribe, request/reply | `NatsHubService`, `NatsInnerService` | High-level core NATS API with Schema codecs. |
 | JetStream | `NatsStreamService` | Typed stream ensure/publish/subscribe/fetch/next | `NatsInnerService` | Strict `ensureStream`; supports start sequence/time and ack helpers. |
-| KV | `NatsKVService` | Typed KV get/put/CAS/watch/list/history | `NatsInnerService` | Bucket cache; not-found vs operational failure are distinct. |
+| KV | `NatsKVService` | Typed KV get/put/CAS/watch/list/history plus revision-aware create/update/delete wrappers | `NatsInnerService` | Bucket cache; not-found, revision conflict, and operational failure are distinct. |
 | Micro | `NatsMicroService` | Add/stop NATS micro services and create discovery clients | `NatsConnectionService` | Scoped service lifecycle via `addScoped`. |
 | Micro host | `MshMicroEndpointHost` | Schema-backed endpoint registration, request decode, response encode, and `respondError` mapping | `NatsMicroService` | Generic control-plane seam; intentionally imports no PCT/LNK semantics. |
 | Discovery | `NatsServiceDiscoveryService` | PING/INFO/STATS streams | `NatsMicroService` | Stream adapters over NATS micro discovery responses. |
@@ -124,7 +124,7 @@ Invariant: auth state transitions are explicit and recoverable; safe metadata ne
 | Codec contract | `test/codec.test.ts`, `test/property.test.ts` | indirect | Batch concurrency and JSON-safe roundtrip coverage. |
 | Subject registry | `test/subject-registry.test.ts`, `test/property.test.ts` | n/a | Token-wise matching and mutation resistance. |
 | Hub/pubsub | `test/hub-pubsub.integration.test.ts` | `test/live-unauth.test.ts` | Duplicate-delivery and schema-isolation regressions. |
-| Stream/KV inner wrappers | `test/service-mock.test.ts`, `test/errors.test.ts` | `test/live-infrastructure.test.ts` | Mock contract plus opt-in real NATS behavior. |
+| Stream/KV inner wrappers | `test/service-mock.test.ts`, `test/errors.test.ts` | `test/live-infrastructure.test.ts` | Mock contract plus opt-in real NATS behavior, including KV revision CAS and safe consumer wrapper edges. |
 | Stream processor | `test/service-mock.test.ts` | future expansion | Currently proves lifecycle over mock NATS. |
 | Live server compatibility | opt-in live suites | `MSH_LIVE_NATS=1 bunx vitest run test/live-*.test.ts` | Requires available live NATS harness. |
 
@@ -310,5 +310,6 @@ At each feature-suite closeout:
 - `#F1021` critical scrutiny remediation is closed.
 - All 13 scrutiny findings are remediated with regression coverage.
 - Core service graph is explicit and Effect v4-only.
-- Auth, subject, stream, KV, and hub behavior have both focused tests and targeted live coverage.
-- PCT/LNK composition boundary is documented before adapter build-out.
+- Auth, subject, stream, KV, micro-host, and hub behavior have both focused tests and targeted live coverage.
+- KV revision CAS and safe consumer wrapper semantics are validated against mock and live NATS.
+- PCT/LNK composition boundary is documented and remains outside MSH source.
