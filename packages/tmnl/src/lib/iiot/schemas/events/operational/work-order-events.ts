@@ -256,6 +256,9 @@ export class WorkOrderResumed extends BaseOperationalEvent.extend<WorkOrderResum
 
   /** Optional resume notes */
   notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
+
+  /** Source propagation id that caused this resume, when Reactor-triggered. */
+  causedByPropagationId: Schema.optional(PropagationId),
 }) {}
 
 export type WorkOrderResumedType = typeof WorkOrderResumed.Type

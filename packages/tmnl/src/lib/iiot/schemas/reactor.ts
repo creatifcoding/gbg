@@ -15,6 +15,7 @@ import {
   EntityCapabilityId,
   ObservationSignalKind,
   PropagationPolicyId,
+  RelationshipEdgeType,
   RelationshipEndpoint,
 } from './relationships/edge-types'
 
@@ -309,6 +310,87 @@ export type ReactorClaimAcquireResult = typeof ReactorClaimAcquireResult.Type
 export const ReactorRequestId = Schema.String.pipe(Schema.brand('ReactorRequestId'))
 export type ReactorRequestId = typeof ReactorRequestId.Type
 
+export const ReactorConstraintId = Schema.String.pipe(Schema.brand('ReactorConstraintId'))
+export type ReactorConstraintId = typeof ReactorConstraintId.Type
+
+export const ReactorConstraintFamilies = {
+  Dependency: 'dependency',
+  Safety: 'safety',
+  Quality: 'quality',
+  Approval: 'approval',
+  Lifecycle: 'lifecycle',
+  Capacity: 'capacity',
+} as const
+
+export const ReactorConstraintFamily = Schema.Literal(
+  ReactorConstraintFamilies.Dependency,
+  ReactorConstraintFamilies.Safety,
+  ReactorConstraintFamilies.Quality,
+  ReactorConstraintFamilies.Approval,
+  ReactorConstraintFamilies.Lifecycle,
+  ReactorConstraintFamilies.Capacity,
+)
+export type ReactorConstraintFamily = typeof ReactorConstraintFamily.Type
+
+export const ReactorConstraintStates = {
+  Asserted: 'asserted',
+  Retracted: 'retracted',
+  Superseded: 'superseded',
+  Ignored: 'ignored',
+} as const
+
+export const ReactorConstraintState = Schema.Literal(
+  ReactorConstraintStates.Asserted,
+  ReactorConstraintStates.Retracted,
+  ReactorConstraintStates.Superseded,
+  ReactorConstraintStates.Ignored,
+)
+export type ReactorConstraintState = typeof ReactorConstraintState.Type
+
+export const ReactorConstraintEffects = {
+  Blocking: 'blocking',
+  Holding: 'holding',
+  Informational: 'informational',
+  ReleaseCandidate: 'release_candidate',
+} as const
+
+export const ReactorConstraintEffect = Schema.Literal(
+  ReactorConstraintEffects.Blocking,
+  ReactorConstraintEffects.Holding,
+  ReactorConstraintEffects.Informational,
+  ReactorConstraintEffects.ReleaseCandidate,
+)
+export type ReactorConstraintEffect = typeof ReactorConstraintEffect.Type
+
+export const TargetReleaseVerdicts = {
+  Released: 'released',
+  ConstraintRetracted: 'constraint_retracted',
+  ActiveHoldsRemaining: 'active_holds_remaining',
+  Idempotent: 'idempotent',
+  UnknownConstraint: 'unknown_constraint',
+  ManualHold: 'manual_hold',
+  SafetyHold: 'safety_hold',
+  TerminalState: 'terminal_state',
+  InvalidTransition: 'invalid_transition',
+  Deferred: 'deferred',
+  Failed: 'failed',
+} as const
+
+export const TargetReleaseVerdict = Schema.Literal(
+  TargetReleaseVerdicts.Released,
+  TargetReleaseVerdicts.ConstraintRetracted,
+  TargetReleaseVerdicts.ActiveHoldsRemaining,
+  TargetReleaseVerdicts.Idempotent,
+  TargetReleaseVerdicts.UnknownConstraint,
+  TargetReleaseVerdicts.ManualHold,
+  TargetReleaseVerdicts.SafetyHold,
+  TargetReleaseVerdicts.TerminalState,
+  TargetReleaseVerdicts.InvalidTransition,
+  TargetReleaseVerdicts.Deferred,
+  TargetReleaseVerdicts.Failed,
+)
+export type TargetReleaseVerdict = typeof TargetReleaseVerdict.Type
+
 export class ReactorEventEnvelope extends Schema.TaggedClass<ReactorEventEnvelope>()('ReactorEventEnvelope', {
   entryId: ReactorSourceEntryId,
   tag: Schema.String,
@@ -358,6 +440,117 @@ export class EntityReactionRequest extends Schema.TaggedClass<EntityReactionRequ
   }),
 }) {}
 export type EntityReactionRequest = typeof EntityReactionRequest.Type
+
+export class ReactorConstraintIdentity extends Schema.TaggedClass<ReactorConstraintIdentity>()('ReactorConstraintIdentity', {
+  constraintId: ReactorConstraintId,
+  target: RelationshipEndpoint,
+  capability: EntityCapabilityId,
+  family: ReactorConstraintFamily,
+  source: RelationshipEndpoint,
+  relationshipEdgeType: RelationshipEdgeType,
+  policyId: PropagationPolicyId,
+  policyVersion: Schema.String,
+  policyEpoch: ReactorPolicyEpoch,
+  registryFingerprint: ReactorRegistryFingerprint,
+  sourceEntryId: ReactorSourceEntryId,
+  sourceEvent: Schema.String,
+  propagationId: PropagationId,
+}) {}
+export type ReactorConstraintIdentity = typeof ReactorConstraintIdentity.Type
+
+export class ReactorConstraintRecord extends Schema.TaggedClass<ReactorConstraintRecord>()('ReactorConstraintRecord', {
+  identity: ReactorConstraintIdentity,
+  state: ReactorConstraintState,
+  effect: ReactorConstraintEffect,
+  assertedAt: Schema.DateTimeUtcFromDate,
+  retractedAt: Schema.optional(Schema.DateTimeUtcFromDate),
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+}) {}
+export type ReactorConstraintRecord = typeof ReactorConstraintRecord.Type
+
+export class ReactorConstraintNaturalAddress extends Schema.TaggedClass<ReactorConstraintNaturalAddress>()('ReactorConstraintNaturalAddress', {
+  target: RelationshipEndpoint,
+  capability: EntityCapabilityId,
+  source: RelationshipEndpoint,
+  relationshipEdgeType: RelationshipEdgeType,
+  policyId: PropagationPolicyId,
+  propagationId: PropagationId,
+}) {}
+export type ReactorConstraintNaturalAddress = typeof ReactorConstraintNaturalAddress.Type
+
+export class ReactorConstraintAssertion extends Schema.TaggedClass<ReactorConstraintAssertion>()('ReactorConstraintAssertion', {
+  target: RelationshipEndpoint,
+  capability: EntityCapabilityId,
+  family: ReactorConstraintFamily,
+  source: RelationshipEndpoint,
+  relationshipEdgeType: RelationshipEdgeType,
+  policyId: PropagationPolicyId,
+  policyVersion: Schema.String,
+  policyEpoch: ReactorPolicyEpoch,
+  registryFingerprint: ReactorRegistryFingerprint,
+  sourceEntryId: ReactorSourceEntryId,
+  sourceEvent: Schema.String,
+  propagationId: PropagationId,
+  effect: ReactorConstraintEffect,
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+}) {}
+export type ReactorConstraintAssertion = typeof ReactorConstraintAssertion.Type
+
+export class ReactorConstraintRetraction extends Schema.TaggedClass<ReactorConstraintRetraction>()('ReactorConstraintRetraction', {
+  target: RelationshipEndpoint,
+  capability: EntityCapabilityId,
+  constraintId: Schema.optional(ReactorConstraintId),
+  naturalAddress: Schema.optional(ReactorConstraintNaturalAddress),
+  effect: ReactorConstraintEffect,
+  signal: ObservationSignal,
+  causality: ReactorCausality,
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+}) {}
+export type ReactorConstraintRetraction = typeof ReactorConstraintRetraction.Type
+
+export const ReactorConstraintRetractionPayload = Schema.Struct({
+  constraintId: Schema.optional(ReactorConstraintId),
+  naturalAddress: Schema.optional(ReactorConstraintNaturalAddress),
+  effect: Schema.optional(ReactorConstraintEffect),
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+})
+export type ReactorConstraintRetractionPayload = typeof ReactorConstraintRetractionPayload.Type
+
+export class TargetConstraintReconciliationRequest extends Schema.TaggedClass<TargetConstraintReconciliationRequest>()('TargetConstraintReconciliationRequest', {
+  target: RelationshipEndpoint,
+  capability: EntityCapabilityId,
+  constraint: ReactorConstraintIdentity,
+  requestedState: ReactorConstraintState,
+  effect: ReactorConstraintEffect,
+  signal: ObservationSignal,
+  causality: ReactorCausality,
+  payload: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+}) {}
+export type TargetConstraintReconciliationRequest = typeof TargetConstraintReconciliationRequest.Type
+
+export class TargetConstraintReconciliationResult extends Schema.TaggedClass<TargetConstraintReconciliationResult>()('TargetConstraintReconciliationResult', {
+  target: RelationshipEndpoint,
+  capability: EntityCapabilityId,
+  constraintId: Schema.optional(ReactorConstraintId),
+  verdict: TargetReleaseVerdict,
+  activeConstraintCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  targetState: Schema.optional(Schema.String),
+  reason: Schema.optional(Schema.String),
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+}) {}
+export type TargetConstraintReconciliationResult = typeof TargetConstraintReconciliationResult.Type
 
 export const ReactorDecisionOutcome = Schema.Literal('eligible', 'dispatched', 'skipped', 'deferred', 'failed')
 export type ReactorDecisionOutcome = typeof ReactorDecisionOutcome.Type

@@ -17,6 +17,10 @@ import { ReactorPlan, ReactorRun } from '../../schemas/reactor'
 import { ReactorDispatcher } from './ReactorDispatcher'
 import { ReactorPlanner } from './ReactorPlanner'
 import { ReactorRegistry } from './ReactorRegistry'
+import {
+  ReactorAdmissionControl,
+  reactorAdmissionControlPassthrough,
+} from './ReactorAdmissionControl'
 
 const GENERIC_REACTOR_CONSUMER_ID = 'relationship-reactor-generic-v1' as never
 const GENERIC_REACTOR_CLAIMED_BY = `relationship-reactor-generic:${crypto.randomUUID()}`
@@ -42,6 +46,8 @@ export const ReactorLive = Layer.effect(
     const registry = yield* ReactorRegistry
     const checkpoints = yield* Effect.serviceOption(ReactorCheckpointRepo)
     const sourceClaims = yield* Effect.serviceOption(ReactorSourceClaimRepo)
+    const admissionOption = yield* Effect.serviceOption(ReactorAdmissionControl)
+    const admission = Option.getOrElse(admissionOption, () => reactorAdmissionControlPassthrough)
 
     const execute = (plan: ReactorPlan) => dispatcher.execute(plan)
 
@@ -57,7 +63,7 @@ export const ReactorLive = Layer.effect(
       readonly registryFingerprint: unknown
     }) =>
       Option.isSome(checkpoints)
-        ? checkpoints.value.markProcessed({
+        ? admission.withSqlBudget(checkpoints.value.markProcessed({
           consumerId: GENERIC_REACTOR_CONSUMER_ID,
           sourceEntryId: claim.sourceEntryId,
           sourceEvent: claim.sourceEvent,
@@ -69,7 +75,7 @@ export const ReactorLive = Layer.effect(
             policyEpoch: String(claim.policyEpoch),
             registryFingerprint: String(claim.registryFingerprint),
           },
-        }).pipe(Effect.asVoid)
+        })).pipe(Effect.asVoid)
         : Effect.void
 
     const reactToJournalEntry = (entry: EventJournal.Entry) =>
@@ -77,10 +83,10 @@ export const ReactorLive = Layer.effect(
         const sourceEntryId = entry.idString as ReactorSourceEntryId
 
         if (Option.isSome(checkpoints)) {
-          const alreadyProcessed = yield* checkpoints.value.hasProcessed({
+          const alreadyProcessed = yield* admission.withSqlBudget(checkpoints.value.hasProcessed({
             consumerId: GENERIC_REACTOR_CONSUMER_ID,
             sourceEntryId,
-          })
+          }))
           if (alreadyProcessed) return Option.none<ReactorRun>()
         }
 
@@ -91,20 +97,26 @@ export const ReactorLive = Layer.effect(
 
         if (Option.isSome(sourceClaims)) {
           const ownerKey = `relationship-reactor:${observation.value.subject.type}:${observation.value.subject.id}` as ReactorOwnerKey
-          const acquire = yield* sourceClaims.value.tryAcquire({
-            consumerId: GENERIC_REACTOR_CONSUMER_ID,
-            sourceEntryId,
-            sourceEvent: entry.event,
-            primaryKey: entry.primaryKey,
-            ownerKey,
-            policyEpoch: registry.policyEpoch,
-            registryFingerprint: registry.registryFingerprint,
-            claimedBy: GENERIC_REACTOR_CLAIMED_BY,
-            metadata: {
-              subjectType: observation.value.subject.type,
-              subjectId: observation.value.subject.id,
+          const acquire = yield* admission.withSourceEntryClaim(
+            {
+              consumerId: GENERIC_REACTOR_CONSUMER_ID,
+              sourceEntryId,
             },
-          })
+            admission.withSqlBudget(sourceClaims.value.tryAcquire({
+              consumerId: GENERIC_REACTOR_CONSUMER_ID,
+              sourceEntryId,
+              sourceEvent: entry.event,
+              primaryKey: entry.primaryKey,
+              ownerKey,
+              policyEpoch: registry.policyEpoch,
+              registryFingerprint: registry.registryFingerprint,
+              claimedBy: GENERIC_REACTOR_CLAIMED_BY,
+              metadata: {
+                subjectType: observation.value.subject.type,
+                subjectId: observation.value.subject.id,
+              },
+            })),
+          )
 
           switch (acquire._tag) {
             case 'ReactorClaimAcquired':
@@ -133,25 +145,25 @@ export const ReactorLive = Layer.effect(
         }
 
         if (Option.isSome(sourceClaims) && activeClaimToken !== undefined) {
-          const completedClaim = yield* sourceClaims.value.complete({
+          const completedClaim = yield* admission.withSqlBudget(sourceClaims.value.complete({
             consumerId: GENERIC_REACTOR_CONSUMER_ID,
             sourceEntryId,
             claimToken: activeClaimToken,
             outcome,
             metadata,
-          })
+          }))
           if (!completedClaim) return Option.some(run)
         }
 
         if (Option.isSome(checkpoints)) {
-          yield* checkpoints.value.markProcessed({
+          yield* admission.withSqlBudget(checkpoints.value.markProcessed({
             consumerId: GENERIC_REACTOR_CONSUMER_ID,
             sourceEntryId,
             sourceEvent: entry.event,
             primaryKey: entry.primaryKey,
             outcome,
             metadata,
-          })
+          }))
         }
 
         return Option.some(run)

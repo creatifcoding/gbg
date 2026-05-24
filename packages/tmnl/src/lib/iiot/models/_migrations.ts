@@ -28,6 +28,7 @@
  * 0025 - Equipment State transitions audit trail
  * 0026 - Relationship edge audit trail
  * 0027 - Reactor source-entry claims
+ * 0028 - Reactor target-owned constraints
  *
  * @module
  */
@@ -110,6 +111,7 @@ import { createEventJournalSchema } from './_event-journal.ddl'
 
 // Reactor DDL
 import { createReactorCheckpointsTable } from './reactor/ReactorCheckpointModel.ddl'
+import { createReactorConstraintsTable } from './reactor/ReactorConstraintModel.ddl'
 import { createReactorSourceClaimsTable } from './reactor/ReactorSourceClaimModel.ddl'
 import { createRelationshipEdgeAuditTable } from './relationships/EdgeAuditModel.ddl'
 
@@ -215,6 +217,9 @@ export const iiotMigrations = {
 
   // Reactor source-entry claims (pre-dispatch authority + lease/recovery)
   '0027_reactor_source_claims': createReactorSourceClaimsTable,
+
+  // Reactor target-owned constraints (distributed release/reconciliation authority)
+  '0028_reactor_constraints': createReactorConstraintsTable,
 } as const
 
 // =============================================================================

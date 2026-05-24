@@ -233,6 +233,7 @@ export class InternalResumeWorkOrder extends Schema.TaggedRequest<InternalResume
     payload: {
       workOrderId: Schema.String,
       resumedBy: Schema.String,
+      causedByPropagationId: Schema.optionalWith(PropagationId, { as: 'Option' }),
     },
   }
 ) {}
@@ -780,9 +781,14 @@ export const makeWorkOrderMachine = (deps: WorkOrderMachineDeps) =>
                       toState: 'resumed' as WorkOrderStatus,
                       transitionedBy: Option.some(request.resumedBy),
                       reason: Option.none(),
+                      causedByPropagationId: request.causedByPropagationId,
                     })
 
-                    yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderResumed', { workOrder: updated, actor: request.resumedBy })
+                    yield* maybeEmitWorkOrder(flags, eventEmitter, 'WorkOrderResumed', {
+                      workOrder: updated,
+                      actor: request.resumedBy,
+                      causedByPropagationId: Option.getOrNull(request.causedByPropagationId) ?? undefined,
+                    })
 
                     return updated
                   })

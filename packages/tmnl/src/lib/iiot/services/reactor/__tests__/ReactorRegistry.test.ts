@@ -2,6 +2,7 @@ import { Effect } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { ObservationSignal } from '../../../schemas/reactor'
 import {
+  EntityCapabilityIds,
   RequiresEquipmentUnavailableBlocksSource,
   TargetsMachineUnavailableBlocksSource,
   getPropagationPoliciesForEdge,
@@ -12,8 +13,8 @@ import { makeReactorRegistry, type EntityReactionContract } from '../ReactorRegi
 const workOrderContract: EntityReactionContract = {
   entityType: 'work_order',
   capabilities: new Map([
-    ['dependency.blocked', {
-      id: 'dependency.blocked',
+    [EntityCapabilityIds.DependencyBlocked, {
+      id: EntityCapabilityIds.DependencyBlocked,
       classify: (request) => Effect.succeed(eligible({
         entityType: 'work_order',
         entityId: request.target.id,
@@ -89,7 +90,7 @@ describe('ReactorRegistry', () => {
 
     const capability = registry.capabilityFor({
       entityType: 'work_order',
-      capability: 'dependency.blocked',
+      capability: EntityCapabilityIds.DependencyBlocked,
     })
 
     expect(capability._tag).toBe('Some')

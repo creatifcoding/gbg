@@ -11,7 +11,7 @@
 import { Schema } from 'effect'
 import { EdgeId } from '../identifiers'
 
-export const RelationshipNodeType = Schema.Literal(
+export const RELATIONSHIP_NODE_TYPE_VALUES = [
   'enterprise',
   'site',
   'area',
@@ -24,10 +24,12 @@ export const RelationshipNodeType = Schema.Literal(
   'alarm',
   'work_order',
   'external',
-)
+] as const
+
+export const RelationshipNodeType = Schema.Literal(...RELATIONSHIP_NODE_TYPE_VALUES)
 export type RelationshipNodeType = typeof RelationshipNodeType.Type
 
-export const RelationshipEdgeType = Schema.Literal(
+export const RELATIONSHIP_EDGE_TYPE_VALUES = [
   'targets',
   'requires',
   'caused_by',
@@ -38,7 +40,9 @@ export const RelationshipEdgeType = Schema.Literal(
   'contains',
   'monitors',
   'triggered_by',
-)
+] as const
+
+export const RelationshipEdgeType = Schema.Literal(...RELATIONSHIP_EDGE_TYPE_VALUES)
 export type RelationshipEdgeType = typeof RelationshipEdgeType.Type
 
 export const RelationshipDirectionality = Schema.Literal('directed', 'bidirectional')
@@ -61,6 +65,37 @@ export type PropagationPolicyId = typeof PropagationPolicyId.Type
 
 export const EntityCapabilityId = Schema.String.pipe(Schema.brand('EntityCapabilityId'))
 export type EntityCapabilityId = typeof EntityCapabilityId.Type
+
+export const EntityCapabilityIds = {
+  DependencyBlocked: 'dependency.blocked' as EntityCapabilityId,
+  DependencyReleased: 'dependency.released' as EntityCapabilityId,
+  DependencySatisfied: 'dependency.satisfied' as EntityCapabilityId,
+  DependencyReplanRequired: 'dependency.replan_required' as EntityCapabilityId,
+  SafetyHold: 'safety.hold' as EntityCapabilityId,
+  SafetyRelease: 'safety.release' as EntityCapabilityId,
+  QualityHold: 'quality.hold' as EntityCapabilityId,
+  QualityRelease: 'quality.release' as EntityCapabilityId,
+  ApprovalHold: 'approval.hold' as EntityCapabilityId,
+  LifecycleInherited: 'lifecycle.inherited' as EntityCapabilityId,
+  CapacityDegraded: 'capacity.degraded' as EntityCapabilityId,
+} as const
+
+export const KnownEntityCapabilityId = Schema.Literal(
+  EntityCapabilityIds.DependencyBlocked,
+  EntityCapabilityIds.DependencyReleased,
+  EntityCapabilityIds.DependencySatisfied,
+  EntityCapabilityIds.DependencyReplanRequired,
+  EntityCapabilityIds.SafetyHold,
+  EntityCapabilityIds.SafetyRelease,
+  EntityCapabilityIds.QualityHold,
+  EntityCapabilityIds.QualityRelease,
+  EntityCapabilityIds.ApprovalHold,
+  EntityCapabilityIds.LifecycleInherited,
+  EntityCapabilityIds.CapacityDegraded,
+)
+export type KnownEntityCapabilityId = typeof KnownEntityCapabilityId.Type
+
+export const KNOWN_ENTITY_CAPABILITY_IDS = Object.freeze(Object.values(EntityCapabilityIds))
 
 export const ObservationSignalKind = Schema.Literal(
   'condition_asserted',
@@ -214,7 +249,7 @@ export const TargetsMachineUnavailableBlocksSource = new RelationshipPropagation
   }),
   requestEndpoint: 'source',
   request: new EntityReactionRequestTemplate({
-    capability: 'dependency.blocked' as never,
+    capability: EntityCapabilityIds.DependencyBlocked,
     reason: 'target_unavailable',
     payloadDefaults: { dependencyKind: 'equipment', suspensionReason: 'equipment_unavailable' },
   }),
@@ -241,7 +276,7 @@ export const RequiresEquipmentUnavailableBlocksSource = new RelationshipPropagat
   }),
   requestEndpoint: 'source',
   request: new EntityReactionRequestTemplate({
-    capability: 'dependency.blocked' as never,
+    capability: EntityCapabilityIds.DependencyBlocked,
     reason: 'required_equipment_unavailable',
     payloadDefaults: { dependencyKind: 'equipment', suspensionReason: 'equipment_unavailable' },
   }),

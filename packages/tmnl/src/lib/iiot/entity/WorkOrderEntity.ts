@@ -230,6 +230,7 @@ export class ResumeWorkOrderRpc extends Rpc.make(WorkOrderResumeTag, {
   payload: Schema.Struct({
     workOrderId: WorkOrderId,
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
+    causedByPropagationId: Schema.optionalWith(PropagationId, { as: 'Option' }),
   }),
   primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
@@ -566,11 +567,16 @@ export const WorkOrderEntityHandlers = WorkOrderEntity.toLayer(
      * Resume handler - delegates to InternalResumeWorkOrder procedure
      */
     const handleResume = (envelope: {
-      payload: { workOrderId: WorkOrderId; notes?: Option.Option<string> }
+      payload: {
+        workOrderId: WorkOrderId
+        notes?: Option.Option<string>
+        causedByPropagationId?: Option.Option<PropagationId>
+      }
     }) =>
       actor.send(new InternalResumeWorkOrder({
         workOrderId: envelope.payload.workOrderId,
         resumedBy: 'system', // TODO: Extract from context
+        causedByPropagationId: envelope.payload.causedByPropagationId ?? Option.none<PropagationId>(),
       })).pipe(
         Effect.catchTags({
           MachineWorkOrderNotFoundError: (e) =>

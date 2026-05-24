@@ -48,7 +48,7 @@ import {
   classifyWorkOrderSuspendEligibility,
   workOrderNotFoundSuspendEligibility,
 } from '../../machines/graphs/work-order-eligibility'
-import { RelationshipEndpoint, TargetsMachineUnavailableBlocksSource } from '../../schemas/relationships'
+import { EntityCapabilityIds, RelationshipEndpoint, TargetsMachineUnavailableBlocksSource } from '../../schemas/relationships'
 import {
   makeReactorRegistry,
   ReactorRegistry,
@@ -251,8 +251,8 @@ const RelationshipReactorRegistryLive = Layer.effect(
     const contract: EntityReactionContract = {
       entityType: 'work_order',
       capabilities: new Map([
-        ['dependency.blocked', {
-          id: 'dependency.blocked',
+        [EntityCapabilityIds.DependencyBlocked, {
+          id: EntityCapabilityIds.DependencyBlocked,
           classify: (request) =>
             workOrders.get(request.target.id as WorkOrderIdType).pipe(
               Effect.map(classifyWorkOrderSuspendEligibility),

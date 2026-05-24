@@ -9,6 +9,7 @@ import {
   makeReactorRegistry,
   ReactorRegistry,
 } from './ReactorRegistry'
+import { ReactorAdmissionControlLive } from './ReactorAdmissionControl'
 import { ReactorDispatcherLive } from './ReactorDispatcher'
 import { ReactorLive } from './Reactor'
 import { ReactorPlannerLive } from './ReactorPlanner'
@@ -36,7 +37,8 @@ export const ReactorGenericWorkOrderRegistryLive = Layer.effect(
 )
 
 export const ReactorGenericLive = ReactorLive.pipe(
-  Layer.provide(ReactorDispatcherLive),
+  Layer.provide(ReactorDispatcherLive.pipe(Layer.provide(ReactorAdmissionControlLive))),
   Layer.provide(ReactorPlannerLive),
   Layer.provide(ReactorGenericWorkOrderRegistryLive),
+  Layer.provide(ReactorAdmissionControlLive),
 )

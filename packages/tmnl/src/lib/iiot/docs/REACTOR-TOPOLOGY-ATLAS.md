@@ -1,7 +1,7 @@
 # Reactor Topology Atlas
 
 Status: **generated rolling artifact**
-Generated: 2026-05-20T02:03:27.461Z
+Generated: 2026-05-20T16:27:58.848Z
 
 This atlas is generated from code-adjacent Reactor audit data. It is the working map for durable event coverage, relationship multiplicity, and production/candidate consistency lanes.
 
@@ -14,8 +14,8 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | Event groups | 11 |
 | Event tags | 101 |
 | Reactive events | 3 |
-| Candidate events | 38 |
-| Non-reactive events | 60 |
+| Candidate events | 41 |
+| Non-reactive events | 57 |
 | Relationship edge types | 10 |
 | Allowed source/target pairs | 87 |
 | Production propagation policies | 2 |
@@ -50,22 +50,22 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 
 | Contract | Routing kind | Subject | Relationship paths | Target owner | Capabilities | Proof requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| AlarmEvents.AlarmAcknowledged | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmAcknowledged | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
 | AlarmEvents.AlarmCleared | candidate_dispatch | alarm | triggered_by, monitors, targets, requires | work_order | safety.release | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| AlarmEvents.AlarmConfigChanged | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmConfigChanged | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
 | AlarmEvents.AlarmEscalated | candidate_dispatch | alarm | triggered_by, monitors, targets, requires | work_order | safety.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| AlarmEvents.AlarmOutOfService | audit_only | alarm | — | — | — | documentation_only |
-| AlarmEvents.AlarmReturnedToService | audit_only | alarm | — | — | — | documentation_only |
-| AlarmEvents.AlarmShelved | audit_only | alarm | — | — | — | documentation_only |
-| AlarmEvents.AlarmSuppressed | audit_only | alarm | — | — | — | documentation_only |
+| AlarmEvents.AlarmOutOfService | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
+| AlarmEvents.AlarmReturnedToService | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
+| AlarmEvents.AlarmShelved | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
+| AlarmEvents.AlarmSuppressed | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
 | AlarmEvents.AlarmTriggered | candidate_dispatch | alarm | triggered_by, monitors, targets, requires | work_order | safety.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| AlarmEvents.AlarmUnshelved | audit_only | alarm | — | — | — | documentation_only |
-| ApprovalEvents.ApprovalCompleted | audit_only | — | — | — | — | documentation_only |
+| AlarmEvents.AlarmUnshelved | aggregate_internal | alarm | — | — | — | aggregate_test, documentation_only |
+| ApprovalEvents.ApprovalCompleted | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | ApprovalEvents.ApprovalEscalated | candidate_dispatch | — | supervises, related_to | tbd | — | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | ApprovalEvents.ApprovalExpired | candidate_dispatch | — | requires, supervises | approval/work_order | approval.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| ApprovalEvents.ApprovalGranted | audit_only | — | — | — | — | documentation_only |
+| ApprovalEvents.ApprovalGranted | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | ApprovalEvents.ApprovalRejected | candidate_dispatch | — | supervises, related_to | approval/work_order | approval.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| ApprovalEvents.ApprovalRequested | audit_only | — | — | — | — | documentation_only |
+| ApprovalEvents.ApprovalRequested | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | BatchEvents.BatchCompleted | audit_only | — | — | — | — | documentation_only |
 | BatchEvents.BatchDeviation | candidate_dispatch | — | produces, related_to | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | BatchEvents.BatchStarted | audit_only | — | — | — | — | documentation_only |
@@ -73,19 +73,19 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | ContextEvents.AssetAttached | candidate_projection | — | targets, related_to | tbd | — | projection_handler_test, graph_expansion_test |
 | ContextEvents.AssetDetached | candidate_projection | — | targets, related_to | tbd | — | projection_handler_test, graph_expansion_test |
 | ContextEvents.ChildWorkOrderSpawned | candidate_projection | — | depends_on, caused_by | tbd | — | projection_handler_test, graph_expansion_test |
-| ContextEvents.ContextCreated | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ContextCreated | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | ContextEvents.ContextSnapshotted | audit_only | — | — | — | — | documentation_only |
-| ContextEvents.ContextUpdated | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ContextUpdated | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | ContextEvents.ExternalRefLinked | candidate_projection | — | requires, produces, related_to | tbd | — | projection_handler_test, graph_expansion_test |
 | ContextEvents.ExternalRefUnlinked | candidate_projection | — | requires, produces, related_to | tbd | — | projection_handler_test, graph_expansion_test |
-| ContextEvents.ResourceAllocated | audit_only | — | — | — | — | documentation_only |
-| ContextEvents.ResourceReleased | audit_only | — | — | — | — | documentation_only |
+| ContextEvents.ResourceAllocated | candidate_projection | — | requires, supervises | tbd | — | projection_handler_test, graph_expansion_test |
+| ContextEvents.ResourceReleased | candidate_projection | — | requires, supervises | tbd | — | projection_handler_test, graph_expansion_test |
 | EquipmentStateEvents.EquipmentStateChanged | reactor_dispatch | machine | targets, requires | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, source_claim_e2e, target_contract_test |
 | EquipmentStateEvents.FaultCleared | candidate_dispatch | machine | targets, requires | work_order | dependency.released | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | EquipmentStateEvents.FaultDetected | reactor_dispatch | machine | targets, requires | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, source_claim_e2e, target_contract_test |
 | EquipmentStateEvents.MaintenanceModeEntered | reactor_dispatch | machine | targets, requires | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, source_claim_e2e, target_contract_test |
 | EquipmentStateEvents.MaintenanceModeExited | candidate_dispatch | machine | targets, requires | work_order | dependency.released | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| EquipmentStateEvents.PerformanceDegraded | candidate_dispatch | machine | targets, requires | tbd | capacity.degraded | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| EquipmentStateEvents.PerformanceDegraded | candidate_dispatch | machine | targets, requires | work_order | capacity.degraded | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | OperationalEvents.BaseOperationalEvent | audit_only | — | — | — | — | documentation_only |
 | OperatorEvents.ManualAcknowledgment | audit_only | — | — | — | — | documentation_only |
 | OperatorEvents.OperatorLogin | audit_only | — | — | — | — | documentation_only |
@@ -97,163 +97,163 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | QualityEvents.InspectionCompleted | candidate_dispatch | — | related_to, produces | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | QualityEvents.NCRClosed | candidate_dispatch | — | related_to, produces | quality/work_order | quality.release | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | QualityEvents.NCROpened | candidate_dispatch | — | related_to, produces | quality/work_order | quality.hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.AreaCreated | audit_only | area | — | — | — | documentation_only |
-| StructuralEvents.AreaDecommissioned | candidate_dispatch | area | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.AreaUpdated | audit_only | area | — | — | — | documentation_only |
-| StructuralEvents.DeviceCreated | audit_only | device | — | — | — | documentation_only |
-| StructuralEvents.DeviceDecommissioned | candidate_dispatch | device | targets, requires, triggered_by | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.DeviceUpdated | audit_only | device | — | — | — | documentation_only |
-| StructuralEvents.EnterpriseCreated | audit_only | enterprise | — | — | — | documentation_only |
-| StructuralEvents.EnterpriseDecommissioned | candidate_dispatch | enterprise | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.EnterpriseUpdated | audit_only | enterprise | — | — | — | documentation_only |
-| StructuralEvents.LineConfigChanged | audit_only | line | — | — | — | documentation_only |
-| StructuralEvents.LineCreated | audit_only | line | — | — | — | documentation_only |
-| StructuralEvents.LineDecommissioned | candidate_dispatch | line | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.LineRelocated | audit_only | line | — | — | — | documentation_only |
-| StructuralEvents.LineUpdated | audit_only | line | — | — | — | documentation_only |
-| StructuralEvents.MachineConfigChanged | audit_only | machine | — | — | — | documentation_only |
-| StructuralEvents.MachineCreated | audit_only | machine | — | — | — | documentation_only |
-| StructuralEvents.MachineDecommissioned | candidate_dispatch | machine | targets, requires | work_order | dependency.blocked, terminal.review_hold | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.MachineRelocated | audit_only | machine | — | — | — | documentation_only |
-| StructuralEvents.MachineUpdated | audit_only | machine | — | — | — | documentation_only |
-| StructuralEvents.PlantCreated | audit_only | plant | — | — | — | documentation_only |
-| StructuralEvents.PlantDecommissioned | candidate_dispatch | plant | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.PlantRelocated | audit_only | plant | — | — | — | documentation_only |
-| StructuralEvents.PlantUpdated | audit_only | plant | — | — | — | documentation_only |
-| StructuralEvents.SensorCalibrated | audit_only | sensor | — | — | — | documentation_only |
-| StructuralEvents.SensorCreated | audit_only | sensor | — | — | — | documentation_only |
-| StructuralEvents.SensorDecommissioned | candidate_dispatch | sensor | monitors, triggered_by | tbd | — | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.SensorThresholdChanged | audit_only | sensor | — | — | — | documentation_only |
-| StructuralEvents.SensorUpdated | audit_only | sensor | — | — | — | documentation_only |
-| StructuralEvents.SiteCreated | audit_only | site | — | — | — | documentation_only |
-| StructuralEvents.SiteDecommissioned | candidate_dispatch | site | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.SiteUpdated | audit_only | site | — | — | — | documentation_only |
-| StructuralEvents.WorkCellCreated | audit_only | workcell | — | — | — | documentation_only |
-| StructuralEvents.WorkCellDecommissioned | candidate_dispatch | workcell | contains, targets, requires | work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| StructuralEvents.WorkCellUpdated | audit_only | workcell | — | — | — | documentation_only |
-| TaskEvents.TaskBecameReady | audit_only | — | — | — | — | documentation_only |
+| StructuralEvents.AreaCreated | relationship_projection | area | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.AreaDecommissioned | candidate_dispatch | area | contains, targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.AreaUpdated | relationship_projection | area | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.DeviceCreated | relationship_projection | device | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.DeviceDecommissioned | candidate_dispatch | device | targets, requires, triggered_by | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.DeviceUpdated | relationship_projection | device | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.EnterpriseCreated | relationship_projection | enterprise | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.EnterpriseDecommissioned | candidate_dispatch | enterprise | contains, targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.EnterpriseUpdated | relationship_projection | enterprise | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.LineConfigChanged | relationship_projection | line | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.LineCreated | relationship_projection | line | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.LineDecommissioned | candidate_dispatch | line | contains, targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.LineRelocated | relationship_projection | line | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.LineUpdated | relationship_projection | line | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.MachineConfigChanged | relationship_projection | machine | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.MachineCreated | relationship_projection | machine | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.MachineDecommissioned | candidate_dispatch | machine | targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.MachineRelocated | relationship_projection | machine | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.MachineUpdated | relationship_projection | machine | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.PlantCreated | relationship_projection | plant | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.PlantDecommissioned | candidate_dispatch | plant | contains, targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.PlantRelocated | relationship_projection | plant | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.PlantUpdated | relationship_projection | plant | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.SensorCalibrated | relationship_projection | sensor | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.SensorCreated | relationship_projection | sensor | monitors | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.SensorDecommissioned | candidate_dispatch | sensor | monitors, triggered_by | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.SensorThresholdChanged | relationship_projection | sensor | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.SensorUpdated | relationship_projection | sensor | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.SiteCreated | relationship_projection | site | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.SiteDecommissioned | candidate_dispatch | site | contains, targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.SiteUpdated | relationship_projection | site | — | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.WorkCellCreated | relationship_projection | workcell | contains | — | — | projection_handler_test, graph_expansion_test |
+| StructuralEvents.WorkCellDecommissioned | candidate_dispatch | workcell | contains, targets, requires | structural_entity/work_order | lifecycle.inherited, dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
+| StructuralEvents.WorkCellUpdated | relationship_projection | workcell | — | — | — | projection_handler_test, graph_expansion_test |
+| TaskEvents.TaskBecameReady | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | TaskEvents.TaskBlocked | aggregate_internal | — | — | work_order | dependency.blocked | aggregate_test, documentation_only |
-| TaskEvents.TaskCompensated | audit_only | — | — | — | — | documentation_only |
-| TaskEvents.TaskCompleted | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskCompensated | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
+| TaskEvents.TaskCompleted | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | TaskEvents.TaskFailed | aggregate_internal | — | — | work_order | dependency.blocked | aggregate_test, documentation_only |
-| TaskEvents.TaskProgressUpdated | audit_only | — | — | — | — | documentation_only |
-| TaskEvents.TaskSkipped | audit_only | — | — | — | — | documentation_only |
-| TaskEvents.TaskStarted | audit_only | — | — | — | — | documentation_only |
+| TaskEvents.TaskProgressUpdated | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
+| TaskEvents.TaskSkipped | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
+| TaskEvents.TaskStarted | aggregate_internal | — | — | — | — | aggregate_test, documentation_only |
 | TaskEvents.TaskUnblocked | aggregate_internal | — | — | work_order | dependency.released | aggregate_test, documentation_only |
-| WorkOrderEvents.WorkOrderApproved | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderApproved | aggregate_internal | work_order | — | — | — | aggregate_test, documentation_only |
 | WorkOrderEvents.WorkOrderCancelled | candidate_dispatch | work_order | depends_on | work_order | dependency.blocked, dependency.replan_required | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| WorkOrderEvents.WorkOrderClosed | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderClosed | aggregate_internal | work_order | — | — | — | aggregate_test, documentation_only |
 | WorkOrderEvents.WorkOrderCompleted | candidate_dispatch | work_order | depends_on | work_order | dependency.satisfied | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| WorkOrderEvents.WorkOrderCreated | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderCreated | candidate_projection | work_order | targets, related_to | tbd | — | projection_handler_test, graph_expansion_test |
 | WorkOrderEvents.WorkOrderFailed | candidate_dispatch | work_order | depends_on | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| WorkOrderEvents.WorkOrderRejected | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderRejected | aggregate_internal | work_order | — | — | — | aggregate_test, documentation_only |
 | WorkOrderEvents.WorkOrderResumed | candidate_dispatch | work_order | depends_on | work_order | dependency.released | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 | WorkOrderEvents.WorkOrderStarted | candidate_dispatch | work_order | depends_on | tbd | — | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
-| WorkOrderEvents.WorkOrderSubmitted | audit_only | work_order | — | — | — | documentation_only |
+| WorkOrderEvents.WorkOrderSubmitted | aggregate_internal | work_order | — | — | — | aggregate_test, documentation_only |
 | WorkOrderEvents.WorkOrderSuspended | candidate_dispatch | work_order | depends_on | work_order | dependency.blocked | observation_decode_test, registry_policy_test, graph_expansion_test, target_contract_test, source_claim_e2e |
 
 ## Event coverage
 
 | Group | Tag | Status | Signals | Observation specs | Production policies | Rationale |
 | --- | --- | --- | --- | --- | --- | --- |
-| AlarmEvents | AlarmAcknowledged | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
+| AlarmEvents | AlarmAcknowledged | non_reactive | alarm.lifecycle = acknowledged | — | — | Alarm acknowledgment changes alarm lifecycle/audit state only; it does not assert safety pressure by itself. |
 | AlarmEvents | AlarmCleared | candidate | alarm.state = cleared | — | — | Alarm clearing can retract safety pressure, but unblock/resume semantics must be target-owned first. |
-| AlarmEvents | AlarmConfigChanged | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
+| AlarmEvents | AlarmConfigChanged | non_reactive | alarm.config = changed | — | — | Alarm configuration changes update alarm projection/audit only; they do not imply current safety pressure. |
 | AlarmEvents | AlarmEscalated | candidate | alarm.severity = escalated | — | — | Escalation can strengthen safety-hold pressure for related WorkOrders once severity policy exists. |
-| AlarmEvents | AlarmOutOfService | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
-| AlarmEvents | AlarmReturnedToService | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
-| AlarmEvents | AlarmShelved | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
-| AlarmEvents | AlarmSuppressed | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
+| AlarmEvents | AlarmOutOfService | non_reactive | alarm.lifecycle = out_of_service | — | — | Out-of-service alarm state affects alarm handling/audit; it is not a production Reactor dispatch source. |
+| AlarmEvents | AlarmReturnedToService | non_reactive | alarm.lifecycle = returned_to_service | — | — | Return-to-service restores alarm lifecycle state; safety pressure remains owned by trigger/escalation/clear semantics. |
+| AlarmEvents | AlarmShelved | non_reactive | alarm.lifecycle = shelved | — | — | Shelving is alarm lifecycle state; it should not mutate related WorkOrders without a separate safety policy. |
+| AlarmEvents | AlarmSuppressed | non_reactive | alarm.lifecycle = suppressed | — | — | Suppression changes alarm lifecycle state and audit posture, not WorkOrder consistency pressure. |
 | AlarmEvents | AlarmTriggered | candidate | alarm.state = triggered, alarm.severity = critical\|emergency | — | — | Critical/emergency alarms can become WorkOrder safety holds once alarm-to-asset traversal and target contract are declared. |
-| AlarmEvents | AlarmUnshelved | non_reactive | — | — | — | Alarm lifecycle is durable audit until severity/device safety-hold semantics are explicitly declared. |
-| ApprovalEvents | ApprovalCompleted | non_reactive | — | — | — | Approval events are compliance workflow audit unless a target-owned approval hold contract is declared. |
+| AlarmEvents | AlarmUnshelved | non_reactive | alarm.lifecycle = unshelved | — | — | Unshelving changes alarm lifecycle state; active safety pressure must come from trigger/escalation/clear events. |
+| ApprovalEvents | ApprovalCompleted | non_reactive | approval.state = completed | — | — | Approval completion is workflow audit state and does not dispatch Reactor pressure by itself. |
 | ApprovalEvents | ApprovalEscalated | candidate | approval.state = escalated | — | — | Escalation can notify/supervise related WorkOrders or alarms; no mutation policy yet. |
 | ApprovalEvents | ApprovalExpired | candidate | approval.state = expired | — | — | Expired approvals can hold dependent execution once approval dependencies are graph-modeled. |
-| ApprovalEvents | ApprovalGranted | non_reactive | — | — | — | Approval events are compliance workflow audit unless a target-owned approval hold contract is declared. |
+| ApprovalEvents | ApprovalGranted | non_reactive | approval.state = granted | — | — | Approval grant releases approval workflow pressure inside the approval aggregate; target release policy is not declared. |
 | ApprovalEvents | ApprovalRejected | candidate | approval.state = rejected | — | — | Can produce approval-hold/rejection pressure for a WorkOrder once approval target links are modeled. |
-| ApprovalEvents | ApprovalRequested | non_reactive | — | — | — | Approval events are compliance workflow audit unless a target-owned approval hold contract is declared. |
-| BatchEvents | BatchCompleted | non_reactive | — | — | — | Batch events are regulatory production records unless quality-hold relationships are declared. |
+| ApprovalEvents | ApprovalRequested | non_reactive | approval.state = requested | — | — | Approval request creation is approval workflow state; target holds require explicit approval relationship modeling. |
+| BatchEvents | BatchCompleted | non_reactive | — | — | — | Batch completion is production/audit state; quality release/hold policies must be declared separately. |
 | BatchEvents | BatchDeviation | candidate | batch.deviation = detected | — | — | Deviation can produce quality/safety hold pressure over produced/related assets once policy exists. |
-| BatchEvents | BatchStarted | non_reactive | — | — | — | Batch events are regulatory production records unless quality-hold relationships are declared. |
-| BatchEvents | ParameterRecorded | non_reactive | — | — | — | Batch events are regulatory production records unless quality-hold relationships are declared. |
+| BatchEvents | BatchStarted | non_reactive | — | — | — | Batch start is a regulatory production record; no graph-scoped consistency reaction is declared. |
+| BatchEvents | ParameterRecorded | non_reactive | — | — | — | Parameter records are regulatory telemetry/audit; deviations or quality events own any future hold semantics. |
 | ContextEvents | AssetAttached | candidate | context.asset = attached | — | — | Can materialize targets/related_to graph edges from context, but should be projection-first rather than Reactor dispatch. |
 | ContextEvents | AssetDetached | candidate | context.asset = detached | — | — | Can close graph edges temporally; dispatch only if detachment implies active dependency loss. |
 | ContextEvents | ChildWorkOrderSpawned | candidate | context.child_work_order = spawned | — | — | Can materialize depends_on/caused_by edges between parent and child WorkOrders. |
-| ContextEvents | ContextCreated | non_reactive | — | — | — | Context events mostly maintain relationship/projection state rather than dispatching structural consistency pressure. |
-| ContextEvents | ContextSnapshotted | non_reactive | — | — | — | Context events mostly maintain relationship/projection state rather than dispatching structural consistency pressure. |
-| ContextEvents | ContextUpdated | non_reactive | — | — | — | Context events mostly maintain relationship/projection state rather than dispatching structural consistency pressure. |
+| ContextEvents | ContextCreated | non_reactive | context.lifecycle = created | — | — | Context creation establishes a WorkOrder context aggregate; relationship edges are created by specific attach/link/spawn events. |
+| ContextEvents | ContextSnapshotted | non_reactive | — | — | — | Context snapshots are immutable audit points and do not mutate graph topology or target entities. |
+| ContextEvents | ContextUpdated | non_reactive | context.lifecycle = updated | — | — | Generic context updates are audit/projection state; only typed context events materialize graph relationships. |
 | ContextEvents | ExternalRefLinked | candidate | context.external_ref = linked | — | — | Can materialize external requires/produces relationships; no target mutation policy yet. |
 | ContextEvents | ExternalRefUnlinked | candidate | context.external_ref = unlinked | — | — | Can close external relationships; dispatch only if dependency availability changes. |
-| ContextEvents | ResourceAllocated | non_reactive | — | — | — | Context events mostly maintain relationship/projection state rather than dispatching structural consistency pressure. |
-| ContextEvents | ResourceReleased | non_reactive | — | — | — | Context events mostly maintain relationship/projection state rather than dispatching structural consistency pressure. |
+| ContextEvents | ResourceAllocated | candidate | context.resource = allocated | — | — | Resource allocation can become a requires/supervises relationship once resource nodes are modeled explicitly. |
+| ContextEvents | ResourceReleased | candidate | context.resource = released | — | — | Resource release can close requires/supervises relationships once resource nodes are modeled explicitly. |
 | EquipmentStateEvents | EquipmentStateChanged | reactive | equipment.availability = unavailable\|available | equipment-state-changed-observation | targets.machine-unavailable.blocks-source, requires.equipment-unavailable.blocks-source | Production observation emits equipment.availability; unavailable routes over targets/requires to WorkOrder dependency.blocked. |
 | EquipmentStateEvents | FaultCleared | candidate | equipment.availability = available, equipment.fault = cleared | — | — | Fault clearing can retract availability pressure, but unblock/resume policy is not declared. |
 | EquipmentStateEvents | FaultDetected | reactive | equipment.availability = unavailable, equipment.fault = detected | fault-detected-observation | targets.machine-unavailable.blocks-source, requires.equipment-unavailable.blocks-source | Production observation asserts equipment.availability = unavailable and reuses WorkOrder dependency blocking. |
 | EquipmentStateEvents | MaintenanceModeEntered | reactive | equipment.availability = unavailable | maintenance-mode-entered-observation | targets.machine-unavailable.blocks-source, requires.equipment-unavailable.blocks-source | Production observation asserts equipment.availability = unavailable and reuses WorkOrder dependency blocking. |
 | EquipmentStateEvents | MaintenanceModeExited | candidate | equipment.availability = available | — | — | Available/unblock pressure needs explicit target-owned resume or release semantics before dispatch. |
 | EquipmentStateEvents | PerformanceDegraded | candidate | equipment.performance = degraded | — | — | Performance degradation may require degraded-capacity planning rather than suspension; policy is not declared. |
-| OperationalEvents | BaseOperationalEvent | non_reactive | — | — | — | BaseOperationalEvent is a placeholder envelope, not a semantic source event. |
-| OperatorEvents | ManualAcknowledgment | non_reactive | — | — | — | Operator events are compliance/audit records; they do not imply graph-scoped mutation by default. |
-| OperatorEvents | OperatorLogin | non_reactive | — | — | — | Operator events are compliance/audit records; they do not imply graph-scoped mutation by default. |
-| OperatorEvents | OperatorLogout | non_reactive | — | — | — | Operator events are compliance/audit records; they do not imply graph-scoped mutation by default. |
-| OperatorEvents | ParameterOverride | non_reactive | — | — | — | Operator events are compliance/audit records; they do not imply graph-scoped mutation by default. |
-| OperatorEvents | ShiftHandoff | non_reactive | — | — | — | Operator events are compliance/audit records; they do not imply graph-scoped mutation by default. |
+| OperationalEvents | BaseOperationalEvent | non_reactive | — | — | — | BaseOperationalEvent is an envelope placeholder; concrete operational events own routing semantics. |
+| OperatorEvents | ManualAcknowledgment | non_reactive | — | — | — | Manual acknowledgment is operator audit state; target mutation remains owned by the acknowledged domain event. |
+| OperatorEvents | OperatorLogin | non_reactive | — | — | — | Operator login is compliance audit state and never a Reactor dispatch source. |
+| OperatorEvents | OperatorLogout | non_reactive | — | — | — | Operator logout is compliance audit state and never a Reactor dispatch source. |
+| OperatorEvents | ParameterOverride | non_reactive | — | — | — | Parameter override is compliance/audit state; any operational effect must be represented by a separate domain event. |
+| OperatorEvents | ShiftHandoff | non_reactive | — | — | — | Shift handoff is operator continuity/audit state and does not imply graph-scoped mutation. |
 | QualityEvents | CAPACreated | candidate | quality.capa = created | — | — | CAPA creation can relate quality remediation to affected WorkOrders/assets; mutation semantics are not declared. |
 | QualityEvents | CAPAResolved | candidate | quality.capa = resolved | — | — | CAPA resolution can release quality pressure once target-owned release semantics exist. |
 | QualityEvents | InspectionCompleted | candidate | quality.inspection = completed | — | — | Failed inspection can trigger quality hold, but result-to-target relationship policy is not declared. |
 | QualityEvents | NCRClosed | candidate | quality.ncr = closed | — | — | Closed NCR can release quality pressure only after target-owned release semantics exist. |
 | QualityEvents | NCROpened | candidate | quality.ncr = opened | — | — | Open non-conformance can hold related WorkOrders/batches once quality graph edges exist. |
-| StructuralEvents | AreaCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | AreaCreated | non_reactive | structural.area.created | — | — | Area creation materializes the area node and parent contains topology; it does not dispatch Reactor pressure. |
 | StructuralEvents | AreaDecommissioned | candidate | structural.lifecycle = decommissioned | — | — | Area shutdown can cascade through contains hierarchy and impact active WorkOrders once inheritance policy exists. |
-| StructuralEvents | AreaUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | DeviceCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | AreaUpdated | non_reactive | structural.area.updated | — | — | Area metadata changes update projections only; no downstream consistency mutation is implied. |
+| StructuralEvents | DeviceCreated | non_reactive | structural.device.created | — | — | Device creation materializes the device node once device graph projection is enabled; no dependency pressure is asserted by creation alone. |
 | StructuralEvents | DeviceDecommissioned | candidate | device.lifecycle = decommissioned, device.availability = unavailable | — | — | Device removal can invalidate required/targeted dependencies, but device availability observation is not declared yet. |
-| StructuralEvents | DeviceUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | EnterpriseCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | DeviceUpdated | non_reactive | structural.device.updated | — | — | Device metadata/configuration changes are projection-only unless an availability event is emitted. |
+| StructuralEvents | EnterpriseCreated | non_reactive | structural.enterprise.created | — | — | Enterprise creation anchors the top of the structural graph; it materializes topology but does not dispatch Reactor pressure. |
 | StructuralEvents | EnterpriseDecommissioned | candidate | structural.lifecycle = decommissioned | — | — | Enterprise shutdown can cascade through contains hierarchy, but terminal inheritance policy is not production yet. |
-| StructuralEvents | EnterpriseUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | LineConfigChanged | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | LineCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | EnterpriseUpdated | non_reactive | structural.enterprise.updated | — | — | Enterprise metadata changes update projections only; no downstream consistency mutation is implied. |
+| StructuralEvents | LineConfigChanged | non_reactive | structural.line.config_changed | — | — | Line configuration changes update topology/read models; Reactor dispatch requires explicit operational impact semantics. |
+| StructuralEvents | LineCreated | non_reactive | structural.line.created | — | — | Line creation materializes line topology; it does not imply machine or WorkOrder state changes. |
 | StructuralEvents | LineDecommissioned | candidate | structural.lifecycle = decommissioned, equipment.availability = unavailable | — | — | Line decommissioning can affect contained machines and targeted WorkOrders once cascade policy is declared. |
-| StructuralEvents | LineRelocated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | LineUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | MachineConfigChanged | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | MachineCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | LineRelocated | non_reactive | structural.line.relocated | — | — | Line relocation updates containment topology; operational blocking requires a separate availability/lifecycle signal. |
+| StructuralEvents | LineUpdated | non_reactive | structural.line.updated | — | — | Line metadata changes are projection-only unless a concrete availability/lifecycle event is emitted. |
+| StructuralEvents | MachineConfigChanged | non_reactive | structural.machine.config_changed | — | — | Machine configuration changes update projections; dependency blocking requires an explicit availability/fault event. |
+| StructuralEvents | MachineCreated | non_reactive | structural.machine.created | — | — | Machine creation materializes the machine node and containment edge; availability pressure comes from equipment-state events. |
 | StructuralEvents | MachineDecommissioned | candidate | equipment.lifecycle = decommissioned, equipment.availability = unavailable | — | — | Machine deletion/unavailability can block targets/requires WorkOrders, but terminal-review semantics are not declared yet. |
-| StructuralEvents | MachineRelocated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | MachineUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | PlantCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | MachineRelocated | non_reactive | structural.machine.relocated | — | — | Machine relocation updates containment topology; WorkOrder impact requires a separate availability/lifecycle signal. |
+| StructuralEvents | MachineUpdated | non_reactive | structural.machine.updated | — | — | Machine metadata changes are projection-only; no WorkOrder dependency mutation is implied. |
+| StructuralEvents | PlantCreated | non_reactive | structural.plant.created | — | — | Plant creation materializes plant topology under area/site and creates no target-owned reaction by itself. |
 | StructuralEvents | PlantDecommissioned | candidate | structural.lifecycle = decommissioned, equipment.availability = unavailable | — | — | Plant decommissioning is a natural contains-cascade source, but child lifecycle and WorkOrder impact policy are not production yet. |
-| StructuralEvents | PlantRelocated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | PlantUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | SensorCalibrated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | SensorCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | PlantRelocated | non_reactive | structural.plant.relocated | — | — | Plant relocation updates containment topology; operational blocking requires a separate availability/lifecycle signal. |
+| StructuralEvents | PlantUpdated | non_reactive | structural.plant.updated | — | — | Plant metadata changes are projection-only unless a specific availability/lifecycle event is emitted. |
+| StructuralEvents | SensorCalibrated | non_reactive | structural.sensor.calibrated | — | — | Sensor calibration is audit/projection state; it does not automatically mutate monitored equipment or WorkOrders. |
+| StructuralEvents | SensorCreated | non_reactive | structural.sensor.created | — | — | Sensor creation materializes measurement topology; it does not assert equipment condition by itself. |
 | StructuralEvents | SensorDecommissioned | candidate | sensor.lifecycle = decommissioned | — | — | Sensor removal can affect monitored equipment or alarm validity, but no production policy exists yet. |
-| StructuralEvents | SensorThresholdChanged | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | SensorUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | SiteCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | SensorThresholdChanged | non_reactive | structural.sensor.threshold_changed | — | — | Threshold changes affect future alarm/readings interpretation, not current Reactor consistency pressure. |
+| StructuralEvents | SensorUpdated | non_reactive | structural.sensor.updated | — | — | Sensor metadata changes are projection-only unless a sensor fault/reading event asserts a condition. |
+| StructuralEvents | SiteCreated | non_reactive | structural.site.created | — | — | Site creation materializes the site node and parent contains topology; it does not dispatch Reactor pressure. |
 | StructuralEvents | SiteDecommissioned | candidate | structural.lifecycle = decommissioned | — | — | Site shutdown can cascade through contains hierarchy and impact active WorkOrders once inheritance policy exists. |
-| StructuralEvents | SiteUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| StructuralEvents | WorkCellCreated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
+| StructuralEvents | SiteUpdated | non_reactive | structural.site.updated | — | — | Site metadata changes update projections only; no downstream consistency mutation is implied. |
+| StructuralEvents | WorkCellCreated | non_reactive | structural.workcell.created | — | — | WorkCell creation materializes workcell topology; it does not imply WorkOrder mutation by itself. |
 | StructuralEvents | WorkCellDecommissioned | candidate | structural.lifecycle = decommissioned, equipment.availability = unavailable | — | — | WorkCell decommissioning can affect contained machines and targeted WorkOrders once cascade policy is declared. |
-| StructuralEvents | WorkCellUpdated | non_reactive | — | — | — | Structural lifecycle/configuration events update SQL/graph projections; Reactor only acts when a concrete consistency reaction exists. |
-| TaskEvents | TaskBecameReady | non_reactive | — | — | — | Task lifecycle belongs inside the WorkOrder/Task aggregate until task nodes become graph entities. |
+| StructuralEvents | WorkCellUpdated | non_reactive | structural.workcell.updated | — | — | WorkCell metadata changes are projection-only unless a concrete availability/lifecycle event is emitted. |
+| TaskEvents | TaskBecameReady | non_reactive | task.execution = ready | — | — | Task readiness is internal to task/work-order execution planning until task nodes become graph entities. |
 | TaskEvents | TaskBlocked | candidate | task.execution = blocked | — | — | Could block parent WorkOrder if task nodes become graph entities; currently likely aggregate-internal. |
-| TaskEvents | TaskCompensated | non_reactive | — | — | — | Task lifecycle belongs inside the WorkOrder/Task aggregate until task nodes become graph entities. |
-| TaskEvents | TaskCompleted | non_reactive | — | — | — | Task lifecycle belongs inside the WorkOrder/Task aggregate until task nodes become graph entities. |
+| TaskEvents | TaskCompensated | non_reactive | task.execution = compensated | — | — | Task compensation is saga/audit state inside the task/work-order aggregate, not a production Reactor source. |
+| TaskEvents | TaskCompleted | non_reactive | task.execution = completed | — | — | Task completion may satisfy aggregate-local prerequisites; graph propagation waits until task nodes/contracts are promoted. |
 | TaskEvents | TaskFailed | candidate | task.execution = failed | — | — | Could fail/block parent WorkOrder if task-to-WorkOrder graph edges are promoted. |
-| TaskEvents | TaskProgressUpdated | non_reactive | — | — | — | Task lifecycle belongs inside the WorkOrder/Task aggregate until task nodes become graph entities. |
-| TaskEvents | TaskSkipped | non_reactive | — | — | — | Task lifecycle belongs inside the WorkOrder/Task aggregate until task nodes become graph entities. |
-| TaskEvents | TaskStarted | non_reactive | — | — | — | Task lifecycle belongs inside the WorkOrder/Task aggregate until task nodes become graph entities. |
+| TaskEvents | TaskProgressUpdated | non_reactive | task.progress = updated | — | — | Task progress updates are execution telemetry/audit, not graph-scoped consistency pressure. |
+| TaskEvents | TaskSkipped | non_reactive | task.execution = skipped | — | — | Task skip is aggregate-local execution state unless a future policy links skipped tasks to WorkOrder dependency pressure. |
+| TaskEvents | TaskStarted | non_reactive | task.execution = started | — | — | Task start is aggregate-internal execution state; it does not dispatch Reactor pressure by itself. |
 | TaskEvents | TaskUnblocked | candidate | task.execution = unblocked | — | — | Could release parent WorkOrder task pressure, but aggregate ownership must be defined. |
-| WorkOrderEvents | WorkOrderApproved | non_reactive | — | — | — | WorkOrder lifecycle events are target-owned audit unless cross-WorkOrder dependency propagation is declared. |
+| WorkOrderEvents | WorkOrderApproved | non_reactive | work_order.lifecycle = approved | — | — | Approval changes WorkOrder lifecycle state; execution/dependency propagation is not implied by approval alone. |
 | WorkOrderEvents | WorkOrderCancelled | candidate | work_order.execution = cancelled | — | — | Cancellation can block or replan downstream WorkOrders over depends_on once target reaction semantics exist. |
-| WorkOrderEvents | WorkOrderClosed | non_reactive | — | — | — | WorkOrder lifecycle events are target-owned audit unless cross-WorkOrder dependency propagation is declared. |
+| WorkOrderEvents | WorkOrderClosed | non_reactive | work_order.lifecycle = closed | — | — | Closure is terminal WorkOrder audit/lifecycle state; no downstream dependency semantics are currently declared. |
 | WorkOrderEvents | WorkOrderCompleted | candidate | work_order.execution = completed | — | — | Completion can satisfy downstream depends_on prerequisites once dependency fulfillment semantics are declared. |
-| WorkOrderEvents | WorkOrderCreated | non_reactive | — | — | — | WorkOrder lifecycle events are target-owned audit unless cross-WorkOrder dependency propagation is declared. |
+| WorkOrderEvents | WorkOrderCreated | candidate | work_order.lifecycle = created | — | — | WorkOrder creation should materialize the work_order graph node and initial target/related edges, but not dispatch target mutations. |
 | WorkOrderEvents | WorkOrderFailed | candidate | work_order.execution = failed | — | — | Failure can block or fail downstream WorkOrders over depends_on once target reaction semantics exist. |
-| WorkOrderEvents | WorkOrderRejected | non_reactive | — | — | — | WorkOrder lifecycle events are target-owned audit unless cross-WorkOrder dependency propagation is declared. |
+| WorkOrderEvents | WorkOrderRejected | non_reactive | work_order.lifecycle = rejected | — | — | Rejection is owned by the WorkOrder lifecycle/approval aggregate; dependency propagation requires a declared policy. |
 | WorkOrderEvents | WorkOrderResumed | candidate | work_order.execution = resumed | — | — | A resumed upstream WorkOrder can release downstream pressure only after target-owned resume semantics exist. |
 | WorkOrderEvents | WorkOrderStarted | candidate | work_order.execution = started | — | — | WorkOrder execution can affect dependent WorkOrders over depends_on, but echo-loop and ownership rules must be declared. |
-| WorkOrderEvents | WorkOrderSubmitted | non_reactive | — | — | — | WorkOrder lifecycle events are target-owned audit unless cross-WorkOrder dependency propagation is declared. |
+| WorkOrderEvents | WorkOrderSubmitted | non_reactive | work_order.lifecycle = submitted | — | — | Submission is WorkOrder lifecycle state; cross-entity effects require explicit dependency or approval policies. |
 | WorkOrderEvents | WorkOrderSuspended | candidate | work_order.execution = suspended | — | — | A suspended upstream WorkOrder can block downstream WorkOrders over depends_on once causality/idempotency policy exists. |

@@ -191,6 +191,7 @@ const makeWorkOrderEventPayload = (event: WorkOrderLifecycleEmission): unknown =
         workOrderId: workOrder.id,
         resumedBy: actor,
         notes: optionalString(event.notes),
+        ...(event.causedByPropagationId ? { causedByPropagationId: event.causedByPropagationId } : {}),
       }
 
     case 'WorkOrderCompleted':

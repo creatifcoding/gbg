@@ -152,6 +152,34 @@ describe('DomainEventEmitter', () => {
     ))
   })
 
+  it('writes WorkOrderResumed events with inbound release propagation identity', async () => {
+    await Effect.runPromise(withEmitterAndJournal((journal) =>
+      Effect.gen(function* () {
+        const emitter = yield* DomainEventEmitter
+        const causedByPropagationId = 'PROP-EMITTER-RELEASE-001' as PropagationId
+        const workOrder = new WorkOrder({
+          ...makeWorkOrder(),
+          status: 'resumed',
+        })
+
+        yield* emitter.emitWorkOrderLifecycle({
+          tag: 'WorkOrderResumed',
+          workOrder,
+          actor: 'relationship-reactor-v1',
+          causedByPropagationId,
+        })
+
+        const entries = yield* journal.entries
+        expect(entries).toHaveLength(1)
+        expect(entries[0]?.event).toBe('WorkOrderResumed')
+
+        const event = WorkOrderEvents.events.WorkOrderResumed
+        const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entries[0]!.payload)
+        expect(payload.causedByPropagationId).toBe(causedByPropagationId)
+      })
+    ))
+  })
+
   it('writes selected structural EventGroup facts to the EventJournal', async () => {
     await Effect.runPromise(withEmitterAndJournal((journal) =>
       Effect.gen(function* () {

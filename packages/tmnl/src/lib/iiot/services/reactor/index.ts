@@ -24,6 +24,18 @@ export {
 } from './ReactorDispatcher'
 
 export {
+  ReactorAdmissionControl,
+  ReactorAdmissionControlConfigDefaults,
+  ReactorAdmissionControlLive,
+  ReactorAdmissionControlPassthroughLive,
+  makeReactorAdmissionControlLive,
+  reactorAdmissionControlPassthrough,
+  type ReactorAdmissionControlConfig,
+  type ReactorAdmissionControlShape,
+  type ReactorSourceEntryClaimKey,
+} from './ReactorAdmissionControl'
+
+export {
   Reactor,
   ReactorLive,
   type ReactorShape,
@@ -47,6 +59,7 @@ export {
 } from './observations'
 
 export {
+  EXPLICIT_EVENT_ROUTING_CONTRACT_TAGS,
   EventRoutingContract,
   EventRoutingKind,
   EventRoutingProofRequirement,
@@ -67,8 +80,29 @@ export {
 } from './topology-atlas'
 
 export {
+  ReactorConstraintAddressRequired,
+  ReactorConstraintAuthority,
+  ReactorConstraintAuthoritySqlLive,
+  type ReactorConstraintAuthorityError,
+  type ReactorConstraintAuthorityShape,
+} from './ReactorConstraintAuthority'
+export {
+  TargetConstraintLedger,
+  TargetConstraintLedgerInMemory,
+  type TargetConstraintLedgerShape,
+} from './constraints'
+
+export {
   makeWorkOrderReactionContract,
 } from './contracts/work-order'
+export {
+  WorkOrderDependencyRelease,
+  WorkOrderDependencyReleaseLive,
+  WorkOrderDependencyReleaseTransition,
+  WorkOrderDependencyReleaseTransitionEntityLive,
+  type WorkOrderDependencyReleaseShape,
+  type WorkOrderDependencyReleaseTransitionShape,
+} from './contracts/WorkOrderDependencyRelease'
 
 export {
   ReactorGenericLive,

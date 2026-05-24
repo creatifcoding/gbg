@@ -969,6 +969,7 @@ const WorkOrderResumedPayload = Schema.Struct({
   workOrderId: WorkOrderId,
   resumedBy: Schema.NonEmptyString,
   notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
+  causedByPropagationId: Schema.optional(PropagationId),
 })
 
 /**

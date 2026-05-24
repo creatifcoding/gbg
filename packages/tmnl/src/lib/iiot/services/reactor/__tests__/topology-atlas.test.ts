@@ -12,9 +12,14 @@ import {
   TaskEvents,
   WorkOrderEvents,
 } from '../../../schemas/events/groups'
-import { RELATIONSHIP_EDGE_REGISTRY } from '../../../schemas/relationships/edge-types'
+import {
+  EntityCapabilityIds,
+  KNOWN_ENTITY_CAPABILITY_IDS,
+  RELATIONSHIP_EDGE_REGISTRY,
+} from '../../../schemas/relationships/edge-types'
 import { ReactiveEquipmentStateObservationSpecs } from '../observations'
 import {
+  EXPLICIT_EVENT_ROUTING_CONTRACT_TAGS,
   getEventRoutingContracts,
   getIiotEventGroupTags,
   getReactorTopologyAtlas,
@@ -95,7 +100,7 @@ describe('Reactor topology atlas', () => {
       status: 'reactive',
       routingKind: 'reactor_dispatch',
       targetOwner: 'work_order',
-      targetCapabilities: ['dependency.blocked'],
+      targetCapabilities: [EntityCapabilityIds.DependencyBlocked],
       productionPolicyIds: [
         'targets.machine-unavailable.blocks-source',
         'requires.equipment-unavailable.blocks-source',
@@ -114,9 +119,62 @@ describe('Reactor topology atlas', () => {
     const created = contracts.find((contract) => contract.eventTag === 'EnterpriseCreated')
     expect(created).toMatchObject({
       status: 'non_reactive',
+      routingKind: 'relationship_projection',
+      proofRequirements: ['projection_handler_test', 'graph_expansion_test'],
+    })
+  })
+
+  it('requires explicit ERC seeds for every durable IIoT event', () => {
+    const explicitTags = new Set(EXPLICIT_EVENT_ROUTING_CONTRACT_TAGS)
+    const requiredTags = Object.values(EVENT_GROUPS)
+      .flatMap((eventGroup) => Object.keys((eventGroup as { events: Record<string, unknown> }).events))
+
+    expect(EXPLICIT_EVENT_ROUTING_CONTRACT_TAGS).toHaveLength(requiredTags.length)
+    for (const tag of requiredTags) {
+      expect(explicitTags.has(tag), `${tag} should have an explicit ERC seed`).toBe(true)
+    }
+
+    const contracts = getEventRoutingContracts()
+    const plantDecommissioned = contracts.find((contract) => contract.eventTag === 'PlantDecommissioned')
+    expect(plantDecommissioned).toMatchObject({
+      status: 'candidate',
+      routingKind: 'candidate_dispatch',
+      targetOwner: 'structural_entity/work_order',
+      targetCapabilities: [EntityCapabilityIds.LifecycleInherited, EntityCapabilityIds.DependencyBlocked],
+    })
+    expect(plantDecommissioned?.relationshipPaths[0]?.edgeTypes).toEqual(['contains', 'targets', 'requires'])
+
+    const sensorThresholdChanged = contracts.find((contract) => contract.eventTag === 'SensorThresholdChanged')
+    expect(sensorThresholdChanged).toMatchObject({
+      status: 'non_reactive',
+      routingKind: 'relationship_projection',
+      proofRequirements: ['projection_handler_test', 'graph_expansion_test'],
+    })
+
+    const workOrderCreated = contracts.find((contract) => contract.eventTag === 'WorkOrderCreated')
+    expect(workOrderCreated).toMatchObject({
+      status: 'candidate',
+      routingKind: 'candidate_projection',
+      subject: { entityType: 'work_order' },
+      proofRequirements: ['projection_handler_test', 'graph_expansion_test'],
+    })
+
+    const operatorLogin = contracts.find((contract) => contract.eventTag === 'OperatorLogin')
+    expect(operatorLogin).toMatchObject({
+      status: 'non_reactive',
       routingKind: 'audit_only',
       proofRequirements: ['documentation_only'],
     })
+
+    const knownCapabilities = new Set(KNOWN_ENTITY_CAPABILITY_IDS)
+    for (const contract of contracts) {
+      for (const capability of contract.targetCapabilities) {
+        expect(
+          knownCapabilities.has(capability),
+          `${contract.id} references unknown capability ${capability}`,
+        ).toBe(true)
+      }
+    }
   })
 
   it('enumerates every relationship registry edge and mirrors production policies', () => {
