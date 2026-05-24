@@ -1,7 +1,7 @@
 /** WorkOrder Reactor reaction contract. */
 
 import { Effect, Option } from 'effect'
-import { WorkOrderEntity, WorkOrderSuspendTag } from '../../../entity/WorkOrderEntity'
+import { WorkOrderEntity } from '../../../entity/WorkOrderEntity'
 import { WorkOrderState } from '../../../state'
 import { WorkOrderTransitionRepo } from '../../../repos/WorkOrderTransitionRepo'
 import type { WorkOrderId as WorkOrderIdType } from '../../../schemas/identifiers'
@@ -43,7 +43,7 @@ export const makeWorkOrderReactionContract: Effect.Effect<EntityReactionContract
           const sourceMachineId = request.source.id
           const client = makeClient(workOrderId)
 
-          return client[WorkOrderSuspendTag]({
+          return client.WorkOrder.Suspend({
             workOrderId,
             reason: 'equipment_unavailable',
             expectedResume: Option.none(),

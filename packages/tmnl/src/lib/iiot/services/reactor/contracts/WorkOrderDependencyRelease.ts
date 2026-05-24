@@ -9,10 +9,7 @@
  */
 
 import { Context, Effect, Layer, Option } from 'effect'
-import {
-  WorkOrderEntity,
-  WorkOrderResumeTag,
-} from '../../../entity/WorkOrderEntity'
+import { WorkOrderEntity } from '../../../entity/WorkOrderEntity'
 import { WorkOrderState } from '../../../state'
 import { WorkOrder, WorkOrderStatus } from '../../../schemas/work-orders'
 import type { PropagationId, WorkOrderId } from '../../../schemas/identifiers'
@@ -84,7 +81,7 @@ export const WorkOrderDependencyReleaseTransitionEntityLive = Layer.effect(
     return WorkOrderDependencyReleaseTransition.of({
       resume: (input) => {
         const client = makeClient(input.workOrderId)
-        return client[WorkOrderResumeTag]({
+        return client.WorkOrder.Resume({
           workOrderId: input.workOrderId,
           notes: Option.some(input.note),
           causedByPropagationId: Option.some(input.causedByPropagationId),

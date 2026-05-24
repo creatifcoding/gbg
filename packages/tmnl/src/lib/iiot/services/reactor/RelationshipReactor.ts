@@ -40,10 +40,7 @@ import {
   type ReactorPlan,
   type ReactorRun,
 } from '../../schemas/reactor'
-import {
-  WorkOrderEntity,
-  WorkOrderSuspendTag,
-} from '../../entity/WorkOrderEntity'
+import { WorkOrderEntity } from '../../entity/WorkOrderEntity'
 import {
   classifyWorkOrderSuspendEligibility,
   workOrderNotFoundSuspendEligibility,
@@ -137,7 +134,7 @@ export const WorkOrderEntityReactorDispatcherLive = Layer.effect(
     return WorkOrderReactorDispatcher.of({
       suspendForEquipmentUnavailable: ({ workOrderId, sourceMachineId, propagationId }) => {
         const client = makeClient(workOrderId)
-        return client[WorkOrderSuspendTag]({
+        return client.WorkOrder.Suspend({
           workOrderId,
           reason: 'equipment_unavailable',
           expectedResume: Option.none(),
