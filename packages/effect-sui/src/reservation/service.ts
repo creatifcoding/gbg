@@ -1,0 +1,31 @@
+/** Reservation service layer assembly. */
+
+import * as Effect from 'effect-v4/Effect';
+import * as Layer from 'effect-v4/Layer';
+
+import { SuiReservationService, type SuiReservationServiceShape } from '../services';
+import { acquireReservation, reconcileReservation, releaseReservation } from './operations';
+import { makeTxState } from './state';
+import type { SuiTxState } from './types';
+
+export const makeReservationService = (state: SuiTxState): SuiReservationServiceShape => ({
+  acquire: (request) => acquireReservation(state, request).pipe(
+    Effect.withSpan('@tmnl/effect-sui/SuiReservationService.acquire', {
+      attributes: { intent: request.intent },
+    }),
+  ),
+  release: (token) => releaseReservation(state, token.id).pipe(
+    Effect.withSpan('@tmnl/effect-sui/SuiReservationService.release', {
+      attributes: { intent: token.intent, tokenId: token.id },
+    }),
+  ),
+  reconcile: (token, result) => reconcileReservation(state, token.id, result).pipe(
+    Effect.withSpan('@tmnl/effect-sui/SuiReservationService.reconcile', {
+      attributes: { intent: token.intent, tokenId: token.id },
+    }),
+  ),
+});
+
+export const SuiReservationServiceLive = Layer.effect(SuiReservationService)(
+  Effect.map(makeTxState(), makeReservationService),
+);
