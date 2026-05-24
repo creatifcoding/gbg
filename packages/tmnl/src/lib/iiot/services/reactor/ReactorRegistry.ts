@@ -13,60 +13,26 @@
  */
 
 import { Context, Effect, Layer, Option } from 'effect'
-import * as EventJournal from '@effect/experimental/EventJournal'
-import {
-  EntityReactionRequest,
+import type {
   ObservationSignal,
-  ReactorObservation,
-  type ReactorPolicyEpoch,
-  type ReactorRegistryFingerprint,
+  ReactorPolicyEpoch,
+  ReactorRegistryFingerprint,
 } from '../../schemas/reactor'
-import {
-  RelationshipNodeType,
-  RelationshipPropagationPolicy,
-} from '../../schemas/relationships/edge-types'
-import { EligibilityResult } from '../../schemas/relationships/eligibility'
-
-// =============================================================================
-// Runtime declaration contracts
-// =============================================================================
-
-export interface EventObservationSpec {
-  readonly id: string
-  readonly eventTag: string
-  readonly observe: (entry: EventJournal.Entry) => Effect.Effect<ReactorObservation, unknown>
-}
-
-export interface EntityReactionCapability {
-  readonly id: string
-  readonly classify: (request: EntityReactionRequest) => Effect.Effect<EligibilityResult, unknown>
-  readonly dispatch: (request: EntityReactionRequest) => Effect.Effect<unknown, unknown>
-}
-
-export interface EntityReactionContract {
-  readonly entityType: RelationshipNodeType
-  readonly capabilities: ReadonlyMap<string, EntityReactionCapability>
-}
-
-export interface ReactorRegistryConfig {
-  readonly policyEpoch?: ReactorPolicyEpoch
-  readonly registryFingerprint?: ReactorRegistryFingerprint
-  readonly observations: readonly EventObservationSpec[]
-  readonly propagationPolicies: readonly RelationshipPropagationPolicy[]
-  readonly entities: readonly EntityReactionContract[]
-}
-
-export interface ReactorRegistryShape {
-  readonly policyEpoch: ReactorPolicyEpoch
-  readonly registryFingerprint: ReactorRegistryFingerprint
-  readonly observe: (entry: EventJournal.Entry) => Effect.Effect<Option.Option<ReactorObservation>, unknown>
-  readonly policiesForSignal: (signal: ObservationSignal) => readonly RelationshipPropagationPolicy[]
-  readonly contractFor: (entityType: RelationshipNodeType) => Option.Option<EntityReactionContract>
-  readonly capabilityFor: (input: {
-    readonly entityType: RelationshipNodeType
-    readonly capability: string
-  }) => Option.Option<EntityReactionCapability>
-}
+import type { RelationshipPropagationPolicy } from '../../schemas/relationships/edge-types'
+import type {
+  EntityReactionCapability,
+  EntityReactionContract,
+  EventObservationSpec,
+  ReactorRegistryConfig,
+  ReactorRegistryShape,
+} from './declarations'
+export type {
+  EntityReactionCapability,
+  EntityReactionContract,
+  EventObservationSpec,
+  ReactorRegistryConfig,
+  ReactorRegistryShape,
+} from './declarations'
 
 export class ReactorRegistry extends Context.Tag('iiot/ReactorRegistry')<
   ReactorRegistry,
