@@ -128,6 +128,42 @@ export const ProjectionSchedulerPressureSnapshot = Schema.Struct({
 })
 export type ProjectionSchedulerPressureSnapshot = typeof ProjectionSchedulerPressureSnapshot.Type
 
+export const ProjectionSchedulerLookSeverity = Schema.Literals([
+  "info",
+  "warn",
+  "critical",
+])
+export type ProjectionSchedulerLookSeverity = typeof ProjectionSchedulerLookSeverity.Type
+
+export const ProjectionSchedulerLaneLook = Schema.Struct({
+  lane: ProjectionWorkLane,
+  priority: Schema.Int,
+  parked: Schema.Number,
+  ready: Schema.Number,
+  nextReadyAt: Schema.NullOr(Schema.Number),
+  oldestParkedAt: Schema.NullOr(Schema.Number),
+})
+export type ProjectionSchedulerLaneLook = typeof ProjectionSchedulerLaneLook.Type
+
+export const ProjectionSchedulerFinding = Schema.Struct({
+  severity: ProjectionSchedulerLookSeverity,
+  code: Schema.String,
+  message: Schema.String,
+  lane: Schema.NullOr(ProjectionWorkLane),
+  targetKey: Schema.NullOr(Schema.String),
+  count: Schema.Number,
+})
+export type ProjectionSchedulerFinding = typeof ProjectionSchedulerFinding.Type
+
+export const ProjectionSchedulerLookout = Schema.Struct({
+  pressure: ProjectionSchedulerPressureSnapshot,
+  lanes: Schema.Array(ProjectionSchedulerLaneLook),
+  nextReady: Schema.Array(ProjectionWorkItem),
+  findings: Schema.Array(ProjectionSchedulerFinding),
+  lookedAt: Schema.Number,
+})
+export type ProjectionSchedulerLookout = typeof ProjectionSchedulerLookout.Type
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const lanePriority = (lane: ProjectionWorkLane): number => {
@@ -330,6 +366,8 @@ export interface DrainReadyProjectionWorkOptions {
   readonly now?: number
 }
 
+export interface ProjectionSchedulerLookOptions extends DrainReadyProjectionWorkOptions {}
+
 export interface ProjectionAdmissionControllerShape {
   readonly runAdmitted: <A, E, R>(
     work: ProjectionWorkItem,
@@ -338,6 +376,9 @@ export interface ProjectionAdmissionControllerShape {
   readonly drainReady: (
     options?: DrainReadyProjectionWorkOptions,
   ) => Effect.Effect<ReadonlyArray<ProjectionWorkItem>>
+  readonly look: (
+    options?: ProjectionSchedulerLookOptions,
+  ) => Effect.Effect<ProjectionSchedulerLookout>
   readonly release: (work: ProjectionWorkItem) => Effect.Effect<void>
   readonly parked: Effect.Effect<ReadonlyArray<ProjectionParkingRecord>>
   readonly pressure: Effect.Effect<ProjectionSchedulerPressureSnapshot>
@@ -427,6 +468,103 @@ const retryWork = (work: ProjectionWorkItem, at: number): ProjectionWorkItem =>
     enqueuedAt: at,
     availableAt: at,
   })
+
+const readyRecords = (
+  parked: ReadonlyArray<ProjectionParkingRecord>,
+  options: DrainReadyProjectionWorkOptions,
+): ReadonlyArray<ProjectionParkingRecord> => {
+  const at = options.now ?? Date.now()
+  return parked
+    .filter((record) => record.retryAt === null || record.retryAt <= at)
+    .filter((record) => options.projectionId === undefined || record.work.projectionId === options.projectionId)
+    .filter((record) => options.workerId === undefined || record.work.workerId === options.workerId)
+    .filter((record) => options.lane === undefined || record.work.lane === options.lane)
+    .sort((a, b) =>
+      b.work.priority - a.work.priority ||
+      a.work.availableAt - b.work.availableAt ||
+      a.parkedAt - b.parkedAt,
+    )
+}
+
+const lookFromAdmissionState = (
+  state: MemoryAdmissionState,
+  tuning: ProjectionSchedulerTuningShape,
+  options: ProjectionSchedulerLookOptions = {},
+): ProjectionSchedulerLookout => {
+  const lookedAt = options.now ?? Date.now()
+  const limit = options.limit ?? 5
+  const ready = readyRecords(state.parked, { ...options, now: lookedAt })
+  const lanesLook = lanes.map((lane) => {
+    const records = state.parked.filter((record) => record.work.lane === lane)
+    const laneReady = readyRecords(records, { ...options, lane, now: lookedAt })
+    const retryAts = records
+      .map((record) => record.retryAt)
+      .filter((retryAt): retryAt is number => retryAt !== null)
+    const parkedAts = records.map((record) => record.parkedAt)
+    return ProjectionSchedulerLaneLook.make({
+      lane,
+      priority: lanePriority(lane),
+      parked: records.length,
+      ready: laneReady.length,
+      nextReadyAt: retryAts.length === 0 ? null : Math.min(...retryAts),
+      oldestParkedAt: parkedAts.length === 0 ? null : Math.min(...parkedAts),
+    })
+  })
+
+  const findings: Array<ProjectionSchedulerFinding> = []
+  if (state.parked.length >= Math.floor(tuning.maxParked * 0.8)) {
+    findings.push(ProjectionSchedulerFinding.make({
+      severity: state.parked.length >= tuning.maxParked ? "critical" : "warn",
+      code: "parking-capacity-pressure",
+      message: "projection scheduler parking capacity is approaching its configured limit",
+      lane: null,
+      targetKey: null,
+      count: state.parked.length,
+    }))
+  }
+  if (state.decisions.some((entry) => entry.status === "duplicate-in-flight")) {
+    findings.push(ProjectionSchedulerFinding.make({
+      severity: "info",
+      code: "duplicate-singleflight-active",
+      message: "duplicate projection work has been coalesced behind an in-flight key",
+      lane: null,
+      targetKey: null,
+      count: state.decisions.filter((entry) => entry.status === "duplicate-in-flight").length,
+    }))
+  }
+  for (const [targetKey, count] of state.targetInFlight) {
+    if (count >= tuning.maxInFlightPerTarget) {
+      findings.push(ProjectionSchedulerFinding.make({
+        severity: "warn",
+        code: "target-key-saturated",
+        message: "projection target key is at its local admission limit",
+        lane: null,
+        targetKey,
+        count,
+      }))
+    }
+  }
+  for (const lane of lanesLook) {
+    if (lane.ready > 0) {
+      findings.push(ProjectionSchedulerFinding.make({
+        severity: "info",
+        code: "lane-ready",
+        message: `${lane.lane} lane has parked work ready to drain`,
+        lane: lane.lane,
+        targetKey: null,
+        count: lane.ready,
+      }))
+    }
+  }
+
+  return ProjectionSchedulerLookout.make({
+    pressure: pressureFromAdmissionState(state),
+    lanes: lanesLook,
+    nextReady: ready.slice(0, limit).map((record) => retryWork(record.work, lookedAt)),
+    findings,
+    lookedAt,
+  })
+}
 
 export const projectionAdmissionControllerLayerMemory: Layer.Layer<
   ProjectionAdmissionController,
@@ -520,17 +658,7 @@ export const projectionAdmissionControllerLayerMemory: Layer.Layer<
       Ref.modify(stateRef, (state) => {
         const at = options.now ?? Date.now()
         const limit = options.limit ?? 1
-        const ready = state.parked
-          .filter((record) => record.retryAt === null || record.retryAt <= at)
-          .filter((record) => options.projectionId === undefined || record.work.projectionId === options.projectionId)
-          .filter((record) => options.workerId === undefined || record.work.workerId === options.workerId)
-          .filter((record) => options.lane === undefined || record.work.lane === options.lane)
-          .sort((a, b) =>
-            b.work.priority - a.work.priority ||
-            a.work.availableAt - b.work.availableAt ||
-            a.parkedAt - b.parkedAt,
-          )
-          .slice(0, limit)
+        const ready = readyRecords(state.parked, { ...options, now: at }).slice(0, limit)
         const selected = new Set(ready.map(parkedKey))
         return [
           ready.map((record) => retryWork(record.work, at)),
@@ -558,6 +686,7 @@ export const projectionAdmissionControllerLayerMemory: Layer.Layer<
           return { decision: admitted, result: maybeResult.value }
         }),
       drainReady,
+      look: (options = {}) => Effect.map(Ref.get(stateRef), (state) => lookFromAdmissionState(state, tuning, options)),
       release: (work) => release(work, false),
       parked: Effect.map(Ref.get(stateRef), (state) => state.parked),
       pressure: Effect.map(Ref.get(stateRef), pressureFromAdmissionState),

@@ -497,4 +497,79 @@ describe("ProjectionWorkerScheduler", () => {
     expect(result.exhausted.result).toBeUndefined()
     expect(result.pressure.rejected).toBe(1)
   })
+
+  it("lets the scheduler look before it drains parked work", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const admission = yield* ProjectionAdmissionController
+        const plan = compileTimescaleProjectionUnsafe(vitalsSpec)
+        const baseConfig = ProjectionWorkerConfig.make({
+          workerId: "worker-a",
+          spec: vitalsSpec,
+          plan,
+          mode: "tail",
+          maxMessagesPerTick: 1,
+          idlePollMs: 10,
+        })
+        const holder = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "look-holder",
+          targetKey: "look-holder-target",
+          lane: "hot",
+          now: 1,
+        })
+        const hot = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "look-hot",
+          targetKey: "look-hot-target",
+          lane: "hot",
+          now: 2,
+        })
+        const replay = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "look-replay",
+          targetKey: "look-replay-target",
+          lane: "replay",
+          now: 3,
+        })
+        const backfill = makeProjectionWorkItem(baseConfig, {
+          duplicateKey: "look-backfill",
+          targetKey: "look-backfill-target",
+          lane: "backfill",
+          now: 4,
+        })
+
+        const [, parked] = yield* Effect.all(
+          [
+            admission.runAdmitted(holder, Effect.sleep(Duration.millis(40)).pipe(Effect.as("holder"))),
+            Effect.gen(function* () {
+              yield* Effect.sleep(Duration.millis(5))
+              const parkedHot = yield* admission.runAdmitted(hot, Effect.succeed("hot"))
+              const parkedReplay = yield* admission.runAdmitted(replay, Effect.succeed("replay"))
+              const parkedBackfill = yield* admission.runAdmitted(backfill, Effect.succeed("backfill"))
+              return [parkedHot, parkedReplay, parkedBackfill]
+            }),
+          ],
+          { concurrency: "unbounded" },
+        )
+        const look = yield* admission.look({ limit: 4, now: Date.now() + 1_000 })
+        return { parked, look }
+      }).pipe(
+        Effect.provide(
+          projectionAdmissionControllerLayerMemory.pipe(
+            Layer.provide(
+              projectionSchedulerTuningLayer({
+                maxConcurrentTicks: 1,
+                maxInFlightPerTarget: 10,
+                defaultRetryDelayMs: 0,
+              }),
+            ),
+          ),
+        ),
+      ),
+    )
+
+    expect(result.parked.map((entry) => entry.decision.status)).toEqual(["parked", "parked", "parked"])
+    expect(result.look.pressure.parked).toBeGreaterThan(0)
+    expect(result.look.nextReady.map((work) => work.lane)).toEqual(["hot", "replay", "backfill"])
+    expect(result.look.lanes.some((lane) => lane.ready > 0)).toBe(true)
+    expect(result.look.findings.map((finding) => finding.code)).toContain("lane-ready")
+  })
 })
