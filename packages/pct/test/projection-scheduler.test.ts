@@ -498,7 +498,7 @@ describe("ProjectionWorkerScheduler", () => {
     expect(result.pressure.rejected).toBe(1)
   })
 
-  it("lets the scheduler look before it drains parked work", async () => {
+  it("keeps diagnostic look internal while proving it does not drain parked work", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const admission = yield* ProjectionAdmissionController
@@ -549,7 +549,7 @@ describe("ProjectionWorkerScheduler", () => {
           ],
           { concurrency: "unbounded" },
         )
-        const look = yield* admission.look({ limit: 4, now: Date.now() + 1_000 })
+        const look = yield* admission.debugLook({ limit: 4, now: Date.now() + 1_000 })
         return { parked, look }
       }).pipe(
         Effect.provide(

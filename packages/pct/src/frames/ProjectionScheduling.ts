@@ -376,7 +376,11 @@ export interface ProjectionAdmissionControllerShape {
   readonly drainReady: (
     options?: DrainReadyProjectionWorkOptions,
   ) => Effect.Effect<ReadonlyArray<ProjectionWorkItem>>
-  readonly look: (
+  /**
+   * Internal diagnostic view used by tests/operator adapters before they choose a stable surface.
+   * Do not expose directly over the ProjectionWorker control plane.
+   */
+  readonly debugLook: (
     options?: ProjectionSchedulerLookOptions,
   ) => Effect.Effect<ProjectionSchedulerLookout>
   readonly release: (work: ProjectionWorkItem) => Effect.Effect<void>
@@ -686,7 +690,7 @@ export const projectionAdmissionControllerLayerMemory: Layer.Layer<
           return { decision: admitted, result: maybeResult.value }
         }),
       drainReady,
-      look: (options = {}) => Effect.map(Ref.get(stateRef), (state) => lookFromAdmissionState(state, tuning, options)),
+      debugLook: (options = {}) => Effect.map(Ref.get(stateRef), (state) => lookFromAdmissionState(state, tuning, options)),
       release: (work) => release(work, false),
       parked: Effect.map(Ref.get(stateRef), (state) => state.parked),
       pressure: Effect.map(Ref.get(stateRef), pressureFromAdmissionState),

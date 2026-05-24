@@ -48,8 +48,6 @@ import {
   makeProjectionWorkItem,
   projectionSchedulingMemoryLayer,
   type ProjectionAdmissionControllerShape,
-  type ProjectionSchedulerLookOptions,
-  type ProjectionSchedulerLookout,
   type ProjectionSchedulerPressureSnapshot,
   type ProjectionWorkLedgerShape,
 } from "./ProjectionScheduling.js"
@@ -131,7 +129,6 @@ export const noopProjectionWorkerRunnerLayer: Layer.Layer<ProjectionWorkerRunner
 export interface ProjectionWorkerSchedulerShape extends ProjectionWorkerControlShape {
   readonly snapshot: Effect.Effect<ReadonlyArray<ProjectionWorkerSnapshot>>
   readonly pressure: Effect.Effect<ProjectionSchedulerPressureSnapshot>
-  readonly look: (options?: ProjectionSchedulerLookOptions) => Effect.Effect<ProjectionSchedulerLookout>
 }
 
 export class ProjectionWorkerScheduler extends Context.Service<
@@ -377,7 +374,6 @@ const makeImpl = (
     ),
 
     pressure: admission.pressure,
-    look: admission.look,
 
     plan: (request) =>
       Effect.gen(function* () {

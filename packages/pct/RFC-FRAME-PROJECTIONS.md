@@ -269,6 +269,70 @@ bunx vitest run test/frame-projections.test.ts --reporter verbose
 bunx tsc --noEmit --pretty false
 ```
 
+## Operator-controlled migration preview/apply
+
+Implemented as a control-plane seam, not hidden database magic:
+
+- `ProjectionMigrationController.preview({ projectionId, operatorId })` resolves the registered `ProjectionPlan`, emits ordered DDL statements, stable checksums, warnings, and an explicit approval token.
+- `ProjectionMigrationController.apply({ projectionId, migrationId, approvalToken, operatorId, dryRun })` only applies a previewed migration when the approval token matches.
+- `dryRun: true` returns the apply result without invoking the applier port.
+- `ProjectionMigrationApplier` is an injected port; production database execution remains outside the compiler/scheduler.
+
+This preserves the rule: migrations are operator-visible and audit-friendly. The scheduler does not secretly mutate Timescale.
+
+Validation:
+
+```bash
+cd packages/pct
+bunx vitest run test/projection-migrations.test.ts --reporter verbose
+bunx tsc --noEmit --pretty false
+```
+
+## Continuous aggregate planning over completed frames
+
+Implemented as a compiler-only planning layer:
+
+- `ProjectionCaggSpec` declares a CAGG view name, bucket interval, group-by columns, aggregates, and optional refresh policy.
+- `compileProjectionCagg(plan, spec)` emits deterministic Timescale continuous aggregate DDL over the compiled frame table.
+- Generated CAGGs always include `WHERE "complete" = TRUE`; CAGGs summarize completed frame read models and never assemble multi-source semantics.
+- Identifier and interval validation matches the projection DDL compiler posture.
+
+Validation:
+
+```bash
+cd packages/pct
+bunx vitest run test/projection-cagg.test.ts --reporter verbose
+bunx tsc --noEmit --pretty false
+```
+
+## ProjectionWorker runtime vertical slice
+
+Implemented as a port-driven runtime proof:
+
+- `ProjectionAssembly` is the pure kernel for deterministic bucket/frame id calculation, source-message-to-part conversion, part merge, completeness, timeout outcomes, and source-offset idempotency decisions.
+- `ProjectionRuntime` provides a `ProjectionWorkerRunner` layer over injected ports:
+  - `ProjectionSourceReader` for bounded source message reads;
+  - `TimescaleFrameWriter` for materialized frame table writes;
+  - `FrameStreamWriter` for optional LNK frame-stream writes.
+- The runtime emits `ProjectionOutputReceipt` records for Timescale rows and optional LNK frame stream events.
+- The runtime keeps state/ledger local in the memory proof, but durable authority remains future Timescale/LNK ledger ports.
+
+Boundary/non-goals after implementation:
+
+- MSH remains substrate-only. No projection policy entered the MSH layer.
+- PCT owns contracts, compilers, scheduler/admission, and the port-shaped runtime proof.
+- LNK durable stream semantics remain outside PCT; PCT consumes source messages and optionally writes frame-stream events through a port.
+- CAGGs summarize completed frame rows only. They never assemble frames.
+- Migrations require explicit preview/apply approval; scheduler/runtime do not secretly mutate Timescale.
+
+Validation:
+
+```bash
+cd packages/pct
+bunx vitest run test/projection-runtime.test.ts test/projection-assembly.test.ts --reporter verbose
+bunx tsc --noEmit --pretty false
+```
+
 ## Next slices
 
 1. **Schema-to-column compiler**

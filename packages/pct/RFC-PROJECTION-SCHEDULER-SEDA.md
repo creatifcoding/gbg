@@ -108,3 +108,29 @@ First production-shaped cut:
 3. Refactor `ProjectionScheduler` so tail/start fibers create work items and execute only through admission.
 4. Preserve the NATS micro control-plane API.
 5. Keep durable Timescale/LNK authority as explicit future ports — do not hide it behind local memory.
+
+## 10. Look Surface Probation Verdict
+
+The non-mutating scheduler look surface is useful as an internal diagnostic seam, but it has not earned a stable public control-plane operation yet.
+
+Decision:
+
+```text
+ProjectionAdmissionController.debugLook(...) stays internal/debug-oriented.
+ProjectionWorkerScheduler does not expose look(...).
+ProjectionWorker NATS micro host does not add projection.inspect yet.
+```
+
+Rationale:
+
+- SEDA needs visibility, but visibility does not automatically deserve a public API.
+- `projection.status` should remain lightweight and backward-compatible.
+- A future `projection.inspect` operation must be justified by an actual operator workflow, not architectural vanity.
+- Internal tests can still prove parked/ready lane behavior without draining work.
+
+Keep/demote rule:
+
+```text
+If a future operator surface needs this, promote a schema-backed projection.inspect operation.
+Until then, debugLook is an internal inspection primitive only.
+```
