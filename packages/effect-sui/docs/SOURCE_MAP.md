@@ -91,7 +91,12 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/errors.ts` | Schema-backed typed errors |
 | `src/schema/policies.ts` | Build/gas/payment/auth policies |
 | `src/schema/decode.ts` | Decode/encode helper functions |
-| `src/effectable` | `SuiEffect`; public `SuiObject`, `SuiPTB`, `SuiTx`, `SuiPackage` / `SuiModule` facades |
+| `src/effectable/index.ts` | Public barrel for Effectable ontology facades |
+| `src/effectable/base.ts` | `SuiEffectKind`, `SuiEffect`, `SuiQuery`, `SuiFlow` base algebras |
+| `src/effectable/object.ts` | `SuiObject` and object snapshot/options |
+| `src/effectable/ptb.ts` | `SuiPTB`, PTB inputs/commands/build artifact/options |
+| `src/effectable/tx.ts` | `SuiTx` lifecycle facade/options |
+| `src/effectable/package.ts` | `SuiPackage` / `SuiModule` and typed factory surface |
 | `src/services/index.ts` | Public barrel for Context.Service contracts |
 | `src/services/client.ts` | Client service boundary |
 | `src/services/object.ts` | Object resolver contracts |
