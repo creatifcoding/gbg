@@ -77,15 +77,58 @@ This is the grounding map for implementation work. Read the relevant source befo
 
 ## Package seams
 
-| Module | Future contents |
+Public namespace modules keep stable `index.ts` barrels. Internal logic is split by capability; prefer direct submodule imports inside the package and namespace imports from package consumers.
+
+| Module | Current contents |
 |---|---|
-| `src/schema` | IDs, refs, Move tags, object/PTB/transaction/package nouns, execution results, typed errors |
-| `src/effectable` | `SuiEffect`; public `SuiObject`, `SuiPTB`, `SuiTx`, `SuiPackage` / `SuiModule`; supporting `SuiQuery`, `SuiFlow` |
-| `src/services` | Context services and live/test layers per `docs/SERVICE_ECOSYSTEM.md` |
-| `src/ptb` | Full PTB AST, input/argument/result graph, passes, compiler, combinators backing `SuiPTB` and `SuiTx` |
-| `src/query` | Object reads, BCS decode, GraphQL/gRPC reads, streams backing `SuiObject` |
-| `src/flow` | Execution orchestration and schedules; lifecycle glue, not the third ontology noun |
+| `src/schema/index.ts` | Public barrel for schema nouns |
+| `src/schema/bytes.ts` | Byte/Chunk helpers and 32-byte schemas |
+| `src/schema/strings.ts` | Addresses, object ids, digests, versions, string codecs |
+| `src/schema/move.ts` | Move identifiers and Sui type tags |
+| `src/schema/objects.ts` | Object refs, shared refs, object args |
+| `src/schema/descriptors.ts` | Package/module descriptors |
+| `src/schema/errors.ts` | Schema-backed typed errors |
+| `src/schema/policies.ts` | Build/gas/payment/auth policies |
+| `src/schema/decode.ts` | Decode/encode helper functions |
+| `src/effectable` | `SuiEffect`; public `SuiObject`, `SuiPTB`, `SuiTx`, `SuiPackage` / `SuiModule` facades |
+| `src/services/index.ts` | Public barrel for Context.Service contracts |
+| `src/services/client.ts` | Client service boundary |
+| `src/services/object.ts` | Object resolver contracts |
+| `src/services/bcs.ts` | BCS bridge contracts |
+| `src/services/ptb.ts` | PTB analyzer/compiler contracts |
+| `src/services/tx.ts` | Gas/payment/auth/preflight/execution/finality/runner contracts |
+| `src/services/reservation.ts` | Reservation service contracts |
+| `src/services/package.ts` | Package registry contracts |
+| `src/services/diagnostics.ts` | Diagnostics contracts |
+| `src/ptb/index.ts` | Public barrel for PTB AST/analyzer/compiler |
+| `src/ptb/arguments.ts` | PTB argument schemas |
+| `src/ptb/inputs.ts` | PTB input schemas |
+| `src/ptb/commands.ts` | PTB command schemas |
+| `src/ptb/ast.ts` | PTB root AST schema |
+| `src/ptb/constructors.ts` | Ergonomic PTB constructors |
+| `src/ptb/decode.ts` | PTB AST decode helpers |
+| `src/ptb/analyzer.ts` | PTB static analyzer |
+| `src/ptb/compiler.ts` | Mysten Transaction compiler |
+| `src/ptb/make.ts` | Effectable `SuiPTB` facade constructor |
+| `src/ptb/runtime.ts` | ManagedRuntime-backed PTB builder edge |
+| `src/query/index.ts` | Public barrel for query/read helpers |
+| `src/query/types.ts` | Query client/object/codec contracts |
+| `src/query/schema.ts` | Query-local schema decode helpers |
+| `src/query/bcs.ts` | BCS decode/encode bridge implementation |
+| `src/query/resolver.ts` | Object resolver implementation |
+| `src/query/operations.ts` | Service-use Effect constructors |
+| `src/query/runtime.ts` | ManagedRuntime-backed Query client edge |
+| `src/flow/index.ts` | Public barrel for transaction flow helpers |
+| `src/flow/types.ts` | Flow client/signer contracts |
+| `src/flow/errors.ts` | Flow typed error constructors |
+| `src/flow/gas.ts` | Gas planning service implementation |
+| `src/flow/payment.ts` | Payment planning service implementation |
+| `src/flow/auth.ts` | Auth/build/sign service implementation |
+| `src/flow/rpc.ts` | Preflight/execution/finality RPC services |
+| `src/flow/reservation-request.ts` | Lifecycle reservation request construction |
+| `src/flow/runner.ts` | `SuiTxRunner` lifecycle program |
+| `src/flow/runtime.ts` | ManagedRuntime-backed Flow client edge |
 | `src/reservation` | Runtime-owned STM state for object/gas/sender/sponsor reservations |
-| `src/package` | Schema-backed package/module descriptors, registry layer, and SuiPackage/SuiModule factory helpers |
+| `src/package` | Registry layer and SuiPackage/SuiModule factory helpers |
 | `src/adapter` | Mysten `$extend` registration and Promise facade |
 | `src/testing` | Fake clients, fixtures, localnet helpers |

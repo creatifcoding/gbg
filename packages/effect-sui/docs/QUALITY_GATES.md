@@ -38,3 +38,13 @@ This runs the fast CI gate and then the real Docker/localnet e2e suite. Allow a 
 - non-testing source importing `src/testing` helpers.
 
 Prime directive: commit gates must still stage explicit paths only. No `git add -A`; no wildcard staging.
+
+## Surgical decomposition gate
+
+When splitting a namespace module, preserve the public `index.ts` barrel and run the same package quality gate before committing. Additional decomposition checks:
+
+1. record the original line count;
+2. keep decomposed source totals under 120% of the original unless documented;
+3. run a local `from './...'` cycle check for the new subdirectory;
+4. scan for `.forEach(` and `.peek(` hot-path regressions;
+5. verify `git diff --cached --name-status` contains only the intended explicit paths before commit.
