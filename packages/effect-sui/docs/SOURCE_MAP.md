@@ -134,7 +134,12 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/reservation-request.ts` | Lifecycle reservation request construction |
 | `src/flow/runner.ts` | `SuiTxRunner` lifecycle program |
 | `src/flow/runtime.ts` | ManagedRuntime-backed Flow client edge |
-| `src/reservation` | Runtime-owned STM state for object/gas/sender/sponsor reservations |
+| `src/reservation/index.ts` | Public barrel for STM reservation state/services |
+| `src/reservation/types.ts` | Reservation resource/lock/record/state types |
+| `src/reservation/resources.ts` | Resource-key derivation for objects/gas/sender/sponsor |
+| `src/reservation/state.ts` | Runtime-owned `TxRef`/`TxHashMap` state and snapshots |
+| `src/reservation/operations.ts` | STM acquire/release/reconcile operations |
+| `src/reservation/service.ts` | `SuiReservationService` layer assembly |
 | `src/package` | Registry layer and SuiPackage/SuiModule factory helpers |
 | `src/adapter` | Mysten `$extend` registration and Promise facade |
 | `src/testing` | Fake clients, fixtures, localnet helpers |

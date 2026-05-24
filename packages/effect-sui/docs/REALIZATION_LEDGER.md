@@ -48,6 +48,7 @@ Rationale:
 | Service contract decomposition | Done | `97d838d9 refactor(effect-sui): decompose service contracts` |
 | Decomposition docs/closeout | Done | `70ac071a docs(effect-sui): record decomposed module map` |
 | Effectable ontology decomposition | Done | `d5bfcbc6 refactor(effect-sui): decompose Effectable ontology` |
+| Reservation STM decomposition | Done | `1a7d3b9b refactor(effect-sui): decompose reservation STM module` |
 
 ## Surgical decomposition closeout
 
@@ -61,6 +62,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/query` | 401 | 466 | 116.2% |
 | `src/services` | 321 | 354 | 110.3% |
 | `src/effectable` | 287 | 311 | 108.4% |
+| `src/reservation` | 226 | 257 | 113.7% |
 
 Final decomposition gates passed:
 
