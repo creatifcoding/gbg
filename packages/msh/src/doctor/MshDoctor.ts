@@ -12,6 +12,8 @@ import * as Option from 'effect-v4/Option';
 
 import { MshAuthService, type AuthMetadata } from '../auth';
 import { NatsConnectionService } from '../nats/connection';
+import { NatsKVService } from '../nats/kv';
+import { NatsStreamService } from '../nats/stream';
 import {
   DoctorCheck,
   DoctorFinding,
@@ -22,6 +24,9 @@ import { redactDoctorValue, safeCauseText } from './redaction';
 
 export interface MshDoctorShape {
   readonly checkCoreFlush: Effect.Effect<DoctorCheck>;
+  readonly checkJetStreamManager: Effect.Effect<DoctorCheck>;
+  readonly checkStreamInfo: (name: string) => Effect.Effect<DoctorCheck>;
+  readonly checkKvBucket: (bucketName: string) => Effect.Effect<DoctorCheck>;
   readonly checkAuthMetadata: Effect.Effect<DoctorCheck>;
   readonly report: Effect.Effect<DoctorReport>;
 }
@@ -109,9 +114,11 @@ const authMetadataFinding = (metadata: AuthMetadata): DoctorFinding => {
   });
 };
 
-export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnectionService> =>
+export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnectionService | NatsStreamService | NatsKVService> =>
   Effect.gen(function* () {
     const connection = yield* NatsConnectionService;
+    const stream = yield* NatsStreamService;
+    const kv = yield* NatsKVService;
     const authOption = yield* Effect.serviceOption(MshAuthService);
     const auth = Option.isSome(authOption) ? authOption.value : undefined;
 
@@ -134,6 +141,100 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
         result.failure,
         'Verify NATS connectivity and core publish/request permissions.',
       );
+    });
+
+    const checkJetStreamManager: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
+      const started = Date.now();
+      const result = yield* Effect.result(connection.getJsm());
+      const observedAt = Date.now();
+      const durationMs = observedAt - started;
+      if (result._tag === 'Success') {
+        return passedCheck('msh.jsm.access', 'jetstream-manager', durationMs, observedAt, [finding({
+          severity: 'ok',
+          code: 'msh.jsm.access.available',
+          message: 'JetStream manager is available',
+          layer: 'msh',
+          component: 'jetstream-manager',
+        })]);
+      }
+      return failedCheck(
+        'msh.jsm.access',
+        'jetstream-manager',
+        durationMs,
+        observedAt,
+        result.failure,
+        'Verify $JS.API.> publish and _INBOX.> subscribe permissions, and confirm JetStream is enabled.',
+      );
+    });
+
+    const checkStreamInfo = (name: string): Effect.Effect<DoctorCheck> => Effect.gen(function* () {
+      const started = Date.now();
+      const result = yield* Effect.result(stream.getStreamInfo(name));
+      const observedAt = Date.now();
+      const durationMs = observedAt - started;
+      if (result._tag === 'Failure') {
+        return failedCheck(
+          'msh.stream.info',
+          'stream',
+          durationMs,
+          observedAt,
+          result.failure,
+          'Verify stream info permissions and stream name configuration.',
+        );
+      }
+      if (result.success === null) {
+        return DoctorCheck.make({
+          checkId: 'msh.stream.info',
+          layer: 'msh',
+          component: 'stream',
+          status: 'degraded',
+          severity: 'warn',
+          durationMs,
+          findings: [finding({
+            severity: 'warn',
+            code: 'msh.stream.info.missing',
+            message: `stream '${name}' was not found`,
+            layer: 'msh',
+            component: 'stream',
+            stream: name,
+            remediation: 'Create the stream or correct the configured stream name.',
+          })],
+          observedAt,
+        });
+      }
+      return passedCheck('msh.stream.info', 'stream', durationMs, observedAt, [finding({
+        severity: 'ok',
+        code: 'msh.stream.info.available',
+        message: `stream '${name}' is available`,
+        layer: 'msh',
+        component: 'stream',
+        stream: name,
+      })]);
+    });
+
+    const checkKvBucket = (bucketName: string): Effect.Effect<DoctorCheck> => Effect.gen(function* () {
+      const started = Date.now();
+      const result = yield* Effect.result(kv.keys(bucketName));
+      const observedAt = Date.now();
+      const durationMs = observedAt - started;
+      if (result._tag === 'Failure') {
+        return failedCheck(
+          'msh.kv.bucket',
+          'kv',
+          durationMs,
+          observedAt,
+          result.failure,
+          'Verify KV bucket existence and KV read permissions.',
+        );
+      }
+      return passedCheck('msh.kv.bucket', 'kv', durationMs, observedAt, [finding({
+        severity: 'ok',
+        code: 'msh.kv.bucket.available',
+        message: `kv bucket '${bucketName}' is readable (${result.success.length} keys)`,
+        layer: 'msh',
+        component: 'kv',
+        bucket: bucketName,
+      })]);
     });
 
     const checkAuthMetadata: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
@@ -164,7 +265,11 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
     });
 
     const report: Effect.Effect<DoctorReport> = Effect.gen(function* () {
-      const checks = yield* Effect.all([checkCoreFlush, checkAuthMetadata], { concurrency: 'unbounded' });
+      const checks = yield* Effect.all([
+        checkCoreFlush,
+        checkJetStreamManager,
+        checkAuthMetadata,
+      ], { concurrency: 'unbounded' });
       return DoctorReport.make({
         reportId: `msh:${Date.now()}`,
         layer: 'msh',
@@ -176,10 +281,13 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
 
     return MshDoctorService.of({
       checkCoreFlush,
+      checkJetStreamManager,
+      checkStreamInfo,
+      checkKvBucket,
       checkAuthMetadata,
       report,
     });
   });
 
-export const MshDoctorServiceLive: Layer.Layer<MshDoctorService, never, NatsConnectionService> =
+export const MshDoctorServiceLive: Layer.Layer<MshDoctorService, never, NatsConnectionService | NatsStreamService | NatsKVService> =
   Layer.effect(MshDoctorService, makeMshDoctor());
