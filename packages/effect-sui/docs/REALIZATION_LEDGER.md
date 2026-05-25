@@ -49,6 +49,7 @@ Rationale:
 | Decomposition docs/closeout | Done | `70ac071a docs(effect-sui): record decomposed module map` |
 | Effectable ontology decomposition | Done | `d5bfcbc6 refactor(effect-sui): decompose Effectable ontology` |
 | Reservation STM decomposition | Done | `1a7d3b9b refactor(effect-sui): decompose reservation STM module` |
+| Flow RPC boundary decomposition | Done | `19a93b03 refactor(effect-sui): decompose flow RPC boundary` |
 
 ## Surgical decomposition closeout
 
@@ -56,13 +57,14 @@ Source-only line budgets stayed under the 120% cap:
 
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
-| `src/flow` | 787 | 901 | 114.5% |
+| `src/flow` | 787 | 904 | 114.9% |
 | `src/ptb` | 622 | 696 | 111.9% |
 | `src/schema` | 571 | 613 | 107.4% |
 | `src/query` | 401 | 466 | 116.2% |
 | `src/services` | 321 | 354 | 110.3% |
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 257 | 113.7% |
+| `src/flow/rpc` | 175 | 178 | 101.7% |
 
 Final decomposition gates passed:
 

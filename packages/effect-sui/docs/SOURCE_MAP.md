@@ -130,7 +130,11 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/gas.ts` | Gas planning service implementation |
 | `src/flow/payment.ts` | Payment planning service implementation |
 | `src/flow/auth.ts` | Auth/build/sign service implementation |
-| `src/flow/rpc.ts` | Preflight/execution/finality RPC services |
+| `src/flow/rpc.ts` | Public barrel for transaction RPC services |
+| `src/flow/rpc-shared.ts` | RPC payload/status/digest normalization helpers |
+| `src/flow/rpc-preflight.ts` | Preflight dry-run RPC service |
+| `src/flow/rpc-execution.ts` | Transaction execution RPC service |
+| `src/flow/rpc-finality.ts` | Transaction finality wait RPC service |
 | `src/flow/reservation-request.ts` | Lifecycle reservation request construction |
 | `src/flow/runner.ts` | `SuiTxRunner` lifecycle program |
 | `src/flow/runtime.ts` | ManagedRuntime-backed Flow client edge |
