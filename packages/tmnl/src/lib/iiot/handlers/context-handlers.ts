@@ -396,11 +396,14 @@ const catchHandlerError = <A, E, R>(handlerName: string, effect: Effect.Effect<A
 const projectWithGraph = (
   label: string,
   f: (projector: ContextRelationshipProjector) => Effect.Effect<void, unknown>,
-) => Effect.gen(function* () {
-  const graph = yield* Effect.serviceOption(GraphClient)
-  if (Option.isNone(graph)) return
-  yield* f(makeContextRelationshipProjector(graph.value))
-}).pipe(catchHandlerError(`${label}.projectGraph`))
+) => catchHandlerError(
+  `${label}.projectGraph`,
+  Effect.gen(function* () {
+    const graph = yield* Effect.serviceOption(GraphClient)
+    if (Option.isNone(graph)) return
+    yield* f(makeContextRelationshipProjector(graph.value))
+  }),
+)
 
 /** ContextEventHandlers — audit logs plus graph relationship projection. */
 export const ContextEventHandlers = EventLog.group(ContextEvents, (handlers) =>
