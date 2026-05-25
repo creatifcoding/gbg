@@ -10,7 +10,7 @@ import {
 } from '../../schemas/reactor'
 import type { PropagationId } from '../../schemas/identifiers'
 import { RelationshipEndpoint } from '../../schemas/relationships'
-import { EquipmentStateEvents, WorkOrderEvents } from '../../schemas/events/groups'
+import { AlarmEvents, EquipmentStateEvents, WorkOrderEvents } from '../../schemas/events/groups'
 import type { EventObservationSpec } from './ReactorRegistry'
 
 const unavailableEquipmentStates = new Set([
@@ -240,10 +240,102 @@ export const WorkOrderResumedObservationSpec: EventObservationSpec = {
     }),
 }
 
+const alarmSafetyObservation = (input: {
+  readonly entry: EventJournal.Entry
+  readonly deviceId: string
+  readonly kind: 'condition_asserted' | 'condition_retracted'
+  readonly value: 'hold' | 'informational'
+  readonly reason: string
+  readonly payload: unknown
+}): ReactorObservation =>
+  new ReactorObservation({
+    event: eventEnvelopeFromEntry(input.entry),
+    subject: new RelationshipEndpoint({ type: 'device', id: input.deviceId }),
+    signals: [
+      new ObservationSignal({
+        axis: 'alarm.safety',
+        kind: input.kind,
+        value: input.value,
+        reason: input.reason,
+      }),
+    ],
+    causality: new ReactorCausality({
+      propagationId: input.entry.idString as PropagationId,
+    }),
+    payload: input.payload,
+  })
+
+export const AlarmTriggeredObservationSpec: EventObservationSpec = {
+  id: 'alarm-triggered-safety-observation',
+  eventTag: 'AlarmTriggered',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = AlarmEvents.events.AlarmTriggered
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+      const safetyValue = payload.severity === 'critical' || payload.severity === 'emergency'
+        ? 'hold'
+        : 'informational'
+
+      return alarmSafetyObservation({
+        entry,
+        deviceId: payload.deviceId,
+        kind: 'condition_asserted',
+        value: safetyValue,
+        reason: `${payload.severity}:${payload.alarmType}`,
+        payload,
+      })
+    }),
+}
+
+export const AlarmEscalatedObservationSpec: EventObservationSpec = {
+  id: 'alarm-escalated-safety-observation',
+  eventTag: 'AlarmEscalated',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = AlarmEvents.events.AlarmEscalated
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return alarmSafetyObservation({
+        entry,
+        deviceId: payload.deviceId,
+        kind: 'condition_asserted',
+        value: 'hold',
+        reason: `escalated:${payload.escalationLevel}`,
+        payload,
+      })
+    }),
+}
+
+export const AlarmClearedObservationSpec: EventObservationSpec = {
+  id: 'alarm-cleared-safety-observation',
+  eventTag: 'AlarmCleared',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = AlarmEvents.events.AlarmCleared
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+      const note = Option.isSome(payload.notes) ? payload.notes.value : 'cleared'
+
+      return alarmSafetyObservation({
+        entry,
+        deviceId: payload.deviceId,
+        kind: 'condition_retracted',
+        value: 'hold',
+        reason: note,
+        payload,
+      })
+    }),
+}
+
 export const ReactiveEquipmentStateObservationSpecs = [
   EquipmentStateChangedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
   FaultDetectedObservationSpec,
+] as const
+
+export const AlarmSafetyObservationSpecs = [
+  AlarmTriggeredObservationSpec,
+  AlarmEscalatedObservationSpec,
+  AlarmClearedObservationSpec,
 ] as const
 
 export const WorkOrderDependencyObservationSpecs = [

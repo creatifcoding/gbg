@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { DateTime, Effect, Option, Schema } from 'effect'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import {
+  AlarmClearedObservationSpec,
+  AlarmEscalatedObservationSpec,
+  AlarmSafetyObservationSpecs,
+  AlarmTriggeredObservationSpec,
   EquipmentStateChangedObservationSpec,
   FaultDetectedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
@@ -11,9 +15,11 @@ import {
   WorkOrderResumedObservationSpec,
   WorkOrderSuspendedObservationSpec,
 } from '../observations'
-import { EquipmentStateEvents, WorkOrderEvents } from '../../../schemas/events/groups'
+import { AlarmEvents, EquipmentStateEvents, WorkOrderEvents } from '../../../schemas/events/groups'
 import type {
+  AlarmId,
   AssetId,
+  DeviceId,
   EquipmentLevel,
   EventId,
   MachineId,
@@ -23,6 +29,8 @@ import type {
 
 const TEST_MACHINE_ID = 'MCH-OBSERVATION-001' as MachineId
 const TEST_WORK_ORDER_ID = 'WO-OBSERVATION-001' as WorkOrderId
+const TEST_ALARM_ID = 'ALM-OBSERVATION-001' as AlarmId
+const TEST_DEVICE_ID = 'DEV-OBSERVATION-001' as DeviceId
 
 const basePayload = () => ({
   eventId: `EVT-OBSERVATION-${Date.now()}` as EventId,
@@ -61,6 +69,21 @@ const makeWorkOrderEntry = <Tag extends keyof typeof WorkOrderEvents.events>(
     id: EventJournal.makeEntryId(),
     event: tag,
     primaryKey: TEST_WORK_ORDER_ID,
+    payload: encodedPayload,
+  })
+})
+
+const makeAlarmEntry = <Tag extends keyof typeof AlarmEvents.events>(
+  tag: Tag,
+  payload: Record<string, unknown>,
+) => Effect.gen(function* () {
+  const event = AlarmEvents.events[tag] as { payloadMsgPack: Schema.Schema<unknown, Uint8Array> }
+  const encodedPayload = yield* Schema.encode(event.payloadMsgPack)(payload)
+
+  return new EventJournal.Entry({
+    id: EventJournal.makeEntryId(),
+    event: tag,
+    primaryKey: TEST_ALARM_ID,
     payload: encodedPayload,
   })
 })
@@ -105,6 +128,18 @@ const baseWorkOrderPayload = () => ({
   correlationId: Option.none(),
   schemaVersion: 1,
   workOrderId: TEST_WORK_ORDER_ID,
+})
+
+const baseAlarmPayload = () => ({
+  eventId: `EVT-ALARM-OBSERVATION-${Date.now()}` as EventId,
+  occurredAt: DateTime.unsafeNow(),
+  causedBy: 'reactor-observation-test',
+  entityId: TEST_DEVICE_ID as unknown as AssetId,
+  entityType: 'device' as EquipmentLevel,
+  correlationId: Option.none(),
+  schemaVersion: 1,
+  alarmId: TEST_ALARM_ID,
+  deviceId: TEST_DEVICE_ID,
 })
 
 describe('Reactor observation adapters', () => {
@@ -274,6 +309,112 @@ describe('Reactor observation adapters', () => {
         kind: 'condition_retracted',
         value: 'blocked',
         reason: 'resumed',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('exports Alarm safety observation specs for the safety-hold routing contract', () => {
+    expect(AlarmSafetyObservationSpecs.map((spec) => spec.eventTag)).toEqual([
+      'AlarmTriggered',
+      'AlarmEscalated',
+      'AlarmCleared',
+    ])
+  })
+
+  it('decodes critical AlarmTriggered into device safety-hold signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeAlarmEntry('AlarmTriggered', {
+        ...baseAlarmPayload(),
+        severity: 'critical',
+        alarmType: 'high_temperature',
+        triggerValue: 91,
+        thresholdValue: Option.some(80),
+        unit: Option.some('celsius'),
+        message: Option.some('too hot'),
+        metadata: Option.none(),
+      })
+      const observation = yield* AlarmTriggeredObservationSpec.observe(entry)
+
+      expect(observation.event.tag).toBe('AlarmTriggered')
+      expect(observation.subject).toMatchObject({ type: 'device', id: TEST_DEVICE_ID })
+      expect(observation.causality.propagationId).toBe(entry.idString)
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'alarm.safety',
+        kind: 'condition_asserted',
+        value: 'hold',
+        reason: 'critical:high_temperature',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('maps non-critical AlarmTriggered into informational safety signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeAlarmEntry('AlarmTriggered', {
+        ...baseAlarmPayload(),
+        severity: 'warning',
+        alarmType: 'high_vibration',
+        triggerValue: 11,
+        thresholdValue: Option.some(10),
+        unit: Option.none(),
+        message: Option.none(),
+        metadata: Option.none(),
+      })
+      const observation = yield* AlarmTriggeredObservationSpec.observe(entry)
+
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'alarm.safety',
+        kind: 'condition_asserted',
+        value: 'informational',
+        reason: 'warning:high_vibration',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('decodes AlarmEscalated into safety-hold signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeAlarmEntry('AlarmEscalated', {
+        ...baseAlarmPayload(),
+        escalationLevel: 2,
+        escalatedTo: 'shift-supervisor',
+        elapsedSeconds: 300,
+        notes: Option.none(),
+      })
+      const observation = yield* AlarmEscalatedObservationSpec.observe(entry)
+
+      expect(observation.subject).toMatchObject({ type: 'device', id: TEST_DEVICE_ID })
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'alarm.safety',
+        kind: 'condition_asserted',
+        value: 'hold',
+        reason: 'escalated:2',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('decodes AlarmCleared into safety-hold retraction signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeAlarmEntry('AlarmCleared', {
+        ...baseAlarmPayload(),
+        clearValue: Option.some(72),
+        autoClear: true,
+        notes: Option.some('temperature normalized'),
+      })
+      const observation = yield* AlarmClearedObservationSpec.observe(entry)
+
+      expect(observation.subject).toMatchObject({ type: 'device', id: TEST_DEVICE_ID })
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'alarm.safety',
+        kind: 'condition_retracted',
+        value: 'hold',
+        reason: 'temperature normalized',
       })
     })
 

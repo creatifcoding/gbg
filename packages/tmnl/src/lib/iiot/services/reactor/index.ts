@@ -52,6 +52,10 @@ export {
 } from './ReactorWorkerEntity'
 
 export {
+  AlarmClearedObservationSpec,
+  AlarmEscalatedObservationSpec,
+  AlarmSafetyObservationSpecs,
+  AlarmTriggeredObservationSpec,
   EquipmentStateChangedObservationSpec,
   FaultDetectedObservationSpec,
   MaintenanceModeEnteredObservationSpec,

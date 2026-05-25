@@ -6,7 +6,11 @@ import {
   DependsOnWorkOrderBlockedBlocksSource,
   DependsOnWorkOrderBlockRetractedReleasesSource,
   DependsOnWorkOrderSatisfiedSatisfiesSource,
+  RequiresAlarmSafetyHoldHoldsSource,
+  RequiresAlarmSafetyHoldRetractedReleasesSource,
   RequiresEquipmentUnavailableBlocksSource,
+  TargetsAlarmSafetyHoldHoldsSource,
+  TargetsAlarmSafetyHoldRetractedReleasesSource,
   TargetsMachineUnavailableBlocksSource,
   getPropagationPoliciesForEdge,
 } from '../../../schemas/relationships'
@@ -65,6 +69,50 @@ describe('ReactorRegistry', () => {
       DependsOnWorkOrderBlockedBlocksSource.id,
       DependsOnWorkOrderSatisfiedSatisfiesSource.id,
       DependsOnWorkOrderBlockRetractedReleasesSource.id,
+    ])
+  })
+
+  it('registers Alarm safety-hold routing contract policies on asset dependency edges', () => {
+    expect(getPropagationPoliciesForEdge('targets').map((policy) => policy.id)).toEqual([
+      TargetsMachineUnavailableBlocksSource.id,
+      TargetsAlarmSafetyHoldHoldsSource.id,
+      TargetsAlarmSafetyHoldRetractedReleasesSource.id,
+    ])
+    expect(getPropagationPoliciesForEdge('requires').map((policy) => policy.id)).toEqual([
+      RequiresEquipmentUnavailableBlocksSource.id,
+      RequiresAlarmSafetyHoldHoldsSource.id,
+      RequiresAlarmSafetyHoldRetractedReleasesSource.id,
+    ])
+  })
+
+  it('matches Alarm safety-hold signals through declared policies', () => {
+    const registry = makeReactorRegistry({
+      observations: [],
+      propagationPolicies: [
+        TargetsAlarmSafetyHoldHoldsSource,
+        RequiresAlarmSafetyHoldHoldsSource,
+        TargetsAlarmSafetyHoldRetractedReleasesSource,
+        RequiresAlarmSafetyHoldRetractedReleasesSource,
+      ],
+      entities: [workOrderContract],
+    })
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'alarm.safety',
+      kind: 'condition_asserted',
+      value: 'hold',
+    })).map((policy) => policy.id)).toEqual([
+      TargetsAlarmSafetyHoldHoldsSource.id,
+      RequiresAlarmSafetyHoldHoldsSource.id,
+    ])
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'alarm.safety',
+      kind: 'condition_retracted',
+      value: 'hold',
+    })).map((policy) => policy.id)).toEqual([
+      TargetsAlarmSafetyHoldRetractedReleasesSource.id,
+      RequiresAlarmSafetyHoldRetractedReleasesSource.id,
     ])
   })
 

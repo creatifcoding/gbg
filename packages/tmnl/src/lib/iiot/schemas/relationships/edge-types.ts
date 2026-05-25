@@ -367,6 +367,111 @@ export const WorkOrderDependsOnPropagationPolicies = [
   DependsOnWorkOrderBlockRetractedReleasesSource,
 ] as const
 
+/**
+ * A critical/emergency alarm observed on an asset targeted by a WorkOrder applies
+ * target-owned safety pressure. The observed endpoint is the target asset, not
+ * the alarm node, because the current generic Reactor graph expansion is a
+ * single-edge traversal.
+ */
+export const TargetsAlarmSafetyHoldHoldsSource = new RelationshipPropagationPolicy({
+  id: 'targets.alarm-safety-hold.holds-source' as never,
+  edgeType: 'targets',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'alarm.safety',
+    kind: 'condition_asserted',
+    value: 'hold',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.SafetyHold,
+    reason: 'target_alarm_safety_hold',
+    payloadDefaults: { holdKind: 'alarm', suspensionReason: 'safety_hold' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * A critical/emergency alarm observed on a required asset applies safety pressure
+ * to WorkOrders that require that asset.
+ */
+export const RequiresAlarmSafetyHoldHoldsSource = new RelationshipPropagationPolicy({
+  id: 'requires.alarm-safety-hold.holds-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'alarm.safety',
+    kind: 'condition_asserted',
+    value: 'hold',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.SafetyHold,
+    reason: 'required_asset_alarm_safety_hold',
+    payloadDefaults: { holdKind: 'alarm', suspensionReason: 'safety_hold' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * Alarm clearing retracts safety pressure for WorkOrders targeting the affected
+ * asset. Actual resume/unhold remains target-owned and SQL-constraint aware.
+ */
+export const TargetsAlarmSafetyHoldRetractedReleasesSource = new RelationshipPropagationPolicy({
+  id: 'targets.alarm-safety-hold-retracted.releases-source' as never,
+  edgeType: 'targets',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'alarm.safety',
+    kind: 'condition_retracted',
+    value: 'hold',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.SafetyRelease,
+    reason: 'target_alarm_safety_hold_retracted',
+    payloadDefaults: { holdKind: 'alarm' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * Alarm clearing retracts safety pressure for WorkOrders requiring the affected
+ * asset. The release capability is deliberately separate from dependency release.
+ */
+export const RequiresAlarmSafetyHoldRetractedReleasesSource = new RelationshipPropagationPolicy({
+  id: 'requires.alarm-safety-hold-retracted.releases-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'alarm.safety',
+    kind: 'condition_retracted',
+    value: 'hold',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.SafetyRelease,
+    reason: 'required_asset_alarm_safety_hold_retracted',
+    payloadDefaults: { holdKind: 'alarm' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+export const AlarmSafetyHoldPropagationPolicies = [
+  TargetsAlarmSafetyHoldHoldsSource,
+  RequiresAlarmSafetyHoldHoldsSource,
+  TargetsAlarmSafetyHoldRetractedReleasesSource,
+  RequiresAlarmSafetyHoldRetractedReleasesSource,
+] as const
+
 export const RELATIONSHIP_EDGE_REGISTRY = {
   targets: descriptor(
     'targets',
@@ -374,7 +479,11 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
     ['work_order'],
     ['machine', 'line', 'workcell', 'plant', 'sensor', 'device'],
     [MachineUnavailableSuspendsWorkOrder],
-    [TargetsMachineUnavailableBlocksSource],
+    [
+      TargetsMachineUnavailableBlocksSource,
+      TargetsAlarmSafetyHoldHoldsSource,
+      TargetsAlarmSafetyHoldRetractedReleasesSource,
+    ],
   ),
   requires: descriptor(
     'requires',
@@ -382,7 +491,11 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
     ['work_order'],
     ['external', 'machine', 'device'],
     [],
-    [RequiresEquipmentUnavailableBlocksSource],
+    [
+      RequiresEquipmentUnavailableBlocksSource,
+      RequiresAlarmSafetyHoldHoldsSource,
+      RequiresAlarmSafetyHoldRetractedReleasesSource,
+    ],
   ),
   caused_by: descriptor('caused_by', 'directed', ['work_order', 'alarm'], ['alarm', 'machine', 'sensor', 'device', 'work_order']),
   depends_on: descriptor(
