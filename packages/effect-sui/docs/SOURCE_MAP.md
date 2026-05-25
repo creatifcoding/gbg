@@ -114,7 +114,12 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/ptb/constructors.ts` | Ergonomic PTB constructors |
 | `src/ptb/decode.ts` | PTB AST decode helpers |
 | `src/ptb/analyzer.ts` | PTB static analyzer |
-| `src/ptb/compiler.ts` | Mysten Transaction compiler |
+| `src/ptb/compiler.ts` | PTB compiler service/public surface |
+| `src/ptb/compiler-types.ts` | Mysten Transaction/Argument compiler types |
+| `src/ptb/compiler-args.ts` | PTB argument resolution |
+| `src/ptb/compiler-input.ts` | PTB input compilation |
+| `src/ptb/compiler-command.ts` | PTB command application |
+| `src/ptb/compiler-core.ts` | End-to-end PTB compile program |
 | `src/ptb/make.ts` | Effectable `SuiPTB` facade constructor |
 | `src/ptb/runtime.ts` | ManagedRuntime-backed PTB builder edge |
 | `src/query/index.ts` | Public barrel for query/read helpers |
