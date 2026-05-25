@@ -136,7 +136,10 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/rpc-execution.ts` | Transaction execution RPC service |
 | `src/flow/rpc-finality.ts` | Transaction finality wait RPC service |
 | `src/flow/reservation-request.ts` | Lifecycle reservation request construction |
-| `src/flow/runner.ts` | `SuiTxRunner` lifecycle program |
+| `src/flow/runner.ts` | `SuiTxRunner` service assembly |
+| `src/flow/runner-types.ts` | Runner dependency/options contracts |
+| `src/flow/runner-completion.ts` | PTB requirement, completion invariants, preflight guard |
+| `src/flow/runner-lifecycle.ts` | Transaction lifecycle state machine |
 | `src/flow/runtime.ts` | ManagedRuntime-backed Flow client edge |
 | `src/reservation/index.ts` | Public barrel for STM reservation state/services |
 | `src/reservation/types.ts` | Reservation resource/lock/record/state types |
