@@ -52,6 +52,7 @@ Rationale:
 | Flow RPC boundary decomposition | Done | `19a93b03 refactor(effect-sui): decompose flow RPC boundary` |
 | Flow runner lifecycle decomposition | Done | `a1d5b385 refactor(effect-sui): decompose flow runner lifecycle` |
 | PTB compiler decomposition | Done | `89fef190 refactor(effect-sui): decompose PTB compiler` |
+| PTB analyzer decomposition | Done | `3d55e0ce refactor(effect-sui): decompose PTB analyzer` |
 
 ## Surgical decomposition closeout
 
@@ -60,7 +61,7 @@ Source-only line budgets stayed under the 120% cap:
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
 | `src/flow` | 787 | 906 | 115.1% |
-| `src/ptb` | 622 | 703 | 113.0% |
+| `src/ptb` | 622 | 704 | 113.2% |
 | `src/schema` | 571 | 613 | 107.4% |
 | `src/query` | 401 | 466 | 116.2% |
 | `src/services` | 321 | 354 | 110.3% |
@@ -69,6 +70,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/rpc` | 175 | 178 | 101.7% |
 | `src/flow/runner` | 169 | 171 | 101.2% |
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
+| `src/ptb/analyzer` | 181 | 182 | 100.6% |
 
 Final decomposition gates passed:
 
