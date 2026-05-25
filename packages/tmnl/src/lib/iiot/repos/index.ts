@@ -43,6 +43,7 @@ import { AnalyticsRecordRepoLive } from './AnalyticsRecordRepo'
 // Reactor repositories
 import { ReactorCheckpointRepoLive } from './ReactorCheckpointRepo'
 import { ReactorSourceClaimConfigTag, ReactorSourceClaimRepoLive } from './ReactorSourceClaimRepo'
+import { RelationshipEdgeAuditRepoLive } from './RelationshipEdgeAuditRepo'
 
 // =============================================================================
 // Composed Layers
@@ -131,7 +132,8 @@ export const ReadingRepositoriesLive = Layer.mergeAll(
  */
 export const ReactorRepositoriesLive = Layer.mergeAll(
   ReactorCheckpointRepoLive,
-  ReactorSourceClaimRepoLive.pipe(Layer.provide(ReactorSourceClaimConfigTag.Default))
+  ReactorSourceClaimRepoLive.pipe(Layer.provide(ReactorSourceClaimConfigTag.Default)),
+  RelationshipEdgeAuditRepoLive,
 )
 
 /**
@@ -215,3 +217,10 @@ export {
   type ReactorSourceClaimRepoError,
 } from './ReactorSourceClaimRepo'
 export { ReactorCausalDagRepo, ReactorCausalDagRepoLive, type ReactorCausalDagRepository, type ReactorCausalDagRepoError } from './ReactorCausalDagRepo'
+export {
+  RelationshipEdgeAuditRepo,
+  RelationshipEdgeAuditRepoInMemory,
+  RelationshipEdgeAuditRepoLive,
+  type RelationshipEdgeAuditRepository,
+  type RelationshipEdgeAuditRepoError,
+} from './RelationshipEdgeAuditRepo'
