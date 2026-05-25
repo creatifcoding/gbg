@@ -1,5 +1,7 @@
 /** Safe redaction helpers for doctor output. */
 
+import * as Cause from 'effect-v4/Cause';
+
 export const REDACTED = '<redacted>';
 
 const jwtPattern = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
@@ -36,11 +38,5 @@ export const redactDoctorValue = (value: unknown, seen = new WeakSet<object>()):
   return out;
 };
 
-export const safeCauseText = (cause: unknown): string => {
-  if (cause instanceof Error) return redactString(cause.message);
-  if (typeof cause === 'string') return redactString(cause);
-  if (typeof cause === 'object' && cause !== null && 'message' in cause) {
-    return redactString(String((cause as { readonly message?: unknown }).message ?? cause));
-  }
-  return redactString(String(cause));
-};
+export const redactCause = (cause: Cause.Cause<unknown>): string =>
+  redactString(Cause.pretty(cause));

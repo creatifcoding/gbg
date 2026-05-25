@@ -5,6 +5,7 @@
  * metadata. Later slices add JSM, stream, KV, and micro-discovery checks.
  */
 
+import * as Cause from 'effect-v4/Cause';
 import * as Context from 'effect-v4/Context';
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
@@ -20,7 +21,7 @@ import {
   DoctorReport,
   maxSeverity,
 } from './schemas';
-import { redactDoctorValue, safeCauseText } from './redaction';
+import { redactCause, redactDoctorValue } from './redaction';
 
 export interface MshDoctorShape {
   readonly checkCoreFlush: Effect.Effect<DoctorCheck>;
@@ -61,7 +62,7 @@ const failedCheck = (
   component: string,
   durationMs: number,
   observedAt: number,
-  cause: unknown,
+  cause: Cause.Cause<unknown>,
   remediation: string,
 ): DoctorCheck => DoctorCheck.make({
   checkId,
@@ -76,7 +77,7 @@ const failedCheck = (
     message: `${component} check failed`,
     layer: 'msh',
     component,
-    safeCause: safeCauseText(cause),
+    safeCause: redactCause(cause),
     remediation,
   })],
   observedAt,
@@ -124,13 +125,13 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
 
     const checkCoreFlush: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
       const started = Date.now();
-      const result = yield* Effect.result(Effect.tryPromise({
+      const exit = yield* Effect.exit(Effect.tryPromise({
         try: () => connection.nc.flush(),
         catch: (cause) => cause,
       }));
       const observedAt = Date.now();
       const durationMs = observedAt - started;
-      if (result._tag === 'Success') {
+      if (exit._tag === 'Success') {
         return passedCheck('msh.core.flush', 'core', durationMs, observedAt);
       }
       return failedCheck(
@@ -138,17 +139,17 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
         'core',
         durationMs,
         observedAt,
-        result.failure,
+        exit.cause,
         'Verify NATS connectivity and core publish/request permissions.',
       );
     });
 
     const checkJetStreamManager: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
       const started = Date.now();
-      const result = yield* Effect.result(connection.getJsm());
+      const exit = yield* Effect.exit(connection.getJsm());
       const observedAt = Date.now();
       const durationMs = observedAt - started;
-      if (result._tag === 'Success') {
+      if (exit._tag === 'Success') {
         return passedCheck('msh.jsm.access', 'jetstream-manager', durationMs, observedAt, [finding({
           severity: 'ok',
           code: 'msh.jsm.access.available',
@@ -162,27 +163,27 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
         'jetstream-manager',
         durationMs,
         observedAt,
-        result.failure,
+        exit.cause,
         'Verify $JS.API.> publish and _INBOX.> subscribe permissions, and confirm JetStream is enabled.',
       );
     });
 
     const checkStreamInfo = (name: string): Effect.Effect<DoctorCheck> => Effect.gen(function* () {
       const started = Date.now();
-      const result = yield* Effect.result(stream.getStreamInfo(name));
+      const exit = yield* Effect.exit(stream.getStreamInfo(name));
       const observedAt = Date.now();
       const durationMs = observedAt - started;
-      if (result._tag === 'Failure') {
+      if (exit._tag === 'Failure') {
         return failedCheck(
           'msh.stream.info',
           'stream',
           durationMs,
           observedAt,
-          result.failure,
+          exit.cause,
           'Verify stream info permissions and stream name configuration.',
         );
       }
-      if (result.success === null) {
+      if (exit.value === null) {
         return DoctorCheck.make({
           checkId: 'msh.stream.info',
           layer: 'msh',
@@ -214,23 +215,23 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
 
     const checkKvBucket = (bucketName: string): Effect.Effect<DoctorCheck> => Effect.gen(function* () {
       const started = Date.now();
-      const result = yield* Effect.result(kv.keys(bucketName));
+      const exit = yield* Effect.exit(kv.keys(bucketName));
       const observedAt = Date.now();
       const durationMs = observedAt - started;
-      if (result._tag === 'Failure') {
+      if (exit._tag === 'Failure') {
         return failedCheck(
           'msh.kv.bucket',
           'kv',
           durationMs,
           observedAt,
-          result.failure,
+          exit.cause,
           'Verify KV bucket existence and KV read permissions.',
         );
       }
       return passedCheck('msh.kv.bucket', 'kv', durationMs, observedAt, [finding({
         severity: 'ok',
         code: 'msh.kv.bucket.available',
-        message: `kv bucket '${bucketName}' is readable (${result.success.length} keys)`,
+        message: `kv bucket '${bucketName}' is readable (${exit.value.length} keys)`,
         layer: 'msh',
         component: 'kv',
         bucket: bucketName,
@@ -242,16 +243,16 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
         return skippedCheck('msh.auth.metadata', 'auth', 'MshAuthService is not in scope.');
       }
       const started = Date.now();
-      const result = yield* Effect.result(auth.metadata);
+      const exit = yield* Effect.exit(auth.metadata);
       const observedAt = Date.now();
       const durationMs = observedAt - started;
-      if (result._tag === 'Success') {
+      if (exit._tag === 'Success') {
         return passedCheck(
           'msh.auth.metadata',
           'auth',
           durationMs,
           observedAt,
-          [authMetadataFinding(result.success)],
+          [authMetadataFinding(exit.value)],
         );
       }
       return failedCheck(
@@ -259,7 +260,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
         'auth',
         durationMs,
         observedAt,
-        result.failure,
+        exit.cause,
         'Inspect auth configuration and credential source availability.',
       );
     });

@@ -5,6 +5,7 @@
  * stream protocol diagnostics stay in LNK.
  */
 
+import * as Cause from "effect-v4/Cause"
 import * as Context from "effect-v4/Context"
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
@@ -27,14 +28,6 @@ export class PctDoctorService extends Context.Service<
   PctDoctorShape
 >()("@tmnl/pct/doctor/PctDoctorService") {}
 
-const safeCauseText = (cause: unknown): string => {
-  if (cause instanceof Error) return cause.message
-  if (typeof cause === "object" && cause !== null && "message" in cause) {
-    return String((cause as { readonly message?: unknown }).message ?? cause)
-  }
-  return String(cause)
-}
-
 const finding = (input: typeof PctDoctorFinding.Type): PctDoctorFinding =>
   PctDoctorFinding.make(input)
 
@@ -43,7 +36,7 @@ const failedCheck = (
   component: string,
   durationMs: number,
   observedAt: number,
-  cause: unknown,
+  cause: Cause.Cause<unknown>,
 ): PctDoctorCheck => PctDoctorCheck.make({
   checkId,
   layer: "pct",
@@ -57,7 +50,7 @@ const failedCheck = (
     message: `${component} check failed`,
     layer: "pct",
     component,
-    safeCause: safeCauseText(cause),
+    safeCause: Cause.pretty(cause),
     remediation: "Verify PCT registry layer composition and journal availability.",
   })],
   observedAt,
@@ -69,14 +62,14 @@ export const makePctDoctor = (): Effect.Effect<PctDoctorShape, never, Registry> 
 
     const checkRegistry: Effect.Effect<PctDoctorCheck> = Effect.gen(function* () {
       const started = Date.now()
-      const result = yield* Effect.result(registry.snapshot)
+      const exit = yield* Effect.exit(registry.snapshot)
       const observedAt = Date.now()
       const durationMs = observedAt - started
-      if (result._tag === "Failure") {
-        return failedCheck("pct.registry.snapshot", "registry", durationMs, observedAt, result.failure)
+      if (exit._tag === "Failure") {
+        return failedCheck("pct.registry.snapshot", "registry", durationMs, observedAt, exit.cause)
       }
 
-      const state = result.success
+      const state = exit.value
       const findings = [finding({
         severity: "ok",
         code: "pct.registry.snapshot.available",
