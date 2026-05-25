@@ -285,6 +285,88 @@ export const RequiresEquipmentUnavailableBlocksSource = new RelationshipPropagat
   version: '1',
 })
 
+/**
+ * A WorkOrder suspended/failed/cancelled state observed on the target endpoint
+ * blocks upstream WorkOrders that depend_on it. This is a routing contract only;
+ * the dependent WorkOrder still owns eligibility and local transition.
+ */
+export const DependsOnWorkOrderBlockedBlocksSource = new RelationshipPropagationPolicy({
+  id: 'depends_on.work-order-blocked.blocks-source' as never,
+  edgeType: 'depends_on',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'work_order.execution',
+    kind: 'condition_asserted',
+    value: 'blocked',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyBlocked,
+    reason: 'dependent_work_order_blocked',
+    payloadDefaults: { dependencyKind: 'work_order', suspensionReason: 'external_dependency' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * A dependent WorkOrder completing means the source WorkOrder's dependency has
+ * been satisfied. Dispatch requires a target contract to decide whether this is
+ * informational, progression, or no-op for the source state machine.
+ */
+export const DependsOnWorkOrderSatisfiedSatisfiesSource = new RelationshipPropagationPolicy({
+  id: 'depends_on.work-order-satisfied.satisfies-source' as never,
+  edgeType: 'depends_on',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'work_order.execution',
+    kind: 'condition_asserted',
+    value: 'satisfied',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencySatisfied,
+    reason: 'dependent_work_order_satisfied',
+    payloadDefaults: { dependencyKind: 'work_order' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * A dependent WorkOrder resuming retracts an upstream blocked condition. The
+ * release adapter still requires explicit constraint identity at dispatch time;
+ * this policy documents the routing contract and is not enabled in generic live
+ * registry until constraint-address enrichment exists for depends_on releases.
+ */
+export const DependsOnWorkOrderBlockRetractedReleasesSource = new RelationshipPropagationPolicy({
+  id: 'depends_on.work-order-block-retracted.releases-source' as never,
+  edgeType: 'depends_on',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'work_order.execution',
+    kind: 'condition_retracted',
+    value: 'blocked',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyReleased,
+    reason: 'dependent_work_order_unblocked',
+    payloadDefaults: { dependencyKind: 'work_order' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+export const WorkOrderDependsOnPropagationPolicies = [
+  DependsOnWorkOrderBlockedBlocksSource,
+  DependsOnWorkOrderSatisfiedSatisfiesSource,
+  DependsOnWorkOrderBlockRetractedReleasesSource,
+] as const
+
 export const RELATIONSHIP_EDGE_REGISTRY = {
   targets: descriptor(
     'targets',
@@ -303,7 +385,14 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
     [RequiresEquipmentUnavailableBlocksSource],
   ),
   caused_by: descriptor('caused_by', 'directed', ['work_order', 'alarm'], ['alarm', 'machine', 'sensor', 'device', 'work_order']),
-  depends_on: descriptor('depends_on', 'directed', ['work_order'], ['work_order']),
+  depends_on: descriptor(
+    'depends_on',
+    'directed',
+    ['work_order'],
+    ['work_order'],
+    [],
+    WorkOrderDependsOnPropagationPolicies,
+  ),
   related_to: descriptor('related_to', 'bidirectional', ['work_order', 'alarm', 'machine', 'sensor', 'device'], ['work_order', 'alarm', 'machine', 'sensor', 'device']),
   supervises: descriptor('supervises', 'directed', ['external'], ['work_order', 'alarm']),
   produces: descriptor('produces', 'directed', ['work_order'], ['external']),

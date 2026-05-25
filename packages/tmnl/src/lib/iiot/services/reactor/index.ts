@@ -56,6 +56,12 @@ export {
   FaultDetectedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
   ReactiveEquipmentStateObservationSpecs,
+  WorkOrderCancelledObservationSpec,
+  WorkOrderCompletedObservationSpec,
+  WorkOrderDependencyObservationSpecs,
+  WorkOrderFailedObservationSpec,
+  WorkOrderResumedObservationSpec,
+  WorkOrderSuspendedObservationSpec,
 } from './observations'
 
 export {

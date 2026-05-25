@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { ObservationSignal } from '../../../schemas/reactor'
 import {
   EntityCapabilityIds,
+  DependsOnWorkOrderBlockedBlocksSource,
+  DependsOnWorkOrderBlockRetractedReleasesSource,
+  DependsOnWorkOrderSatisfiedSatisfiesSource,
   RequiresEquipmentUnavailableBlocksSource,
   TargetsMachineUnavailableBlocksSource,
   getPropagationPoliciesForEdge,
@@ -55,6 +58,14 @@ describe('ReactorRegistry', () => {
     expect(getPropagationPoliciesForEdge('requires').map((policy) => policy.id)).toContain(
       RequiresEquipmentUnavailableBlocksSource.id,
     )
+  })
+
+  it('registers WorkOrder depends_on routing contract policies', () => {
+    expect(getPropagationPoliciesForEdge('depends_on').map((policy) => policy.id)).toEqual([
+      DependsOnWorkOrderBlockedBlocksSource.id,
+      DependsOnWorkOrderSatisfiedSatisfiesSource.id,
+      DependsOnWorkOrderBlockRetractedReleasesSource.id,
+    ])
   })
 
   it('does not match unrelated signals', () => {

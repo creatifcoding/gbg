@@ -10,7 +10,7 @@ import {
 } from '../../schemas/reactor'
 import type { PropagationId } from '../../schemas/identifiers'
 import { RelationshipEndpoint } from '../../schemas/relationships'
-import { EquipmentStateEvents } from '../../schemas/events/groups'
+import { EquipmentStateEvents, WorkOrderEvents } from '../../schemas/events/groups'
 import type { EventObservationSpec } from './ReactorRegistry'
 
 const unavailableEquipmentStates = new Set([
@@ -117,8 +117,139 @@ export const FaultDetectedObservationSpec: EventObservationSpec = {
     }),
 }
 
+const workOrderDependencyObservation = (input: {
+  readonly entry: EventJournal.Entry
+  readonly workOrderId: string
+  readonly kind: 'condition_asserted' | 'condition_retracted'
+  readonly value: 'blocked' | 'satisfied'
+  readonly reason: string
+  readonly propagationId?: PropagationId
+  readonly payload: unknown
+}): ReactorObservation =>
+  new ReactorObservation({
+    event: eventEnvelopeFromEntry(input.entry),
+    subject: new RelationshipEndpoint({ type: 'work_order', id: input.workOrderId }),
+    signals: [
+      new ObservationSignal({
+        axis: 'work_order.execution',
+        kind: input.kind,
+        value: input.value,
+        reason: input.reason,
+      }),
+    ],
+    causality: new ReactorCausality({
+      propagationId: input.propagationId ?? (input.entry.idString as PropagationId),
+    }),
+    payload: input.payload,
+  })
+
+export const WorkOrderSuspendedObservationSpec: EventObservationSpec = {
+  id: 'work-order-suspended-dependency-observation',
+  eventTag: 'WorkOrderSuspended',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = WorkOrderEvents.events.WorkOrderSuspended
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return workOrderDependencyObservation({
+        entry,
+        workOrderId: payload.workOrderId,
+        kind: 'condition_asserted',
+        value: 'blocked',
+        reason: payload.reason,
+        propagationId: payload.propagationId ?? payload.causedByPropagationId,
+        payload,
+      })
+    }),
+}
+
+export const WorkOrderFailedObservationSpec: EventObservationSpec = {
+  id: 'work-order-failed-dependency-observation',
+  eventTag: 'WorkOrderFailed',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = WorkOrderEvents.events.WorkOrderFailed
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return workOrderDependencyObservation({
+        entry,
+        workOrderId: payload.workOrderId,
+        kind: 'condition_asserted',
+        value: 'blocked',
+        reason: payload.failureReason,
+        payload,
+      })
+    }),
+}
+
+export const WorkOrderCancelledObservationSpec: EventObservationSpec = {
+  id: 'work-order-cancelled-dependency-observation',
+  eventTag: 'WorkOrderCancelled',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = WorkOrderEvents.events.WorkOrderCancelled
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return workOrderDependencyObservation({
+        entry,
+        workOrderId: payload.workOrderId,
+        kind: 'condition_asserted',
+        value: 'blocked',
+        reason: payload.reason,
+        payload,
+      })
+    }),
+}
+
+export const WorkOrderCompletedObservationSpec: EventObservationSpec = {
+  id: 'work-order-completed-dependency-observation',
+  eventTag: 'WorkOrderCompleted',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = WorkOrderEvents.events.WorkOrderCompleted
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return workOrderDependencyObservation({
+        entry,
+        workOrderId: payload.workOrderId,
+        kind: 'condition_asserted',
+        value: 'satisfied',
+        reason: payload.outcome,
+        payload,
+      })
+    }),
+}
+
+export const WorkOrderResumedObservationSpec: EventObservationSpec = {
+  id: 'work-order-resumed-dependency-observation',
+  eventTag: 'WorkOrderResumed',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = WorkOrderEvents.events.WorkOrderResumed
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return workOrderDependencyObservation({
+        entry,
+        workOrderId: payload.workOrderId,
+        kind: 'condition_retracted',
+        value: 'blocked',
+        reason: 'resumed',
+        propagationId: payload.causedByPropagationId,
+        payload,
+      })
+    }),
+}
+
 export const ReactiveEquipmentStateObservationSpecs = [
   EquipmentStateChangedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
   FaultDetectedObservationSpec,
+] as const
+
+export const WorkOrderDependencyObservationSpecs = [
+  WorkOrderSuspendedObservationSpec,
+  WorkOrderFailedObservationSpec,
+  WorkOrderCancelledObservationSpec,
+  WorkOrderCompletedObservationSpec,
+  WorkOrderResumedObservationSpec,
 ] as const
