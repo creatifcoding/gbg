@@ -1,0 +1,23 @@
+import * as Effect from 'effect-v4/Effect';
+import { SuiInvariantViolation } from '../schema';
+import { type SuiPtbArgument } from './arguments';
+import { ptbInvariant } from './errors';
+import type { MystenArgument } from './compiler-types';
+
+export const compileArg = (
+  arg: SuiPtbArgument,
+  inputs: ReadonlyArray<MystenArgument>,
+): Effect.Effect<MystenArgument, SuiInvariantViolation> => {
+  switch (arg._tag) {
+    case 'GasCoin':
+      return Effect.succeed({ $kind: 'GasCoin', GasCoin: true });
+    case 'Input': {
+      const resolved = inputs[arg.index];
+      return resolved ? Effect.succeed(resolved) : Effect.fail(ptbInvariant('compile', `Missing input ${arg.index}`));
+    }
+    case 'Result':
+      return Effect.succeed({ $kind: 'Result', Result: arg.index });
+    case 'NestedResult':
+      return Effect.succeed({ $kind: 'NestedResult', NestedResult: [arg.index, arg.nestedIndex] });
+  }
+};
