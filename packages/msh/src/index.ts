@@ -31,6 +31,9 @@ export * from './auth';
 // Tracing
 export { MshSpan, type MshSpanName } from './tracing';
 
+// Doctor / diagnostics
+export * from './doctor';
+
 // =============================================================================
 // Msh Namespace (convenience)
 // =============================================================================
@@ -48,6 +51,7 @@ import {
   NatsServiceDiscoveryService, NatsServiceDiscoveryServiceLive,
 } from './nats';
 import { MshAuthService, MshAuthServiceLive, MshJwtService, MshJwtServiceLive } from './auth';
+import { MshDoctorService, MshDoctorServiceLive } from './doctor';
 
 /**
  * Msh namespace for convenient service access.
@@ -88,6 +92,8 @@ export const Msh = {
   AuthLive: MshAuthServiceLive,
   Jwt: MshJwtService,
   JwtLive: MshJwtServiceLive,
+  Doctor: MshDoctorService,
+  DoctorLive: MshDoctorServiceLive,
 } as const;
 
 export type MshNamespace = typeof Msh;
