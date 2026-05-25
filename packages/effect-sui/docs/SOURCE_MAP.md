@@ -85,7 +85,10 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/index.ts` | Public barrel for schema nouns |
 | `src/schema/bytes.ts` | Byte/Chunk helpers and 32-byte schemas |
 | `src/schema/strings.ts` | Addresses, object ids, digests, versions, string codecs |
-| `src/schema/move.ts` | Move identifiers and Sui type tags |
+| `src/schema/move.ts` | Public barrel for Move identifiers and Sui type tags |
+| `src/schema/move-identifiers.ts` | Move identifier schema/brand |
+| `src/schema/type-tag-string.ts` | Type-tag string normalization and branded schemas |
+| `src/schema/type-tag.ts` | Type-tag AST classes, stringify, and parser |
 | `src/schema/objects.ts` | Object refs, shared refs, object args |
 | `src/schema/descriptors.ts` | Package/module descriptors |
 | `src/schema/errors.ts` | Schema-backed typed errors |
