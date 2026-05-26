@@ -1,19 +1,19 @@
-# Doctor Check Taxonomy and Layer Contracts
+# Diagnostics Check Taxonomy and Layer Contracts
 
 Status: design checkpoint
 Date: 2026-05-24
 
 ## 1. Purpose
 
-This document freezes the first diagnostic vocabulary for the PCT/LNK/MSH doctor surface. It exists so later ACL, chaos, soak, and projection-runtime lanes can assert stable check IDs and finding codes instead of scraping logs like peasants.
+This document freezes the first diagnostic vocabulary for the PCT/LNK/MSH diagnostics surface. It exists so later ACL, chaos, soak, and projection-runtime lanes can assert stable check IDs and finding codes instead of scraping logs like peasants.
 
 ## 2. Schema placement decision
 
 Decision:
 
-- `@tmnl/msh` owns the **generic** doctor vocabulary in `packages/msh/src/doctor`.
+- `@tmnl/msh` owns the **generic** diagnostics vocabulary in `packages/msh/src/diagnostics`.
 - The generic vocabulary uses `layer: string`, not a closed enum, so MSH does not encode PCT/LNK semantics.
-- `@tmnl/pct` may keep package-local doctor schemas during the spike, then converge to the MSH generic shape once the rollup contract stabilizes.
+- `@tmnl/pct` may keep package-local diagnostics schemas during the spike, then converge to the MSH generic shape once the rollup contract stabilizes.
 - `@tmnl/lnk` should prefer the MSH generic vocabulary for bridge diagnostics because LNK already depends on MSH for `MshBridgeWire`.
 
 Rationale:
@@ -104,12 +104,12 @@ ok < unknown < warn < critical
 | Check ID | Component | Mechanism | Failure distinctions |
 |---|---|---|---|
 | `lnk.mshBridge.metadata.bucket` | `metadata` | Verify metadata store bucket access. | bucket unavailable, permission, codec |
-| `lnk.mshBridge.stream.ensure` | `stream` | Ensure/read bridge data stream for doctor fixture. | config mismatch, permission, unavailable |
+| `lnk.mshBridge.stream.ensure` | `stream` | Ensure/read bridge data stream for diagnostics fixture. | config mismatch, permission, unavailable |
 | `lnk.mshBridge.cas.conflict` | `cas` | Force stale revision in controlled fixture. | expected conflict vs unexpected failure |
 | `lnk.mshBridge.append.roundtrip` | `wire` | Create ephemeral stream, append, read back. | append failure, read failure, framing mismatch |
 | `lnk.mshBridge.span.inventory` | `tracing` | Static inventory of `MshBridgeSpan`. | missing/churn |
 
-LNK doctor must not validate PCT schemas. It may report schema-id metadata presence only.
+LNK diagnostics must not validate PCT schemas. It may report schema-id metadata presence only.
 
 ## 7. PCT check IDs
 
@@ -130,7 +130,7 @@ LNK doctor must not validate PCT schemas. It may report schema-id metadata prese
 | `pct.projection.worker.status` | `projection-worker` | Read worker status via control service/host. | failed/stopped/running/degraded |
 | `pct.projection.worker.host` | `projection-worker-host` | Check micro endpoint info/stats for projection endpoints. | missing endpoint/no responders |
 
-PCT doctor should consume MSH/LNK reports for substrate/bridge findings rather than reproducing raw transport probes.
+PCT diagnostics should consume MSH/LNK reports for substrate/bridge findings rather than reproducing raw transport probes.
 
 ## 8. Layer boundary rules
 
@@ -139,7 +139,7 @@ PCT doctor should consume MSH/LNK reports for substrate/bridge findings rather t
 Allowed:
 
 - NATS connection/auth/JSM/stream/KV/micro/subject diagnostics.
-- Generic doctor schemas and redaction helpers.
+- Generic diagnostics schemas and redaction helpers.
 
 Forbidden:
 
@@ -178,7 +178,7 @@ Normal CI:
 
 - schema tests,
 - redaction tests,
-- mock doctor tests,
+- mock diagnostics tests,
 - static span inventory.
 
 Opt-in live:
@@ -187,11 +187,11 @@ Opt-in live:
 - LNK: append/read roundtrip over real MSH bridge.
 - PCT: NATS control-plane resolver/capabilities and projection host discovery.
 
-Live tests must remain bounded and health-probed. No soak hiding in doctor tests.
+Live tests must remain bounded and health-probed. No soak hiding in diagnostics tests.
 
 ## 10. Next implementation target
 
-Proceed to MSH substrate doctor:
+Proceed to MSH substrate diagnostics:
 
 1. add `msh.jsm.access`,
 2. add `msh.stream.info`,

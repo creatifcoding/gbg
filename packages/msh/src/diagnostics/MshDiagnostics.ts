@@ -1,5 +1,5 @@
 /**
- * MSH substrate doctor service.
+ * MSH substrate diagnostics service.
  *
  * This first slice is intentionally small and read-only: core flush and auth
  * metadata. Later slices add JSM, stream, KV, and micro-discovery checks.
@@ -16,37 +16,37 @@ import { NatsConnectionService } from '../nats/connection';
 import { NatsKVService } from '../nats/kv';
 import { NatsStreamService } from '../nats/stream';
 import {
-  DoctorCheck,
-  DoctorFinding,
-  DoctorReport,
+  DiagnosticCheck,
+  DiagnosticFinding,
+  DiagnosticReport,
   maxSeverity,
 } from './schemas';
-import { redactCause, redactDoctorValue } from './redaction';
+import { redactCause, redactDiagnosticValue } from './redaction';
 
-export interface MshDoctorShape {
-  readonly checkCoreFlush: Effect.Effect<DoctorCheck>;
-  readonly checkJetStreamManager: Effect.Effect<DoctorCheck>;
-  readonly checkStreamInfo: (name: string) => Effect.Effect<DoctorCheck>;
-  readonly checkKvBucket: (bucketName: string) => Effect.Effect<DoctorCheck>;
-  readonly checkAuthMetadata: Effect.Effect<DoctorCheck>;
-  readonly report: Effect.Effect<DoctorReport>;
+export interface MshDiagnosticsShape {
+  readonly checkCoreFlush: Effect.Effect<DiagnosticCheck>;
+  readonly checkJetStreamManager: Effect.Effect<DiagnosticCheck>;
+  readonly checkStreamInfo: (name: string) => Effect.Effect<DiagnosticCheck>;
+  readonly checkKvBucket: (bucketName: string) => Effect.Effect<DiagnosticCheck>;
+  readonly checkAuthMetadata: Effect.Effect<DiagnosticCheck>;
+  readonly report: Effect.Effect<DiagnosticReport>;
 }
 
-export class MshDoctorService extends Context.Service<
-  MshDoctorService,
-  MshDoctorShape
->()('@tmnl/msh/doctor/MshDoctorService') {}
+export class MshDiagnosticsService extends Context.Service<
+  MshDiagnosticsService,
+  MshDiagnosticsShape
+>()('@tmnl/msh/diagnostics/MshDiagnosticsService') {}
 
-const finding = (input: typeof DoctorFinding.Type): DoctorFinding =>
-  DoctorFinding.make(input);
+const finding = (input: typeof DiagnosticFinding.Type): DiagnosticFinding =>
+  DiagnosticFinding.make(input);
 
 const passedCheck = (
   checkId: string,
   component: string,
   durationMs: number,
   observedAt: number,
-  findings: ReadonlyArray<DoctorFinding> = [],
-): DoctorCheck => DoctorCheck.make({
+  findings: ReadonlyArray<DiagnosticFinding> = [],
+): DiagnosticCheck => DiagnosticCheck.make({
   checkId,
   layer: 'msh',
   component,
@@ -64,7 +64,7 @@ const failedCheck = (
   observedAt: number,
   cause: Cause.Cause<unknown>,
   remediation: string,
-): DoctorCheck => DoctorCheck.make({
+): DiagnosticCheck => DiagnosticCheck.make({
   checkId,
   layer: 'msh',
   component,
@@ -87,7 +87,7 @@ const skippedCheck = (
   checkId: string,
   component: string,
   message: string,
-): DoctorCheck => DoctorCheck.make({
+): DiagnosticCheck => DiagnosticCheck.make({
   checkId,
   layer: 'msh',
   component,
@@ -104,8 +104,8 @@ const skippedCheck = (
   observedAt: Date.now(),
 });
 
-const authMetadataFinding = (metadata: AuthMetadata): DoctorFinding => {
-  const safe = redactDoctorValue(metadata) as AuthMetadata;
+const authMetadataFinding = (metadata: AuthMetadata): DiagnosticFinding => {
+  const safe = redactDiagnosticValue(metadata) as AuthMetadata;
   return finding({
     severity: 'ok',
     code: 'msh.auth.metadata.safe',
@@ -115,7 +115,7 @@ const authMetadataFinding = (metadata: AuthMetadata): DoctorFinding => {
   });
 };
 
-export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnectionService | NatsStreamService | NatsKVService> =>
+export const makeMshDiagnostics = (): Effect.Effect<MshDiagnosticsShape, never, NatsConnectionService | NatsStreamService | NatsKVService> =>
   Effect.gen(function* () {
     const connection = yield* NatsConnectionService;
     const stream = yield* NatsStreamService;
@@ -123,7 +123,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
     const authOption = yield* Effect.serviceOption(MshAuthService);
     const auth = Option.isSome(authOption) ? authOption.value : undefined;
 
-    const checkCoreFlush: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
+    const checkCoreFlush: Effect.Effect<DiagnosticCheck> = Effect.gen(function* () {
       const started = Date.now();
       const exit = yield* Effect.exit(Effect.tryPromise({
         try: () => connection.nc.flush(),
@@ -144,7 +144,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
       );
     });
 
-    const checkJetStreamManager: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
+    const checkJetStreamManager: Effect.Effect<DiagnosticCheck> = Effect.gen(function* () {
       const started = Date.now();
       const exit = yield* Effect.exit(connection.getJsm());
       const observedAt = Date.now();
@@ -168,7 +168,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
       );
     });
 
-    const checkStreamInfo = (name: string): Effect.Effect<DoctorCheck> => Effect.gen(function* () {
+    const checkStreamInfo = (name: string): Effect.Effect<DiagnosticCheck> => Effect.gen(function* () {
       const started = Date.now();
       const exit = yield* Effect.exit(stream.getStreamInfo(name));
       const observedAt = Date.now();
@@ -184,7 +184,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
         );
       }
       if (exit.value === null) {
-        return DoctorCheck.make({
+        return DiagnosticCheck.make({
           checkId: 'msh.stream.info',
           layer: 'msh',
           component: 'stream',
@@ -213,7 +213,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
       })]);
     });
 
-    const checkKvBucket = (bucketName: string): Effect.Effect<DoctorCheck> => Effect.gen(function* () {
+    const checkKvBucket = (bucketName: string): Effect.Effect<DiagnosticCheck> => Effect.gen(function* () {
       const started = Date.now();
       const exit = yield* Effect.exit(kv.keys(bucketName));
       const observedAt = Date.now();
@@ -238,7 +238,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
       })]);
     });
 
-    const checkAuthMetadata: Effect.Effect<DoctorCheck> = Effect.gen(function* () {
+    const checkAuthMetadata: Effect.Effect<DiagnosticCheck> = Effect.gen(function* () {
       if (auth === undefined) {
         return skippedCheck('msh.auth.metadata', 'auth', 'MshAuthService is not in scope.');
       }
@@ -265,13 +265,13 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
       );
     });
 
-    const report: Effect.Effect<DoctorReport> = Effect.gen(function* () {
+    const report: Effect.Effect<DiagnosticReport> = Effect.gen(function* () {
       const checks = yield* Effect.all([
         checkCoreFlush,
         checkJetStreamManager,
         checkAuthMetadata,
       ], { concurrency: 'unbounded' });
-      return DoctorReport.make({
+      return DiagnosticReport.make({
         reportId: `msh:${Date.now()}`,
         layer: 'msh',
         severity: maxSeverity(checks.map((check) => check.severity)),
@@ -280,7 +280,7 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
       });
     });
 
-    return MshDoctorService.of({
+    return MshDiagnosticsService.of({
       checkCoreFlush,
       checkJetStreamManager,
       checkStreamInfo,
@@ -290,5 +290,5 @@ export const makeMshDoctor = (): Effect.Effect<MshDoctorShape, never, NatsConnec
     });
   });
 
-export const MshDoctorServiceLive: Layer.Layer<MshDoctorService, never, NatsConnectionService | NatsStreamService | NatsKVService> =
-  Layer.effect(MshDoctorService, makeMshDoctor());
+export const MshDiagnosticsServiceLive: Layer.Layer<MshDiagnosticsService, never, NatsConnectionService | NatsStreamService | NatsKVService> =
+  Layer.effect(MshDiagnosticsService, makeMshDiagnostics());

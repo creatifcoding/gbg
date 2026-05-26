@@ -1,16 +1,16 @@
-/** Doctor schema/redaction spike tests. */
+/** Diagnostics schema/redaction spike tests. */
 
 import { describe, expect, it } from 'vitest';
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 
 import {
-  MshDoctorService,
-  MshDoctorServiceLive,
+  MshDiagnosticsService,
+  MshDiagnosticsServiceLive,
   REDACTED,
-  redactDoctorValue,
+  redactDiagnosticValue,
   redactString,
-} from '../src/doctor';
+} from '../src/diagnostics';
 import {
   NatsInnerService,
   NatsKVService,
@@ -30,12 +30,12 @@ const makeKvLayer = (fixture: ReturnType<typeof makeMockNatsFixture>) =>
 const makeSubstrateLayer = (fixture: ReturnType<typeof makeMockNatsFixture>) =>
   Layer.mergeAll(fixture.layer, makeStreamLayer(fixture), makeKvLayer(fixture));
 
-const makeDoctorLayer = (fixture: ReturnType<typeof makeMockNatsFixture>) => {
+const makeDiagnosticsLayer = (fixture: ReturnType<typeof makeMockNatsFixture>) => {
   const substrate = makeSubstrateLayer(fixture);
-  return Layer.mergeAll(substrate, MshDoctorServiceLive.pipe(Layer.provide(substrate)));
+  return Layer.mergeAll(substrate, MshDiagnosticsServiceLive.pipe(Layer.provide(substrate)));
 };
 
-describe('MshDoctorService spike', () => {
+describe('MshDiagnosticsService spike', () => {
   it('redacts token, JWT, seed, and credential-shaped values', () => {
     const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwcmltZSJ9.signature';
     const seed = 'SUABCDEFGHIJKLMNOPQRSTUVWXYZ234567890';
@@ -46,7 +46,7 @@ describe('MshDoctorService spike', () => {
     expect(redactString(text)).not.toContain(seed);
     expect(redactString(text)).toContain(REDACTED);
 
-    const redacted = redactDoctorValue({
+    const redacted = redactDiagnosticValue({
       nested: {
         token: 'abc123',
         creds: '-----BEGIN NATS USER JWT----- secret -----END NATS USER JWT-----',
@@ -64,9 +64,9 @@ describe('MshDoctorService spike', () => {
 
     const check = await Effect.runPromise(
       Effect.gen(function* () {
-        const doctor = yield* MshDoctorService;
-        return yield* doctor.checkCoreFlush;
-      }).pipe(Effect.provide(makeDoctorLayer(fixture))),
+        const diagnostics = yield* MshDiagnosticsService;
+        return yield* diagnostics.checkCoreFlush;
+      }).pipe(Effect.provide(makeDiagnosticsLayer(fixture))),
     );
 
     expect(check.checkId).toBe('msh.core.flush');
@@ -79,9 +79,9 @@ describe('MshDoctorService spike', () => {
 
     const report = await Effect.runPromise(
       Effect.gen(function* () {
-        const doctor = yield* MshDoctorService;
-        return yield* doctor.report;
-      }).pipe(Effect.provide(makeDoctorLayer(fixture))),
+        const diagnostics = yield* MshDiagnosticsService;
+        return yield* diagnostics.report;
+      }).pipe(Effect.provide(makeDiagnosticsLayer(fixture))),
     );
 
     expect(report.layer).toBe('msh');
@@ -98,9 +98,9 @@ describe('MshDoctorService spike', () => {
 
     const check = await Effect.runPromise(
       Effect.gen(function* () {
-        const doctor = yield* MshDoctorService;
-        return yield* doctor.checkJetStreamManager;
-      }).pipe(Effect.provide(makeDoctorLayer(fixture))),
+        const diagnostics = yield* MshDiagnosticsService;
+        return yield* diagnostics.checkJetStreamManager;
+      }).pipe(Effect.provide(makeDiagnosticsLayer(fixture))),
     );
 
     expect(check.checkId).toBe('msh.jsm.access');
@@ -116,12 +116,12 @@ describe('MshDoctorService spike', () => {
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         yield* stream.ensureStream({ name: 'EVENTS', subjects: ['events.>'] });
-        const doctor = yield* MshDoctorService;
-        const streamCheck = yield* doctor.checkStreamInfo('EVENTS');
-        const missingStreamCheck = yield* doctor.checkStreamInfo('MISSING');
-        const kvCheck = yield* doctor.checkKvBucket('doctor');
+        const diagnostics = yield* MshDiagnosticsService;
+        const streamCheck = yield* diagnostics.checkStreamInfo('EVENTS');
+        const missingStreamCheck = yield* diagnostics.checkStreamInfo('MISSING');
+        const kvCheck = yield* diagnostics.checkKvBucket('diagnostics');
         return { streamCheck, missingStreamCheck, kvCheck };
-      }).pipe(Effect.provide(makeDoctorLayer(fixture))),
+      }).pipe(Effect.provide(makeDiagnosticsLayer(fixture))),
     );
 
     expect(result.streamCheck.status).toBe('passed');
@@ -129,6 +129,6 @@ describe('MshDoctorService spike', () => {
     expect(result.missingStreamCheck.status).toBe('degraded');
     expect(result.missingStreamCheck.findings[0]?.code).toBe('msh.stream.info.missing');
     expect(result.kvCheck.status).toBe('passed');
-    expect(result.kvCheck.findings[0]?.bucket).toBe('doctor');
+    expect(result.kvCheck.findings[0]?.bucket).toBe('diagnostics');
   });
 });

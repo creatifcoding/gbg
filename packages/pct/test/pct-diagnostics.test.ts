@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest"
 import * as Effect from "effect-v4/Effect"
 import * as Layer from "effect-v4/Layer"
 
-import { PctDoctorService, pctDoctorServiceLayer } from "../src/doctor/PctDoctor.js"
+import { PctDiagnosticsService, pctDiagnosticsServiceLayer } from "../src/diagnostics/PctDiagnostics.js"
 import { layerMemory as RegistryMemory } from "../src/registry/Memory.js"
 
-describe("PctDoctorService spike", () => {
+describe("PctDiagnosticsService spike", () => {
   it("reports registry snapshot health without transport diagnostics", async () => {
     const report = await Effect.runPromise(
       Effect.gen(function* () {
-        const doctor = yield* PctDoctorService
-        return yield* doctor.report
+        const diagnostics = yield* PctDiagnosticsService
+        return yield* diagnostics.report
       }).pipe(
-        Effect.provide(pctDoctorServiceLayer.pipe(Layer.provide(RegistryMemory))),
+        Effect.provide(pctDiagnosticsServiceLayer.pipe(Layer.provide(RegistryMemory))),
       ),
     )
 

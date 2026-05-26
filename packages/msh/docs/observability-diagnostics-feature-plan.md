@@ -1,4 +1,4 @@
-# PCT/LNK/MSH Observability + Doctor Feature Plan
+# PCT/LNK/MSH Observability + Diagnostics Feature Plan
 
 Status: design plan
 Date: 2026-05-24
@@ -7,7 +7,7 @@ Date: 2026-05-24
 
 Soak, ACL denial tests, failure chaos, and projection runtime all need a diagnostic spine. Without it, every later hardening lane becomes “run a scary thing and stare at logs.” That is not engineering, Prime; that is séance work with TypeScript.
 
-The doctor surface gives the stack eyes before we start punching it in the ribs.
+The diagnostics surface gives the stack eyes before we start punching it in the ribs.
 
 ## 2. Boundary contract
 
@@ -46,7 +46,7 @@ First implementation should be package-local and read-only. Cross-package rollup
 - stream processor publish/read/subscribe/subscribeFrom/getInfo/delete
 - auth and JWT lifecycle operations
 
-Gap: spans exist, but there is no inventory test that public methods have span constants and no doctor output that summarizes recent failures.
+Gap: spans exist, but there is no inventory test that public methods have span constants and no diagnostics output that summarizes recent failures.
 
 ### 3.2 LNK bridge spans
 
@@ -76,22 +76,22 @@ Existing PCT surfaces:
 - ProjectionWorker NATS host exposes `projection.plan`, `projection.start`, `projection.stop`, `projection.status`, `projection.run_once`, `projection.tail`.
 - Projection scheduler exposes pressure snapshots: in-flight, parked, completed, failed, duplicate-in-flight, rejected, lane pressure, target in-flight.
 
-Gap: these are operationally useful but not unified into a safe doctor report. Projection status exists, but there is no projection-runtime health contract beyond current control responses.
+Gap: these are operationally useful but not unified into a safe diagnostics report. Projection status exists, but there is no projection-runtime health contract beyond current control responses.
 
 ## 4. Diagnostic schema family
 
-All doctor output should be Schema-backed and safe to log.
+All diagnostics output should be Schema-backed and safe to log.
 
 ### 4.1 Common vocabulary
 
 Suggested shared shape:
 
 ```ts
-const DoctorSeverity = Schema.Literal("ok", "warn", "critical", "unknown")
-const DoctorCheckStatus = Schema.Literal("passed", "failed", "skipped", "degraded", "unknown")
+const DiagnosticSeverity = Schema.Literal("ok", "warn", "critical", "unknown")
+const DiagnosticCheckStatus = Schema.Literal("passed", "failed", "skipped", "degraded", "unknown")
 
-const DoctorFinding = Schema.Struct({
-  severity: DoctorSeverity,
+const DiagnosticFinding = Schema.Struct({
+  severity: DiagnosticSeverity,
   code: Schema.String,
   message: Schema.String,
   layer: Schema.Literal("msh", "lnk", "pct"),
@@ -103,21 +103,21 @@ const DoctorFinding = Schema.Struct({
   remediation: Schema.optional(Schema.String),
 })
 
-const DoctorCheck = Schema.Struct({
+const DiagnosticCheck = Schema.Struct({
   checkId: Schema.String,
   layer: Schema.Literal("msh", "lnk", "pct"),
   component: Schema.String,
-  status: DoctorCheckStatus,
-  severity: DoctorSeverity,
+  status: DiagnosticCheckStatus,
+  severity: DiagnosticSeverity,
   durationMs: Schema.Number,
-  findings: Schema.Array(DoctorFinding),
+  findings: Schema.Array(DiagnosticFinding),
   observedAt: Schema.Number,
 })
 ```
 
 ### 4.2 Redaction rules
 
-Doctor output must never include:
+Diagnostics output must never include:
 
 - token values,
 - NKey seeds,
@@ -126,7 +126,7 @@ Doctor output must never include:
 - request payloads unless explicitly declared safe,
 - arbitrary exception stack strings from auth/transport layers.
 
-Doctor output may include:
+Diagnostics output may include:
 
 - auth mode tag,
 - public key / account public ID when already safe,
@@ -136,22 +136,22 @@ Doctor output may include:
 - KV bucket/key names only if the caller opts into key detail,
 - service names, endpoint names, versions, and metadata.
 
-## 5. MSH doctor plan
+## 5. MSH diagnostics plan
 
-### 5.1 MshDoctorService
+### 5.1 MshDiagnosticsService
 
 Proposed service:
 
 ```ts
-interface MshDoctorServiceShape {
-  readonly checkConnection: Effect.Effect<DoctorCheck>
-  readonly checkCoreFlush: Effect.Effect<DoctorCheck>
-  readonly checkJetStreamManager: Effect.Effect<DoctorCheck>
-  readonly checkStream: (name: string) => Effect.Effect<DoctorCheck>
-  readonly checkKvBucket: (bucket: string) => Effect.Effect<DoctorCheck>
-  readonly checkMicroDiscovery: (serviceName?: string) => Effect.Effect<DoctorCheck>
-  readonly checkAuthMetadata: Effect.Effect<DoctorCheck>
-  readonly report: (options?: MshDoctorReportOptions) => Effect.Effect<MshDoctorReport>
+interface MshDiagnosticsServiceShape {
+  readonly checkConnection: Effect.Effect<DiagnosticCheck>
+  readonly checkCoreFlush: Effect.Effect<DiagnosticCheck>
+  readonly checkJetStreamManager: Effect.Effect<DiagnosticCheck>
+  readonly checkStream: (name: string) => Effect.Effect<DiagnosticCheck>
+  readonly checkKvBucket: (bucket: string) => Effect.Effect<DiagnosticCheck>
+  readonly checkMicroDiscovery: (serviceName?: string) => Effect.Effect<DiagnosticCheck>
+  readonly checkAuthMetadata: Effect.Effect<DiagnosticCheck>
+  readonly report: (options?: MshDiagnosticReportOptions) => Effect.Effect<MshDiagnosticReport>
 }
 ```
 
@@ -174,19 +174,19 @@ interface MshDoctorServiceShape {
 - Live opt-in tests for core flush, JSM, KV, stream, micro discovery.
 - Redaction tests that search output for seed/token/JWT sentinels.
 
-## 6. LNK bridge doctor plan
+## 6. LNK bridge diagnostics plan
 
-### 6.1 LnkMshBridgeDoctorService
+### 6.1 LnkMshBridgeDiagnosticsService
 
 Proposed package-local service:
 
 ```ts
-interface LnkMshBridgeDoctorShape {
-  readonly checkMetadataBucket: Effect.Effect<DoctorCheck>
-  readonly checkDataStream: (streamId: StreamId) => Effect.Effect<DoctorCheck>
-  readonly checkAppendPath: (streamId: StreamId) => Effect.Effect<DoctorCheck>
-  readonly checkReadPath: (streamId: StreamId) => Effect.Effect<DoctorCheck>
-  readonly report: Effect.Effect<LnkBridgeDoctorReport>
+interface LnkMshBridgeDiagnosticsShape {
+  readonly checkMetadataBucket: Effect.Effect<DiagnosticCheck>
+  readonly checkDataStream: (streamId: StreamId) => Effect.Effect<DiagnosticCheck>
+  readonly checkAppendPath: (streamId: StreamId) => Effect.Effect<DiagnosticCheck>
+  readonly checkReadPath: (streamId: StreamId) => Effect.Effect<DiagnosticCheck>
+  readonly report: Effect.Effect<LnkBridgeDiagnosticReport>
 }
 ```
 
@@ -194,28 +194,28 @@ interface LnkMshBridgeDoctorShape {
 
 | Check | Mechanism | Notes |
 |---|---|---|
-| metadata bucket | `CasMetadataStore.get/create/updateIfRevision/deleteIfRevision` against a reserved doctor stream id | dry-run/ephemeral only |
+| metadata bucket | `CasMetadataStore.get/create/updateIfRevision/deleteIfRevision` against a reserved diagnostics stream id | dry-run/ephemeral only |
 | data stream ensure | `NatsStreamService.ensureStream` through bridge config | validates stream naming/permissions |
 | CAS conflict path | intentionally stale revision in mock/live opt-in | expected 409-shaped finding, not crash |
 | append/read roundtrip | create ephemeral stream, append one small payload, read it back | opt-in live test; normal mock test mandatory |
 | bridge spans inventory | static test over `MshBridgeSpan` | guards span name churn |
 
-Non-goal: LNK doctor does not decide whether a PCT schema is valid. It may report schema-id metadata presence/absence only.
+Non-goal: LNK diagnostics does not decide whether a PCT schema is valid. It may report schema-id metadata presence/absence only.
 
-## 7. PCT doctor plan
+## 7. PCT diagnostics plan
 
-### 7.1 PctDoctorService
+### 7.1 PctDiagnosticsService
 
 Proposed package-local service:
 
 ```ts
-interface PctDoctorServiceShape {
-  readonly checkRegistry: Effect.Effect<DoctorCheck>
-  readonly checkSchemaResolver: (schemaId: string) => Effect.Effect<DoctorCheck>
-  readonly checkNatsControlPlane: Effect.Effect<DoctorCheck>
-  readonly checkProjectionScheduler: Effect.Effect<DoctorCheck>
-  readonly checkProjectionWorkerHost: Effect.Effect<DoctorCheck>
-  readonly report: Effect.Effect<PctDoctorReport>
+interface PctDiagnosticsServiceShape {
+  readonly checkRegistry: Effect.Effect<DiagnosticCheck>
+  readonly checkSchemaResolver: (schemaId: string) => Effect.Effect<DiagnosticCheck>
+  readonly checkNatsControlPlane: Effect.Effect<DiagnosticCheck>
+  readonly checkProjectionScheduler: Effect.Effect<DiagnosticCheck>
+  readonly checkProjectionWorkerHost: Effect.Effect<DiagnosticCheck>
+  readonly report: Effect.Effect<PctDiagnosticReport>
 }
 ```
 
@@ -229,14 +229,14 @@ interface PctDoctorServiceShape {
 | projection scheduler | pressure snapshot and worker snapshots | report parked/rejected/failed counts |
 | projection worker host | micro service info/stats for projection endpoints | no projection.inspect yet |
 
-Non-goal: PCT doctor does not probe raw NATS permissions directly; it asks MSH/LNK reports or surfaces semantic consequences.
+Non-goal: PCT diagnostics does not probe raw NATS permissions directly; it asks MSH/LNK reports or surfaces semantic consequences.
 
 ## 8. Cross-package rollup
 
-After package-local doctors exist, add an optional rollup script or service:
+After package-local diagnosticss exist, add an optional rollup script or service:
 
 ```text
-pct-lnk-msh doctor
+pct-lnk-msh diagnostics
   -> MSH substrate report
   -> LNK bridge report
   -> PCT semantic/control/projection report
@@ -256,8 +256,8 @@ Rollup rules:
 
 Spikes:
 
-1. Define shared doctor schemas in one package-local place first, likely MSH for substrate checks and duplicated/derived in PCT/LNK only if package boundary demands it.
-2. Implement mock-only `MshDoctorService.checkCoreFlush` and safe auth metadata report.
+1. Define shared diagnostics schemas in one package-local place first, likely MSH for substrate checks and duplicated/derived in PCT/LNK only if package boundary demands it.
+2. Implement mock-only `MshDiagnosticsService.checkCoreFlush` and safe auth metadata report.
 3. Add golden redaction snapshot test.
 4. Build a tiny PCT report from registry snapshot + scheduler pressure without NATS.
 
@@ -288,11 +288,11 @@ Exit criteria:
 
 Slices:
 
-1. MSH doctor schemas + redaction helpers.
-2. MSH doctor substrate checks.
-3. MSH doctor mock/live tests.
-4. LNK bridge doctor checks over bridge dependencies.
-5. PCT doctor semantic checks.
+1. MSH diagnostics schemas + redaction helpers.
+2. MSH diagnostics substrate checks.
+3. MSH diagnostics mock/live tests.
+4. LNK bridge diagnostics checks over bridge dependencies.
+5. PCT diagnostics semantic checks.
 6. Optional JSON report script.
 7. Cross-package rollup only if package-local surfaces are stable.
 
@@ -304,14 +304,14 @@ Audit after first implementation:
 - Are permission failures distinguishable from not-found and network failures?
 - Can ACL and chaos lanes use these checks without adding ad-hoc logs?
 - Did any diagnostic leak a secret sentinel?
-- Are any checks too destructive for a doctor command?
+- Are any checks too destructive for a diagnostics command?
 
 Reimplement if:
 
 - reports contain raw exception dumps,
 - check IDs churn during tests,
-- MSH doctor starts importing PCT/LNK,
-- PCT doctor starts probing raw NATS instead of consuming MSH/LNK substrate reports,
+- MSH diagnostics starts importing PCT/LNK,
+- PCT diagnostics starts probing raw NATS instead of consuming MSH/LNK substrate reports,
 - live tests are flaky or require sleeps without health probes.
 
 ## 10. Feature implementation backlog
@@ -319,10 +319,10 @@ Reimplement if:
 Recommended task slices for the actual implementation feature:
 
 1. Schema and redaction foundation.
-2. MSH substrate doctor service.
+2. MSH substrate diagnostics service.
 3. MSH mock/live validation.
-4. LNK bridge doctor service.
-5. PCT semantic doctor service.
+4. LNK bridge diagnostics service.
+5. PCT semantic diagnostics service.
 6. Rollup JSON report.
 7. CLI/script wrapper.
 8. Docs, ADR, and closeout.
@@ -332,13 +332,13 @@ Recommended task slices for the actual implementation feature:
 When implemented, update:
 
 - `packages/msh/docs/system-atlas.md`
-- `packages/msh/docs/observability-doctor-feature-plan.md`
+- `packages/msh/docs/observability-diagnostics-feature-plan.md`
 - `packages/lnk/NATS-BRIDGE.md`
 - `packages/pct/NATS-INTEGRATION-CLOSEOUT.md` or a successor operational doc
-- new ADR if doctor schemas become cross-package contract
+- new ADR if diagnostics schemas become cross-package contract
 
 ## 12. Decision
 
-Proceed with doctor planning as the first hardening implementation lane.
+Proceed with diagnostics planning as the first hardening implementation lane.
 
-Do not start soak, chaos, or ACL implementation until the doctor schema and at least MSH/PCT first checks exist. The rest of the hardening portfolio needs eyes first; otherwise, we are testing a submarine by listening for vibes.
+Do not start soak, chaos, or ACL implementation until the diagnostics schema and at least MSH/PCT first checks exist. The rest of the hardening portfolio needs eyes first; otherwise, we are testing a submarine by listening for vibes.

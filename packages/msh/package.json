@@ -18,6 +18,10 @@
       "import": "./dist/integration/index.js",
       "types": "./dist/integration/index.d.ts"
     },
+    "./diagnostics": {
+      "import": "./dist/diagnostics/index.js",
+      "types": "./dist/diagnostics/index.d.ts"
+    },
     "./nats": {
       "import": "./dist/nats/index.js",
       "types": "./dist/nats/index.d.ts"

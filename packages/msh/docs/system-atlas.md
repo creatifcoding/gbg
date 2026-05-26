@@ -149,7 +149,7 @@ Candidate capabilities:
 - Permission dry-run helpers that report missing `$JS.API.>`, `_INBOX.>`, pub/sub grants, and stream subjects.
 - Trace/span inventory that validates every public method has a stable `MshSpan` constant.
 - Structured diagnostic report safe for logs: no seeds, no tokens, no creds bytes.
-- Optional CLI probe: `msh doctor`, `msh subjects`, `msh streams`, `msh auth inspect`.
+- Optional CLI probe: `msh diagnostics`, `msh subjects`, `msh streams`, `msh auth inspect`.
 
 Acceptance shape:
 

@@ -1,11 +1,11 @@
-/** Opt-in live NATS doctor checks. */
+/** Opt-in live NATS diagnostics checks. */
 
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 import * as Schema from 'effect-v4/Schema';
 
-import { MshDoctorService, MshDoctorServiceLive } from '../src/doctor';
+import { MshDiagnosticsService, MshDiagnosticsServiceLive } from '../src/diagnostics';
 import {
   NatsConnectionService,
   NatsInnerService,
@@ -24,7 +24,7 @@ type LiveRecord = typeof LiveRecord.Type;
 const makeLiveLayer = (server: LiveNatsServer) => {
   const connection = NatsConnectionService.layerCustom({
     servers: server.servers,
-    name: `msh-doctor-live-${Date.now()}`,
+    name: `msh-diagnostics-live-${Date.now()}`,
     reconnect: false,
     maxReconnectAttempts: 0,
     reconnectDelayMs: 50,
@@ -34,10 +34,10 @@ const makeLiveLayer = (server: LiveNatsServer) => {
   const stream = NatsStreamService.layerFromInner.pipe(Layer.provide(inner));
   const kv = NatsKVService.layerFromInner.pipe(Layer.provide(inner));
   const substrate = Layer.mergeAll(connection, inner, stream, kv);
-  return Layer.mergeAll(substrate, MshDoctorServiceLive.pipe(Layer.provide(substrate)));
+  return Layer.mergeAll(substrate, MshDiagnosticsServiceLive.pipe(Layer.provide(substrate)));
 };
 
-liveDescribe('live NATS doctor checks', () => {
+liveDescribe('live NATS diagnostics checks', () => {
   let server: LiveNatsServer;
 
   beforeAll(async () => {
@@ -50,8 +50,8 @@ liveDescribe('live NATS doctor checks', () => {
 
   it('checks flush, JSM, stream info, and KV bucket against a live server', async () => {
     const suffix = Date.now();
-    const streamName = `MSH_DOCTOR_${suffix}`;
-    const bucketName = `MSH_DOCTOR_KV_${suffix}`;
+    const streamName = `MSH_DIAGNOSTICS_${suffix}`;
+    const bucketName = `MSH_DIAGNOSTICS_KV_${suffix}`;
 
     const result = await Effect.runPromise(
       Effect.scoped(
@@ -59,13 +59,13 @@ liveDescribe('live NATS doctor checks', () => {
           const stream = yield* NatsStreamService;
           const kv = yield* NatsKVService;
           const inner = yield* NatsInnerService;
-          yield* stream.ensureStream({ name: streamName, subjects: [`doctor.${suffix}.>`] });
+          yield* stream.ensureStream({ name: streamName, subjects: [`diagnostics.${suffix}.>`] });
           yield* kv.put(bucketName, 'probe', LiveRecord, { id: 'probe', value: 1 });
 
-          const doctor = yield* MshDoctorService;
-          const report = yield* doctor.report;
-          const streamCheck = yield* doctor.checkStreamInfo(streamName);
-          const kvCheck = yield* doctor.checkKvBucket(bucketName);
+          const diagnostics = yield* MshDiagnosticsService;
+          const report = yield* diagnostics.report;
+          const streamCheck = yield* diagnostics.checkStreamInfo(streamName);
+          const kvCheck = yield* diagnostics.checkKvBucket(bucketName);
 
           yield* inner.streams.delete(streamName).pipe(Effect.orElseSucceed(() => false));
           yield* inner.streams.delete(`KV_${bucketName}`).pipe(Effect.orElseSucceed(() => false));

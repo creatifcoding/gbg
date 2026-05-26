@@ -1,5 +1,5 @@
 /**
- * PCT semantic doctor service.
+ * PCT semantic diagnostics service.
  *
  * First slice: registry read-surface health. Transport diagnostics stay in MSH;
  * stream protocol diagnostics stay in LNK.
@@ -12,24 +12,24 @@ import * as Layer from "effect-v4/Layer"
 
 import { Registry } from "../registry/Registry.js"
 import {
-  PctDoctorCheck,
-  PctDoctorFinding,
-  PctDoctorReport,
-  maxPctDoctorSeverity,
+  PctDiagnosticCheck,
+  PctDiagnosticFinding,
+  PctDiagnosticReport,
+  maxPctDiagnosticSeverity,
 } from "./schemas.js"
 
-export interface PctDoctorShape {
-  readonly checkRegistry: Effect.Effect<PctDoctorCheck>
-  readonly report: Effect.Effect<PctDoctorReport>
+export interface PctDiagnosticsShape {
+  readonly checkRegistry: Effect.Effect<PctDiagnosticCheck>
+  readonly report: Effect.Effect<PctDiagnosticReport>
 }
 
-export class PctDoctorService extends Context.Service<
-  PctDoctorService,
-  PctDoctorShape
->()("@tmnl/pct/doctor/PctDoctorService") {}
+export class PctDiagnosticsService extends Context.Service<
+  PctDiagnosticsService,
+  PctDiagnosticsShape
+>()("@tmnl/pct/diagnostics/PctDiagnosticsService") {}
 
-const finding = (input: typeof PctDoctorFinding.Type): PctDoctorFinding =>
-  PctDoctorFinding.make(input)
+const finding = (input: typeof PctDiagnosticFinding.Type): PctDiagnosticFinding =>
+  PctDiagnosticFinding.make(input)
 
 const failedCheck = (
   checkId: string,
@@ -37,7 +37,7 @@ const failedCheck = (
   durationMs: number,
   observedAt: number,
   cause: Cause.Cause<unknown>,
-): PctDoctorCheck => PctDoctorCheck.make({
+): PctDiagnosticCheck => PctDiagnosticCheck.make({
   checkId,
   layer: "pct",
   component,
@@ -56,11 +56,11 @@ const failedCheck = (
   observedAt,
 })
 
-export const makePctDoctor = (): Effect.Effect<PctDoctorShape, never, Registry> =>
+export const makePctDiagnostics = (): Effect.Effect<PctDiagnosticsShape, never, Registry> =>
   Effect.gen(function* () {
     const registry = yield* Registry
 
-    const checkRegistry: Effect.Effect<PctDoctorCheck> = Effect.gen(function* () {
+    const checkRegistry: Effect.Effect<PctDiagnosticCheck> = Effect.gen(function* () {
       const started = Date.now()
       const exit = yield* Effect.exit(registry.snapshot)
       const observedAt = Date.now()
@@ -78,31 +78,31 @@ export const makePctDoctor = (): Effect.Effect<PctDoctorShape, never, Registry> 
         component: "registry",
       })]
 
-      return PctDoctorCheck.make({
+      return PctDiagnosticCheck.make({
         checkId: "pct.registry.snapshot",
         layer: "pct",
         component: "registry",
         status: "passed",
-        severity: maxPctDoctorSeverity(findings.map((item) => item.severity)),
+        severity: maxPctDiagnosticSeverity(findings.map((item) => item.severity)),
         durationMs,
         findings,
         observedAt,
       })
     })
 
-    const report: Effect.Effect<PctDoctorReport> = Effect.gen(function* () {
+    const report: Effect.Effect<PctDiagnosticReport> = Effect.gen(function* () {
       const checks = yield* Effect.all([checkRegistry], { concurrency: "unbounded" })
-      return PctDoctorReport.make({
+      return PctDiagnosticReport.make({
         reportId: `pct:${Date.now()}`,
         layer: "pct",
-        severity: maxPctDoctorSeverity(checks.map((check) => check.severity)),
+        severity: maxPctDiagnosticSeverity(checks.map((check) => check.severity)),
         checks,
         generatedAt: Date.now(),
       })
     })
 
-    return PctDoctorService.of({ checkRegistry, report })
+    return PctDiagnosticsService.of({ checkRegistry, report })
   })
 
-export const pctDoctorServiceLayer: Layer.Layer<PctDoctorService, never, Registry> =
-  Layer.effect(PctDoctorService, makePctDoctor())
+export const pctDiagnosticsServiceLayer: Layer.Layer<PctDiagnosticsService, never, Registry> =
+  Layer.effect(PctDiagnosticsService, makePctDiagnostics())
