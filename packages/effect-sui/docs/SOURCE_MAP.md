@@ -162,7 +162,12 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/reservation/state.ts` | Runtime-owned `TxRef`/`TxHashMap` state and snapshots |
 | `src/reservation/operations.ts` | STM acquire/release/reconcile operations |
 | `src/reservation/service.ts` | `SuiReservationService` layer assembly |
-| `src/package` | Registry layer and SuiPackage/SuiModule factory helpers |
+| `src/package/index.ts` | Public package registry/factory barrel |
+| `src/package/types.ts` | Package descriptor input and registry state contracts |
+| `src/package/descriptor.ts` | Descriptor normalization and counter fixture descriptor |
+| `src/package/registry.ts` | `SuiPackageRegistry` state, service, and live layer |
+| `src/package/operations.ts` | Effect operations over the package registry service |
+| `src/package/factories.ts` | `SuiPackage`/`SuiModule` typed factory helpers |
 | `src/adapter/index.ts` | Public adapter barrel |
 | `src/adapter/types.ts` | Adapter client/source/cache/extension contracts |
 | `src/adapter/cache.ts` | WeakMap-backed runtime cache |

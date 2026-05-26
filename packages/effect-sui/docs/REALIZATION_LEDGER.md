@@ -57,6 +57,7 @@ Rationale:
 | Query resolver decomposition | Done | `a0fa7b5c refactor(effect-sui): decompose query resolver` |
 | Flow auth decomposition | Done | `882a9bb9 refactor(effect-sui): decompose flow auth service` |
 | Adapter edge decomposition | Done | `0c8ed7c2 refactor(effect-sui): decompose adapter edge` |
+| Package registry decomposition | Done | `303d951c refactor(effect-sui): decompose package registry` |
 
 ## Surgical decomposition closeout
 
@@ -79,6 +80,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/query/resolver` | 160 | 162 | 101.3% |
 | `src/flow/auth` | 152 | 165 | 108.6% |
 | `src/adapter` | 118 | 133 | 112.7% |
+| `src/package` | 130 | 150 | 115.4% |
 
 Final decomposition gates passed:
 
