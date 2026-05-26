@@ -163,7 +163,8 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/auth.ts` | Auth service/layer assembly |
 | `src/flow/auth-build.ts` | Transaction artifact, gas/payment, and byte-build helpers |
 | `src/flow/auth-signing.ts` | Signer normalization, signer address, and signature helpers |
-| `src/flow/auth-core.ts` | Auth policy dispatch and authorization result construction |
+| `src/flow/auth-core.ts` | Auth policy orchestration and transaction preparation |
+| `src/flow/auth-policy-handlers.ts` | Offline/keypair/sponsored authorization handlers |
 | `src/flow/rpc.ts` | Public barrel for transaction RPC services |
 | `src/flow/rpc-shared.ts` | RPC payload/status/digest normalization helpers |
 | `src/flow/rpc-preflight.ts` | Preflight dry-run RPC service |
