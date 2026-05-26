@@ -61,6 +61,7 @@ Rationale:
 | Transaction service contract decomposition | Done | `8035f076 refactor(effect-sui): decompose transaction service contracts` |
 | Flow runtime decomposition | Done | `201f93d1 refactor(effect-sui): decompose flow runtime edge` |
 | Reservation operations decomposition | Done | `045f3f59 refactor(effect-sui): decompose reservation operations` |
+| Schema string noun decomposition | Done | `2505c764 refactor(effect-sui): decompose schema string nouns` |
 
 ## Surgical decomposition closeout
 
@@ -70,7 +71,7 @@ Source-only line budgets stayed under the 120% cap:
 |---|---:|---:|---:|
 | `src/flow` | 787 | 919 | 116.8% |
 | `src/ptb` | 622 | 704 | 113.2% |
-| `src/schema` | 571 | 598 | 104.7% |
+| `src/schema` | 571 | 613 | 107.4% |
 | `src/query` | 401 | 468 | 116.7% |
 | `src/services` | 321 | 361 | 112.5% |
 | `src/effectable` | 287 | 311 | 108.4% |
@@ -87,6 +88,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/services/tx` | 156 | 163 | 104.5% |
 | `src/flow/runtime` | 120 | 120 | 100.0% |
 | `src/reservation/operations` | 118 | 115 | 97.5% |
+| `src/schema/strings` | 110 | 125 | 113.6% |
 
 Final decomposition gates passed:
 

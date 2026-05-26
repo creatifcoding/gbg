@@ -84,7 +84,11 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 |---|---|
 | `src/schema/index.ts` | Public barrel for schema nouns |
 | `src/schema/bytes.ts` | Byte/Chunk helpers and 32-byte schemas |
-| `src/schema/strings.ts` | Addresses, object ids, digests, versions, string codecs |
+| `src/schema/strings.ts` | Address/object id/digest/version schema barrel |
+| `src/schema/string-normalize.ts` | Shared string normalization transforms |
+| `src/schema/string-address.ts` | Sui address and object-id schemas/codecs |
+| `src/schema/string-digest.ts` | Object and transaction digest schemas/codecs |
+| `src/schema/string-version.ts` | Object version u64 string schema |
 | `src/schema/move.ts` | Public barrel for Move identifiers and Sui type tags |
 | `src/schema/move-identifiers.ts` | Move identifier schema/brand |
 | `src/schema/type-tag-string.ts` | Type-tag string normalization and branded schemas |
