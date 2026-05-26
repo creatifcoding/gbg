@@ -24,6 +24,10 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | Candidate lanes | 41 |
 | Parked lanes | 57 |
 
+## Optional live graph overlay
+
+Run `bun run reactor:atlas:live` to generate a non-committed DB-backed overlay at `~/.agent/diagrams/reactor-topology-atlas-live.md` and `~/.agent/diagrams/reactor-topology-atlas-live.html`. The committed atlas stays code-only and deterministic; the live overlay compares Apache AGE node/edge counts against the relationship registry.
+
 ## Production lanes
 
 | Lane | Signals | Live policies | Target capability |

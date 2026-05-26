@@ -9,7 +9,7 @@
  * humans and agents can reason about propagation multiplicity explicitly.
  */
 
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import {
   AlarmEvents,
   ApprovalEvents,
@@ -27,6 +27,8 @@ import {
   EntityCapabilityId,
   EntityCapabilityIds,
   RELATIONSHIP_EDGE_REGISTRY,
+  RELATIONSHIP_EDGE_TYPE_VALUES,
+  RELATIONSHIP_NODE_TYPE_VALUES,
   RelationshipEdgeType,
   RelationshipNodeType,
 } from '../../schemas/relationships/edge-types'
@@ -38,6 +40,7 @@ import {
   StructuralDecommissionObservationSpecs,
   WorkOrderDependencyObservationSpecs,
 } from './observations'
+import { GraphClient } from '../l1/GraphClient'
 
 export const ReactorEventGroupName = Schema.Literal(
   'StructuralEvents',
@@ -179,6 +182,32 @@ export class ReactorRelationshipCoverageEntry extends Schema.TaggedClass<Reactor
   rationale: Schema.String,
 }) {}
 export type ReactorRelationshipCoverageEntry = typeof ReactorRelationshipCoverageEntry.Type
+
+export class ReactorLiveGraphNodeCount extends Schema.TaggedClass<ReactorLiveGraphNodeCount>()('ReactorLiveGraphNodeCount', {
+  nodeType: RelationshipNodeType,
+  count: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+}) {}
+export type ReactorLiveGraphNodeCount = typeof ReactorLiveGraphNodeCount.Type
+
+export class ReactorLiveGraphEdgeCount extends Schema.TaggedClass<ReactorLiveGraphEdgeCount>()('ReactorLiveGraphEdgeCount', {
+  edgeType: RelationshipEdgeType,
+  count: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  allowedSourceTypes: Schema.Array(RelationshipNodeType),
+  allowedTargetTypes: Schema.Array(RelationshipNodeType),
+  allowedPairCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  registeredPolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  livePolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+}) {}
+export type ReactorLiveGraphEdgeCount = typeof ReactorLiveGraphEdgeCount.Type
+
+export class ReactorLiveGraphOverlay extends Schema.TaggedClass<ReactorLiveGraphOverlay>()('ReactorLiveGraphOverlay', {
+  generatedAtIso: Schema.String,
+  nodeCounts: Schema.Array(ReactorLiveGraphNodeCount),
+  edgeCounts: Schema.Array(ReactorLiveGraphEdgeCount),
+  totalNodes: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  totalEdges: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+}) {}
+export type ReactorLiveGraphOverlay = typeof ReactorLiveGraphOverlay.Type
 
 export class ReactorTopologyStats extends Schema.TaggedClass<ReactorTopologyStats>()('ReactorTopologyStats', {
   eventGroupCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
@@ -1467,6 +1496,66 @@ export const getReactorRelationshipCoverageEntries = (): readonly ReactorRelatio
       })
     })
     .sort((a, b) => a.edgeType.localeCompare(b.edgeType))
+
+const countFromCypherRows = (rows: ReadonlyArray<Record<string, unknown>>): number => {
+  const raw = rows[0]?.count
+  if (typeof raw === 'number') return raw
+  const parsed = Number.parseInt(String(raw ?? '0'), 10)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export const getReactorLiveGraphOverlay = (generatedAtIso = new Date().toISOString()) =>
+  Effect.gen(function* () {
+    const graph = yield* GraphClient
+
+    const nodeCounts = yield* Effect.forEach(
+      RELATIONSHIP_NODE_TYPE_VALUES,
+      (nodeType) => Effect.gen(function* () {
+        const result = yield* graph.executeReadOnlyCypher(
+          `MATCH (node:${nodeType}) RETURN count(node) AS count`,
+          '(count agtype)',
+        )
+
+        return new ReactorLiveGraphNodeCount({
+          nodeType,
+          count: countFromCypherRows(result.rows),
+        })
+      }),
+      { concurrency: 1 },
+    )
+
+    const edgeCounts = yield* Effect.forEach(
+      RELATIONSHIP_EDGE_TYPE_VALUES,
+      (edgeType) => Effect.gen(function* () {
+        const descriptor = RELATIONSHIP_EDGE_REGISTRY[edgeType]
+        const result = yield* graph.executeReadOnlyCypher(
+          `MATCH ()-[edge:${edgeType}]->() WHERE edge.valid_to IS NULL RETURN count(edge) AS count`,
+          '(count agtype)',
+        )
+
+        return new ReactorLiveGraphEdgeCount({
+          edgeType,
+          count: countFromCypherRows(result.rows),
+          allowedSourceTypes: Array.from(descriptor.allowedSourceTypes),
+          allowedTargetTypes: Array.from(descriptor.allowedTargetTypes),
+          allowedPairCount: descriptor.allowedSourceTypes.length * descriptor.allowedTargetTypes.length,
+          registeredPolicyIds: descriptor.propagationPolicies.map((policy) => policy.id),
+          livePolicyIds: descriptor.propagationPolicies
+            .map((policy) => policy.id)
+            .filter((policyId) => liveReactorPolicyIds.has(policyId)),
+        })
+      }),
+      { concurrency: 1 },
+    )
+
+    return new ReactorLiveGraphOverlay({
+      generatedAtIso,
+      nodeCounts: Array.from(nodeCounts),
+      edgeCounts: Array.from(edgeCounts),
+      totalNodes: nodeCounts.reduce((total, entry) => total + entry.count, 0),
+      totalEdges: edgeCounts.reduce((total, entry) => total + entry.count, 0),
+    })
+  })
 
 export const getReactorTopologyAtlas = (generatedAtIso = new Date().toISOString()): ReactorTopologyAtlas => {
   const eventCoverage = getReactorEventCoverageEntries()

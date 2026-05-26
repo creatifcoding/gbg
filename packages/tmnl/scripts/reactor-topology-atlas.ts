@@ -3,16 +3,37 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { getReactorTopologyAtlas } from '../src/lib/iiot/services/reactor/topology-atlas'
+import { Effect } from 'effect'
+import {
+  getReactorLiveGraphOverlay,
+  getReactorTopologyAtlas,
+} from '../src/lib/iiot/services/reactor/topology-atlas'
+import { GraphClientLive } from '../src/lib/iiot/services/l1/GraphClient'
 
 const repoMarkdownPath = 'src/lib/iiot/docs/REACTOR-TOPOLOGY-ATLAS.md'
-const diagramPath = join(process.env.HOME ?? '/tmp', '.agent/diagrams/reactor-topology-atlas.html')
+const diagramsDir = join(process.env.HOME ?? '/tmp', '.agent/diagrams')
+const defaultDiagramPath = join(diagramsDir, 'reactor-topology-atlas.html')
+const liveMarkdownPath = join(diagramsDir, 'reactor-topology-atlas-live.md')
+const liveDiagramPath = join(diagramsDir, 'reactor-topology-atlas-live.html')
+const liveMarkdownDisplayPath = '~/.agent/diagrams/reactor-topology-atlas-live.md'
+const liveDiagramDisplayPath = '~/.agent/diagrams/reactor-topology-atlas-live.html'
 const deterministicGeneratedAt = '1970-01-01T00:00:00.000Z'
 const args = new Set(process.argv.slice(2))
 const checkOnly = args.has('--check')
+const liveGraph = args.has('--live-graph')
 const generatedAtIso = process.env.REACTOR_TOPOLOGY_ATLAS_GENERATED_AT ?? deterministicGeneratedAt
 
+if (checkOnly && liveGraph) {
+  console.error('--check cannot be combined with --live-graph; live graph output is intentionally not committed')
+  process.exit(1)
+}
+
 const atlas = getReactorTopologyAtlas(generatedAtIso)
+const liveGraphOverlay = liveGraph
+  ? await Effect.runPromise(getReactorLiveGraphOverlay(generatedAtIso).pipe(Effect.provide(GraphClientLive)))
+  : undefined
+const markdownPath = liveGraph ? liveMarkdownPath : repoMarkdownPath
+const diagramPath = liveGraph ? liveDiagramPath : defaultDiagramPath
 
 const escapeHtml = (value: unknown): string => String(value)
   .replace(/&/g, '&amp;')
@@ -47,6 +68,10 @@ const readinessRows = atlas.laneReadiness
   .map((lane) => `| ${mdCell(lane.id)} | ${lane.readiness} | ${lane.routingKind} | ${mdCell(lane.subjectType ?? '—')} | ${mdCell(joinList(lane.relationshipEdgeTypes))} | ${mdCell(lane.targetOwner ?? '—')} | ${mdCell(joinList(lane.declaredObservationIds))} | ${mdCell(joinList(lane.declaredPolicyIds))} | ${mdCell(joinList(lane.livePolicyIds))} | ${mdCell(joinList(lane.requiredProofs))} | ${mdCell(lane.readinessNotes ?? '—')} |`)
   .join('\n')
 
+const liveGraphMarkdown = liveGraphOverlay
+  ? `\n## Live graph overlay\n\nGenerated from the configured Apache AGE graph. This section is intentionally written to \`${mdCell(liveMarkdownDisplayPath)}\`, not the committed atlas.\n\n| Metric | Count |\n| --- | ---: |\n| Live graph nodes | ${liveGraphOverlay.totalNodes} |\n| Live graph edges | ${liveGraphOverlay.totalEdges} |\n\n### Live node counts\n\n| Node type | Count |\n| --- | ---: |\n${liveGraphOverlay.nodeCounts.map((entry) => `| ${entry.nodeType} | ${entry.count} |`).join('\n')}\n\n### Live relationship edge counts\n\n| Edge | Live count | Allowed registry pairs | Registered policies | Live policies |\n| --- | ---: | ---: | --- | --- |\n${liveGraphOverlay.edgeCounts.map((entry) => `| ${entry.edgeType} | ${entry.count} | ${entry.allowedPairCount} | ${mdCell(joinList(entry.registeredPolicyIds))} | ${mdCell(joinList(entry.livePolicyIds))} |`).join('\n')}\n`
+  : `\n## Optional live graph overlay\n\nRun \`bun run reactor:atlas:live\` to generate a non-committed DB-backed overlay at \`${mdCell(liveMarkdownDisplayPath)}\` and \`${mdCell(liveDiagramDisplayPath)}\`. The committed atlas stays code-only and deterministic; the live overlay compares Apache AGE node/edge counts against the relationship registry.\n`
+
 const markdown = `# Reactor Topology Atlas
 
 Status: **generated rolling artifact**
@@ -72,7 +97,7 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | Production lanes | ${atlas.stats.productionLaneCount} |
 | Candidate lanes | ${atlas.stats.candidateLaneCount} |
 | Parked lanes | ${atlas.stats.parkedLaneCount} |
-
+${liveGraphMarkdown}
 ## Production lanes
 
 | Lane | Signals | Live policies | Target capability |
@@ -209,6 +234,34 @@ const html = `<!doctype html>
       <div class="card"><div class="metric">${atlas.stats.productionLaneCount}/${atlas.stats.candidateLaneCount}/${atlas.stats.parkedLaneCount}</div><div class="label">Production / candidate / parked lanes</div></div>
     </section>
 
+    ${liveGraphOverlay ? `
+      <h2>Live graph overlay</h2>
+      <section class="grid">
+        <article class="card">
+          <h3>Node counts · ${liveGraphOverlay.totalNodes}</h3>
+          ${liveGraphOverlay.nodeCounts.map((entry) => `
+            <div class="route"><strong>${escapeHtml(entry.nodeType)}</strong> <span class="metric">${entry.count}</span></div>
+          `).join('')}
+        </article>
+        <article class="card">
+          <h3>Relationship edge counts · ${liveGraphOverlay.totalEdges}</h3>
+          ${liveGraphOverlay.edgeCounts.map((entry) => `
+            <div class="route">
+              <div><strong>${escapeHtml(entry.edgeType)}</strong> <span class="metric">${entry.count}</span></div>
+              <div><span class="muted">Allowed pairs:</span> ${entry.allowedPairCount}</div>
+              <div><span class="muted">Registered:</span> ${chipList(entry.registeredPolicyIds, 'policy')}</div>
+              <div><span class="muted">Live:</span> ${chipList(entry.livePolicyIds, 'policy')}</div>
+            </div>
+          `).join('')}
+        </article>
+      </section>
+    ` : `
+      <h2>Optional live graph overlay</h2>
+      <article class="card">
+        <p>Run <strong>bun run reactor:atlas:live</strong> to generate a non-committed DB-backed overlay at ${escapeHtml(liveMarkdownDisplayPath)} and ${escapeHtml(liveDiagramDisplayPath)}. Prime, the committed atlas remains deterministic; the live report is where the database is allowed to be gloriously messy.</p>
+      </article>
+    `}
+
     <h2>Production Reactor lanes</h2>
     ${productionLanes.map((lane) => `
       <div class="lane">
@@ -326,12 +379,12 @@ if (checkOnly) {
 
   console.log(`checked ${repoMarkdownPath}`)
 } else {
-  mkdirSync(dirname(repoMarkdownPath), { recursive: true })
-  writeFileSync(repoMarkdownPath, markdown)
+  mkdirSync(dirname(markdownPath), { recursive: true })
+  writeFileSync(markdownPath, markdown)
 
   mkdirSync(dirname(diagramPath), { recursive: true })
   writeFileSync(diagramPath, html)
 
-  console.log(`wrote ${repoMarkdownPath}`)
+  console.log(`wrote ${markdownPath}`)
   console.log(`wrote ${diagramPath}`)
 }

@@ -401,6 +401,13 @@
         "command": "bun run reactor:atlas:check",
         "cwd": "packages/tmnl"
       }
+    },
+    "reactor-atlas-live": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run reactor:atlas:live",
+        "cwd": "packages/tmnl"
+      }
     }
   }
 }
