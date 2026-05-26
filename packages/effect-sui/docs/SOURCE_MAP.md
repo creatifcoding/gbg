@@ -103,8 +103,13 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/objects.ts` | Object refs, shared refs, object args |
 | `src/schema/descriptors.ts` | Package/module descriptors |
 | `src/schema/errors.ts` | Typed error barrel |
-| `src/schema/error-codes.ts` | Error code and reservation conflict kind literals |
-| `src/schema/error-classes.ts` | Schema-backed tagged error classes |
+| `src/schema/error-codes.ts` | Error code, phase, mode, and topology literals |
+| `src/schema/error-classes.ts` | Public barrel and `SuiError` union for Schema-backed tagged errors |
+| `src/schema/error-core-classes.ts` | Core schema/object/transport/execution/reservation/invariant errors |
+| `src/schema/error-codec-classes.ts` | BCS parse and pure encode errors |
+| `src/schema/error-ptb-classes.ts` | PTB analysis/argument/protocol/compile/build errors |
+| `src/schema/error-flow-classes.ts` | Gas/payment/auth/preflight/execution/finality errors |
+| `src/schema/error-package-classes.ts` | Package/module/type registry errors |
 | `src/schema/policies.ts` | Build/gas/payment/auth policy public barrel |
 | `src/schema/policy-build.ts` | Transaction build-mode literals |
 | `src/schema/policy-gas.ts` | Gas policy schemas |

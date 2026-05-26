@@ -80,6 +80,7 @@ Rationale:
 | Schema byte helper decomposition | Done | `8782ff71 refactor(effect-sui): decompose schema byte helpers` |
 | Query shared-ref decoder decomposition | Done | `a32ab344 refactor(effect-sui): decompose shared object ref decoder` |
 | Finality watcher fibers | Done | `7105b7ae feat(effect-sui): add finality watcher fibers` |
+| Rich typed error topology | Done | `1f0cc502 feat(effect-sui): add typed error topology` |
 
 ## Surgical decomposition closeout
 

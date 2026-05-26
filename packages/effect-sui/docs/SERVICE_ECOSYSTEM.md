@@ -62,7 +62,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | `SuiObjectRef`, `SharedObjectRef`, receiving refs, `SuiObjectSnapshot<A>`. |
 | Dependencies | `SuiClientService`, `SuiBcsBridge`, `SuiSchemaRegistry`, optional indexer/GraphQL service. |
 | Invariants | Returned refs are canonical; shared object mutability is explicit; stale refs are not silently reused. |
-| Failures | `SuiObjectLoadError`, `SuiTransportError`, `SuiSchemaDecodeError`, future `SuiObjectStale`. |
+| Failures | `SuiObjectLoadError`, `SuiObjectStaleError`, `SuiTransportError`, `SuiSchemaDecodeError`. |
 | STM / concurrency | Reads can parallelize; reservation of mutable/owned refs happens in `SuiReservationService`. |
 | Observability | Span per object batch with counts for found/missing/stale/shared/owned. |
 | Tests | Fake-client object lookup tests, property tests for ref normalization, localnet object smoke. |
@@ -76,7 +76,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | decoded domain value, pure input bytes, serialized bytes, classified parse/decode failures. |
 | Dependencies | `@mysten/bcs`, `@mysten/sui/bcs`, generated package codecs, `effect-v4/Schema`. |
 | Invariants | No bespoke binary layout; encode/decode roundtrips are delegated to Mysten/codegen. |
-| Failures | future `SuiBcsParseError`, `SuiSchemaDecodeError`, future `SuiPureEncodeError`. |
+| Failures | `SuiBcsParseError`, `SuiSchemaDecodeError`, `SuiPureEncodeError`. |
 | STM / concurrency | Pure CPU; safe to parallelize. |
 | Observability | Span with codec name, byte length, schema name, decode/encode direction. |
 | Tests | Property tests for byte codecs; generated fixture parse tests; malformed byte failure tests. |
@@ -90,7 +90,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | normalized command graph, diagnostics, inferred object/pure dependencies. |
 | Dependencies | Schema models, package/type registry, protocol config limits when available. |
 | Invariants | Result references point backward only; gas coin restrictions are represented; command order is preserved. |
-| Failures | future `SuiPtbInvalid`, `SuiArgumentInvalid`, `SuiProtocolLimitExceeded`. |
+| Failures | `SuiPtbInvalidError`, `SuiArgumentInvalidError`, `SuiProtocolLimitExceededError`. |
 | STM / concurrency | Pure analysis; parallelizable by subgraph except final ordered diagnostics. |
 | Observability | Span with command count, input count, object count, pure count, diagnostics count. |
 | Tests | Property tests over invalid result indices, gas coin misuse, empty command constraints. |
@@ -104,7 +104,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | Mysten `Transaction`, transaction kind bytes when requested, compile artifact. |
 | Dependencies | `@mysten/sui/transactions`, `SuiObjectResolver`, `SuiBcsBridge`, `SuiPtbAnalyzer`. |
 | Invariants | Mutations to a single Mysten `Transaction` occur sequentially; object/gas refs match resolved inputs. |
-| Failures | future `SuiPtbCompileError`, `SuiBuildError`, `SuiBcsParseError`. |
+| Failures | `SuiPtbCompileError`, `SuiBuildError`, `SuiBcsParseError`. |
 | STM / concurrency | Validation/prefetch can parallelize; command insertion into `Transaction` uses concurrency 1. |
 | Observability | Span per compile with command count and build mode: online/offline/wallet/sponsor. |
 | Tests | No-network compiler tests with fake transaction boundary; localnet compile + dry-run smoke. |
@@ -118,7 +118,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | gas price, gas budget, budget rationale, estimation diagnostics. |
 | Dependencies | `SuiClientService`, `SuiPreflightService`, protocol config / reference gas price reads. |
 | Invariants | Budget respects network min/max; dry-run-derived budgets are reproducible and explainable. |
-| Failures | future `SuiGasPlanningError`, `SuiTransportError`, `SuiDryRunError`. |
+| Failures | `SuiGasPlanningError`, `SuiTransportError`, `SuiDryRunError`. |
 | STM / concurrency | Reads can parallelize; does not reserve coins itself. |
 | Observability | Span records policy, reference price, estimated computation/storage units, final budget. |
 | Tests | Unit tests for policy normalization; fake dry-run budget tests; boundary tests for min/max budget. |
@@ -132,7 +132,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | gas payment refs, gas owner, address-balance mode, sponsored `GasData`, payment reservation. |
 | Dependencies | `SuiObjectResolver`, `SuiTxState`, `SuiClientService`, optional gas station adapter. |
 | Invariants | Gas payment objects do not overlap PTB inputs; no gas object version is reused concurrently; gas smashing limit is respected. |
-| Failures | future `SuiPaymentError`, `SuiGasCoinConflict`, `SuiInsufficientGas`, `SuiSponsorRejected`. |
+| Failures | `SuiPaymentError`, `SuiGasCoinConflictError`, `SuiInsufficientGasError`, `SuiSponsorRejectedError`. |
 | STM / concurrency | Reserves selected gas coins in STM; sponsor pools require queue/semaphore discipline. |
 | Observability | Span records payment mode, coin count, excluded input count, sponsor/user owner. |
 | Tests | Concurrent gas reservation tests, gas coin overlap tests, sponsored fake gas-station tests. |
@@ -146,7 +146,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | signatures, serialized wallet transaction, offline signing payload, signed transaction data. |
 | Dependencies | Mysten keypair/wallet APIs, `SuiBcsBridge` for transaction bytes, `SuiPaymentService` for sponsor data. |
 | Invariants | Signatures commit to full transaction data including gas data; wallet mode does not prebuild bytes when wallet must own gas logic. |
-| Failures | future `SuiAuthError`, `SuiSignatureError`, `SuiWalletRejected`, `SuiSponsorRejected`. |
+| Failures | `SuiAuthError`, `SuiSignatureError`, `SuiWalletRejectedError`, `SuiSponsorRejectedError`. |
 | STM / concurrency | No STM except reading reservations; signing can be external/interruptible. |
 | Observability | Span records auth mode, signer count, sponsor required, wallet/offline handoff status. |
 | Tests | Fake signer tests, sponsor dual-signature tests, offline payload shape tests. |
@@ -160,7 +160,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | dry-run effects, gas usage, Move abort diagnostics, budget input for gas planner. |
 | Dependencies | `SuiClientService`, `SuiGasPlanner`, `SuiDiagnostics`. |
 | Invariants | Preflight does not mutate local reservation state except by explicit diagnostic recording. |
-| Failures | future `SuiDryRunError`, `SuiMoveAbort`, `SuiTransportError`. |
+| Failures | `SuiDryRunError`, `SuiMoveAbortError`, `SuiTransportError`. |
 | STM / concurrency | Network I/O outside STM; may run concurrently if reservations are already distinct. |
 | Observability | Span records digest if available, status, gas usage, abort code/module/function. |
 | Tests | Fake-client dry-run tests; localnet Move abort smoke when fixtures exist. |
@@ -174,7 +174,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | transaction digest, raw execution result, immediate effects if included. |
 | Dependencies | `SuiClientService`, `SuiAuthService`, `SuiPaymentService`. |
 | Invariants | Execution only happens after payment/object reservations; duplicate submissions are tracked. |
-| Failures | `SuiExecutionError`, `SuiTransportError`, future `SuiRejectedByValidator`. |
+| Failures | `SuiExecutionError`, `SuiTransportError`, `SuiRejectedByValidatorError`. |
 | STM / concurrency | Uses execution queue/semaphore for same-sender or same-object conflict classes. |
 | Observability | Span records execution mode, digest, include options, retry schedule. |
 | Tests | Fake execute tests; localnet execute smoke; retry classification tests. |
@@ -188,7 +188,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | final transaction view, decoded effects/events, object change summary. |
 | Dependencies | `SuiClientService`, GraphQL/indexer service, `SuiBcsBridge`, `SuiSchemaRegistry`. |
 | Invariants | Wait policy is explicit; GraphQL visibility is not assumed immediately after execution. |
-| Failures | future `SuiWaitError`, `SuiIndexerVisibilityError`, `SuiSchemaDecodeError`. |
+| Failures | `SuiWaitError`, `SuiIndexerVisibilityError`, `SuiSchemaDecodeError`. |
 | STM / concurrency | Network I/O outside STM; updates local state only during reconciliation. |
 | Observability | Span records digest, wait duration, checkpoint, event count, object change count. |
 | Tests | Fake wait tests; watcher interruption tests; localnet waitForTransaction/watchFinality smoke; event decode fixture tests. |
@@ -229,7 +229,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 | Produces | `SuiPackage`, `SuiModule`, typed object factories, PTB/tx builders, BCS codecs. |
 | Dependencies | `SuiBcsBridge`, `SuiObjectResolver`, codegen artifacts, optional package query service. |
 | Invariants | Package IDs are canonical; module names exist; generated codecs match type tags. |
-| Failures | future `SuiPackageError`, `SuiModuleNotFound`, `SuiTypeNotRegistered`. |
+| Failures | `SuiPackageError`, `SuiModuleNotFoundError`, `SuiTypeNotRegisteredError`. |
 | STM / concurrency | Runtime-owned `TxHashMap` registry; writes are atomic at package registration boundary. |
 | Observability | Span records package ID and module count for register/get. |
 | Tests | Registry unit tests; generated counter fixture registration; package/module lookup tests; localnet Move build proof for counter fixture. |
