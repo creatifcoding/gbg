@@ -62,6 +62,7 @@ Rationale:
 | Flow runtime decomposition | Done | `201f93d1 refactor(effect-sui): decompose flow runtime edge` |
 | Reservation operations decomposition | Done | `045f3f59 refactor(effect-sui): decompose reservation operations` |
 | Schema string noun decomposition | Done | `2505c764 refactor(effect-sui): decompose schema string nouns` |
+| Payment planner decomposition | Done | `e0f8dfe7 refactor(effect-sui): decompose payment planner` |
 
 ## Surgical decomposition closeout
 
@@ -69,7 +70,7 @@ Source-only line budgets stayed under the 120% cap:
 
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
-| `src/flow` | 787 | 919 | 116.8% |
+| `src/flow` | 787 | 900 | 114.4% |
 | `src/ptb` | 622 | 704 | 113.2% |
 | `src/schema` | 571 | 613 | 107.4% |
 | `src/query` | 401 | 468 | 116.7% |
@@ -89,6 +90,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/runtime` | 120 | 120 | 100.0% |
 | `src/reservation/operations` | 118 | 115 | 97.5% |
 | `src/schema/strings` | 110 | 125 | 113.6% |
+| `src/flow/payment` | 91 | 72 | 79.1% |
 
 Final decomposition gates passed:
 
