@@ -161,7 +161,8 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/query/bcs-codec.ts` | BCS codec parse/serialize helpers |
 | `src/query/resolver.ts` | Object resolver service/public surface |
 | `src/query/resolver-core.ts` | Core object read orchestration program |
-| `src/query/resolver-decode.ts` | Resolved object ref/shared-ref/snapshot normalization |
+| `src/query/resolver-decode.ts` | Resolved object field/ref/snapshot normalization |
+| `src/query/resolver-shared-ref.ts` | Shared owner to `SharedObjectRef` normalization |
 | `src/query/resolver-errors.ts` | Object resolver error normalization |
 | `src/query/operations.ts` | Service-use Effect constructors |
 | `src/query/runtime.ts` | ManagedRuntime-backed Query client public barrel |

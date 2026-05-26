@@ -78,6 +78,7 @@ Rationale:
 | Flow runner reconciliation decomposition | Done | `2376b139 refactor(effect-sui): decompose flow runner reconciliation` |
 | Query BCS codec decomposition | Done | `5cbbe567 refactor(effect-sui): decompose query BCS codec helpers` |
 | Schema byte helper decomposition | Done | `8782ff71 refactor(effect-sui): decompose schema byte helpers` |
+| Query shared-ref decoder decomposition | Done | `a32ab344 refactor(effect-sui): decompose shared object ref decoder` |
 
 ## Surgical decomposition closeout
 
@@ -88,7 +89,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow` | 787 | 921 | 117.0% |
 | `src/ptb` | 622 | 727 | 116.9% |
 | `src/schema` | 571 | 620 | 108.6% |
-| `src/query` | 401 | 470 | 117.2% |
+| `src/query` | 401 | 476 | 118.7% |
 | `src/services` | 321 | 382 | 119.0% |
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 264 | 116.8% |
@@ -97,7 +98,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
 | `src/ptb/analyzer` | 181 | 205 | 113.3% |
 | `src/schema/move` | 174 | 173 | 99.4% |
-| `src/query/resolver` | 160 | 162 | 101.3% |
+| `src/query/resolver` | 160 | 179 | 111.9% |
 | `src/flow/auth` | 152 | 166 | 109.2% |
 | `src/adapter` | 118 | 133 | 112.7% |
 | `src/package` | 130 | 150 | 115.4% |
