@@ -186,6 +186,7 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/runner-types.ts` | Runner dependency/options contracts |
 | `src/flow/runner-completion.ts` | PTB requirement, completion invariants, preflight guard |
 | `src/flow/runner-lifecycle.ts` | Transaction lifecycle state machine |
+| `src/flow/runner-reconcile.ts` | Lifecycle exit reconciliation finalizer |
 | `src/flow/runtime.ts` | ManagedRuntime-backed Flow client public barrel |
 | `src/flow/runtime-types.ts` | Flow runtime/client/service contracts |
 | `src/flow/runtime-layer.ts` | Flow service layer graph |

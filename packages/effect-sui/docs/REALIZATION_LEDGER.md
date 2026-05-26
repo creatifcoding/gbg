@@ -75,6 +75,7 @@ Rationale:
 | PTB analyzer arity decomposition | Done | `3143116b refactor(effect-sui): decompose PTB analyzer arity` |
 | Flow gas planning decomposition | Done | `dcb2286c refactor(effect-sui): decompose flow gas planning` |
 | Transaction RPC contract decomposition | Done | `e0d7dea6 refactor(effect-sui): decompose transaction RPC contracts` |
+| Flow runner reconciliation decomposition | Done | `2376b139 refactor(effect-sui): decompose flow runner reconciliation` |
 
 ## Surgical decomposition closeout
 
@@ -82,7 +83,7 @@ Source-only line budgets stayed under the 120% cap:
 
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
-| `src/flow` | 787 | 904 | 114.9% |
+| `src/flow` | 787 | 921 | 117.0% |
 | `src/ptb` | 622 | 727 | 116.9% |
 | `src/schema` | 571 | 614 | 107.5% |
 | `src/query` | 401 | 473 | 118.0% |
@@ -90,7 +91,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 264 | 116.8% |
 | `src/flow/rpc` | 175 | 178 | 101.7% |
-| `src/flow/runner` | 169 | 171 | 101.2% |
+| `src/flow/runner` | 169 | 188 | 111.2% |
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
 | `src/ptb/analyzer` | 181 | 205 | 113.3% |
 | `src/schema/move` | 174 | 173 | 99.4% |
