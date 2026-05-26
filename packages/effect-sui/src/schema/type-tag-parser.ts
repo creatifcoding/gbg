@@ -4,7 +4,8 @@ import * as Schema from 'effect-v4/Schema';
 import { MoveIdentifier } from './move-identifiers';
 import { SuiAddress } from './strings';
 import { PrimitiveTypeTag, StructTypeTag, SuiStructTag, type SuiTypeTag, VectorTypeTag } from './type-tag-model';
-import { normalizeSuiTypeTag, primitiveTypeTags, type PrimitiveTypeTagName } from './type-tag-string';
+import { normalizeSuiTypeTag } from './type-tag-normalize';
+import { primitiveTypeTags, type PrimitiveTypeTagName } from './type-tag-primitives';
 
 export const parseSuiTypeTag = (value: string): SuiTypeTag => {
   const normalized = normalizeSuiTypeTag(value);

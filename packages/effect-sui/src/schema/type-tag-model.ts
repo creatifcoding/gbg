@@ -3,7 +3,7 @@ import * as Schema from 'effect-v4/Schema';
 
 import { MoveIdentifier } from './move-identifiers';
 import { SuiAddress } from './strings';
-import { PrimitiveTypeTagName } from './type-tag-string';
+import { PrimitiveTypeTagName } from './type-tag-primitives';
 
 export type SuiTypeTag = PrimitiveTypeTag | VectorTypeTag | StructTypeTag;
 
