@@ -2,6 +2,7 @@ import * as Effect from 'effect-v4/Effect';
 import { SuiInvariantViolation } from '../schema';
 import { type SuiPtbArgument } from './arguments';
 import { type SuiPtbCommandAst } from './commands';
+import { knownCommandResultArity } from './analyzer-arity';
 import { ptbInvariant } from './errors';
 
 export const commandArguments = (command: SuiPtbCommandAst): ReadonlyArray<SuiPtbArgument> => {
@@ -62,20 +63,3 @@ export const rejectGasCoin = (arg: SuiPtbArgument, context: string): Effect.Effe
   arg._tag === 'GasCoin'
     ? Effect.fail(ptbInvariant('analyze', `${context} cannot use GasCoin by value`))
     : Effect.void;
-
-const knownCommandResultArity = (command: SuiPtbCommandAst | undefined): number | undefined => {
-  switch (command?._tag) {
-    case 'SplitCoins':
-      return command.amounts.length;
-    case 'MergeCoins':
-    case 'TransferObjects':
-      return 0;
-    case 'MakeMoveVec':
-    case 'Publish':
-    case 'Upgrade':
-      return 1;
-    case 'MoveCall':
-    case undefined:
-      return undefined;
-  }
-};
