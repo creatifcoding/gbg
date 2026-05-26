@@ -115,6 +115,7 @@ export const makeClient = (runtime = makeRuntime(client)) => ({
   runtime,
   run: (tx, options?) => runtime.runPromise(runTx(tx), options),
   runExit: (tx, options?) => runtime.runPromiseExit(runTx(tx), options),
+  watchFinality: (request, options?) => runtime.runFork(waitForDigestFinality(request), options),
   dispose: () => runtime.dispose(),
 });
 ```
@@ -124,6 +125,7 @@ Why:
 - this is the main lifecycle edge;
 - repeated transaction execution should not rebuild gas/auth/preflight/execution/finality layers;
 - `runExit` gives typed lifecycle failure capture for CLI/adapter surfaces;
+- `watchFinality` starts long-lived finality waits with `runtime.runFork`; runtime disposal interrupts the watcher fiber;
 - reconcile hooks can be installed once when the runtime is constructed.
 
 ### 3. `FakeSuiRuntime`
@@ -248,7 +250,7 @@ Each namespace may expose:
 
 ## Novel / future cases for Effect-Sui
 
-- **Finality watcher fibers**: `SuiFlowClient.watchFinality(...)` can use `runtime.runFork`; disposing the client interrupts the watcher.
+- **Finality watcher fibers**: implemented via `SuiFlowClient.watchFinality(...)`; the watcher uses `runtime.runFork`, forwards the Effect `AbortSignal` into Sui `core.waitForTransaction`, and client disposal interrupts pending watchers.
 - **Callback-style wallet/adapter bridge**: `$extend` or wallet integration can expose `runCallback` and return the interruption function as an unsubscribe/cancel handle.
 - **Shared localnet fixture scope**: one localnet runtime per test file/fixture can own fake or live clients and avoid rebuilding layers for each assertion.
 - **Shared memo map across sibling runtimes**: advanced callers may pass a memo map when `SuiQuery` and `SuiFlow` should share expensive common layers while retaining separate facade clients.

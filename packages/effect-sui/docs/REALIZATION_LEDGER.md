@@ -79,6 +79,7 @@ Rationale:
 | Query BCS codec decomposition | Done | `5cbbe567 refactor(effect-sui): decompose query BCS codec helpers` |
 | Schema byte helper decomposition | Done | `8782ff71 refactor(effect-sui): decompose schema byte helpers` |
 | Query shared-ref decoder decomposition | Done | `a32ab344 refactor(effect-sui): decompose shared object ref decoder` |
+| Finality watcher fibers | Done | `7105b7ae feat(effect-sui): add finality watcher fibers` |
 
 ## Surgical decomposition closeout
 

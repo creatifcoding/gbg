@@ -128,7 +128,7 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/services/tx-rpc.ts` | Preflight/execution/finality contract barrel |
 | `src/services/tx-preflight.ts` | Dry-run preflight service contracts |
 | `src/services/tx-execution.ts` | Transaction execution service contracts |
-| `src/services/tx-finality.ts` | Finality/visibility service contracts |
+| `src/services/tx-finality.ts` | Finality/visibility service and watcher contracts |
 | `src/services/tx-runner.ts` | Transaction lifecycle runner contracts |
 | `src/services/reservation.ts` | Reservation service contracts |
 | `src/services/package.ts` | Package registry contracts |
@@ -185,7 +185,7 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/rpc-shared.ts` | RPC payload/status/digest normalization helpers |
 | `src/flow/rpc-preflight.ts` | Preflight dry-run RPC service |
 | `src/flow/rpc-execution.ts` | Transaction execution RPC service |
-| `src/flow/rpc-finality.ts` | Transaction finality wait RPC service |
+| `src/flow/rpc-finality.ts` | Transaction finality wait/watch RPC service |
 | `src/flow/reservation-request.ts` | Lifecycle reservation request construction |
 | `src/flow/runner.ts` | `SuiTxRunner` service assembly |
 | `src/flow/runner-types.ts` | Runner dependency/options contracts |
@@ -193,9 +193,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/runner-lifecycle.ts` | Transaction lifecycle state machine |
 | `src/flow/runner-reconcile.ts` | Lifecycle exit reconciliation finalizer |
 | `src/flow/runtime.ts` | ManagedRuntime-backed Flow client public barrel |
-| `src/flow/runtime-types.ts` | Flow runtime/client/service contracts |
+| `src/flow/runtime-types.ts` | Flow runtime/client/service and watcher contracts |
 | `src/flow/runtime-layer.ts` | Flow service layer graph |
-| `src/flow/runtime-client.ts` | ManagedRuntime-backed client facade |
+| `src/flow/runtime-client.ts` | ManagedRuntime-backed client facade and finality watcher edge |
 | `src/reservation/index.ts` | Public barrel for STM reservation state/services |
 | `src/reservation/types.ts` | Reservation resource/lock/record/state types |
 | `src/reservation/resources.ts` | Resource-key derivation for objects/gas/sender/sponsor |

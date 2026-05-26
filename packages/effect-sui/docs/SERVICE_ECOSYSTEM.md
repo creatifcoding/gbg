@@ -46,7 +46,7 @@ ManagedRuntime clients are package/application edges, not service internals. The
 
 | Client | Runtime services | Public edge |
 |---|---|---|
-| `SuiFlowClient` | `SuiClientService`, `SuiPTB` services, gas/payment/auth, preflight/execution/finality, `SuiTxRunner` | `run`, `runExit`, `runFork`, `runCallback`, `dispose` |
+| `SuiFlowClient` | `SuiClientService`, `SuiPTB` services, gas/payment/auth, preflight/execution/finality, `SuiTxRunner` | `run`, `runExit`, `runFork`, `runCallback`, `watchFinality`, `dispose` |
 | `SuiQueryClient` | `SuiClientService`, `SuiObjectResolver`, `SuiBcsBridge` | `resolve`, `refresh`, `decode`, `encodePure`, `serialize`, `run`, `runExit`, `dispose` |
 | `FakeSuiClient` | Full fake service stack | shared `flow`, shared `query`, generic `run`, `runExit`, `dispose` |
 | `EffectSuiAdapterClient` | Shared `SuiFlowClient` + `SuiQueryClient` per Mysten client | `$extend` registration, `runTx`, `runTxExit`, `resolveObject`, idempotent `dispose` |
@@ -183,15 +183,15 @@ ManagedRuntime clients are package/application edges, not service internals. The
 
 | Field | Spec |
 |---|---|
-| Responsibility | Wait for transaction finality/indexer visibility and decode effects/events/object changes. |
-| Consumes | digest, wait policy, include/decode options, package event schemas. |
+| Responsibility | Wait for transaction finality/indexer visibility, support digest watcher fibers, and decode effects/events/object changes. |
+| Consumes | digest or execution envelope, wait policy, include/decode options, package event schemas. |
 | Produces | final transaction view, decoded effects/events, object change summary. |
 | Dependencies | `SuiClientService`, GraphQL/indexer service, `SuiBcsBridge`, `SuiSchemaRegistry`. |
 | Invariants | Wait policy is explicit; GraphQL visibility is not assumed immediately after execution. |
 | Failures | future `SuiWaitError`, `SuiIndexerVisibilityError`, `SuiSchemaDecodeError`. |
 | STM / concurrency | Network I/O outside STM; updates local state only during reconciliation. |
 | Observability | Span records digest, wait duration, checkpoint, event count, object change count. |
-| Tests | Fake wait tests; localnet waitForTransaction smoke; event decode fixture tests. |
+| Tests | Fake wait tests; watcher interruption tests; localnet waitForTransaction/watchFinality smoke; event decode fixture tests. |
 
 ### `SuiTxRunner`
 
