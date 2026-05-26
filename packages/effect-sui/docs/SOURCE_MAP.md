@@ -83,7 +83,10 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | Module | Current contents |
 |---|---|
 | `src/schema/index.ts` | Public barrel for schema nouns |
-| `src/schema/bytes.ts` | Byte/Chunk helpers and 32-byte schemas |
+| `src/schema/bytes.ts` | Byte schema public barrel |
+| `src/schema/byte-schemas.ts` | Byte and 32-byte branded schemas |
+| `src/schema/byte-chunk.ts` | Chunk conversion and byte validation helpers |
+| `src/schema/byte-codecs.ts` | Hex/base64 byte codec schemas |
 | `src/schema/strings.ts` | Address/object id/digest/version schema barrel |
 | `src/schema/string-normalize.ts` | Shared string normalization transforms |
 | `src/schema/string-address.ts` | Sui address and object-id schemas/codecs |
