@@ -130,13 +130,12 @@ Existing observation uses:
 ```text
 kind = condition_retracted
 value = blocked
-propagationId = causedByPropagationId
+propagationId = release source-entry id
+causedByPropagationId = original blocked propagation id
 ```
 
-This is promising. The release event can point back to the blocking propagation id if upstream resume was caused by Reactor. Still required:
+This preserves a distinct audit propagation id for the release transition while still pointing the natural constraint address at the original blocking propagation. Still required:
 
-- exact natural address enrichment in planner or policy payload
-- integration test proving upstream resumed retracts the same SQL row asserted by upstream suspended/failed/cancelled
 - behavior for manual resume without `causedByPropagationId`
 
 ### Alarm safety release

@@ -94,11 +94,16 @@ const payloadForPolicy = (input: {
   readonly policy: RelationshipPropagationPolicy
   readonly observation: ReactorObservation
   readonly expansion: PropagationTargetExpansion
+  readonly registry: ReactorRegistry
 }): Record<string, unknown> => {
   const payload: Record<string, unknown> = {
     ...input.policy.request.payloadDefaults,
     reason: input.policy.request.reason,
     relationshipEdgeType: input.policy.edgeType,
+    sourceEntryId: input.observation.event.entryId,
+    sourceEvent: input.observation.event.tag,
+    policyEpoch: input.registry.policyEpoch,
+    registryFingerprint: input.registry.registryFingerprint,
   }
 
   const hint = input.policy.constraintAddressHint
@@ -172,7 +177,7 @@ export const ReactorPlannerLive = Layer.effect(
                           policyId: policy.id,
                           policyVersion: policy.version,
                           causality: observation.causality,
-                          payload: payloadForPolicy({ policy, observation, expansion }),
+                          payload: payloadForPolicy({ policy, observation, expansion, registry }),
                         })
 
                         const capability = registry.capabilityFor({

@@ -21,6 +21,7 @@ import { ReactorRegistryLayer, type EntityReactionContract } from '../ReactorReg
 const upstream = new RelationshipEndpoint({ type: 'work_order', id: 'WO-UPSTREAM-PLANNER' })
 const downstream = new RelationshipEndpoint({ type: 'work_order', id: 'WO-DOWNSTREAM-PLANNER' })
 const originalPropagationId = 'PROP-UPSTREAM-BLOCKED' as PropagationId
+const releasePropagationId = 'PROP-UPSTREAM-RESUMED' as PropagationId
 
 const workOrderContract: EntityReactionContract = {
   entityType: 'work_order',
@@ -51,7 +52,10 @@ const observation = new ReactorObservation({
     value: 'blocked',
     reason: 'planner test',
   })],
-  causality: new ReactorCausality({ propagationId: originalPropagationId }),
+  causality: new ReactorCausality({
+    propagationId: releasePropagationId,
+    causedByPropagationId: originalPropagationId,
+  }),
   payload: {},
 })
 
@@ -86,6 +90,10 @@ describe('ReactorPlanner', () => {
     expect(plan.decisions).toHaveLength(1)
     const payload = plan.decisions[0]!.request.payload
     expect(payload.effect).toBe('release_candidate')
+    expect(payload.sourceEntryId).toBe('ENTRY-WORKORDER-RESUMED-PLANNER')
+    expect(payload.sourceEvent).toBe('WorkOrderResumed')
+    expect(payload.policyEpoch).toBeDefined()
+    expect(payload.registryFingerprint).toMatch(/^fnv1a32:/)
     expect(payload.naturalAddress).toBeInstanceOf(ReactorConstraintNaturalAddress)
     expect(payload.naturalAddress).toMatchObject({
       target: downstream,

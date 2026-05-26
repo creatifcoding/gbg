@@ -1,6 +1,6 @@
 # WorkOrder `depends_on` Routing Contract
 
-> Status: declared, not enabled in `ReactorGenericLive` by default
+> Status: guarded opt-in via `ReactorDependsOnLive`; not enabled in `ReactorGenericLive` by default
 
 This contract defines how WorkOrder lifecycle facts can propagate over graph
 edges of type `depends_on`.
@@ -37,8 +37,8 @@ Source: `src/lib/iiot/schemas/relationships/edge-types.ts`
 | Policy | Signal | Capability | Notes |
 | --- | --- | --- | --- |
 | `depends_on.work-order-blocked.blocks-source` | asserted `blocked` | `dependency.blocked` | Suspends/blocks the dependent source WorkOrder if target contract accepts it. |
-| `depends_on.work-order-satisfied.satisfies-source` | asserted `satisfied` | `dependency.satisfied` | Future target-owned progression/no-op contract. |
-| `depends_on.work-order-block-retracted.releases-source` | retracted `blocked` | `dependency.released` | Requires constraint-address enrichment before live release dispatch. |
+| `depends_on.work-order-satisfied.satisfies-source` | asserted `satisfied` | `dependency.satisfied` | Explicitly parked as an informational no-op until a target-owned progression contract exists. |
+| `depends_on.work-order-block-retracted.releases-source` | retracted `blocked` | `dependency.released` | Uses a natural constraint address from `causedByPropagationId` to retract the original block. |
 
 ## Direction
 
@@ -54,14 +54,15 @@ to `WO-A`.
 
 ## Current guardrail
 
-These policies are registered on the `depends_on` relationship descriptor, but
-not included in `ReactorGenericLive`. That is deliberate:
+These policies are registered on the `depends_on` relationship descriptor and
+packaged in `ReactorDependsOnLive`, but not included in `ReactorGenericLive`.
+That is deliberate:
 
-- `dependency.blocked` can reuse the WorkOrder blocking capability once a source
-  claim E2E lane is selected.
-- `dependency.released` needs explicit SQL constraint identity/natural address.
-  Generic policy payloads do not yet enrich release requests with that address.
-- `dependency.satisfied` needs a target-owned WorkOrder capability before live
-  dispatch.
+- `dependency.blocked` is proven in opt-in E2E coverage for upstream suspended,
+  failed, and cancelled events.
+- `dependency.released` is proven in opt-in E2E coverage with exact SQL natural
+  address retraction and target-owned downstream resume.
+- `dependency.satisfied` is explicitly parked as an informational no-op until a
+  target-owned progression contract exists.
 
-Prime, this is a contract, not a sneaky workflow engine in a trench coat.
+Prime, this is a guarded lane, not a sneaky workflow engine in a trench coat.

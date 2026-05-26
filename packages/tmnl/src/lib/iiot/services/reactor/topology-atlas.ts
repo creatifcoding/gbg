@@ -865,7 +865,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   WorkOrderSuspended: {
     status: 'candidate',
-    rationale: 'A suspended upstream WorkOrder can block downstream WorkOrders over depends_on once causality/idempotency policy exists.',
+    rationale: 'Guarded opt-in lane: suspended upstream WorkOrders block downstream WorkOrders over depends_on with SQL constraint assertion and target-owned suspend.',
     signals: ['work_order.execution = suspended'],
     declaredPolicyIds: workOrderDependsOnBlockedPolicies,
     candidateRelationshipEdges: ['depends_on'],
@@ -873,7 +873,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   WorkOrderResumed: {
     status: 'candidate',
-    rationale: 'A resumed upstream WorkOrder can release downstream pressure only after target-owned resume semantics exist.',
+    rationale: 'Guarded opt-in lane: resumed upstream WorkOrders retract exact depends_on constraints by causedByPropagationId and let the downstream WorkOrder own resume eligibility.',
     signals: ['work_order.execution = resumed'],
     declaredPolicyIds: workOrderDependsOnReleasePolicies,
     candidateRelationshipEdges: ['depends_on'],
@@ -881,7 +881,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   WorkOrderCompleted: {
     status: 'candidate',
-    rationale: 'Completion can satisfy downstream depends_on prerequisites once dependency fulfillment semantics are declared.',
+    rationale: 'Completion satisfaction is declared and explicitly parked as informational until target-owned progression semantics exist.',
     signals: ['work_order.execution = completed'],
     declaredPolicyIds: workOrderDependsOnSatisfiedPolicies,
     candidateRelationshipEdges: ['depends_on'],
@@ -889,7 +889,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   WorkOrderFailed: {
     status: 'candidate',
-    rationale: 'Failure can block or fail downstream WorkOrders over depends_on once target reaction semantics exist.',
+    rationale: 'Guarded opt-in lane: failed upstream WorkOrders block downstream WorkOrders over depends_on with target-owned suspend.',
     signals: ['work_order.execution = failed'],
     declaredPolicyIds: workOrderDependsOnBlockedPolicies,
     candidateRelationshipEdges: ['depends_on'],
@@ -897,7 +897,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   WorkOrderCancelled: {
     status: 'candidate',
-    rationale: 'Cancellation can block or replan downstream WorkOrders over depends_on once target reaction semantics exist.',
+    rationale: 'Guarded opt-in lane: cancelled upstream WorkOrders block downstream WorkOrders; replan remains a future target-owned capability.',
     signals: ['work_order.execution = cancelled'],
     declaredPolicyIds: workOrderDependsOnBlockedPolicies,
     candidateRelationshipEdges: ['depends_on'],

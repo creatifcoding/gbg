@@ -16,6 +16,7 @@ import {
   ReactorObservation,
 } from '../../schemas/reactor'
 import {
+  DependsOnWorkOrderBlockedBlocksSource,
   EntityReactionRequestTemplate,
   RelationshipEndpoint,
   RelationshipEdgeMetadata,
@@ -132,7 +133,7 @@ describe('Reactor graph expansion', () => {
     )
 
     await Effect.runPromise(program)
-  })
+  }, 30000)
 
   it('expands target-observed production requires policy from machine to requiring work order', async () => {
     if (!dbAvailable) return
@@ -190,7 +191,7 @@ describe('Reactor graph expansion', () => {
     )
 
     await Effect.runPromise(program)
-  })
+  }, 30000)
 
   it('expands source-observed policies from source work order to target machine', async () => {
     if (!dbAvailable) return
@@ -248,5 +249,66 @@ describe('Reactor graph expansion', () => {
     )
 
     await Effect.runPromise(program)
-  })
+  }, 30000)
+
+  it('expands WorkOrder depends_on target-observed blocked signals to dependent source work orders', async () => {
+    if (!dbAvailable) return
+
+    const suffix = Date.now()
+    const downstreamWorkOrderId = `TEST-WO-REACTOR-GRAPH-DOWNSTREAM-${suffix}` as WorkOrderId
+    const upstreamWorkOrderId = `TEST-WO-REACTOR-GRAPH-UPSTREAM-${suffix}` as WorkOrderId
+
+    const program = Effect.gen(function* () {
+      const graph = yield* GraphClient
+      yield* graph.upsertRelationshipNode({ type: 'work_order', id: downstreamWorkOrderId }, { status: 'started' })
+      yield* graph.upsertRelationshipNode({ type: 'work_order', id: upstreamWorkOrderId }, { status: 'suspended' })
+      yield* graph.upsertRelationshipEdge({
+        source: { type: 'work_order', id: downstreamWorkOrderId },
+        target: { type: 'work_order', id: upstreamWorkOrderId },
+        edgeType: 'depends_on',
+        metadata: new RelationshipEdgeMetadata({
+          createdBy: 'reactor-graph-expansion-test',
+          reason: 'depends-on-target-observed-expansion',
+        }),
+      })
+
+      const signal = new ObservationSignal({
+        axis: 'work_order.execution',
+        kind: 'condition_asserted',
+        value: 'blocked',
+      })
+      const observation = makeObservation({
+        subject: new RelationshipEndpoint({ type: 'work_order', id: upstreamWorkOrderId }),
+        signal,
+      })
+
+      const expansions = yield* graph.expandPropagationTargets({
+        observation,
+        policy: DependsOnWorkOrderBlockedBlocksSource,
+        signal,
+      })
+
+      expect(expansions).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          edgeType: 'depends_on',
+          source: expect.objectContaining({ type: 'work_order', id: downstreamWorkOrderId }),
+          target: expect.objectContaining({ type: 'work_order', id: upstreamWorkOrderId }),
+          requestTarget: expect.objectContaining({ type: 'work_order', id: downstreamWorkOrderId }),
+        }),
+      ]))
+    }).pipe(
+      Effect.ensuring(
+        Effect.gen(function* () {
+          const graph = yield* GraphClient
+          yield* graph.executeCypher(
+            `MATCH (wo:work_order) WHERE wo.id IN ['${downstreamWorkOrderId}', '${upstreamWorkOrderId}'] DETACH DELETE wo`,
+            '(result agtype)',
+          ).pipe(Effect.ignore)
+        }),
+      ),
+      Effect.provide(GraphIntegrationLayer),
+    )
+
+    await Effect.runPromise(program)
+  }, 30000)
 })

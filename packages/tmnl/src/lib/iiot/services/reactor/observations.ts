@@ -124,6 +124,7 @@ const workOrderDependencyObservation = (input: {
   readonly value: 'blocked' | 'satisfied'
   readonly reason: string
   readonly propagationId?: PropagationId
+  readonly causedByPropagationId?: PropagationId
   readonly payload: unknown
 }): ReactorObservation =>
   new ReactorObservation({
@@ -139,6 +140,7 @@ const workOrderDependencyObservation = (input: {
     ],
     causality: new ReactorCausality({
       propagationId: input.propagationId ?? (input.entry.idString as PropagationId),
+      causedByPropagationId: input.causedByPropagationId,
     }),
     payload: input.payload,
   })
@@ -234,7 +236,7 @@ export const WorkOrderResumedObservationSpec: EventObservationSpec = {
         kind: 'condition_retracted',
         value: 'blocked',
         reason: 'resumed',
-        propagationId: payload.causedByPropagationId,
+        causedByPropagationId: payload.causedByPropagationId,
         payload,
       })
     }),

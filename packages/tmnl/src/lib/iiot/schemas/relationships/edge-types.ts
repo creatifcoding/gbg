@@ -374,8 +374,8 @@ export const DependsOnWorkOrderBlockRetractedReleasesSource = new RelationshipPr
   constraintAddressHint: new RelationshipConstraintAddressHint({
     assertedCapability: EntityCapabilityIds.DependencyBlocked,
     assertionPolicyId: DependsOnWorkOrderBlockedBlocksSource.id,
-    propagationIdSource: 'current',
-    notes: 'WorkOrderResumed observations use causedByPropagationId as their propagation id when present, so the release request can address the original blocked constraint natural key.',
+    propagationIdSource: 'caused_by',
+    notes: 'WorkOrderResumed observations keep their own source-entry propagation id for target audit and carry the original blocked propagation id as causedByPropagationId for exact constraint addressing.',
   }),
 })
 

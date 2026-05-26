@@ -120,7 +120,7 @@ describe('ReactorRegistry', () => {
     expect(DependsOnWorkOrderBlockRetractedReleasesSource.constraintAddressHint).toMatchObject({
       assertedCapability: EntityCapabilityIds.DependencyBlocked,
       assertionPolicyId: DependsOnWorkOrderBlockedBlocksSource.id,
-      propagationIdSource: 'current',
+      propagationIdSource: 'caused_by',
     })
   })
 
