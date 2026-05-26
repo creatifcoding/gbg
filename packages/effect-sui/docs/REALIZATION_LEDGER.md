@@ -60,6 +60,7 @@ Rationale:
 | Package registry decomposition | Done | `303d951c refactor(effect-sui): decompose package registry` |
 | Transaction service contract decomposition | Done | `8035f076 refactor(effect-sui): decompose transaction service contracts` |
 | Flow runtime decomposition | Done | `201f93d1 refactor(effect-sui): decompose flow runtime edge` |
+| Reservation operations decomposition | Done | `045f3f59 refactor(effect-sui): decompose reservation operations` |
 
 ## Surgical decomposition closeout
 
@@ -73,7 +74,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/query` | 401 | 468 | 116.7% |
 | `src/services` | 321 | 361 | 112.5% |
 | `src/effectable` | 287 | 311 | 108.4% |
-| `src/reservation` | 226 | 257 | 113.7% |
+| `src/reservation` | 226 | 254 | 112.4% |
 | `src/flow/rpc` | 175 | 178 | 101.7% |
 | `src/flow/runner` | 169 | 171 | 101.2% |
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
@@ -85,6 +86,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/package` | 130 | 150 | 115.4% |
 | `src/services/tx` | 156 | 163 | 104.5% |
 | `src/flow/runtime` | 120 | 120 | 100.0% |
+| `src/reservation/operations` | 118 | 115 | 97.5% |
 
 Final decomposition gates passed:
 

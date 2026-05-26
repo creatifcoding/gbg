@@ -167,7 +167,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/reservation/types.ts` | Reservation resource/lock/record/state types |
 | `src/reservation/resources.ts` | Resource-key derivation for objects/gas/sender/sponsor |
 | `src/reservation/state.ts` | Runtime-owned `TxRef`/`TxHashMap` state and snapshots |
-| `src/reservation/operations.ts` | STM acquire/release/reconcile operations |
+| `src/reservation/operations.ts` | STM reservation operations barrel |
+| `src/reservation/operations-acquire.ts` | Reservation acquisition, duplicate detection, and conflict checks |
+| `src/reservation/operations-release.ts` | Reservation release and reconciliation cleanup |
 | `src/reservation/service.ts` | `SuiReservationService` layer assembly |
 | `src/package/index.ts` | Public package registry/factory barrel |
 | `src/package/types.ts` | Package descriptor input and registry state contracts |
