@@ -42,6 +42,10 @@
     "./frames": {
       "import": "./dist/frames/index.js",
       "types": "./dist/frames/index.d.ts"
+    },
+    "./diagnostics": {
+      "import": "./dist/diagnostics/index.js",
+      "types": "./dist/diagnostics/index.d.ts"
     }
   },
   "files": [
