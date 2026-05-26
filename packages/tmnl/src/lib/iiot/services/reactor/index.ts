@@ -120,6 +120,10 @@ export {
   makeWorkOrderReactionContract,
 } from './contracts/work-order'
 export {
+  StructuralLifecycleEntityTypes,
+  makeStructuralLifecycleInheritedContracts,
+} from './contracts/structural'
+export {
   WorkOrderDependencyRelease,
   WorkOrderDependencyReleaseLive,
   WorkOrderDependencyReleaseTransition,
@@ -129,8 +133,34 @@ export {
 } from './contracts/WorkOrderDependencyRelease'
 
 export {
+  ReactorAlarmSafetyLive,
+  ReactorAlarmSafetyObservationSpecs,
+  ReactorAlarmSafetyPropagationPolicies,
+  ReactorAlarmSafetyRegistryLive,
+  ReactorAllDeclaredLive,
+  ReactorAllDeclaredObservationSpecs,
+  ReactorAllDeclaredPropagationPolicies,
+  ReactorAllDeclaredRegistryLive,
+  ReactorBaselineLive,
+  ReactorBaselineObservationSpecs,
+  ReactorBaselinePropagationPolicies,
+  ReactorBaselineRegistryLive,
+  ReactorDependsOnLive,
+  ReactorDependsOnObservationSpecs,
+  ReactorDependsOnPropagationPolicies,
+  ReactorDependsOnRegistryLive,
+  ReactorEquipmentAvailabilityObservationSpecs,
+  ReactorEquipmentAvailabilityPropagationPolicies,
+  ReactorExternalDeviceAvailabilityLive,
+  ReactorExternalDeviceAvailabilityObservationSpecs,
+  ReactorExternalDeviceAvailabilityPropagationPolicies,
+  ReactorExternalDeviceAvailabilityRegistryLive,
   ReactorGenericLive,
   ReactorGenericWorkOrderRegistryLive,
+  ReactorStructuralDecommissionLive,
+  ReactorStructuralDecommissionObservationSpecs,
+  ReactorStructuralDecommissionPropagationPolicies,
+  ReactorStructuralDecommissionRegistryLive,
 } from './layers'
 
 export {

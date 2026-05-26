@@ -28,6 +28,7 @@ import {
   type EventObservationSpec,
 } from './observations'
 import { makeWorkOrderReactionContract } from './contracts/work-order'
+import { makeStructuralLifecycleInheritedContracts } from './contracts/structural'
 
 export const ReactorEquipmentAvailabilityObservationSpecs = ReactiveEquipmentStateObservationSpecs
 export const ReactorEquipmentAvailabilityPropagationPolicies = [
@@ -72,15 +73,19 @@ export const ReactorAllDeclaredPropagationPolicies = [
 const makeWorkOrderRegistryLayer = (input: {
   readonly observations: readonly EventObservationSpec[]
   readonly propagationPolicies: readonly RelationshipPropagationPolicy[]
+  readonly structuralLifecycleInherited?: boolean
 }) => Layer.effect(
   ReactorRegistry,
   Effect.gen(function* () {
     const workOrderContract = yield* makeWorkOrderReactionContract
+    const structuralContracts = input.structuralLifecycleInherited
+      ? makeStructuralLifecycleInheritedContracts()
+      : []
 
     return ReactorRegistry.of(makeReactorRegistry({
       observations: input.observations,
       propagationPolicies: input.propagationPolicies,
-      entities: [workOrderContract],
+      entities: [workOrderContract, ...structuralContracts],
     }))
   }),
 )
@@ -131,6 +136,7 @@ export const ReactorStructuralDecommissionRegistryLive = makeWorkOrderRegistryLa
     ...ReactorBaselinePropagationPolicies,
     ...ReactorStructuralDecommissionPropagationPolicies,
   ],
+  structuralLifecycleInherited: true,
 })
 
 /** Opt-in lane bundle: baseline + external/device availability declarations. */
@@ -149,6 +155,7 @@ export const ReactorExternalDeviceAvailabilityRegistryLive = makeWorkOrderRegist
 export const ReactorAllDeclaredRegistryLive = makeWorkOrderRegistryLayer({
   observations: ReactorAllDeclaredObservationSpecs,
   propagationPolicies: ReactorAllDeclaredPropagationPolicies,
+  structuralLifecycleInherited: true,
 })
 
 const makeReactorLiveWithRegistry = (registry: Layer.Layer<ReactorRegistry>) => ReactorLive.pipe(

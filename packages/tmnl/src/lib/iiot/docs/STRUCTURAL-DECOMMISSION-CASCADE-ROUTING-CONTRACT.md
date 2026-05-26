@@ -1,6 +1,6 @@
 # Structural Decommission Cascade Routing Contract
 
-> Status: declared, not enabled in `ReactorGenericLive` by default
+> Status: guarded opt-in via `ReactorStructuralDecommissionLive`; not enabled in `ReactorGenericLive` by default
 
 This contract defines how structural decommission facts can propagate through the
 relationship graph without making Reactor the owner of lifecycle state.
@@ -89,17 +89,22 @@ created.
 ## Current guardrail
 
 These policies are registered on `contains`, `targets`, and `requires`
-descriptors, but are not included in `ReactorGenericLive`.
+descriptors and packaged in `ReactorStructuralDecommissionLive`, but are not
+included in `ReactorGenericLive`.
 
-Activation requires:
+Opt-in activation now has:
 
 1. Target-owned structural `lifecycle.inherited` capability for structural nodes.
-2. SQL constraint/source-claim mapping for structural decommission pressure.
-3. A bounded cascade execution policy, so parent shutdown does not recursively
-   stampede the graph.
-4. WorkOrder target-owned handling for structural dependency pressure.
-5. A decision on whether inherited child decommission emits child StructuralEvents
-   or remains a derived projection/request state.
+   The first promoted contract is deliberately projection-only/no-op: it accepts
+   inherited decommission pressure but emits no child StructuralEvents and writes
+   no graph mutation.
+2. SQL constraint/source-claim mapping for WorkOrder structural decommission
+   pressure through the existing target-owned `dependency.blocked` capability.
+3. A bounded cascade execution policy: direct `contains` children are routed in
+   deterministic order; recursive cascade requires emitted child events and is
+   intentionally not performed by Reactor.
+4. E2E coverage for direct-child containment cascade and WorkOrder blocking over
+   `targets`/`requires`.
 
-Until then, this is a typed routing contract with tests, not production cascade
-execution.
+Still future: a product decision on whether inherited child decommission should
+emit child StructuralEvents or remain a derived projection/request state.

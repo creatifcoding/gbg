@@ -690,7 +690,8 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
                           -[edge:${input.policy.edgeType}]->
                          (target:${targetType})
                    WHERE edge.valid_to IS NULL
-                   RETURN target.${targetIdProperty} AS request_id`,
+                   RETURN target.${targetIdProperty} AS request_id
+                   ORDER BY target.${targetIdProperty}`,
                   '(request_id agtype)',
                 )
 
@@ -723,7 +724,8 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
                         -[edge:${input.policy.edgeType}]->
                        (observed:${subject.type} {${subjectIdProperty}: '${escapeCypher(subject.id)}'})
                  WHERE edge.valid_to IS NULL
-                 RETURN source.${sourceIdProperty} AS request_id`,
+                 RETURN source.${sourceIdProperty} AS request_id
+                 ORDER BY source.${sourceIdProperty}`,
                 '(request_id agtype)',
               )
 

@@ -497,11 +497,11 @@ const structuralDecommission = (input: {
   subject: {
     entityType: input.entityType,
     source: `payload.${structuralPayloadIdField(input.entityType)} / graph node: ${input.entityType}`,
-    notes: 'Candidate ERC: decommission projection is required, but Reactor dispatch/cascade semantics are not production yet.',
+    notes: 'Guarded opt-in ERC: decommission projection is required; direct-child lifecycle inheritance is target-owned and projection-only until a child-event cascade policy is explicitly promoted.',
   },
   relationshipPaths: [{
     edgeTypes: input.relationshipEdges,
-    notes: 'Candidate decommission traversal. Promotion must separate structural lifecycle inheritance from WorkOrder blocking.',
+    notes: 'Guarded opt-in decommission traversal. Direct contains children are deterministic and bounded; WorkOrder blocking remains target-owned.',
   }],
   targetOwner: 'structural_entity/work_order',
   proofRequirements: candidateDispatchProofs,
