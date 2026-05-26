@@ -69,6 +69,7 @@ Rationale:
 | PTB analyzer core decomposition | Done | `2d88a132 refactor(effect-sui): decompose PTB analyzer core` |
 | Schema type-tag parser decomposition | Done | `d2e4b47a refactor(effect-sui): decompose schema type tags` |
 | Flow auth policy decomposition | Done | `5f1a4a38 refactor(effect-sui): decompose flow auth policies` |
+| Schema policy noun decomposition | Done | `11671088 refactor(effect-sui): decompose schema policy nouns` |
 
 ## Surgical decomposition closeout
 
@@ -78,7 +79,7 @@ Source-only line budgets stayed under the 120% cap:
 |---|---:|---:|---:|
 | `src/flow` | 787 | 901 | 114.5% |
 | `src/ptb` | 622 | 725 | 116.6% |
-| `src/schema` | 571 | 609 | 106.7% |
+| `src/schema` | 571 | 604 | 105.8% |
 | `src/query` | 401 | 473 | 118.0% |
 | `src/services` | 321 | 361 | 112.5% |
 | `src/effectable` | 287 | 311 | 108.4% |
@@ -98,6 +99,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/schema/strings` | 110 | 125 | 113.6% |
 | `src/flow/payment` | 91 | 72 | 79.1% |
 | `src/schema/errors` | 89 | 75 | 84.3% |
+| `src/schema/policies` | 72 | 67 | 93.1% |
 | `src/query/runtime` | 88 | 82 | 93.2% |
 | `src/query/resolver-core` | 102 | 113 | 110.8% |
 

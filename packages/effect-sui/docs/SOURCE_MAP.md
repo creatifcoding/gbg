@@ -100,7 +100,11 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/errors.ts` | Typed error barrel |
 | `src/schema/error-codes.ts` | Error code and reservation conflict kind literals |
 | `src/schema/error-classes.ts` | Schema-backed tagged error classes |
-| `src/schema/policies.ts` | Build/gas/payment/auth policies |
+| `src/schema/policies.ts` | Build/gas/payment/auth policy public barrel |
+| `src/schema/policy-build.ts` | Transaction build-mode literals |
+| `src/schema/policy-gas.ts` | Gas policy schemas |
+| `src/schema/policy-payment.ts` | Payment policy schemas |
+| `src/schema/policy-auth.ts` | Auth policy schemas |
 | `src/schema/decode.ts` | Decode/encode helper functions |
 | `src/effectable/index.ts` | Public barrel for Effectable ontology facades |
 | `src/effectable/base.ts` | `SuiEffectKind`, `SuiEffect`, `SuiQuery`, `SuiFlow` base algebras |
