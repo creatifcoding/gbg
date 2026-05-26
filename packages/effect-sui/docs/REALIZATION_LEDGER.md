@@ -73,6 +73,7 @@ Rationale:
 | Reservation acquire guard decomposition | Done | `d2c6c85d refactor(effect-sui): decompose reservation acquire guards` |
 | Type-tag string normalization decomposition | Done | `0724c054 refactor(effect-sui): decompose type-tag string normalization` |
 | PTB analyzer arity decomposition | Done | `3143116b refactor(effect-sui): decompose PTB analyzer arity` |
+| Flow gas planning decomposition | Done | `dcb2286c refactor(effect-sui): decompose flow gas planning` |
 
 ## Surgical decomposition closeout
 
@@ -80,7 +81,7 @@ Source-only line budgets stayed under the 120% cap:
 
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
-| `src/flow` | 787 | 901 | 114.5% |
+| `src/flow` | 787 | 904 | 114.9% |
 | `src/ptb` | 622 | 727 | 116.9% |
 | `src/schema` | 571 | 614 | 107.5% |
 | `src/query` | 401 | 473 | 118.0% |
@@ -101,6 +102,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/reservation/operations` | 118 | 125 | 105.9% |
 | `src/schema/strings` | 110 | 125 | 113.6% |
 | `src/flow/payment` | 91 | 72 | 79.1% |
+| `src/flow/gas` | 63 | 66 | 104.8% |
 | `src/schema/errors` | 89 | 75 | 84.3% |
 | `src/schema/policies` | 72 | 67 | 93.1% |
 | `src/query/runtime` | 88 | 82 | 93.2% |

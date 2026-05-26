@@ -164,7 +164,8 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/flow/index.ts` | Public barrel for transaction flow helpers |
 | `src/flow/types.ts` | Flow client/signer contracts |
 | `src/flow/errors.ts` | Flow typed error constructors |
-| `src/flow/gas.ts` | Gas planning service implementation |
+| `src/flow/gas.ts` | Gas planner service and layer surface |
+| `src/flow/gas-plan.ts` | Gas price/budget resolution and rationale helpers |
 | `src/flow/payment.ts` | Payment planning service assembly |
 | `src/flow/payment-plan.ts` | Payment policy planning, gas overlap checks, and PTB object input collection |
 | `src/flow/auth.ts` | Auth service/layer assembly |
