@@ -248,6 +248,7 @@ const alarmSafetyObservation = (input: {
   readonly kind: 'condition_asserted' | 'condition_retracted'
   readonly value: 'hold' | 'informational'
   readonly reason: string
+  readonly propagationId?: PropagationId
   readonly payload: unknown
 }): ReactorObservation =>
   new ReactorObservation({
@@ -262,7 +263,7 @@ const alarmSafetyObservation = (input: {
       }),
     ],
     causality: new ReactorCausality({
-      propagationId: input.entry.idString as PropagationId,
+      propagationId: input.propagationId ?? (input.entry.idString as PropagationId),
     }),
     payload: input.payload,
   })
@@ -284,6 +285,7 @@ export const AlarmTriggeredObservationSpec: EventObservationSpec = {
         kind: 'condition_asserted',
         value: safetyValue,
         reason: `${payload.severity}:${payload.alarmType}`,
+        propagationId: payload.alarmId as unknown as PropagationId,
         payload,
       })
     }),
@@ -303,6 +305,7 @@ export const AlarmEscalatedObservationSpec: EventObservationSpec = {
         kind: 'condition_asserted',
         value: 'hold',
         reason: `escalated:${payload.escalationLevel}`,
+        propagationId: payload.alarmId as unknown as PropagationId,
         payload,
       })
     }),
@@ -323,6 +326,7 @@ export const AlarmClearedObservationSpec: EventObservationSpec = {
         kind: 'condition_retracted',
         value: 'hold',
         reason: note,
+        propagationId: payload.alarmId as unknown as PropagationId,
         payload,
       })
     }),

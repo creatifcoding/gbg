@@ -10,6 +10,20 @@
 
 import { Schema } from 'effect'
 import { EdgeId } from '../identifiers'
+import type {
+  AlarmId,
+  AreaId,
+  DeviceId,
+  EnterpriseId,
+  ExternalRefId,
+  LineId,
+  MachineId,
+  PlantId,
+  SensorId,
+  SiteId,
+  WorkCellId,
+  WorkOrderId,
+} from '../identifiers'
 
 export const RELATIONSHIP_NODE_TYPE_VALUES = [
   'enterprise',
@@ -29,6 +43,21 @@ export const RELATIONSHIP_NODE_TYPE_VALUES = [
 export const RelationshipNodeType = Schema.Literal(...RELATIONSHIP_NODE_TYPE_VALUES)
 export type RelationshipNodeType = typeof RelationshipNodeType.Type
 
+export const RelationshipNodeTypes = {
+  Enterprise: 'enterprise',
+  Site: 'site',
+  Area: 'area',
+  Plant: 'plant',
+  Line: 'line',
+  WorkCell: 'workcell',
+  Machine: 'machine',
+  Sensor: 'sensor',
+  Device: 'device',
+  Alarm: 'alarm',
+  WorkOrder: 'work_order',
+  External: 'external',
+} as const satisfies Record<string, RelationshipNodeType>
+
 export const RELATIONSHIP_EDGE_TYPE_VALUES = [
   'targets',
   'requires',
@@ -44,6 +73,19 @@ export const RELATIONSHIP_EDGE_TYPE_VALUES = [
 
 export const RelationshipEdgeType = Schema.Literal(...RELATIONSHIP_EDGE_TYPE_VALUES)
 export type RelationshipEdgeType = typeof RelationshipEdgeType.Type
+
+export const RelationshipEdgeTypes = {
+  Targets: 'targets',
+  Requires: 'requires',
+  CausedBy: 'caused_by',
+  DependsOn: 'depends_on',
+  RelatedTo: 'related_to',
+  Supervises: 'supervises',
+  Produces: 'produces',
+  Contains: 'contains',
+  Monitors: 'monitors',
+  TriggeredBy: 'triggered_by',
+} as const satisfies Record<string, RelationshipEdgeType>
 
 export const RelationshipDirectionality = Schema.Literal('directed', 'bidirectional')
 export type RelationshipDirectionality = typeof RelationshipDirectionality.Type
@@ -153,6 +195,35 @@ export class RelationshipEndpoint extends Schema.TaggedClass<RelationshipEndpoin
 }) {}
 export type RelationshipEndpoint = typeof RelationshipEndpoint.Type
 
+/**
+ * Input shape accepted at GraphClient boundaries.
+ *
+ * `RelationshipEndpoint` is a tagged runtime value; this untagged schema lets
+ * callers pass descriptor/factory results or plain data while GraphClient still
+ * validates labels before Cypher interpolation.
+ */
+export const RelationshipEndpointInput = Schema.Struct({
+  type: RelationshipNodeType,
+  id: Schema.String,
+})
+export type RelationshipEndpointInput = typeof RelationshipEndpointInput.Type
+
+export const RelationshipEndpoints = {
+  enterprise: (id: EnterpriseId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Enterprise, id: String(id) }),
+  site: (id: SiteId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Site, id: String(id) }),
+  area: (id: AreaId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Area, id: String(id) }),
+  plant: (id: PlantId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Plant, id: String(id) }),
+  line: (id: LineId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Line, id: String(id) }),
+  workcell: (id: WorkCellId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.WorkCell, id: String(id) }),
+  machine: (id: MachineId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Machine, id: String(id) }),
+  sensor: (id: SensorId | DeviceId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Sensor, id: String(id) }),
+  device: (id: DeviceId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Device, id: String(id) }),
+  alarm: (id: AlarmId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.Alarm, id: String(id) }),
+  workOrder: (id: WorkOrderId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.WorkOrder, id: String(id) }),
+  external: (id: ExternalRefId | string) => new RelationshipEndpoint({ type: RelationshipNodeTypes.External, id: String(id) }),
+  of: (type: RelationshipNodeType, id: string) => new RelationshipEndpoint({ type, id }),
+} as const
+
 export class RelationshipEdgeMetadata extends Schema.TaggedClass<RelationshipEdgeMetadata>()('RelationshipEdgeMetadata', {
   edgeId: Schema.optional(EdgeId),
   createdBy: Schema.String,
@@ -163,6 +234,47 @@ export class RelationshipEdgeMetadata extends Schema.TaggedClass<RelationshipEdg
   }),
 }) {}
 export type RelationshipEdgeMetadata = typeof RelationshipEdgeMetadata.Type
+
+export const RelationshipEdgeMetadataInput = Schema.Struct({
+  edgeId: Schema.optional(EdgeId),
+  createdBy: Schema.String,
+  reason: Schema.optional(Schema.String),
+  validFrom: Schema.optional(Schema.String),
+  context: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
+})
+export type RelationshipEdgeMetadataInput = typeof RelationshipEdgeMetadataInput.Type
+
+export class RelationshipEdgeRef extends Schema.TaggedClass<RelationshipEdgeRef>()('RelationshipEdgeRef', {
+  source: RelationshipEndpoint,
+  target: RelationshipEndpoint,
+  edgeType: RelationshipEdgeType,
+}) {}
+export type RelationshipEdgeRef = typeof RelationshipEdgeRef.Type
+
+export class RelationshipEdgeUpsert extends Schema.TaggedClass<RelationshipEdgeUpsert>()('RelationshipEdgeUpsert', {
+  source: RelationshipEndpoint,
+  target: RelationshipEndpoint,
+  edgeType: RelationshipEdgeType,
+  metadata: RelationshipEdgeMetadata,
+}) {}
+export type RelationshipEdgeUpsert = typeof RelationshipEdgeUpsert.Type
+
+export const RelationshipEdgeRefInput = Schema.Struct({
+  source: RelationshipEndpointInput,
+  target: RelationshipEndpointInput,
+  edgeType: RelationshipEdgeType,
+})
+export type RelationshipEdgeRefInput = typeof RelationshipEdgeRefInput.Type
+
+export const RelationshipEdgeUpsertInput = Schema.Struct({
+  source: RelationshipEndpointInput,
+  target: RelationshipEndpointInput,
+  edgeType: RelationshipEdgeType,
+  metadata: RelationshipEdgeMetadataInput,
+})
+export type RelationshipEdgeUpsertInput = typeof RelationshipEdgeUpsertInput.Type
 
 export class PropagationSourcePredicate extends Schema.TaggedClass<PropagationSourcePredicate>()('PropagationSourcePredicate', {
   eventTag: Schema.String,
@@ -457,6 +569,12 @@ export const TargetsAlarmSafetyHoldRetractedReleasesSource = new RelationshipPro
   effect: 'consistency',
   idempotencyStrategy: 'source_propagation_id',
   version: '1',
+  constraintAddressHint: new RelationshipConstraintAddressHint({
+    assertedCapability: EntityCapabilityIds.SafetyHold,
+    assertionPolicyId: TargetsAlarmSafetyHoldHoldsSource.id,
+    propagationIdSource: 'current',
+    notes: 'Alarm safety observations use alarmId as the stable propagation id so AlarmCleared can retract the exact AlarmTriggered/Escalated safety hold.',
+  }),
 })
 
 /**
@@ -481,6 +599,12 @@ export const RequiresAlarmSafetyHoldRetractedReleasesSource = new RelationshipPr
   effect: 'consistency',
   idempotencyStrategy: 'source_propagation_id',
   version: '1',
+  constraintAddressHint: new RelationshipConstraintAddressHint({
+    assertedCapability: EntityCapabilityIds.SafetyHold,
+    assertionPolicyId: RequiresAlarmSafetyHoldHoldsSource.id,
+    propagationIdSource: 'current',
+    notes: 'Alarm safety observations use alarmId as the stable propagation id so AlarmCleared can retract the exact required-asset safety hold.',
+  }),
 })
 
 export const AlarmSafetyHoldPropagationPolicies = [
@@ -720,6 +844,31 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
 export const getRelationshipEdgeDescriptor = (
   edgeType: RelationshipEdgeType,
 ): RelationshipEdgeDescriptor => RELATIONSHIP_EDGE_REGISTRY[edgeType]
+
+export const RelationshipEdges = {
+  fromDescriptor: (
+    descriptor: RelationshipEdgeDescriptor,
+    source: RelationshipEndpoint,
+    target: RelationshipEndpoint,
+    metadata: RelationshipEdgeMetadata,
+  ) => new RelationshipEdgeUpsert({
+    source,
+    target,
+    edgeType: descriptor.edgeType,
+    metadata,
+  }),
+  fromPolicy: (
+    policy: RelationshipPropagationPolicy,
+    source: RelationshipEndpoint,
+    target: RelationshipEndpoint,
+    metadata: RelationshipEdgeMetadata,
+  ) => new RelationshipEdgeUpsert({
+    source,
+    target,
+    edgeType: policy.edgeType,
+    metadata,
+  }),
+} as const
 
 export const getPropagationDescriptorsForEdge = (
   edgeType: RelationshipEdgeType,

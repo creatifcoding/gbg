@@ -5,12 +5,12 @@ import { WorkOrderEntity } from '../../../entity/WorkOrderEntity'
 import { WorkOrderState } from '../../../state'
 import { WorkOrderTransitionRepo } from '../../../repos/WorkOrderTransitionRepo'
 import type { WorkOrderId as WorkOrderIdType } from '../../../schemas/identifiers'
-import type { SuspensionReason } from '../../../schemas/work-orders'
+import type { SuspensionReason, WorkOrder } from '../../../schemas/work-orders'
 import {
   classifyWorkOrderSuspendEligibility,
   workOrderNotFoundSuspendEligibility,
 } from '../../../machines/graphs/work-order-eligibility'
-import { EntityCapabilityIds, skipped } from '../../../schemas/relationships'
+import { EntityCapabilityIds, eligible, skipped } from '../../../schemas/relationships'
 import {
   ReactorConstraintAssertion,
   ReactorConstraintEffects,
@@ -47,7 +47,14 @@ export const suspensionReasonFromRequest = (payload: Record<string, unknown>): S
   }
 }
 
-export const sqlConstraintAssertionFromRequest = (request: Parameters<EntityReactionCapability['dispatch']>[0]) => {
+export const sqlConstraintAssertionFromRequest = (
+  request: Parameters<EntityReactionCapability['dispatch']>[0],
+  overrides: Partial<{
+    readonly capability: typeof request.capability
+    readonly family: 'dependency' | 'safety'
+    readonly effect: 'blocking' | 'holding'
+  }> = {},
+) => {
   const payload = request.payload
   const relationshipEdgeType = payloadString(payload, 'relationshipEdgeType')
   const sourceEntryId = payloadString(payload, 'sourceEntryId')
@@ -67,8 +74,8 @@ export const sqlConstraintAssertionFromRequest = (request: Parameters<EntityReac
 
   return new ReactorConstraintAssertion({
     target: request.target,
-    capability: request.capability,
-    family: 'dependency',
+    capability: overrides.capability ?? request.capability,
+    family: overrides.family ?? 'dependency',
     source: request.source,
     relationshipEdgeType: relationshipEdgeType as never,
     policyId: request.policyId,
@@ -78,7 +85,7 @@ export const sqlConstraintAssertionFromRequest = (request: Parameters<EntityReac
     sourceEntryId: sourceEntryId as ReactorSourceEntryId,
     sourceEvent,
     propagationId: request.causality.propagationId,
-    effect: ReactorConstraintEffects.Blocking,
+    effect: overrides.effect ?? ReactorConstraintEffects.Blocking,
     metadata: {
       requestId: request.requestId,
       signalAxis: request.signal.axis,
@@ -86,6 +93,26 @@ export const sqlConstraintAssertionFromRequest = (request: Parameters<EntityReac
       reason: payloadString(payload, 'reason') ?? request.signal.reason,
     },
   })
+}
+
+const classifyWorkOrderConstraintHoldEligibility = (
+  workOrder: WorkOrder,
+  input: { readonly causedByPropagationId?: Parameters<typeof classifyWorkOrderSuspendEligibility>[1]['causedByPropagationId']; readonly alreadyHandledPropagation?: boolean } = {},
+) => {
+  if (input.alreadyHandledPropagation) {
+    return classifyWorkOrderSuspendEligibility(workOrder, input)
+  }
+
+  if (workOrder.status === 'suspended') {
+    return eligible({
+      entityType: 'work_order',
+      entityId: workOrder.id,
+      currentState: workOrder.status,
+      targetState: 'suspended',
+    })
+  }
+
+  return classifyWorkOrderSuspendEligibility(workOrder, input)
 }
 
 export const makeWorkOrderReactionContract: Effect.Effect<EntityReactionContract, never, WorkOrderState | WorkOrderEntity> =
@@ -107,7 +134,7 @@ export const makeWorkOrderReactionContract: Effect.Effect<EntityReactionContract
               : false
 
             return yield* workOrders.get(workOrderId).pipe(
-              Effect.map((workOrder) => classifyWorkOrderSuspendEligibility(workOrder, {
+              Effect.map((workOrder) => classifyWorkOrderConstraintHoldEligibility(workOrder, {
                 causedByPropagationId: request.causality.propagationId,
                 alreadyHandledPropagation,
               })),
@@ -126,6 +153,9 @@ export const makeWorkOrderReactionContract: Effect.Effect<EntityReactionContract
               yield* constraintAuthority.value.assert(constraintAssertion)
             }
 
+            const current = yield* workOrders.get(workOrderId)
+            if (current.status === 'suspended') return current
+
             return yield* client.WorkOrder.Suspend({
               workOrderId,
               reason: suspensionReason,
@@ -133,6 +163,52 @@ export const makeWorkOrderReactionContract: Effect.Effect<EntityReactionContract
               causedByPropagationId: Option.some(request.causality.propagationId),
               notes: Option.some(
                 `Reactor: dependency blocked by ${request.source.type} ${sourceId}; propagation=${request.causality.propagationId}`,
+              ),
+            })
+          })
+        },
+      }],
+      [EntityCapabilityIds.SafetyHold, {
+        id: EntityCapabilityIds.SafetyHold,
+        classify: (request) =>
+          Effect.gen(function* () {
+            const workOrderId = request.target.id as WorkOrderIdType
+            const alreadyHandledPropagation = Option.isSome(transitionRepo)
+              ? yield* transitionRepo.value.hasInboundPropagation(workOrderId, request.causality.propagationId)
+              : false
+
+            return yield* workOrders.get(workOrderId).pipe(
+              Effect.map((workOrder) => classifyWorkOrderConstraintHoldEligibility(workOrder, {
+                causedByPropagationId: request.causality.propagationId,
+                alreadyHandledPropagation,
+              })),
+              Effect.catchAll(() => Effect.succeed(workOrderNotFoundSuspendEligibility(workOrderId))),
+            )
+          }),
+        dispatch: (request) => {
+          const workOrderId = request.target.id as WorkOrderIdType
+          const client = makeClient(workOrderId)
+          const constraintAssertion = sqlConstraintAssertionFromRequest(request, {
+            capability: EntityCapabilityIds.SafetyHold,
+            family: 'safety',
+            effect: ReactorConstraintEffects.Holding,
+          })
+
+          return Effect.gen(function* () {
+            if (Option.isSome(constraintAuthority) && constraintAssertion !== undefined) {
+              yield* constraintAuthority.value.assert(constraintAssertion)
+            }
+
+            const current = yield* workOrders.get(workOrderId)
+            if (current.status === 'suspended') return current
+
+            return yield* client.WorkOrder.Suspend({
+              workOrderId,
+              reason: 'safety_hold',
+              expectedResume: Option.none(),
+              causedByPropagationId: Option.some(request.causality.propagationId),
+              notes: Option.some(
+                `Reactor: safety hold from ${request.source.type} ${request.source.id}; propagation=${request.causality.propagationId}`,
               ),
             })
           })
@@ -154,6 +230,11 @@ export const makeWorkOrderReactionContract: Effect.Effect<EntityReactionContract
     if (Option.isSome(dependencyRelease)) {
       capabilities.set(EntityCapabilityIds.DependencyReleased, {
         id: EntityCapabilityIds.DependencyReleased,
+        classify: dependencyRelease.value.classify,
+        dispatch: dependencyRelease.value.dispatch,
+      })
+      capabilities.set(EntityCapabilityIds.SafetyRelease, {
+        id: EntityCapabilityIds.SafetyRelease,
         classify: dependencyRelease.value.classify,
         dispatch: dependencyRelease.value.dispatch,
       })

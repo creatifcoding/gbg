@@ -13,7 +13,7 @@ import { WorkOrderEntity } from '../../../entity/WorkOrderEntity'
 import { WorkOrderState } from '../../../state'
 import { WorkOrder, WorkOrderStatus } from '../../../schemas/work-orders'
 import type { PropagationId, WorkOrderId } from '../../../schemas/identifiers'
-import { EntityCapabilityIds, eligible, skipped } from '../../../schemas/relationships'
+import { eligible, skipped } from '../../../schemas/relationships'
 import {
   EntityReactionRequest,
   TargetConstraintReconciliationResult,
@@ -153,7 +153,7 @@ export const WorkOrderDependencyReleaseLive = Layer.effect(
         })
 
         return resultWith(reconciliation, {
-          verdict: EntityCapabilityIds.DependencyReleased === request.capability ? 'released' : 'constraint_retracted',
+          verdict: resumed.status === 'resumed' ? 'released' : 'constraint_retracted',
           targetState: resumed.status,
           reason: 'Constraint cleared and WorkOrder resumed through its target-owned state graph.',
         })

@@ -1,6 +1,6 @@
 # Alarm Safety-Hold Routing Contract
 
-> Status: declared, not enabled in `ReactorGenericLive` by default
+> Status: guarded opt-in via `ReactorAlarmSafetyLive`; not enabled in `ReactorGenericLive` by default
 
 This contract defines how alarm facts become WorkOrder safety pressure without
 turning Reactor into a workflow orchestrator. Alarms remain durable EventLog
@@ -74,17 +74,19 @@ alarm payload in the observation for explainability.
 
 ## Current guardrail
 
-These policies are registered on `targets` and `requires` descriptors but are not
-included in `ReactorGenericLive`.
+These policies are registered on `targets` and `requires` descriptors and
+packaged in `ReactorAlarmSafetyLive`, but are not included in
+`ReactorGenericLive`.
 
-Activation requires:
+Opt-in activation now has:
 
-1. A target-owned WorkOrder `safety.hold` capability.
-2. A target-owned WorkOrder `safety.release` capability.
-3. SQL constraint authority mapping for alarm safety holds/releases so clearing
-   one alarm cannot accidentally release unrelated active safety pressure.
-4. Optional graph projection for alarm nodes and `triggered_by` edges if/when the
-   planner grows multi-hop policy expansion.
+1. Target-owned WorkOrder `safety.hold` capability.
+2. Target-owned WorkOrder `safety.release` capability backed by SQL constraint
+   authority and WorkOrder-owned resume eligibility.
+3. Alarm-id-addressed SQL safety constraints so clearing one alarm retracts only
+   that alarm's hold.
+4. E2E coverage for critical alarm hold propagation over both `targets` and
+   `requires`, plus exact single-alarm release.
 
-Until then, this is a declared routing contract with tests, not production
-mutation wiring.
+Still future: optional graph projection for alarm nodes and `triggered_by` edges
+if/when the planner grows multi-hop policy expansion.

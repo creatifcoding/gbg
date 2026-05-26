@@ -1,10 +1,15 @@
 /**
- * GraphClient - L1 Apache AGE Access Layer
+ * GraphClient - Apache AGE Graph Boundary
  *
  * Real implementation using @effect/sql-pg for Apache AGE graph operations:
  * - Cypher query execution via ag_catalog.cypher()
- * - Node/edge CRUD operations
- * - Asset hierarchy traversal
+ * - Schema-validated generic node/edge CRUD operations
+ * - Registry-validated topology expansion for Reactor
+ *
+ * Ontology note: GraphClient should not grow domain-specific query semantics.
+ * Helpers such as asset hierarchy queries remain here only as legacy compatibility
+ * veneers while L2 query services are extracted. New code should author domain
+ * graph reads in domain services using validated graph primitives.
  *
  * Requires: IIoTPgClientLive layer to be provided
  *
@@ -19,25 +24,21 @@
  * |--------|-------------|
  * | `executeCypher()` | Run arbitrary Cypher query, returns raw rows |
  *
- * ### Asset Hierarchy (Read)
- *
- * | Method | Return Type | Description |
- * |--------|-------------|-------------|
- * | `getAllPlants()` | `Stream<Plant>` | All plants in the graph |
- * | `getPlant()` | `Effect<Plant \| null>` | Single plant by ID |
- * | `getLinesForPlant()` | `Stream<Line>` | Lines contained by a plant |
- * | `getMachinesForLine()` | `Stream<Machine>` | Machines on a line |
- * | `getSensorsForMachine()` | `Stream<Sensor>` | Sensors monitoring a machine |
- * | `getSensorHierarchy()` | `Effect<SensorHierarchy>` | Full path: sensor → machine → line → plant |
- * | `getPlantHierarchy()` | `Effect<PlantHierarchy>` | Full tree: plant → lines → machines → sensors |
- * | `getAllSensors()` | `Stream<{sensor, alarmCount}>` | All sensors with alarm counts |
- *
- * ### Alarm Operations
+ * ### Relationship Graph Primitives
  *
  * | Method | Description |
  * |--------|-------------|
- * | `createAlarmNode()` | Create alarm node with id, type, severity, message, timestamp |
- * | `linkAlarmToSensor()` | Create `(alarm)-[:triggered_by]->(sensor)` edge |
+ * | `upsertRelationshipNode()` | Create/update a Schema-validated graph node anchor |
+ * | `upsertRelationshipEdge()` | Create/update a descriptor-registered relationship edge |
+ * | `softDeleteRelationshipEdge()` | Mark a descriptor-registered relationship edge inactive |
+ * | `getRelationshipTargetIds()` | Read target IDs for an active descriptor-registered edge |
+ * | `expandPropagationTargets()` | Expand Reactor observations through registered policies |
+ *
+ * ### Legacy Domain Veneers
+ *
+ * Domain-specific helpers (`getSensorHierarchy`, `getPlantHierarchy`,
+ * `linkAlarmToSensor`, etc.) predate the relationship registry. Do not add new
+ * helpers in this style; extract them to L2 query services instead.
  *
  * ### Diagnostics
  *
@@ -56,7 +57,7 @@
  * @module
  */
 
-import { Effect, Stream, Context, Layer } from 'effect'
+import { Effect, Stream, Context, Layer, Schema } from 'effect'
 import { PgClient } from '@effect/sql-pg'
 import type {
   AssetId,
@@ -72,10 +73,16 @@ import { GraphQueryError, HierarchyError } from '../../schemas/errors'
 import {
   getRelationshipEdgeDescriptor,
   isRelationshipAllowed,
+  RelationshipEdgeMetadataInput,
+  RelationshipEdgeRefInput,
+  RelationshipEdgeType,
+  RelationshipEdgeUpsertInput,
   RelationshipEndpoint,
+  RelationshipEndpointInput,
+  RelationshipNodeType,
   type RelationshipEdgeMetadata,
-  type RelationshipEdgeType,
-  type RelationshipNodeType,
+  type RelationshipEdgeRef,
+  type RelationshipEdgeUpsert,
   type RelationshipPropagationPolicy,
 } from '../../schemas/relationships'
 import type { ObservationSignal, ReactorObservation } from '../../schemas/reactor'
@@ -110,6 +117,31 @@ export interface PropagationTargetExpansion {
   readonly target: RelationshipEndpoint
   readonly requestTarget: RelationshipEndpoint
 }
+
+type RelationshipEndpointBoundaryInput = RelationshipEndpoint | typeof RelationshipEndpointInput.Type
+type RelationshipEdgeRefBoundaryInput = RelationshipEdgeRef | typeof RelationshipEdgeRefInput.Type
+type RelationshipEdgeUpsertBoundaryInput = RelationshipEdgeUpsert | typeof RelationshipEdgeUpsertInput.Type
+
+type RelationshipTargetIdsInput = {
+  readonly source: RelationshipEndpointBoundaryInput
+  readonly edgeType: RelationshipEdgeType
+  readonly targetType: RelationshipNodeType
+}
+
+const RelationshipTargetIdsInput = Schema.Struct({
+  source: RelationshipEndpointInput,
+  edgeType: RelationshipEdgeType,
+  targetType: RelationshipNodeType,
+})
+
+const RelationshipEdgeSoftDeleteInput = Schema.Struct({
+  source: RelationshipEndpointInput,
+  target: RelationshipEndpointInput,
+  edgeType: RelationshipEdgeType,
+  reason: Schema.optional(Schema.String),
+})
+
+type RelationshipEdgeSoftDeleteInput = typeof RelationshipEdgeSoftDeleteInput.Type
 
 // =============================================================================
 // Apache AGE Helper Functions
@@ -170,6 +202,27 @@ const cypherMap = (entries: Record<string, string | number | boolean | null | un
     })
   return `{${props.join(', ')}}`
 }
+
+const decodeGraphInput = <A, I>(
+  schema: Schema.Schema<A, I>,
+  value: unknown,
+  query: string,
+): Effect.Effect<A, GraphQueryError> =>
+  Schema.decodeUnknown(schema)(value).pipe(
+    Effect.mapError((cause) => new GraphQueryError({
+      query,
+      message: `Invalid graph input for ${query}: ${String(cause)}`,
+      cause,
+    })),
+  )
+
+const normalizeEndpoint = (
+  endpoint: RelationshipEndpointBoundaryInput,
+  query: string,
+): Effect.Effect<RelationshipEndpoint, GraphQueryError> =>
+  decodeGraphInput(RelationshipEndpointInput, endpoint, query).pipe(
+    Effect.map((input) => new RelationshipEndpoint({ type: input.type, id: input.id })),
+  )
 
 // =============================================================================
 // Service Definition
@@ -415,10 +468,11 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
      * Labels are restricted by RelationshipNodeType before interpolation.
      */
     const upsertRelationshipNode = (
-      endpoint: RelationshipEndpoint,
+      endpointInput: RelationshipEndpointBoundaryInput,
       properties: Record<string, string | number | boolean | null | undefined> = {},
     ): Effect.Effect<void, GraphQueryError> =>
       Effect.gen(function* () {
+        const endpoint = yield* normalizeEndpoint(endpointInput, 'upsertRelationshipNode.endpoint')
         const idProperty = nodeIdProperty(endpoint.type)
         const propertyMap = cypherMap({
           ...properties,
@@ -436,44 +490,43 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
     /**
      * Create or update a schema-registered relationship edge.
      */
-    const upsertRelationshipEdge = (input: {
-      readonly source: RelationshipEndpoint
-      readonly target: RelationshipEndpoint
-      readonly edgeType: RelationshipEdgeType
-      readonly metadata: RelationshipEdgeMetadata
-    }): Effect.Effect<void, GraphQueryError> =>
+    const upsertRelationshipEdge = (inputValue: RelationshipEdgeUpsertBoundaryInput): Effect.Effect<void, GraphQueryError> =>
       Effect.gen(function* () {
+        const input = yield* decodeGraphInput(RelationshipEdgeUpsertInput, inputValue, 'upsertRelationshipEdge')
+        const source = new RelationshipEndpoint({ type: input.source.type, id: input.source.id })
+        const target = new RelationshipEndpoint({ type: input.target.type, id: input.target.id })
+        const metadata = yield* decodeGraphInput(RelationshipEdgeMetadataInput, input.metadata, 'upsertRelationshipEdge.metadata')
         if (!isRelationshipAllowed({
           edgeType: input.edgeType,
-          sourceType: input.source.type,
-          targetType: input.target.type,
+          sourceType: source.type,
+          targetType: target.type,
         })) {
           return yield* Effect.fail(new GraphQueryError({
             query: 'upsertRelationshipEdge',
-            message: `Relationship ${input.source.type} -[:${input.edgeType}]-> ${input.target.type} is not allowed by registry`,
+            message: `Relationship ${source.type} -[:${input.edgeType}]-> ${target.type} is not allowed by registry`,
           }))
         }
 
-        const sourceIdProperty = nodeIdProperty(input.source.type)
-        const targetIdProperty = nodeIdProperty(input.target.type)
-        const edgeId = input.metadata.edgeId ?? makeEdgeId(input)
-        const validFrom = input.metadata.validFrom ?? new Date().toISOString()
+        const sourceIdProperty = nodeIdProperty(source.type)
+        const targetIdProperty = nodeIdProperty(target.type)
+        const edgeId = metadata.edgeId ?? makeEdgeId({ source, target, edgeType: input.edgeType })
+        const validFrom = metadata.validFrom ?? new Date().toISOString()
         const edgeProperties = cypherMap({
           edge_id: edgeId,
           created_at: new Date().toISOString(),
-          created_by: input.metadata.createdBy,
+          created_by: metadata.createdBy,
           valid_from: validFrom,
           valid_to: null,
-          reason: input.metadata.reason,
+          reason: metadata.reason,
           version: 1,
-          source_type: input.source.type,
-          target_type: input.target.type,
-          context_json: JSON.stringify(input.metadata.context ?? {}),
+          source_type: source.type,
+          target_type: target.type,
+          context_json: JSON.stringify(metadata.context ?? {}),
         })
 
         yield* executeCypher(
-          `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'}),
-                  (target:${input.target.type} {${targetIdProperty}: '${escapeCypher(input.target.id)}'})
+          `MATCH (source:${source.type} {${sourceIdProperty}: '${escapeCypher(source.id)}'}),
+                  (target:${target.type} {${targetIdProperty}: '${escapeCypher(target.id)}'})
            MERGE (source)-[edge:${input.edgeType}]->(target)
            SET edge += ${edgeProperties}`,
           '(edge agtype)'
@@ -497,15 +550,15 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
             ${edgeId},
             'upsert',
             ${input.edgeType},
-            ${input.source.type},
-            ${input.source.id},
-            ${input.target.type},
-            ${input.target.id},
-            ${input.metadata.createdBy},
-            ${input.metadata.reason ?? null},
+            ${source.type},
+            ${source.id},
+            ${target.type},
+            ${target.id},
+            ${metadata.createdBy},
+            ${metadata.reason ?? null},
             1,
             ${validFrom},
-            ${JSON.stringify(input.metadata.context ?? {})}::jsonb
+            ${JSON.stringify(metadata.context ?? {})}::jsonb
           )
         `
       })
@@ -513,32 +566,30 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
     /**
      * Soft-delete an active schema-registered relationship edge.
      */
-    const softDeleteRelationshipEdge = (input: {
-      readonly source: RelationshipEndpoint
-      readonly target: RelationshipEndpoint
-      readonly edgeType: RelationshipEdgeType
-      readonly reason?: string
-    }): Effect.Effect<void, GraphQueryError> =>
+    const softDeleteRelationshipEdge = (inputValue: RelationshipEdgeSoftDeleteInput | RelationshipEdgeRefBoundaryInput): Effect.Effect<void, GraphQueryError> =>
       Effect.gen(function* () {
+        const input = yield* decodeGraphInput(RelationshipEdgeSoftDeleteInput, inputValue, 'softDeleteRelationshipEdge')
+        const source = new RelationshipEndpoint({ type: input.source.type, id: input.source.id })
+        const target = new RelationshipEndpoint({ type: input.target.type, id: input.target.id })
         if (!isRelationshipAllowed({
           edgeType: input.edgeType,
-          sourceType: input.source.type,
-          targetType: input.target.type,
+          sourceType: source.type,
+          targetType: target.type,
         })) {
           return yield* Effect.fail(new GraphQueryError({
             query: 'softDeleteRelationshipEdge',
-            message: `Relationship ${input.source.type} -[:${input.edgeType}]-> ${input.target.type} is not allowed by registry`,
+            message: `Relationship ${source.type} -[:${input.edgeType}]-> ${target.type} is not allowed by registry`,
           }))
         }
 
-        const sourceIdProperty = nodeIdProperty(input.source.type)
-        const targetIdProperty = nodeIdProperty(input.target.type)
-        const edgeId = makeEdgeId(input)
+        const sourceIdProperty = nodeIdProperty(source.type)
+        const targetIdProperty = nodeIdProperty(target.type)
+        const edgeId = makeEdgeId({ source, target, edgeType: input.edgeType })
         const validTo = new Date().toISOString()
         yield* executeCypher(
-          `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'})
+          `MATCH (source:${source.type} {${sourceIdProperty}: '${escapeCypher(source.id)}'})
                   -[edge:${input.edgeType}]->
-                 (target:${input.target.type} {${targetIdProperty}: '${escapeCypher(input.target.id)}'})
+                 (target:${target.type} {${targetIdProperty}: '${escapeCypher(target.id)}'})
            SET edge.valid_to = '${validTo}',
                edge.deactivation_reason = '${escapeCypher(input.reason ?? 'soft_delete')}'`,
           '(edge agtype)'
@@ -562,10 +613,10 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
             ${edgeId},
             'soft_delete',
             ${input.edgeType},
-            ${input.source.type},
-            ${input.source.id},
-            ${input.target.type},
-            ${input.target.id},
+            ${source.type},
+            ${source.id},
+            ${target.type},
+            ${target.id},
             'system',
             ${input.reason ?? 'soft_delete'},
             1,
@@ -578,27 +629,25 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
     /**
      * Read target ids for an active schema-registered edge from a source.
      */
-    const getRelationshipTargetIds = (input: {
-      readonly source: RelationshipEndpoint
-      readonly edgeType: RelationshipEdgeType
-      readonly targetType: RelationshipNodeType
-    }): Effect.Effect<readonly string[], GraphQueryError> =>
+    const getRelationshipTargetIds = (inputValue: RelationshipTargetIdsInput): Effect.Effect<readonly string[], GraphQueryError> =>
       Effect.gen(function* () {
+        const input = yield* decodeGraphInput(RelationshipTargetIdsInput, inputValue, 'getRelationshipTargetIds')
+        const source = new RelationshipEndpoint({ type: input.source.type, id: input.source.id })
         if (!isRelationshipAllowed({
           edgeType: input.edgeType,
-          sourceType: input.source.type,
+          sourceType: source.type,
           targetType: input.targetType,
         })) {
           return yield* Effect.fail(new GraphQueryError({
             query: 'getRelationshipTargetIds',
-            message: `Relationship ${input.source.type} -[:${input.edgeType}]-> ${input.targetType} is not allowed by registry`,
+            message: `Relationship ${source.type} -[:${input.edgeType}]-> ${input.targetType} is not allowed by registry`,
           }))
         }
 
-        const sourceIdProperty = nodeIdProperty(input.source.type)
+        const sourceIdProperty = nodeIdProperty(source.type)
         const targetIdProperty = nodeIdProperty(input.targetType)
         const result = yield* executeCypher(
-          `MATCH (source:${input.source.type} {${sourceIdProperty}: '${escapeCypher(input.source.id)}'})
+          `MATCH (source:${source.type} {${sourceIdProperty}: '${escapeCypher(source.id)}'})
                   -[edge:${input.edgeType}]->
                  (target:${input.targetType})
            WHERE edge.valid_to IS NULL
