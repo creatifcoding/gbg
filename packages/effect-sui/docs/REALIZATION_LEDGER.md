@@ -55,6 +55,7 @@ Rationale:
 | PTB analyzer decomposition | Done | `3d55e0ce refactor(effect-sui): decompose PTB analyzer` |
 | Schema Move type-tag decomposition | Done | `f3cd3241 refactor(effect-sui): decompose Move type tags` |
 | Query resolver decomposition | Done | `a0fa7b5c refactor(effect-sui): decompose query resolver` |
+| Flow auth decomposition | Done | `882a9bb9 refactor(effect-sui): decompose flow auth service` |
 
 ## Surgical decomposition closeout
 
@@ -62,7 +63,7 @@ Source-only line budgets stayed under the 120% cap:
 
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
-| `src/flow` | 787 | 906 | 115.1% |
+| `src/flow` | 787 | 919 | 116.8% |
 | `src/ptb` | 622 | 704 | 113.2% |
 | `src/schema` | 571 | 598 | 104.7% |
 | `src/query` | 401 | 468 | 116.7% |
@@ -75,6 +76,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/ptb/analyzer` | 181 | 182 | 100.6% |
 | `src/schema/move` | 174 | 159 | 91.4% |
 | `src/query/resolver` | 160 | 162 | 101.3% |
+| `src/flow/auth` | 152 | 165 | 108.6% |
 
 Final decomposition gates passed:
 
