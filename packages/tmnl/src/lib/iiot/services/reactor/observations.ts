@@ -10,7 +10,7 @@ import {
 } from '../../schemas/reactor'
 import type { PropagationId } from '../../schemas/identifiers'
 import { RelationshipEndpoint } from '../../schemas/relationships'
-import { AlarmEvents, EquipmentStateEvents, WorkOrderEvents } from '../../schemas/events/groups'
+import { AlarmEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../schemas/events/groups'
 import type { EventObservationSpec } from './ReactorRegistry'
 
 const unavailableEquipmentStates = new Set([
@@ -326,6 +326,121 @@ export const AlarmClearedObservationSpec: EventObservationSpec = {
     }),
 }
 
+const structuralDecommissionObservation = (input: {
+  readonly entry: EventJournal.Entry
+  readonly entityType: RelationshipEndpoint['type']
+  readonly entityId: string
+  readonly reason: string
+  readonly payload: unknown
+}): ReactorObservation =>
+  new ReactorObservation({
+    event: eventEnvelopeFromEntry(input.entry),
+    subject: new RelationshipEndpoint({ type: input.entityType, id: input.entityId }),
+    signals: [
+      new ObservationSignal({
+        axis: 'structural.lifecycle',
+        kind: 'condition_asserted',
+        value: 'decommissioned',
+        reason: input.reason,
+      }),
+    ],
+    causality: new ReactorCausality({
+      propagationId: input.entry.idString as PropagationId,
+    }),
+    payload: input.payload,
+  })
+
+type StructuralDecommissionPayload = Record<string, unknown> & {
+  readonly reason?: unknown
+}
+
+const structuralDecommissionObservationSpec = (input: {
+  readonly id: string
+  readonly eventTag: keyof typeof StructuralEvents.events
+  readonly entityType: RelationshipEndpoint['type']
+  readonly idField: string
+}): EventObservationSpec => ({
+  id: input.id,
+  eventTag: input.eventTag,
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = StructuralEvents.events[input.eventTag] as { payloadMsgPack: Schema.Schema<unknown, Uint8Array> }
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+      const record = payload as StructuralDecommissionPayload
+
+      return structuralDecommissionObservation({
+        entry,
+        entityType: input.entityType,
+        entityId: String(record[input.idField]),
+        reason: typeof record.reason === 'string' ? record.reason : 'decommissioned',
+        payload,
+      })
+    }),
+})
+
+export const EnterpriseDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'enterprise-decommissioned-structural-observation',
+  eventTag: 'EnterpriseDecommissioned',
+  entityType: 'enterprise',
+  idField: 'enterpriseId',
+})
+
+export const SiteDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'site-decommissioned-structural-observation',
+  eventTag: 'SiteDecommissioned',
+  entityType: 'site',
+  idField: 'siteId',
+})
+
+export const AreaDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'area-decommissioned-structural-observation',
+  eventTag: 'AreaDecommissioned',
+  entityType: 'area',
+  idField: 'areaId',
+})
+
+export const PlantDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'plant-decommissioned-structural-observation',
+  eventTag: 'PlantDecommissioned',
+  entityType: 'plant',
+  idField: 'plantId',
+})
+
+export const LineDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'line-decommissioned-structural-observation',
+  eventTag: 'LineDecommissioned',
+  entityType: 'line',
+  idField: 'lineId',
+})
+
+export const WorkCellDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'workcell-decommissioned-structural-observation',
+  eventTag: 'WorkCellDecommissioned',
+  entityType: 'workcell',
+  idField: 'workCellId',
+})
+
+export const MachineDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'machine-decommissioned-structural-observation',
+  eventTag: 'MachineDecommissioned',
+  entityType: 'machine',
+  idField: 'machineId',
+})
+
+export const SensorDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'sensor-decommissioned-structural-observation',
+  eventTag: 'SensorDecommissioned',
+  entityType: 'sensor',
+  idField: 'sensorId',
+})
+
+export const DeviceDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+  id: 'device-decommissioned-structural-observation',
+  eventTag: 'DeviceDecommissioned',
+  entityType: 'device',
+  idField: 'deviceId',
+})
+
 export const ReactiveEquipmentStateObservationSpecs = [
   EquipmentStateChangedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
@@ -336,6 +451,18 @@ export const AlarmSafetyObservationSpecs = [
   AlarmTriggeredObservationSpec,
   AlarmEscalatedObservationSpec,
   AlarmClearedObservationSpec,
+] as const
+
+export const StructuralDecommissionObservationSpecs = [
+  EnterpriseDecommissionedObservationSpec,
+  SiteDecommissionedObservationSpec,
+  AreaDecommissionedObservationSpec,
+  PlantDecommissionedObservationSpec,
+  LineDecommissionedObservationSpec,
+  WorkCellDecommissionedObservationSpec,
+  MachineDecommissionedObservationSpec,
+  SensorDecommissionedObservationSpec,
+  DeviceDecommissionedObservationSpec,
 ] as const
 
 export const WorkOrderDependencyObservationSpecs = [

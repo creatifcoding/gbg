@@ -8,21 +8,25 @@ import {
   AlarmTriggeredObservationSpec,
   EquipmentStateChangedObservationSpec,
   FaultDetectedObservationSpec,
+  LineDecommissionedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
   ReactiveEquipmentStateObservationSpecs,
+  StructuralDecommissionObservationSpecs,
   WorkOrderCompletedObservationSpec,
   WorkOrderDependencyObservationSpecs,
   WorkOrderResumedObservationSpec,
   WorkOrderSuspendedObservationSpec,
 } from '../observations'
-import { AlarmEvents, EquipmentStateEvents, WorkOrderEvents } from '../../../schemas/events/groups'
+import { AlarmEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../../schemas/events/groups'
 import type {
   AlarmId,
   AssetId,
   DeviceId,
   EquipmentLevel,
   EventId,
+  LineId,
   MachineId,
+  PlantId,
   PropagationId,
   WorkOrderId,
 } from '../../../schemas/identifiers'
@@ -31,6 +35,8 @@ const TEST_MACHINE_ID = 'MCH-OBSERVATION-001' as MachineId
 const TEST_WORK_ORDER_ID = 'WO-OBSERVATION-001' as WorkOrderId
 const TEST_ALARM_ID = 'ALM-OBSERVATION-001' as AlarmId
 const TEST_DEVICE_ID = 'DEV-OBSERVATION-001' as DeviceId
+const TEST_LINE_ID = 'LIN-OBSERVATION-001' as LineId
+const TEST_PLANT_ID = 'PLT-OBSERVATION-001' as PlantId
 
 const basePayload = () => ({
   eventId: `EVT-OBSERVATION-${Date.now()}` as EventId,
@@ -88,6 +94,22 @@ const makeAlarmEntry = <Tag extends keyof typeof AlarmEvents.events>(
   })
 })
 
+const makeStructuralEntry = <Tag extends keyof typeof StructuralEvents.events>(
+  tag: Tag,
+  primaryKey: string,
+  payload: Record<string, unknown>,
+) => Effect.gen(function* () {
+  const event = StructuralEvents.events[tag] as { payloadMsgPack: Schema.Schema<unknown, Uint8Array> }
+  const encodedPayload = yield* Schema.encode(event.payloadMsgPack)(payload)
+
+  return new EventJournal.Entry({
+    id: EventJournal.makeEntryId(),
+    event: tag,
+    primaryKey,
+    payload: encodedPayload,
+  })
+})
+
 const makeEquipmentStateChangedEntry = (overrides?: {
   readonly newState?: 'operational' | 'degraded' | 'faulted' | 'maintenance' | 'offline'
   readonly propagationId?: PropagationId
@@ -140,6 +162,20 @@ const baseAlarmPayload = () => ({
   schemaVersion: 1,
   alarmId: TEST_ALARM_ID,
   deviceId: TEST_DEVICE_ID,
+})
+
+const baseStructuralPayload = (input: {
+  readonly entityId: AssetId
+  readonly entityType: EquipmentLevel
+}) => ({
+  eventId: `EVT-STRUCTURAL-OBSERVATION-${Date.now()}` as EventId,
+  occurredAt: DateTime.unsafeNow(),
+  causedBy: 'reactor-observation-test',
+  entityId: input.entityId,
+  entityType: input.entityType,
+  hierarchyPath: [input.entityId],
+  correlationId: Option.none(),
+  schemaVersion: 1,
 })
 
 describe('Reactor observation adapters', () => {
@@ -415,6 +451,49 @@ describe('Reactor observation adapters', () => {
         kind: 'condition_retracted',
         value: 'hold',
         reason: 'temperature normalized',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('exports Structural decommission observation specs for cascade routing', () => {
+    expect(StructuralDecommissionObservationSpecs.map((spec) => spec.eventTag)).toEqual([
+      'EnterpriseDecommissioned',
+      'SiteDecommissioned',
+      'AreaDecommissioned',
+      'PlantDecommissioned',
+      'LineDecommissioned',
+      'WorkCellDecommissioned',
+      'MachineDecommissioned',
+      'SensorDecommissioned',
+      'DeviceDecommissioned',
+    ])
+  })
+
+  it('decodes structural decommission into lifecycle signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeStructuralEntry('LineDecommissioned', TEST_LINE_ID, {
+        ...baseStructuralPayload({
+          entityId: TEST_LINE_ID as unknown as AssetId,
+          entityType: 'line' as EquipmentLevel,
+        }),
+        lineId: TEST_LINE_ID,
+        plantId: TEST_PLANT_ID,
+        reason: 'line retired',
+        effectiveDate: DateTime.unsafeNow(),
+        notes: Option.none(),
+      })
+      const observation = yield* LineDecommissionedObservationSpec.observe(entry)
+
+      expect(observation.event.tag).toBe('LineDecommissioned')
+      expect(observation.subject).toMatchObject({ type: 'line', id: TEST_LINE_ID })
+      expect(observation.causality.propagationId).toBe(entry.idString)
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'structural.lifecycle',
+        kind: 'condition_asserted',
+        value: 'decommissioned',
+        reason: 'line retired',
       })
     })
 

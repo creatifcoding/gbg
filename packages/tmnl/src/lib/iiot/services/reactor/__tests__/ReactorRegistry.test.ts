@@ -3,15 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { ObservationSignal } from '../../../schemas/reactor'
 import {
   EntityCapabilityIds,
+  ContainsStructuralDecommissionInheritsTarget,
   DependsOnWorkOrderBlockedBlocksSource,
   DependsOnWorkOrderBlockRetractedReleasesSource,
   DependsOnWorkOrderSatisfiedSatisfiesSource,
   RequiresAlarmSafetyHoldHoldsSource,
   RequiresAlarmSafetyHoldRetractedReleasesSource,
   RequiresEquipmentUnavailableBlocksSource,
+  RequiresStructuralDecommissionBlocksSource,
   TargetsAlarmSafetyHoldHoldsSource,
   TargetsAlarmSafetyHoldRetractedReleasesSource,
   TargetsMachineUnavailableBlocksSource,
+  TargetsStructuralDecommissionBlocksSource,
   getPropagationPoliciesForEdge,
 } from '../../../schemas/relationships'
 import { eligible } from '../../../schemas/relationships/eligibility'
@@ -77,11 +80,47 @@ describe('ReactorRegistry', () => {
       TargetsMachineUnavailableBlocksSource.id,
       TargetsAlarmSafetyHoldHoldsSource.id,
       TargetsAlarmSafetyHoldRetractedReleasesSource.id,
+      TargetsStructuralDecommissionBlocksSource.id,
     ])
     expect(getPropagationPoliciesForEdge('requires').map((policy) => policy.id)).toEqual([
       RequiresEquipmentUnavailableBlocksSource.id,
       RequiresAlarmSafetyHoldHoldsSource.id,
       RequiresAlarmSafetyHoldRetractedReleasesSource.id,
+      RequiresStructuralDecommissionBlocksSource.id,
+    ])
+  })
+
+  it('registers Structural decommission cascade routing policies', () => {
+    expect(getPropagationPoliciesForEdge('contains').map((policy) => policy.id)).toEqual([
+      ContainsStructuralDecommissionInheritsTarget.id,
+    ])
+    expect(getPropagationPoliciesForEdge('targets').map((policy) => policy.id)).toContain(
+      TargetsStructuralDecommissionBlocksSource.id,
+    )
+    expect(getPropagationPoliciesForEdge('requires').map((policy) => policy.id)).toContain(
+      RequiresStructuralDecommissionBlocksSource.id,
+    )
+  })
+
+  it('matches Structural decommission signals through declared policies', () => {
+    const registry = makeReactorRegistry({
+      observations: [],
+      propagationPolicies: [
+        ContainsStructuralDecommissionInheritsTarget,
+        TargetsStructuralDecommissionBlocksSource,
+        RequiresStructuralDecommissionBlocksSource,
+      ],
+      entities: [workOrderContract],
+    })
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'structural.lifecycle',
+      kind: 'condition_asserted',
+      value: 'decommissioned',
+    })).map((policy) => policy.id)).toEqual([
+      ContainsStructuralDecommissionInheritsTarget.id,
+      TargetsStructuralDecommissionBlocksSource.id,
+      RequiresStructuralDecommissionBlocksSource.id,
     ])
   })
 

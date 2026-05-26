@@ -472,6 +472,87 @@ export const AlarmSafetyHoldPropagationPolicies = [
   RequiresAlarmSafetyHoldRetractedReleasesSource,
 ] as const
 
+/**
+ * Parent structural decommission cascades to contained child nodes. This is a
+ * declaration only; structural targets must own whether inherited lifecycle
+ * pressure closes child edges, emits child decommission events, or defers.
+ */
+export const ContainsStructuralDecommissionInheritsTarget = new RelationshipPropagationPolicy({
+  id: 'contains.structural-decommission.inherits-target' as never,
+  edgeType: 'contains',
+  observedEndpoint: 'source',
+  accepts: new SignalMatcher({
+    axis: 'structural.lifecycle',
+    kind: 'condition_asserted',
+    value: 'decommissioned',
+  }),
+  requestEndpoint: 'target',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.LifecycleInherited,
+    reason: 'parent_structural_decommissioned',
+    payloadDefaults: { lifecycleKind: 'decommission', inheritance: 'contains' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * A targeted structural asset being decommissioned blocks WorkOrders that target
+ * it. WorkOrder remains the target owner for eligibility, constraints, audit,
+ * and emitted state-transition events.
+ */
+export const TargetsStructuralDecommissionBlocksSource = new RelationshipPropagationPolicy({
+  id: 'targets.structural-decommission.blocks-source' as never,
+  edgeType: 'targets',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'structural.lifecycle',
+    kind: 'condition_asserted',
+    value: 'decommissioned',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyBlocked,
+    reason: 'target_structural_decommissioned',
+    payloadDefaults: { dependencyKind: 'structural', suspensionReason: 'equipment_unavailable' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/**
+ * A required structural asset being decommissioned blocks WorkOrders that require
+ * it. This is separate from machine availability so decommission constraints can
+ * retain their own SQL source identity.
+ */
+export const RequiresStructuralDecommissionBlocksSource = new RelationshipPropagationPolicy({
+  id: 'requires.structural-decommission.blocks-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'structural.lifecycle',
+    kind: 'condition_asserted',
+    value: 'decommissioned',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyBlocked,
+    reason: 'required_structural_decommissioned',
+    payloadDefaults: { dependencyKind: 'structural', suspensionReason: 'equipment_unavailable' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+export const StructuralDecommissionPropagationPolicies = [
+  ContainsStructuralDecommissionInheritsTarget,
+  TargetsStructuralDecommissionBlocksSource,
+  RequiresStructuralDecommissionBlocksSource,
+] as const
+
 export const RELATIONSHIP_EDGE_REGISTRY = {
   targets: descriptor(
     'targets',
@@ -483,6 +564,7 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
       TargetsMachineUnavailableBlocksSource,
       TargetsAlarmSafetyHoldHoldsSource,
       TargetsAlarmSafetyHoldRetractedReleasesSource,
+      TargetsStructuralDecommissionBlocksSource,
     ],
   ),
   requires: descriptor(
@@ -495,6 +577,7 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
       RequiresEquipmentUnavailableBlocksSource,
       RequiresAlarmSafetyHoldHoldsSource,
       RequiresAlarmSafetyHoldRetractedReleasesSource,
+      RequiresStructuralDecommissionBlocksSource,
     ],
   ),
   caused_by: descriptor('caused_by', 'directed', ['work_order', 'alarm'], ['alarm', 'machine', 'sensor', 'device', 'work_order']),
@@ -509,7 +592,14 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
   related_to: descriptor('related_to', 'bidirectional', ['work_order', 'alarm', 'machine', 'sensor', 'device'], ['work_order', 'alarm', 'machine', 'sensor', 'device']),
   supervises: descriptor('supervises', 'directed', ['external'], ['work_order', 'alarm']),
   produces: descriptor('produces', 'directed', ['work_order'], ['external']),
-  contains: descriptor('contains', 'directed', ['enterprise', 'site', 'area', 'plant', 'line', 'workcell'], ['site', 'area', 'plant', 'line', 'workcell', 'machine']),
+  contains: descriptor(
+    'contains',
+    'directed',
+    ['enterprise', 'site', 'area', 'plant', 'line', 'workcell'],
+    ['site', 'area', 'plant', 'line', 'workcell', 'machine'],
+    [],
+    [ContainsStructuralDecommissionInheritsTarget],
+  ),
   monitors: descriptor('monitors', 'directed', ['sensor'], ['machine']),
   triggered_by: descriptor('triggered_by', 'directed', ['alarm'], ['sensor', 'device']),
 } as const satisfies Record<RelationshipEdgeType, RelationshipEdgeDescriptor>
