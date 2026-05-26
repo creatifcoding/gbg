@@ -70,6 +70,7 @@ Rationale:
 | Schema type-tag parser decomposition | Done | `d2e4b47a refactor(effect-sui): decompose schema type tags` |
 | Flow auth policy decomposition | Done | `5f1a4a38 refactor(effect-sui): decompose flow auth policies` |
 | Schema policy noun decomposition | Done | `11671088 refactor(effect-sui): decompose schema policy nouns` |
+| Reservation acquire guard decomposition | Done | `d2c6c85d refactor(effect-sui): decompose reservation acquire guards` |
 
 ## Surgical decomposition closeout
 
@@ -83,7 +84,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/query` | 401 | 473 | 118.0% |
 | `src/services` | 321 | 361 | 112.5% |
 | `src/effectable` | 287 | 311 | 108.4% |
-| `src/reservation` | 226 | 254 | 112.4% |
+| `src/reservation` | 226 | 264 | 116.8% |
 | `src/flow/rpc` | 175 | 178 | 101.7% |
 | `src/flow/runner` | 169 | 171 | 101.2% |
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
@@ -95,7 +96,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/package` | 130 | 150 | 115.4% |
 | `src/services/tx` | 156 | 163 | 104.5% |
 | `src/flow/runtime` | 120 | 120 | 100.0% |
-| `src/reservation/operations` | 118 | 115 | 97.5% |
+| `src/reservation/operations` | 118 | 125 | 105.9% |
 | `src/schema/strings` | 110 | 125 | 113.6% |
 | `src/flow/payment` | 91 | 72 | 79.1% |
 | `src/schema/errors` | 89 | 75 | 84.3% |
