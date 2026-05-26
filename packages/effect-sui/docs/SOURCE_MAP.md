@@ -131,7 +131,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/query/types.ts` | Query client/object/codec contracts |
 | `src/query/schema.ts` | Query-local schema decode helpers |
 | `src/query/bcs.ts` | BCS decode/encode bridge implementation |
-| `src/query/resolver.ts` | Object resolver implementation |
+| `src/query/resolver.ts` | Object resolver service/public surface |
+| `src/query/resolver-core.ts` | Core object read/decode/snapshot program |
+| `src/query/resolver-errors.ts` | Object resolver error normalization |
 | `src/query/operations.ts` | Service-use Effect constructors |
 | `src/query/runtime.ts` | ManagedRuntime-backed Query client edge |
 | `src/flow/index.ts` | Public barrel for transaction flow helpers |

@@ -54,6 +54,7 @@ Rationale:
 | PTB compiler decomposition | Done | `89fef190 refactor(effect-sui): decompose PTB compiler` |
 | PTB analyzer decomposition | Done | `3d55e0ce refactor(effect-sui): decompose PTB analyzer` |
 | Schema Move type-tag decomposition | Done | `f3cd3241 refactor(effect-sui): decompose Move type tags` |
+| Query resolver decomposition | Done | `a0fa7b5c refactor(effect-sui): decompose query resolver` |
 
 ## Surgical decomposition closeout
 
@@ -64,7 +65,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow` | 787 | 906 | 115.1% |
 | `src/ptb` | 622 | 704 | 113.2% |
 | `src/schema` | 571 | 598 | 104.7% |
-| `src/query` | 401 | 466 | 116.2% |
+| `src/query` | 401 | 468 | 116.7% |
 | `src/services` | 321 | 354 | 110.3% |
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 257 | 113.7% |
@@ -73,6 +74,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
 | `src/ptb/analyzer` | 181 | 182 | 100.6% |
 | `src/schema/move` | 174 | 159 | 91.4% |
+| `src/query/resolver` | 160 | 162 | 101.3% |
 
 Final decomposition gates passed:
 
