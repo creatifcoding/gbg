@@ -8,16 +8,24 @@ import {
   SUI_DIGEST_BYTE_LENGTH,
   SuiAddress,
   SuiAddressFromHexBytes,
+  SuiAuthError,
+  SuiBcsParseError,
   SuiExecutionError,
+  SuiIndexerVisibilityError,
+  SuiMoveAbortError,
   SuiObjectDigest,
   SuiObjectDigestFromBytes,
   SuiObjectId,
   SuiObjectLoadError,
   SuiObjectRef,
+  SuiObjectStaleError,
   SuiObjectVersion,
+  SuiPackageError,
+  SuiPtbInvalidError,
   SuiSchemaDecodeError,
   SuiTransactionDigestFromBytes,
   SuiTransportError,
+  SuiWaitError,
   bytesFromChunk,
   chunkFromBytes,
   decodeSuiObjectRef,
@@ -149,5 +157,19 @@ describe('@tmnl/effect-sui tagged errors', () => {
       'Sui/Transport',
     );
     expect(new SuiExecutionError({ message: 'abort' })._tag).toBe('Sui/Execution');
+  });
+
+  it('constructs rich error topology classes with stable tags', () => {
+    const objectId = Schema.decodeUnknownSync(SuiObjectId)('0x2');
+    const digest = Schema.decodeUnknownSync(SuiTransactionDigestFromBytes)(new Uint8Array(32).fill(1));
+
+    expect(new SuiObjectStaleError({ objectId, message: 'stale ref' })._tag).toBe('Sui/ObjectStale');
+    expect(new SuiBcsParseError({ codec: 'Counter', message: 'bad bytes', byteLength: 4 })._tag).toBe('Sui/BcsParse');
+    expect(new SuiPtbInvalidError({ phase: 'analyze', message: 'missing input' })._tag).toBe('Sui/PtbInvalid');
+    expect(new SuiMoveAbortError({ abortCode: '42', module: 'counter', message: 'abort' })._tag).toBe('Sui/MoveAbort');
+    expect(new SuiAuthError({ mode: 'wallet', message: 'rejected' })._tag).toBe('Sui/Auth');
+    expect(new SuiWaitError({ kind: 'timeout', digest, timeoutMs: 1_000, message: 'not visible' })._tag).toBe('Sui/Wait');
+    expect(new SuiIndexerVisibilityError({ digest, message: 'indexer lag' })._tag).toBe('Sui/IndexerVisibility');
+    expect(new SuiPackageError({ kind: 'typeNotRegistered', packageId: objectId, typeName: 'Counter', message: 'missing' })._tag).toBe('Sui/Package');
   });
 });
