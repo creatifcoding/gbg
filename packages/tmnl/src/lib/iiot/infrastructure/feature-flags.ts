@@ -64,6 +64,18 @@ export interface FeatureFlagsShape {
    * @default false
    */
   readonly pgLakeEnabled: boolean
+
+  /** Enable opt-in WorkOrder depends_on Reactor lane. */
+  readonly reactorDependsOnLaneEnabled: boolean
+
+  /** Enable opt-in Alarm safety-hold Reactor lane. */
+  readonly reactorAlarmSafetyLaneEnabled: boolean
+
+  /** Enable opt-in Structural decommission Reactor lane. */
+  readonly reactorStructuralDecommissionLaneEnabled: boolean
+
+  /** Enable opt-in External/device availability Reactor lane. */
+  readonly reactorExternalDeviceAvailabilityLaneEnabled: boolean
 }
 
 // =============================================================================
@@ -104,6 +116,10 @@ export const IIoTFeatureFlagsDefault: FeatureFlagsShape = {
   workOrderEventSourcingEnabled: false,
   batchRecordEventSourcingEnabled: false,
   pgLakeEnabled: false,
+  reactorDependsOnLaneEnabled: false,
+  reactorAlarmSafetyLaneEnabled: false,
+  reactorStructuralDecommissionLaneEnabled: false,
+  reactorExternalDeviceAvailabilityLaneEnabled: false,
 }
 
 // =============================================================================
@@ -135,6 +151,18 @@ const featureFlagsConfig = Effect.all({
   pgLakeEnabled: Config.boolean('PG_LAKE_ENABLED').pipe(
     Config.withDefault(false)
   ),
+  reactorDependsOnLaneEnabled: Config.boolean('REACTOR_LANE_DEPENDS_ON_ENABLED').pipe(
+    Config.withDefault(false)
+  ),
+  reactorAlarmSafetyLaneEnabled: Config.boolean('REACTOR_LANE_ALARM_SAFETY_ENABLED').pipe(
+    Config.withDefault(false)
+  ),
+  reactorStructuralDecommissionLaneEnabled: Config.boolean('REACTOR_LANE_STRUCTURAL_DECOMMISSION_ENABLED').pipe(
+    Config.withDefault(false)
+  ),
+  reactorExternalDeviceAvailabilityLaneEnabled: Config.boolean('REACTOR_LANE_EXTERNAL_DEVICE_AVAILABILITY_ENABLED').pipe(
+    Config.withDefault(false)
+  ),
 })
 
 // =============================================================================
@@ -159,6 +187,10 @@ export const IIoTFeatureFlagsEnabledLayer: Layer.Layer<IIoTFeatureFlags> =
     workOrderEventSourcingEnabled: true,
     batchRecordEventSourcingEnabled: true,
     pgLakeEnabled: false, // Still disabled by default - requires full Docker image
+    reactorDependsOnLaneEnabled: true,
+    reactorAlarmSafetyLaneEnabled: true,
+    reactorStructuralDecommissionLaneEnabled: true,
+    reactorExternalDeviceAvailabilityLaneEnabled: true,
   })
 
 /**
@@ -243,4 +275,24 @@ export const isBatchRecordEventSourcingEnabled = Effect.gen(function* () {
 export const isPgLakeEnabled = Effect.gen(function* () {
   const flags = yield* IIoTFeatureFlags
   return flags.pgLakeEnabled
+})
+
+export const isReactorDependsOnLaneEnabled = Effect.gen(function* () {
+  const flags = yield* IIoTFeatureFlags
+  return flags.reactorDependsOnLaneEnabled
+})
+
+export const isReactorAlarmSafetyLaneEnabled = Effect.gen(function* () {
+  const flags = yield* IIoTFeatureFlags
+  return flags.reactorAlarmSafetyLaneEnabled
+})
+
+export const isReactorStructuralDecommissionLaneEnabled = Effect.gen(function* () {
+  const flags = yield* IIoTFeatureFlags
+  return flags.reactorStructuralDecommissionLaneEnabled
+})
+
+export const isReactorExternalDeviceAvailabilityLaneEnabled = Effect.gen(function* () {
+  const flags = yield* IIoTFeatureFlags
+  return flags.reactorExternalDeviceAvailabilityLaneEnabled
 })

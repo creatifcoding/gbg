@@ -99,6 +99,7 @@ export const fingerprintReactorRegistryConfig = (config: Pick<
         capability: policy.request.capability,
         effect: policy.effect,
         idempotencyStrategy: policy.idempotencyStrategy,
+        constraintAddressHint: policy.constraintAddressHint,
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
     entities: config.entities

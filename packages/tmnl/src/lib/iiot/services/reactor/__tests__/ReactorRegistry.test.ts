@@ -22,7 +22,17 @@ import {
   getPropagationPoliciesForEdge,
 } from '../../../schemas/relationships'
 import { eligible } from '../../../schemas/relationships/eligibility'
-import { makeReactorRegistry, type EntityReactionContract } from '../ReactorRegistry'
+import {
+  fingerprintReactorRegistryConfig,
+  makeReactorRegistry,
+  type EntityReactionContract,
+} from '../ReactorRegistry'
+import {
+  ReactorBaselineObservationSpecs,
+  ReactorBaselinePropagationPolicies,
+  ReactorDependsOnObservationSpecs,
+  ReactorDependsOnPropagationPolicies,
+} from '../layers'
 
 const workOrderContract: EntityReactionContract = {
   entityType: 'work_order',
@@ -71,12 +81,47 @@ describe('ReactorRegistry', () => {
     )
   })
 
+  it('produces deterministic distinct fingerprints for baseline vs opt-in bundles', () => {
+    const baseline = fingerprintReactorRegistryConfig({
+      observations: ReactorBaselineObservationSpecs,
+      propagationPolicies: ReactorBaselinePropagationPolicies,
+      entities: [workOrderContract],
+    })
+    const baselineAgain = fingerprintReactorRegistryConfig({
+      observations: [...ReactorBaselineObservationSpecs].reverse(),
+      propagationPolicies: [...ReactorBaselinePropagationPolicies].reverse(),
+      entities: [workOrderContract],
+    })
+    const dependsOn = fingerprintReactorRegistryConfig({
+      observations: [
+        ...ReactorBaselineObservationSpecs,
+        ...ReactorDependsOnObservationSpecs,
+      ],
+      propagationPolicies: [
+        ...ReactorBaselinePropagationPolicies,
+        ...ReactorDependsOnPropagationPolicies,
+      ],
+      entities: [workOrderContract],
+    })
+
+    expect(baseline).toBe(baselineAgain)
+    expect(dependsOn).not.toBe(baseline)
+  })
+
   it('registers WorkOrder depends_on routing contract policies', () => {
     expect(getPropagationPoliciesForEdge('depends_on').map((policy) => policy.id)).toEqual([
       DependsOnWorkOrderBlockedBlocksSource.id,
       DependsOnWorkOrderSatisfiedSatisfiesSource.id,
       DependsOnWorkOrderBlockRetractedReleasesSource.id,
     ])
+  })
+
+  it('declares constraint address hints for release-capable WorkOrder depends_on policies', () => {
+    expect(DependsOnWorkOrderBlockRetractedReleasesSource.constraintAddressHint).toMatchObject({
+      assertedCapability: EntityCapabilityIds.DependencyBlocked,
+      assertionPolicyId: DependsOnWorkOrderBlockedBlocksSource.id,
+      propagationIdSource: 'current',
+    })
   })
 
   it('registers Alarm safety-hold routing contract policies on asset dependency edges', () => {

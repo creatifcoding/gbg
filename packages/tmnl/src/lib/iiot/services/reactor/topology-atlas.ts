@@ -133,11 +133,23 @@ export const ReactorLaneReadinessStatus = Schema.Literal(
 )
 export type ReactorLaneReadinessStatus = typeof ReactorLaneReadinessStatus.Type
 
+export const ReactorLaneActivationGroup = Schema.Literal(
+  'baseline-live',
+  'work-order-depends-on',
+  'alarm-safety',
+  'structural-decommission',
+  'external-device-availability',
+  'declared-only',
+  'parked',
+)
+export type ReactorLaneActivationGroup = typeof ReactorLaneActivationGroup.Type
+
 export class ReactorLaneReadinessEntry extends Schema.TaggedClass<ReactorLaneReadinessEntry>()('ReactorLaneReadinessEntry', {
   id: Schema.String,
   group: ReactorEventGroupName,
   eventTag: Schema.String,
   readiness: ReactorLaneReadinessStatus,
+  activationGroups: Schema.optionalWith(Schema.Array(ReactorLaneActivationGroup), { default: () => [] }),
   routingKind: EventRoutingKind,
   subjectType: Schema.optional(RelationshipNodeType),
   relationshipEdgeTypes: Schema.optionalWith(Schema.Array(RelationshipEdgeType), { default: () => [] }),
@@ -1381,6 +1393,22 @@ const readinessNotesForContract = (input: {
   return input.contract.parkingRationale ?? 'Parked lane: durable audit/projection only; no Reactor dispatch is planned.'
 }
 
+const activationGroupsFor = (input: {
+  readonly readiness: ReactorLaneReadinessStatus
+  readonly declaredPolicyIds: readonly string[]
+}): readonly ReactorLaneActivationGroup[] => {
+  if (input.readiness === 'production') return ['baseline-live']
+  if (input.readiness === 'parked') return ['parked']
+
+  const groups: ReactorLaneActivationGroup[] = []
+  if (input.declaredPolicyIds.some((id) => id.startsWith('depends_on.'))) groups.push('work-order-depends-on')
+  if (input.declaredPolicyIds.some((id) => id.includes('alarm-safety'))) groups.push('alarm-safety')
+  if (input.declaredPolicyIds.some((id) => id.includes('structural-decommission'))) groups.push('structural-decommission')
+  if (input.declaredPolicyIds.some((id) => id.includes('external-') || id.includes('device-'))) groups.push('external-device-availability')
+
+  return groups.length > 0 ? groups : ['declared-only']
+}
+
 export const getReactorLaneReadinessEntries = (): readonly ReactorLaneReadinessEntry[] =>
   getEventRoutingContracts().map((contract) => {
     const seed = seedForEvent(contract.group, contract.eventTag)
@@ -1398,6 +1426,7 @@ export const getReactorLaneReadinessEntries = (): readonly ReactorLaneReadinessE
       group: contract.group,
       eventTag: contract.eventTag,
       readiness,
+      activationGroups: Array.from(activationGroupsFor({ readiness, declaredPolicyIds })),
       routingKind: contract.routingKind,
       subjectType: contract.subject.entityType,
       relationshipEdgeTypes: uniqueSorted(contract.relationshipPaths.flatMap((path) => path.edgeTypes)) as RelationshipEdgeTypeValue[],

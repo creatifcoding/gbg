@@ -15,12 +15,20 @@ import { GraphClient } from '../l1/GraphClient'
 import {
   EntityReactionRequest,
   ObservationSignal,
+  ReactorConstraintEffects,
+  ReactorConstraintNaturalAddress,
   ReactorDecision,
   ReactorObservation,
   ReactorPlan,
   ReactorRequestId,
 } from '../../schemas/reactor'
-import type { RelationshipEndpoint } from '../../schemas/relationships/edge-types'
+import type { PropagationId } from '../../schemas/identifiers'
+import type {
+  ConstraintAddressPropagationIdSource,
+  RelationshipEndpoint,
+  RelationshipPropagationPolicy,
+} from '../../schemas/relationships/edge-types'
+import type { PropagationTargetExpansion } from '../l1/GraphClient'
 import { ReactorRegistry } from './ReactorRegistry'
 
 export interface ReactorPlannerShape {
@@ -56,6 +64,70 @@ const decisionOutcomeFromEligibility = (outcome: string): 'eligible' | 'skipped'
       return 'failed'
     default:
       return 'skipped'
+  }
+}
+
+const stringFromPayload = (payload: unknown, key: string): string | undefined => {
+  if (typeof payload !== 'object' || payload === null) return undefined
+  const value = (payload as Record<string, unknown>)[key]
+  return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+const propagationIdForAddressHint = (
+  observation: ReactorObservation,
+  source: ConstraintAddressPropagationIdSource,
+): PropagationId | undefined => {
+  switch (source) {
+    case 'current':
+      return observation.causality.propagationId
+    case 'caused_by':
+      return observation.causality.causedByPropagationId
+    case 'payload': {
+      const fromPayload = stringFromPayload(observation.payload, 'propagationId')
+        ?? stringFromPayload(observation.payload, 'causedByPropagationId')
+      return fromPayload as PropagationId | undefined
+    }
+  }
+}
+
+const payloadForPolicy = (input: {
+  readonly policy: RelationshipPropagationPolicy
+  readonly observation: ReactorObservation
+  readonly expansion: PropagationTargetExpansion
+}): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {
+    ...input.policy.request.payloadDefaults,
+    reason: input.policy.request.reason,
+    relationshipEdgeType: input.policy.edgeType,
+  }
+
+  const hint = input.policy.constraintAddressHint
+  if (hint === undefined) return payload
+
+  const propagationId = propagationIdForAddressHint(input.observation, hint.propagationIdSource)
+  if (propagationId === undefined) {
+    return {
+      ...payload,
+      constraintAddressMissing: {
+        assertedCapability: hint.assertedCapability,
+        assertionPolicyId: hint.assertionPolicyId,
+        propagationIdSource: hint.propagationIdSource,
+      },
+    }
+  }
+
+  return {
+    ...payload,
+    naturalAddress: new ReactorConstraintNaturalAddress({
+      target: input.expansion.requestTarget,
+      capability: hint.assertedCapability,
+      source: input.observation.subject,
+      relationshipEdgeType: input.policy.edgeType,
+      policyId: hint.assertionPolicyId,
+      propagationId,
+    }),
+    effect: ReactorConstraintEffects.ReleaseCandidate,
+    constraintAddressHint: hint,
   }
 }
 
@@ -100,11 +172,7 @@ export const ReactorPlannerLive = Layer.effect(
                           policyId: policy.id,
                           policyVersion: policy.version,
                           causality: observation.causality,
-                          payload: {
-                            ...policy.request.payloadDefaults,
-                            reason: policy.request.reason,
-                            relationshipEdgeType: policy.edgeType,
-                          },
+                          payload: payloadForPolicy({ policy, observation, expansion }),
                         })
 
                         const capability = registry.capabilityFor({

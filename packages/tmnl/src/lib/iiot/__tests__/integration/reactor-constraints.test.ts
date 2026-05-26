@@ -229,6 +229,64 @@ describe('ReactorConstraintAuthoritySqlLive', () => {
     }).pipe(Effect.provide(ConstraintIntegrationLayer)))
   })
 
+  it('requires an explicit constraint id or natural address for release requests', async () => {
+    if (!dbAvailable) return
+
+    await Effect.runPromise(Effect.gen(function* () {
+      const authority = yield* ReactorConstraintAuthority
+      const request = new EntityReactionRequest({
+        requestId: `request.release.missing-address.${Date.now()}` as never,
+        capability: EntityCapabilityIds.DependencyReleased,
+        source: machineA,
+        target,
+        signal,
+        policyId: 'requires.equipment-available.releases-source' as never,
+        policyVersion: '1',
+        causality: new ReactorCausality({ propagationId: `missing-address.${Date.now()}` as PropagationId }),
+        payload: {},
+      })
+
+      const result = yield* authority.retractFromReactionRequest(request).pipe(Effect.either)
+      expect(result._tag).toBe('Left')
+      if (result._tag === 'Left') {
+        expect(result.left._tag).toBe('ReactorConstraintAddressRequired')
+      }
+    }).pipe(Effect.provide(ConstraintIntegrationLayer)))
+  })
+
+  it('returns unknown_constraint for the wrong natural address without retracting the real row', async () => {
+    if (!dbAvailable) return
+
+    await Effect.runPromise(Effect.gen(function* () {
+      const authority = yield* ReactorConstraintAuthority
+      const equipment = assertion({
+        source: machineA,
+        policyId: `constraint.sql.wrong-address.${Date.now()}`,
+      })
+
+      yield* authority.assert(equipment)
+      const wrongAddress = new ReactorConstraintNaturalAddress({
+        ...naturalAddress(equipment),
+        source: machineB,
+      })
+
+      const result = yield* authority.retract(new ReactorConstraintRetraction({
+        target,
+        capability: EntityCapabilityIds.DependencyReleased,
+        naturalAddress: wrongAddress,
+        effect: 'release_candidate',
+        signal,
+        causality: new ReactorCausality({ propagationId: `${equipment.policyId}.wrong-release` as PropagationId }),
+      }))
+      const active = yield* authority.activeForTarget(target)
+
+      expect(result.verdict).toBe('unknown_constraint')
+      expect(result.activeConstraintCount).toBe(1)
+      expect(active).toHaveLength(1)
+      expect(active[0]?.identity.source.id).toBe(machineA.id)
+    }).pipe(Effect.provide(ConstraintIntegrationLayer)))
+  })
+
   it('serializes concurrent SQL retractions by target via transaction advisory lock', async () => {
     if (!dbAvailable) return
 

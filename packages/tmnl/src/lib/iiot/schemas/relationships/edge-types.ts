@@ -122,6 +122,17 @@ export class EntityReactionRequestTemplate extends Schema.TaggedClass<EntityReac
 }) {}
 export type EntityReactionRequestTemplate = typeof EntityReactionRequestTemplate.Type
 
+export const ConstraintAddressPropagationIdSource = Schema.Literal('current', 'caused_by', 'payload')
+export type ConstraintAddressPropagationIdSource = typeof ConstraintAddressPropagationIdSource.Type
+
+export class RelationshipConstraintAddressHint extends Schema.TaggedClass<RelationshipConstraintAddressHint>()('RelationshipConstraintAddressHint', {
+  assertedCapability: EntityCapabilityId,
+  assertionPolicyId: PropagationPolicyId,
+  propagationIdSource: ConstraintAddressPropagationIdSource,
+  notes: Schema.optional(Schema.String),
+}) {}
+export type RelationshipConstraintAddressHint = typeof RelationshipConstraintAddressHint.Type
+
 export class RelationshipPropagationPolicy extends Schema.TaggedClass<RelationshipPropagationPolicy>()('RelationshipPropagationPolicy', {
   id: PropagationPolicyId,
   edgeType: RelationshipEdgeType,
@@ -132,6 +143,7 @@ export class RelationshipPropagationPolicy extends Schema.TaggedClass<Relationsh
   effect: PropagationEffect,
   idempotencyStrategy: PropagationIdempotencyStrategy,
   version: Schema.String,
+  constraintAddressHint: Schema.optional(RelationshipConstraintAddressHint),
 }) {}
 export type RelationshipPropagationPolicy = typeof RelationshipPropagationPolicy.Type
 
@@ -359,6 +371,12 @@ export const DependsOnWorkOrderBlockRetractedReleasesSource = new RelationshipPr
   effect: 'consistency',
   idempotencyStrategy: 'source_propagation_id',
   version: '1',
+  constraintAddressHint: new RelationshipConstraintAddressHint({
+    assertedCapability: EntityCapabilityIds.DependencyBlocked,
+    assertionPolicyId: DependsOnWorkOrderBlockedBlocksSource.id,
+    propagationIdSource: 'current',
+    notes: 'WorkOrderResumed observations use causedByPropagationId as their propagation id when present, so the release request can address the original blocked constraint natural key.',
+  }),
 })
 
 export const WorkOrderDependsOnPropagationPolicies = [

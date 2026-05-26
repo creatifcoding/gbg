@@ -197,6 +197,7 @@ describe('Reactor topology atlas', () => {
     const maintenance = readiness.find((entry) => entry.eventTag === 'MaintenanceModeEntered')
     expect(maintenance).toMatchObject({
       readiness: 'production',
+      activationGroups: ['baseline-live'],
       declaredObservationIds: ['maintenance-mode-entered-observation'],
       liveObservationIds: ['maintenance-mode-entered-observation'],
       declaredPolicyIds: [
@@ -219,6 +220,7 @@ describe('Reactor topology atlas', () => {
     const workOrderSuspended = readiness.find((entry) => entry.eventTag === 'WorkOrderSuspended')
     expect(workOrderSuspended).toMatchObject({
       readiness: 'candidate',
+      activationGroups: ['work-order-depends-on'],
       declaredObservationIds: ['work-order-suspended-dependency-observation'],
       liveObservationIds: [],
       declaredPolicyIds: ['depends_on.work-order-blocked.blocks-source'],
@@ -235,6 +237,7 @@ describe('Reactor topology atlas', () => {
     const operatorLogin = readiness.find((entry) => entry.eventTag === 'OperatorLogin')
     expect(operatorLogin).toMatchObject({
       readiness: 'parked',
+      activationGroups: ['parked'],
       declaredObservationIds: [],
       declaredPolicyIds: [],
       requiredProofs: ['documentation_only'],

@@ -65,7 +65,7 @@ const candidateLanes = atlas.laneReadiness.filter((lane) => lane.readiness === '
 const parkedLanes = atlas.laneReadiness.filter((lane) => lane.readiness === 'parked')
 
 const readinessRows = atlas.laneReadiness
-  .map((lane) => `| ${mdCell(lane.id)} | ${lane.readiness} | ${lane.routingKind} | ${mdCell(lane.subjectType ?? '—')} | ${mdCell(joinList(lane.relationshipEdgeTypes))} | ${mdCell(lane.targetOwner ?? '—')} | ${mdCell(joinList(lane.declaredObservationIds))} | ${mdCell(joinList(lane.declaredPolicyIds))} | ${mdCell(joinList(lane.livePolicyIds))} | ${mdCell(joinList(lane.requiredProofs))} | ${mdCell(lane.readinessNotes ?? '—')} |`)
+  .map((lane) => `| ${mdCell(lane.id)} | ${lane.readiness} | ${mdCell(joinList(lane.activationGroups))} | ${lane.routingKind} | ${mdCell(lane.subjectType ?? '—')} | ${mdCell(joinList(lane.relationshipEdgeTypes))} | ${mdCell(lane.targetOwner ?? '—')} | ${mdCell(joinList(lane.declaredObservationIds))} | ${mdCell(joinList(lane.declaredPolicyIds))} | ${mdCell(joinList(lane.livePolicyIds))} | ${mdCell(joinList(lane.requiredProofs))} | ${mdCell(lane.readinessNotes ?? '—')} |`)
   .join('\n')
 
 const liveGraphMarkdown = liveGraphOverlay
@@ -106,8 +106,8 @@ ${productionLanes.map((lane) => `| ${lane.id} | ${mdCell(joinList(lane.signals))
 
 ## Lane readiness
 
-| Lane | Readiness | Routing kind | Subject | Relationship paths | Target owner | Declared observations | Declared policies | Live policies | Required proofs | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Lane | Readiness | Activation groups | Routing kind | Subject | Relationship paths | Target owner | Declared observations | Declared policies | Live policies | Required proofs | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ${readinessRows}
 
 ## Relationship multiplicity
@@ -285,6 +285,7 @@ const html = `<!doctype html>
           ${group.lanes.slice(0, 18).map((lane) => `
             <div class="route">
               <div><strong>${escapeHtml(lane.id)}</strong> ${statusLabel(lane.readiness)}</div>
+              <div><span class="muted">Activation:</span> ${chipList(lane.activationGroups)}</div>
               <div><span class="muted">Proofs:</span> ${chipList(lane.requiredProofs)}</div>
               <div><span class="muted">Declared:</span> ${chipList(lane.declaredPolicyIds, 'policy')}</div>
               <div><span class="muted">Live:</span> ${chipList(lane.livePolicyIds, 'policy')}</div>
