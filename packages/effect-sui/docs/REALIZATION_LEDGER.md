@@ -63,6 +63,7 @@ Rationale:
 | Reservation operations decomposition | Done | `045f3f59 refactor(effect-sui): decompose reservation operations` |
 | Schema string noun decomposition | Done | `2505c764 refactor(effect-sui): decompose schema string nouns` |
 | Payment planner decomposition | Done | `e0f8dfe7 refactor(effect-sui): decompose payment planner` |
+| Schema typed error decomposition | Done | `20557982 refactor(effect-sui): decompose schema typed errors` |
 
 ## Surgical decomposition closeout
 
@@ -72,7 +73,7 @@ Source-only line budgets stayed under the 120% cap:
 |---|---:|---:|---:|
 | `src/flow` | 787 | 900 | 114.4% |
 | `src/ptb` | 622 | 704 | 113.2% |
-| `src/schema` | 571 | 613 | 107.4% |
+| `src/schema` | 571 | 599 | 104.9% |
 | `src/query` | 401 | 468 | 116.7% |
 | `src/services` | 321 | 361 | 112.5% |
 | `src/effectable` | 287 | 311 | 108.4% |
@@ -91,6 +92,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/reservation/operations` | 118 | 115 | 97.5% |
 | `src/schema/strings` | 110 | 125 | 113.6% |
 | `src/flow/payment` | 91 | 72 | 79.1% |
+| `src/schema/errors` | 89 | 75 | 84.3% |
 
 Final decomposition gates passed:
 

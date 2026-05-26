@@ -95,7 +95,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/type-tag.ts` | Type-tag AST classes, stringify, and parser |
 | `src/schema/objects.ts` | Object refs, shared refs, object args |
 | `src/schema/descriptors.ts` | Package/module descriptors |
-| `src/schema/errors.ts` | Schema-backed typed errors |
+| `src/schema/errors.ts` | Typed error barrel |
+| `src/schema/error-codes.ts` | Error code and reservation conflict kind literals |
+| `src/schema/error-classes.ts` | Schema-backed tagged error classes |
 | `src/schema/policies.ts` | Build/gas/payment/auth policies |
 | `src/schema/decode.ts` | Decode/encode helper functions |
 | `src/effectable/index.ts` | Public barrel for Effectable ontology facades |
