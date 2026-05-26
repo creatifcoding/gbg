@@ -105,7 +105,11 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/services/object.ts` | Object resolver contracts |
 | `src/services/bcs.ts` | BCS bridge contracts |
 | `src/services/ptb.ts` | PTB analyzer/compiler contracts |
-| `src/services/tx.ts` | Gas/payment/auth/preflight/execution/finality/runner contracts |
+| `src/services/tx.ts` | Transaction lifecycle service contract barrel |
+| `src/services/tx-planning.ts` | Gas/payment planning contracts |
+| `src/services/tx-auth.ts` | Authorization result/service contracts |
+| `src/services/tx-rpc.ts` | Preflight, execution, and finality contracts |
+| `src/services/tx-runner.ts` | Transaction lifecycle runner contracts |
 | `src/services/reservation.ts` | Reservation service contracts |
 | `src/services/package.ts` | Package registry contracts |
 | `src/services/diagnostics.ts` | Diagnostics contracts |

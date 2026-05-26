@@ -58,6 +58,7 @@ Rationale:
 | Flow auth decomposition | Done | `882a9bb9 refactor(effect-sui): decompose flow auth service` |
 | Adapter edge decomposition | Done | `0c8ed7c2 refactor(effect-sui): decompose adapter edge` |
 | Package registry decomposition | Done | `303d951c refactor(effect-sui): decompose package registry` |
+| Transaction service contract decomposition | Done | `8035f076 refactor(effect-sui): decompose transaction service contracts` |
 
 ## Surgical decomposition closeout
 
@@ -69,7 +70,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/ptb` | 622 | 704 | 113.2% |
 | `src/schema` | 571 | 598 | 104.7% |
 | `src/query` | 401 | 468 | 116.7% |
-| `src/services` | 321 | 354 | 110.3% |
+| `src/services` | 321 | 361 | 112.5% |
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 257 | 113.7% |
 | `src/flow/rpc` | 175 | 178 | 101.7% |
@@ -81,6 +82,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/auth` | 152 | 165 | 108.6% |
 | `src/adapter` | 118 | 133 | 112.7% |
 | `src/package` | 130 | 150 | 115.4% |
+| `src/services/tx` | 156 | 163 | 104.5% |
 
 Final decomposition gates passed:
 
