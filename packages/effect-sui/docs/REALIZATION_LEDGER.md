@@ -66,6 +66,7 @@ Rationale:
 | Schema typed error decomposition | Done | `20557982 refactor(effect-sui): decompose schema typed errors` |
 | Query runtime decomposition | Done | `96255d6f refactor(effect-sui): decompose query runtime edge` |
 | Query resolver core decomposition | Done | `e18122d7 refactor(effect-sui): decompose query resolver core` |
+| PTB analyzer core decomposition | Done | `2d88a132 refactor(effect-sui): decompose PTB analyzer core` |
 
 ## Surgical decomposition closeout
 
@@ -74,7 +75,7 @@ Source-only line budgets stayed under the 120% cap:
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
 | `src/flow` | 787 | 900 | 114.4% |
-| `src/ptb` | 622 | 704 | 113.2% |
+| `src/ptb` | 622 | 725 | 116.6% |
 | `src/schema` | 571 | 599 | 104.9% |
 | `src/query` | 401 | 473 | 118.0% |
 | `src/services` | 321 | 361 | 112.5% |
@@ -83,7 +84,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/rpc` | 175 | 178 | 101.7% |
 | `src/flow/runner` | 169 | 171 | 101.2% |
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
-| `src/ptb/analyzer` | 181 | 182 | 100.6% |
+| `src/ptb/analyzer` | 181 | 203 | 112.2% |
 | `src/schema/move` | 174 | 159 | 91.4% |
 | `src/query/resolver` | 160 | 162 | 101.3% |
 | `src/flow/auth` | 152 | 165 | 108.6% |

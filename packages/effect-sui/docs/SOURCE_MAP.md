@@ -128,7 +128,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/ptb/decode.ts` | PTB AST decode helpers |
 | `src/ptb/analyzer.ts` | PTB analyzer service/public surface |
 | `src/ptb/analyzer-arguments.ts` | PTB command argument validation |
-| `src/ptb/analyzer-core.ts` | End-to-end PTB analysis program |
+| `src/ptb/analyzer-diagnostics.ts` | PTB command diagnostic collection |
+| `src/ptb/analyzer-inputs.ts` | PTB input name/object-id collection |
+| `src/ptb/analyzer-core.ts` | End-to-end PTB analysis orchestration |
 | `src/ptb/compiler.ts` | PTB compiler service/public surface |
 | `src/ptb/compiler-types.ts` | Mysten Transaction/Argument compiler types |
 | `src/ptb/compiler-args.ts` | PTB argument resolution |
