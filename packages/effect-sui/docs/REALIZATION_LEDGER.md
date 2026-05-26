@@ -59,6 +59,7 @@ Rationale:
 | Adapter edge decomposition | Done | `0c8ed7c2 refactor(effect-sui): decompose adapter edge` |
 | Package registry decomposition | Done | `303d951c refactor(effect-sui): decompose package registry` |
 | Transaction service contract decomposition | Done | `8035f076 refactor(effect-sui): decompose transaction service contracts` |
+| Flow runtime decomposition | Done | `201f93d1 refactor(effect-sui): decompose flow runtime edge` |
 
 ## Surgical decomposition closeout
 
@@ -83,6 +84,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/adapter` | 118 | 133 | 112.7% |
 | `src/package` | 130 | 150 | 115.4% |
 | `src/services/tx` | 156 | 163 | 104.5% |
+| `src/flow/runtime` | 120 | 120 | 100.0% |
 
 Final decomposition gates passed:
 
