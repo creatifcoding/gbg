@@ -387,6 +387,20 @@
         "command": "bun run rfc:assemble",
         "cwd": "packages/tmnl"
       }
+    },
+    "reactor-atlas": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run reactor:atlas",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "reactor-atlas-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run reactor:atlas:check",
+        "cwd": "packages/tmnl"
+      }
     }
   }
 }

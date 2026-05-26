@@ -1,7 +1,7 @@
 # Reactor Topology Atlas
 
 Status: **generated rolling artifact**
-Generated: 2026-05-20T16:27:58.848Z
+Generated: 1970-01-01T00:00:00.000Z
 
 This atlas is generated from code-adjacent Reactor audit data. It is the working map for durable event coverage, relationship multiplicity, and production/candidate consistency lanes.
 
@@ -18,7 +18,7 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | Non-reactive events | 57 |
 | Relationship edge types | 10 |
 | Allowed source/target pairs | 87 |
-| Production propagation policies | 2 |
+| Production propagation policies | 16 |
 
 ## Production lanes
 
@@ -36,14 +36,14 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | Edge | Status | Direction | Allowed sources | Allowed targets | Pair count | Production policies | Candidate signals | Rationale |
 | --- | --- | --- | --- | --- | ---: | --- | --- | --- |
 | caused_by | candidate | directed | work_order, alarm | alarm, machine, sensor, device, work_order | 10 | — | alarm.state, work_order.execution | Causal provenance is modeled, but automatic mutation from cause chains needs explicit target contracts. |
-| contains | topology | directed | enterprise, site, area, plant, line, workcell | site, area, plant, line, workcell, machine | 36 | — | equipment.lifecycle = decommissioned, site/plant/line availability | Core structural traversal edge. Reactive inheritance/cascade policy is intentionally separate and not yet production. |
-| depends_on | candidate | directed | work_order | work_order | 1 | — | work_order.execution = suspended\|failed\|cancelled\|completed\|resumed | WorkOrder-to-WorkOrder dependency propagation is a high-value next lane, guarded by causality/idempotency. |
+| contains | topology | directed | enterprise, site, area, plant, line, workcell | site, area, plant, line, workcell, machine | 36 | contains.structural-decommission.inherits-target | equipment.lifecycle = decommissioned, site/plant/line availability | Core structural traversal edge. Reactive inheritance/cascade policy is intentionally separate and not yet production. |
+| depends_on | candidate | directed | work_order | work_order | 1 | depends_on.work-order-blocked.blocks-source, depends_on.work-order-satisfied.satisfies-source, depends_on.work-order-block-retracted.releases-source | work_order.execution = suspended\|failed\|cancelled\|completed\|resumed | WorkOrder-to-WorkOrder dependency propagation is a high-value next lane, guarded by causality/idempotency. |
 | monitors | candidate | directed | sensor | machine | 1 | — | sensor.fault, alarm.state | Sensor/device conditions can project to monitored equipment availability, but derivation policy is not declared. |
 | produces | reference | directed | work_order | external | 1 | — | quality.hold | Output/provenance edge; normally queryable lineage rather than consistency pressure. |
 | related_to | reference | bidirectional | work_order, alarm, machine, sensor, device | work_order, alarm, machine, sensor, device | 25 | — | — | Broad association edge; intentionally non-reactive without a narrower policy. |
-| requires | production | directed | work_order | external, machine, device | 3 | requires.equipment-unavailable.blocks-source | equipment.availability, device.availability, external.availability | Production lane for required machine availability; external/device availability remain candidate expansions. |
+| requires | production | directed | work_order | external, machine, device | 3 | requires.equipment-unavailable.blocks-source, requires.alarm-safety-hold.holds-source, requires.alarm-safety-hold-retracted.releases-source, requires.structural-decommission.blocks-source, requires.external-unavailable.blocks-source, requires.external-available.releases-source, requires.device-unavailable.blocks-source, requires.device-available.releases-source | equipment.availability, device.availability, external.availability | Production lane for required machine availability; external/device availability remain candidate expansions. |
 | supervises | candidate | directed | external | work_order, alarm | 2 | — | approval.state, external.availability | Can route supervisor/approval escalation and external outage semantics once external actor availability exists. |
-| targets | production | directed | work_order | machine, line, workcell, plant, sensor, device | 6 | targets.machine-unavailable.blocks-source | equipment.availability, alarm.safety, quality.hold | Production lane: machine availability observed on target routes dependency.blocked to source WorkOrder. |
+| targets | production | directed | work_order | machine, line, workcell, plant, sensor, device | 6 | targets.machine-unavailable.blocks-source, targets.alarm-safety-hold.holds-source, targets.alarm-safety-hold-retracted.releases-source, targets.structural-decommission.blocks-source | equipment.availability, alarm.safety, quality.hold | Production lane: machine availability observed on target routes dependency.blocked to source WorkOrder. |
 | triggered_by | candidate | directed | alarm | sensor, device | 2 | — | alarm.state = triggered\|cleared, alarm.severity | Alarm trigger provenance can connect alarm severity to sensor/device and then to impacted WorkOrders. |
 
 ## Event Routing Contracts

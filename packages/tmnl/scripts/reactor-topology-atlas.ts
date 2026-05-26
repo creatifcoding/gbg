@@ -1,14 +1,18 @@
 #!/usr/bin/env bun
 /** Generate the IIoT Reactor topology atlas markdown + visual artifact. */
 
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { getReactorTopologyAtlas } from '../src/lib/iiot/services/reactor/topology-atlas'
 
 const repoMarkdownPath = 'src/lib/iiot/docs/REACTOR-TOPOLOGY-ATLAS.md'
 const diagramPath = join(process.env.HOME ?? '/tmp', '.agent/diagrams/reactor-topology-atlas.html')
+const deterministicGeneratedAt = '1970-01-01T00:00:00.000Z'
+const args = new Set(process.argv.slice(2))
+const checkOnly = args.has('--check')
+const generatedAtIso = process.env.REACTOR_TOPOLOGY_ATLAS_GENERATED_AT ?? deterministicGeneratedAt
 
-const atlas = getReactorTopologyAtlas()
+const atlas = getReactorTopologyAtlas(generatedAtIso)
 
 const escapeHtml = (value: unknown): string => String(value)
   .replace(/&/g, '&amp;')
@@ -268,11 +272,27 @@ const html = `<!doctype html>
 </html>
 `
 
-mkdirSync(dirname(repoMarkdownPath), { recursive: true })
-writeFileSync(repoMarkdownPath, markdown)
+if (checkOnly) {
+  if (!existsSync(repoMarkdownPath)) {
+    console.error(`missing generated atlas: ${repoMarkdownPath}`)
+    process.exit(1)
+  }
 
-mkdirSync(dirname(diagramPath), { recursive: true })
-writeFileSync(diagramPath, html)
+  const current = readFileSync(repoMarkdownPath, 'utf8')
+  if (current !== markdown) {
+    console.error(`stale generated atlas: ${repoMarkdownPath}`)
+    console.error('run: bun run reactor:atlas')
+    process.exit(1)
+  }
 
-console.log(`wrote ${repoMarkdownPath}`)
-console.log(`wrote ${diagramPath}`)
+  console.log(`checked ${repoMarkdownPath}`)
+} else {
+  mkdirSync(dirname(repoMarkdownPath), { recursive: true })
+  writeFileSync(repoMarkdownPath, markdown)
+
+  mkdirSync(dirname(diagramPath), { recursive: true })
+  writeFileSync(diagramPath, html)
+
+  console.log(`wrote ${repoMarkdownPath}`)
+  console.log(`wrote ${diagramPath}`)
+}

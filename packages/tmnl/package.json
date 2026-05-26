@@ -82,6 +82,8 @@
     "spike:overlay-reducer:pipeline": "bun run scripts/spikes/overlay-reducer-pipeline-bench.ts",
     "spike:nu-cmdk:impl-spec": "bun run scripts/spikes/nu-cmdk-impl-spec-spike.ts",
     "seed:iiot": "bun run src/lib/iiot/seed/ctl/src/index.ts",
+    "reactor:atlas": "bun run scripts/reactor-topology-atlas.ts",
+    "reactor:atlas:check": "bun run scripts/reactor-topology-atlas.ts --check",
     "elixir:init": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-init-app",
     "elixir:deps": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-deps",
     "elixir:build": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-build",
