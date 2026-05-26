@@ -4,6 +4,7 @@ import type { SuiTx } from '../effectable';
 import type { SuiReservationToken, SuiTxLifecycleResult } from '../services';
 import { makeLifecycleReservationRequest } from './reservation-request';
 import { completeLifecycle, requirePtb, shouldPreflight } from './runner-completion';
+import { reconcileLifecycleExit } from './runner-reconcile';
 import type { SuiTxRunnerDependencies, SuiTxRunnerOptions } from './runner-types';
 
 export const runTxLifecycle = (
@@ -49,10 +50,5 @@ export const runTxLifecycle = (
     return yield* completeLifecycle(partialRef);
   });
 
-  return yield* Effect.onExit(program, (exit) => Effect.gen(function* () {
-    const token = yield* Ref.get(reservationRef);
-    const partial = yield* Ref.get(partialRef);
-    if (token) yield* dependencies.reservationService.reconcile(token, { partial, exit });
-    if (options.reconcile) yield* options.reconcile(partial, exit);
-  }));
+  return yield* Effect.onExit(program, reconcileLifecycleExit(dependencies, options, partialRef, reservationRef));
 });
