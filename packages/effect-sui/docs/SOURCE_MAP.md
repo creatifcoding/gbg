@@ -145,7 +145,10 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/query/resolver-core.ts` | Core object read/decode/snapshot program |
 | `src/query/resolver-errors.ts` | Object resolver error normalization |
 | `src/query/operations.ts` | Service-use Effect constructors |
-| `src/query/runtime.ts` | ManagedRuntime-backed Query client edge |
+| `src/query/runtime.ts` | ManagedRuntime-backed Query client public barrel |
+| `src/query/runtime-types.ts` | Query runtime/client/service contracts |
+| `src/query/runtime-layer.ts` | Query service layer graph |
+| `src/query/runtime-client.ts` | ManagedRuntime-backed Query client facade |
 | `src/flow/index.ts` | Public barrel for transaction flow helpers |
 | `src/flow/types.ts` | Flow client/signer contracts |
 | `src/flow/errors.ts` | Flow typed error constructors |
