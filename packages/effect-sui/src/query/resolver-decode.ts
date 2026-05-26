@@ -5,7 +5,6 @@ import {
   decodeSuiObjectId,
   decodeSuiObjectRef,
   decodeSuiTypeTagString,
-  SharedObjectRef,
   SuiObjectLoadError,
   SuiObjectVersion,
   type SuiObjectVersion as SuiObjectVersionType,
@@ -13,12 +12,8 @@ import {
 } from '../schema';
 import type { SuiObjectResolveRequest, SuiObjectResolveResult } from '../services';
 import { decodeField, decodeWithOptionalSchema } from './schema';
+import { decodeSharedObjectRef } from './resolver-shared-ref';
 import type { SuiCoreObject } from './types';
-
-type SharedOwnerLike = {
-  readonly $kind?: string;
-  readonly Shared?: { readonly initialSharedVersion?: unknown; readonly mutable?: boolean };
-};
 
 export const decodeResolvedObject = <A>(
   request: SuiObjectResolveRequest<A>,
@@ -43,20 +38,7 @@ export const decodeResolvedObject = <A>(
   );
   const digest = yield* decodeField('SuiObjectDigest', object.digest, decodeSuiObjectDigest);
   const ref = yield* decodeField('SuiObjectRef', { objectId, version, digest }, decodeSuiObjectRef);
-  const owner = object.owner as SharedOwnerLike | undefined;
-  const sharedInitialVersion = owner?.$kind === 'Shared' ? owner.Shared?.initialSharedVersion : undefined;
-  const sharedRef = sharedInitialVersion
-    ? new SharedObjectRef({
-        objectId,
-        initialSharedVersion: yield* decodeWithOptionalSchema<SuiObjectVersionType>(
-          sharedInitialVersion,
-          SuiObjectVersion,
-          'SuiObjectVersion',
-          sharedInitialVersion,
-        ),
-        mutable: owner?.Shared?.mutable ?? false,
-      })
-    : undefined;
+  const sharedRef = yield* decodeSharedObjectRef(objectId, object.owner);
 
   return {
     id: objectId,
