@@ -74,6 +74,7 @@ Rationale:
 | Type-tag string normalization decomposition | Done | `0724c054 refactor(effect-sui): decompose type-tag string normalization` |
 | PTB analyzer arity decomposition | Done | `3143116b refactor(effect-sui): decompose PTB analyzer arity` |
 | Flow gas planning decomposition | Done | `dcb2286c refactor(effect-sui): decompose flow gas planning` |
+| Transaction RPC contract decomposition | Done | `e0d7dea6 refactor(effect-sui): decompose transaction RPC contracts` |
 
 ## Surgical decomposition closeout
 
@@ -85,7 +86,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/ptb` | 622 | 727 | 116.9% |
 | `src/schema` | 571 | 614 | 107.5% |
 | `src/query` | 401 | 473 | 118.0% |
-| `src/services` | 321 | 361 | 112.5% |
+| `src/services` | 321 | 382 | 119.0% |
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 264 | 116.8% |
 | `src/flow/rpc` | 175 | 178 | 101.7% |
@@ -97,7 +98,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/auth` | 152 | 166 | 109.2% |
 | `src/adapter` | 118 | 133 | 112.7% |
 | `src/package` | 130 | 150 | 115.4% |
-| `src/services/tx` | 156 | 163 | 104.5% |
+| `src/services/tx` | 156 | 184 | 117.9% |
 | `src/flow/runtime` | 120 | 120 | 100.0% |
 | `src/reservation/operations` | 118 | 125 | 105.9% |
 | `src/schema/strings` | 110 | 125 | 113.6% |

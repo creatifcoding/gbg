@@ -122,7 +122,10 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/services/tx.ts` | Transaction lifecycle service contract barrel |
 | `src/services/tx-planning.ts` | Gas/payment planning contracts |
 | `src/services/tx-auth.ts` | Authorization result/service contracts |
-| `src/services/tx-rpc.ts` | Preflight, execution, and finality contracts |
+| `src/services/tx-rpc.ts` | Preflight/execution/finality contract barrel |
+| `src/services/tx-preflight.ts` | Dry-run preflight service contracts |
+| `src/services/tx-execution.ts` | Transaction execution service contracts |
+| `src/services/tx-finality.ts` | Finality/visibility service contracts |
 | `src/services/tx-runner.ts` | Transaction lifecycle runner contracts |
 | `src/services/reservation.ts` | Reservation service contracts |
 | `src/services/package.ts` | Package registry contracts |
