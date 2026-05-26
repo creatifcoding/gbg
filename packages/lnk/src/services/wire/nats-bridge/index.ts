@@ -89,6 +89,13 @@ export {
 export { MshBridgeSpan, type MshBridgeSpanName } from "./spans.js"
 
 export {
+  MshBridgeDiagnostics,
+  makeMshBridgeDiagnostics,
+  mshBridgeDiagnosticsLayer,
+  type MshBridgeDiagnosticsShape,
+} from "./MshBridgeDiagnostics.js"
+
+export {
   AppendIntent,
   ProducerState,
   makeAppendIntent,
