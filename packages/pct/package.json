@@ -75,6 +75,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "demo:nats-control-plane": "bun scripts/nats-control-plane-demo.ts",
+    "diagnostics:rollup": "bun scripts/diagnostics-rollup.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist reports"
   },
