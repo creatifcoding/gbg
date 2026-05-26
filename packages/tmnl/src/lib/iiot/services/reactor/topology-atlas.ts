@@ -30,7 +30,14 @@ import {
   RelationshipEdgeType,
   RelationshipNodeType,
 } from '../../schemas/relationships/edge-types'
-import { ReactiveEquipmentStateObservationSpecs } from './observations'
+import {
+  AlarmSafetyObservationSpecs,
+  DeviceAvailabilityObservationSpecs,
+  ExternalAvailabilityObservationSpecs,
+  ReactiveEquipmentStateObservationSpecs,
+  StructuralDecommissionObservationSpecs,
+  WorkOrderDependencyObservationSpecs,
+} from './observations'
 
 export const ReactorEventGroupName = Schema.Literal(
   'StructuralEvents',
@@ -116,6 +123,34 @@ export class EventRoutingContract extends Schema.TaggedClass<EventRoutingContrac
 }) {}
 export type EventRoutingContract = typeof EventRoutingContract.Type
 
+export const ReactorLaneReadinessStatus = Schema.Literal(
+  'production',
+  'candidate',
+  'parked',
+)
+export type ReactorLaneReadinessStatus = typeof ReactorLaneReadinessStatus.Type
+
+export class ReactorLaneReadinessEntry extends Schema.TaggedClass<ReactorLaneReadinessEntry>()('ReactorLaneReadinessEntry', {
+  id: Schema.String,
+  group: ReactorEventGroupName,
+  eventTag: Schema.String,
+  readiness: ReactorLaneReadinessStatus,
+  routingKind: EventRoutingKind,
+  subjectType: Schema.optional(RelationshipNodeType),
+  relationshipEdgeTypes: Schema.optionalWith(Schema.Array(RelationshipEdgeType), { default: () => [] }),
+  targetOwner: Schema.optional(Schema.String),
+  targetCapabilities: Schema.optionalWith(Schema.Array(EntityCapabilityId), { default: () => [] }),
+  signals: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  declaredObservationIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  liveObservationIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  declaredPolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  livePolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  requiredProofs: Schema.Array(EventRoutingProofRequirement),
+  rationale: Schema.String,
+  readinessNotes: Schema.optional(Schema.String),
+}) {}
+export type ReactorLaneReadinessEntry = typeof ReactorLaneReadinessEntry.Type
+
 export class ReactorEventCoverageEntry extends Schema.TaggedClass<ReactorEventCoverageEntry>()('ReactorEventCoverageEntry', {
   group: ReactorEventGroupName,
   tag: Schema.String,
@@ -137,6 +172,7 @@ export class ReactorRelationshipCoverageEntry extends Schema.TaggedClass<Reactor
   allowedTargetTypes: Schema.Array(RelationshipNodeType),
   allowedPairCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
   productionPolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  livePolicyIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   propagationDescriptorIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   candidateSignals: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   targetCapabilities: Schema.optionalWith(Schema.Array(EntityCapabilityId), { default: () => [] }),
@@ -152,7 +188,11 @@ export class ReactorTopologyStats extends Schema.TaggedClass<ReactorTopologyStat
   nonReactiveEventCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
   relationshipEdgeCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
   relationshipAllowedPairCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  registeredPolicyCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
   productionPolicyCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  productionLaneCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  candidateLaneCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  parkedLaneCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
 }) {}
 export type ReactorTopologyStats = typeof ReactorTopologyStats.Type
 
@@ -160,6 +200,7 @@ export class ReactorTopologyAtlas extends Schema.TaggedClass<ReactorTopologyAtla
   generatedAtIso: Schema.String,
   eventCoverage: Schema.Array(ReactorEventCoverageEntry),
   eventRoutingContracts: Schema.Array(EventRoutingContract),
+  laneReadiness: Schema.Array(ReactorLaneReadinessEntry),
   relationshipCoverage: Schema.Array(ReactorRelationshipCoverageEntry),
   stats: ReactorTopologyStats,
 }) {}
@@ -205,6 +246,7 @@ type EventCoverageSeed = {
   readonly rationale: string
   readonly signals?: readonly string[]
   readonly productionPolicyIds?: readonly string[]
+  readonly declaredPolicyIds?: readonly string[]
   readonly candidateRelationshipEdges?: readonly RelationshipEdgeTypeValue[]
   readonly targetCapabilities?: readonly EntityCapabilityIdValue[]
   readonly routingKind?: EventRoutingKind
@@ -292,6 +334,52 @@ const productionEquipmentPolicies = [
   'requires.equipment-unavailable.blocks-source',
 ] as const
 
+const liveReactorPolicyIds = new Set<string>(productionEquipmentPolicies)
+
+const workOrderDependsOnBlockedPolicies = [
+  'depends_on.work-order-blocked.blocks-source',
+] as const
+
+const workOrderDependsOnSatisfiedPolicies = [
+  'depends_on.work-order-satisfied.satisfies-source',
+] as const
+
+const workOrderDependsOnReleasePolicies = [
+  'depends_on.work-order-block-retracted.releases-source',
+] as const
+
+const alarmSafetyHoldPolicies = [
+  'targets.alarm-safety-hold.holds-source',
+  'requires.alarm-safety-hold.holds-source',
+] as const
+
+const alarmSafetyReleasePolicies = [
+  'targets.alarm-safety-hold-retracted.releases-source',
+  'requires.alarm-safety-hold-retracted.releases-source',
+] as const
+
+const structuralDecommissionPolicies = [
+  'contains.structural-decommission.inherits-target',
+  'targets.structural-decommission.blocks-source',
+  'requires.structural-decommission.blocks-source',
+] as const
+
+const externalUnavailablePolicies = [
+  'requires.external-unavailable.blocks-source',
+] as const
+
+const externalAvailablePolicies = [
+  'requires.external-available.releases-source',
+] as const
+
+const deviceUnavailablePolicies = [
+  'requires.device-unavailable.blocks-source',
+] as const
+
+const deviceAvailablePolicies = [
+  'requires.device-available.releases-source',
+] as const
+
 const reactiveDispatchProofs = [
   'observation_decode_test',
   'registry_policy_test',
@@ -344,16 +432,25 @@ const structuralProjection = (input: {
   parkingRationale: 'Projection-only structural event; no target-owned consistency mutation is declared.',
 })
 
+const policiesForEdges = (
+  policyIds: readonly string[],
+  edgeTypes: readonly RelationshipEdgeTypeValue[],
+): readonly string[] => policyIds.filter((policyId) =>
+  edgeTypes.some((edgeType) => policyId.startsWith(`${edgeType}.`)),
+)
+
 const structuralDecommission = (input: {
   readonly entityType: RelationshipNodeTypeValue
   readonly relationshipEdges: readonly RelationshipEdgeTypeValue[]
   readonly signals: readonly string[]
   readonly rationale: string
+  readonly declaredPolicyIds?: readonly string[]
 }): EventCoverageSeed => ({
   status: 'candidate',
   routingKind: 'candidate_dispatch',
   rationale: input.rationale,
   signals: input.signals,
+  declaredPolicyIds: input.declaredPolicyIds ?? policiesForEdges(structuralDecommissionPolicies, input.relationshipEdges),
   candidateRelationshipEdges: input.relationshipEdges,
   targetCapabilities: [Capability.LifecycleInherited, Capability.DependencyBlocked],
   subject: {
@@ -613,12 +710,18 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     entityType: 'device',
     relationshipEdges: ['targets', 'requires', 'triggered_by'],
     signals: ['device.lifecycle = decommissioned', 'device.availability = unavailable'],
-    rationale: 'Device removal can invalidate required/targeted dependencies, but device availability observation is not declared yet.',
+    declaredPolicyIds: [
+      'targets.structural-decommission.blocks-source',
+      'requires.structural-decommission.blocks-source',
+      ...deviceUnavailablePolicies,
+    ],
+    rationale: 'Device removal can invalidate required/targeted dependencies; device availability is declared but remains candidate until live activation proves required graph expansion and target-owned release/blocking semantics.',
   }),
   AlarmTriggered: {
     status: 'candidate',
     rationale: 'Critical/emergency alarms can become WorkOrder safety holds once alarm-to-asset traversal and target contract are declared.',
     signals: ['alarm.state = triggered', 'alarm.severity = critical|emergency'],
+    declaredPolicyIds: alarmSafetyHoldPolicies,
     candidateRelationshipEdges: ['triggered_by', 'monitors', 'targets', 'requires'],
     targetCapabilities: [Capability.SafetyHold],
   },
@@ -626,6 +729,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'Alarm clearing can retract safety pressure, but unblock/resume semantics must be target-owned first.',
     signals: ['alarm.state = cleared'],
+    declaredPolicyIds: alarmSafetyReleasePolicies,
     candidateRelationshipEdges: ['triggered_by', 'monitors', 'targets', 'requires'],
     targetCapabilities: [Capability.SafetyRelease],
   },
@@ -633,6 +737,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'Escalation can strengthen safety-hold pressure for related WorkOrders once severity policy exists.',
     signals: ['alarm.severity = escalated'],
+    declaredPolicyIds: alarmSafetyHoldPolicies,
     candidateRelationshipEdges: ['triggered_by', 'monitors', 'targets', 'requires'],
     targetCapabilities: [Capability.SafetyHold],
   },
@@ -721,6 +826,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'A suspended upstream WorkOrder can block downstream WorkOrders over depends_on once causality/idempotency policy exists.',
     signals: ['work_order.execution = suspended'],
+    declaredPolicyIds: workOrderDependsOnBlockedPolicies,
     candidateRelationshipEdges: ['depends_on'],
     targetCapabilities: [Capability.DependencyBlocked],
   },
@@ -728,6 +834,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'A resumed upstream WorkOrder can release downstream pressure only after target-owned resume semantics exist.',
     signals: ['work_order.execution = resumed'],
+    declaredPolicyIds: workOrderDependsOnReleasePolicies,
     candidateRelationshipEdges: ['depends_on'],
     targetCapabilities: [Capability.DependencyReleased],
   },
@@ -735,6 +842,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'Completion can satisfy downstream depends_on prerequisites once dependency fulfillment semantics are declared.',
     signals: ['work_order.execution = completed'],
+    declaredPolicyIds: workOrderDependsOnSatisfiedPolicies,
     candidateRelationshipEdges: ['depends_on'],
     targetCapabilities: [Capability.DependencySatisfied],
   },
@@ -742,6 +850,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'Failure can block or fail downstream WorkOrders over depends_on once target reaction semantics exist.',
     signals: ['work_order.execution = failed'],
+    declaredPolicyIds: workOrderDependsOnBlockedPolicies,
     candidateRelationshipEdges: ['depends_on'],
     targetCapabilities: [Capability.DependencyBlocked],
   },
@@ -749,6 +858,7 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
     status: 'candidate',
     rationale: 'Cancellation can block or replan downstream WorkOrders over depends_on once target reaction semantics exist.',
     signals: ['work_order.execution = cancelled'],
+    declaredPolicyIds: workOrderDependsOnBlockedPolicies,
     candidateRelationshipEdges: ['depends_on'],
     targetCapabilities: [Capability.DependencyBlocked, Capability.DependencyReplanRequired],
   },
@@ -766,15 +876,19 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   ExternalRefLinked: {
     status: 'candidate',
-    rationale: 'Can materialize external requires/produces relationships; no target mutation policy yet.',
-    signals: ['context.external_ref = linked'],
+    rationale: 'Can materialize external requires/produces relationships; availability release remains candidate until projection ordering and target-owned release proofs are complete.',
+    signals: ['context.external_ref = linked', 'external.availability = available'],
+    declaredPolicyIds: externalAvailablePolicies,
     candidateRelationshipEdges: ['requires', 'produces', 'related_to'],
+    targetCapabilities: [Capability.DependencyReleased],
   },
   ExternalRefUnlinked: {
     status: 'candidate',
-    rationale: 'Can close external relationships; dispatch only if dependency availability changes.',
-    signals: ['context.external_ref = unlinked'],
+    rationale: 'Can close external relationships and assert external unavailability; dispatch waits for as-of graph expansion or event-carried target identity.',
+    signals: ['context.external_ref = unlinked', 'external.availability = unavailable'],
+    declaredPolicyIds: externalUnavailablePolicies,
     candidateRelationshipEdges: ['requires', 'produces', 'related_to'],
+    targetCapabilities: [Capability.DependencyBlocked],
   },
   ChildWorkOrderSpawned: {
     status: 'candidate',
@@ -1009,6 +1123,33 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   }),
 }
 
+const declaredObservationSpecs = [
+  ...ReactiveEquipmentStateObservationSpecs,
+  ...WorkOrderDependencyObservationSpecs,
+  ...AlarmSafetyObservationSpecs,
+  ...StructuralDecommissionObservationSpecs,
+  ...ExternalAvailabilityObservationSpecs,
+  ...DeviceAvailabilityObservationSpecs,
+] as const
+
+const observationIdsByTag = (specs: readonly { readonly eventTag: string, readonly id: string }[]): ReadonlyMap<string, readonly string[]> => {
+  const byTag = new Map<string, string[]>()
+
+  for (const spec of specs) {
+    const ids = byTag.get(spec.eventTag) ?? []
+    if (!ids.includes(spec.id)) ids.push(spec.id)
+    byTag.set(spec.eventTag, ids)
+  }
+
+  for (const ids of byTag.values()) {
+    ids.sort((a, b) => a.localeCompare(b))
+  }
+
+  return byTag
+}
+
+const declaredObservationIdsByTag = observationIdsByTag(declaredObservationSpecs)
+const liveObservationIdsByTag = observationIdsByTag(ReactiveEquipmentStateObservationSpecs)
 const productionObservationByTag = new Map(
   ReactiveEquipmentStateObservationSpecs.map((spec) => [spec.eventTag, spec.id] as const),
 )
@@ -1183,6 +1324,67 @@ export const getEventRoutingContracts = (): readonly EventRoutingContract[] =>
     })
   })
 
+const uniqueSorted = (items: readonly string[]): readonly string[] =>
+  Array.from(new Set(items)).sort((a, b) => a.localeCompare(b))
+
+const readinessForContract = (contract: EventRoutingContract): ReactorLaneReadinessStatus => {
+  if (contract.routingKind === 'reactor_dispatch') return 'production'
+  if (contract.status === 'candidate' || contract.routingKind === 'candidate_dispatch' || contract.routingKind === 'candidate_projection') {
+    return 'candidate'
+  }
+  return 'parked'
+}
+
+const readinessNotesForContract = (input: {
+  readonly contract: EventRoutingContract
+  readonly readiness: ReactorLaneReadinessStatus
+  readonly declaredPolicyIds: readonly string[]
+}): string => {
+  if (input.readiness === 'production') {
+    return 'Live in ReactorGenericLive: observation specs, policies, graph expansion, source claims, and target WorkOrder contract are wired.'
+  }
+  if (input.readiness === 'candidate' && input.declaredPolicyIds.length > 0) {
+    return 'Descriptor-registered only: declaration exists, but the policy/observation bundle is not wired into ReactorGenericLive.'
+  }
+  if (input.readiness === 'candidate') {
+    return 'Candidate lane: subject, path, owner, and proofs are documented, but concrete propagation policy is not declared yet.'
+  }
+  return input.contract.parkingRationale ?? 'Parked lane: durable audit/projection only; no Reactor dispatch is planned.'
+}
+
+export const getReactorLaneReadinessEntries = (): readonly ReactorLaneReadinessEntry[] =>
+  getEventRoutingContracts().map((contract) => {
+    const seed = seedForEvent(contract.group, contract.eventTag)
+    const declaredPolicyIds = uniqueSorted([
+      ...Array.from(seed.declaredPolicyIds ?? []),
+      ...Array.from(contract.productionPolicyIds),
+    ])
+    const livePolicyIds = declaredPolicyIds.filter((policyId) => liveReactorPolicyIds.has(policyId))
+    const declaredObservationIds = Array.from(declaredObservationIdsByTag.get(contract.eventTag) ?? [])
+    const liveObservationIds = Array.from(liveObservationIdsByTag.get(contract.eventTag) ?? [])
+    const readiness = readinessForContract(contract)
+
+    return new ReactorLaneReadinessEntry({
+      id: contract.id,
+      group: contract.group,
+      eventTag: contract.eventTag,
+      readiness,
+      routingKind: contract.routingKind,
+      subjectType: contract.subject.entityType,
+      relationshipEdgeTypes: uniqueSorted(contract.relationshipPaths.flatMap((path) => path.edgeTypes)) as RelationshipEdgeTypeValue[],
+      targetOwner: contract.targetOwner,
+      targetCapabilities: Array.from(contract.targetCapabilities),
+      signals: Array.from(contract.signals),
+      declaredObservationIds,
+      liveObservationIds,
+      declaredPolicyIds,
+      livePolicyIds,
+      requiredProofs: Array.from(contract.proofRequirements),
+      rationale: contract.rationale,
+      readinessNotes: readinessNotesForContract({ contract, readiness, declaredPolicyIds }),
+    })
+  })
+
 const relationshipCoverageSeeds: Record<RelationshipEdgeTypeValue, RelationshipCoverageSeed> = {
   targets: {
     status: 'production',
@@ -1255,6 +1457,9 @@ export const getReactorRelationshipCoverageEntries = (): readonly ReactorRelatio
         allowedTargetTypes: Array.from(descriptor.allowedTargetTypes),
         allowedPairCount: descriptor.allowedSourceTypes.length * descriptor.allowedTargetTypes.length,
         productionPolicyIds: descriptor.propagationPolicies.map((policy) => policy.id),
+        livePolicyIds: descriptor.propagationPolicies
+          .map((policy) => policy.id)
+          .filter((policyId) => liveReactorPolicyIds.has(policyId)),
         propagationDescriptorIds: descriptor.propagationDescriptors.map((policy) => policy.id),
         candidateSignals: Array.from(seed.candidateSignals ?? []),
         targetCapabilities: Array.from(seed.targetCapabilities ?? []),
@@ -1266,6 +1471,7 @@ export const getReactorRelationshipCoverageEntries = (): readonly ReactorRelatio
 export const getReactorTopologyAtlas = (generatedAtIso = new Date().toISOString()): ReactorTopologyAtlas => {
   const eventCoverage = getReactorEventCoverageEntries()
   const eventRoutingContracts = getEventRoutingContracts()
+  const laneReadiness = getReactorLaneReadinessEntries()
   const relationshipCoverage = getReactorRelationshipCoverageEntries()
   const stats = new ReactorTopologyStats({
     eventGroupCount: Object.keys(EVENT_GROUPS).length,
@@ -1275,13 +1481,18 @@ export const getReactorTopologyAtlas = (generatedAtIso = new Date().toISOString(
     nonReactiveEventCount: eventCoverage.filter((entry) => entry.status === 'non_reactive').length,
     relationshipEdgeCount: relationshipCoverage.length,
     relationshipAllowedPairCount: relationshipCoverage.reduce((total, entry) => total + entry.allowedPairCount, 0),
-    productionPolicyCount: relationshipCoverage.reduce((total, entry) => total + entry.productionPolicyIds.length, 0),
+    registeredPolicyCount: relationshipCoverage.reduce((total, entry) => total + entry.productionPolicyIds.length, 0),
+    productionPolicyCount: relationshipCoverage.reduce((total, entry) => total + entry.livePolicyIds.length, 0),
+    productionLaneCount: laneReadiness.filter((entry) => entry.readiness === 'production').length,
+    candidateLaneCount: laneReadiness.filter((entry) => entry.readiness === 'candidate').length,
+    parkedLaneCount: laneReadiness.filter((entry) => entry.readiness === 'parked').length,
   })
 
   return new ReactorTopologyAtlas({
     generatedAtIso,
     eventCoverage: Array.from(eventCoverage),
     eventRoutingContracts: Array.from(eventRoutingContracts),
+    laneReadiness: Array.from(laneReadiness),
     relationshipCoverage: Array.from(relationshipCoverage),
     stats,
   })

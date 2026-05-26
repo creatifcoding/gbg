@@ -22,6 +22,7 @@ import {
   EXPLICIT_EVENT_ROUTING_CONTRACT_TAGS,
   getEventRoutingContracts,
   getIiotEventGroupTags,
+  getReactorLaneReadinessEntries,
   getReactorTopologyAtlas,
 } from '../topology-atlas'
 
@@ -177,6 +178,69 @@ describe('Reactor topology atlas', () => {
     }
   })
 
+  it('derives lane readiness for production, candidate, and parked routes', () => {
+    const atlas = getReactorTopologyAtlas('2026-05-19T00:00:00.000Z')
+    const readiness = getReactorLaneReadinessEntries()
+
+    expect(atlas.laneReadiness).toEqual(readiness)
+    expect(readiness).toHaveLength(atlas.eventRoutingContracts.length)
+    expect(atlas.stats.productionLaneCount).toBe(
+      readiness.filter((entry) => entry.readiness === 'production').length,
+    )
+    expect(atlas.stats.candidateLaneCount).toBe(
+      readiness.filter((entry) => entry.readiness === 'candidate').length,
+    )
+    expect(atlas.stats.parkedLaneCount).toBe(
+      readiness.filter((entry) => entry.readiness === 'parked').length,
+    )
+
+    const maintenance = readiness.find((entry) => entry.eventTag === 'MaintenanceModeEntered')
+    expect(maintenance).toMatchObject({
+      readiness: 'production',
+      declaredObservationIds: ['maintenance-mode-entered-observation'],
+      liveObservationIds: ['maintenance-mode-entered-observation'],
+      declaredPolicyIds: [
+        'requires.equipment-unavailable.blocks-source',
+        'targets.machine-unavailable.blocks-source',
+      ],
+      livePolicyIds: [
+        'requires.equipment-unavailable.blocks-source',
+        'targets.machine-unavailable.blocks-source',
+      ],
+      requiredProofs: [
+        'observation_decode_test',
+        'registry_policy_test',
+        'graph_expansion_test',
+        'source_claim_e2e',
+        'target_contract_test',
+      ],
+    })
+
+    const workOrderSuspended = readiness.find((entry) => entry.eventTag === 'WorkOrderSuspended')
+    expect(workOrderSuspended).toMatchObject({
+      readiness: 'candidate',
+      declaredObservationIds: ['work-order-suspended-dependency-observation'],
+      liveObservationIds: [],
+      declaredPolicyIds: ['depends_on.work-order-blocked.blocks-source'],
+      livePolicyIds: [],
+      requiredProofs: [
+        'observation_decode_test',
+        'registry_policy_test',
+        'graph_expansion_test',
+        'target_contract_test',
+        'source_claim_e2e',
+      ],
+    })
+
+    const operatorLogin = readiness.find((entry) => entry.eventTag === 'OperatorLogin')
+    expect(operatorLogin).toMatchObject({
+      readiness: 'parked',
+      declaredObservationIds: [],
+      declaredPolicyIds: [],
+      requiredProofs: ['documentation_only'],
+    })
+  })
+
   it('enumerates every relationship registry edge and mirrors production policies', () => {
     const atlas = getReactorTopologyAtlas('2026-05-19T00:00:00.000Z')
     const expectedEdges = Object.keys(RELATIONSHIP_EDGE_REGISTRY).sort()
@@ -195,5 +259,15 @@ describe('Reactor topology atlas', () => {
         descriptor.propagationPolicies.map((policy) => policy.id),
       )
     }
+
+    const targets = atlas.relationshipCoverage.find((entry) => entry.edgeType === 'targets')
+    expect(targets?.livePolicyIds).toEqual(['targets.machine-unavailable.blocks-source'])
+
+    const requires = atlas.relationshipCoverage.find((entry) => entry.edgeType === 'requires')
+    expect(requires?.livePolicyIds).toEqual(['requires.equipment-unavailable.blocks-source'])
+    expect(atlas.stats.registeredPolicyCount).toBe(
+      atlas.relationshipCoverage.reduce((total, entry) => total + entry.productionPolicyIds.length, 0),
+    )
+    expect(atlas.stats.productionPolicyCount).toBe(2)
   })
 })

@@ -36,12 +36,16 @@ const routingContractRows = atlas.eventRoutingContracts
   .join('\n')
 
 const relationshipRows = atlas.relationshipCoverage
-  .map((entry) => `| ${entry.edgeType} | ${entry.status} | ${entry.directionality} | ${mdCell(joinList(entry.allowedSourceTypes))} | ${mdCell(joinList(entry.allowedTargetTypes))} | ${entry.allowedPairCount} | ${mdCell(joinList(entry.productionPolicyIds))} | ${mdCell(joinList(entry.candidateSignals))} | ${mdCell(entry.rationale)} |`)
+  .map((entry) => `| ${entry.edgeType} | ${entry.status} | ${entry.directionality} | ${mdCell(joinList(entry.allowedSourceTypes))} | ${mdCell(joinList(entry.allowedTargetTypes))} | ${entry.allowedPairCount} | ${mdCell(joinList(entry.productionPolicyIds))} | ${mdCell(joinList(entry.livePolicyIds))} | ${mdCell(joinList(entry.candidateSignals))} | ${mdCell(entry.rationale)} |`)
   .join('\n')
 
-const productionLanes = atlas.eventCoverage
-  .filter((event) => event.status === 'reactive')
-  .flatMap((event) => event.productionPolicyIds.map((policyId) => ({ event, policyId })))
+const productionLanes = atlas.laneReadiness.filter((lane) => lane.readiness === 'production')
+const candidateLanes = atlas.laneReadiness.filter((lane) => lane.readiness === 'candidate')
+const parkedLanes = atlas.laneReadiness.filter((lane) => lane.readiness === 'parked')
+
+const readinessRows = atlas.laneReadiness
+  .map((lane) => `| ${mdCell(lane.id)} | ${lane.readiness} | ${lane.routingKind} | ${mdCell(lane.subjectType ?? '—')} | ${mdCell(joinList(lane.relationshipEdgeTypes))} | ${mdCell(lane.targetOwner ?? '—')} | ${mdCell(joinList(lane.declaredObservationIds))} | ${mdCell(joinList(lane.declaredPolicyIds))} | ${mdCell(joinList(lane.livePolicyIds))} | ${mdCell(joinList(lane.requiredProofs))} | ${mdCell(lane.readinessNotes ?? '—')} |`)
+  .join('\n')
 
 const markdown = `# Reactor Topology Atlas
 
@@ -63,18 +67,28 @@ Events remain the primitive source of truth. Relationship and Reactor declaratio
 | Non-reactive events | ${atlas.stats.nonReactiveEventCount} |
 | Relationship edge types | ${atlas.stats.relationshipEdgeCount} |
 | Allowed source/target pairs | ${atlas.stats.relationshipAllowedPairCount} |
-| Production propagation policies | ${atlas.stats.productionPolicyCount} |
+| Registered propagation policies | ${atlas.stats.registeredPolicyCount} |
+| Live production policies | ${atlas.stats.productionPolicyCount} |
+| Production lanes | ${atlas.stats.productionLaneCount} |
+| Candidate lanes | ${atlas.stats.candidateLaneCount} |
+| Parked lanes | ${atlas.stats.parkedLaneCount} |
 
 ## Production lanes
 
-| Source event | Signals | Policy | Target capability |
+| Lane | Signals | Live policies | Target capability |
 | --- | --- | --- | --- |
-${productionLanes.map(({ event, policyId }) => `| ${event.tag} | ${mdCell(joinList(event.signals))} | ${policyId} | ${mdCell(joinList(event.targetCapabilities))} |`).join('\n')}
+${productionLanes.map((lane) => `| ${lane.id} | ${mdCell(joinList(lane.signals))} | ${mdCell(joinList(lane.livePolicyIds))} | ${mdCell(joinList(lane.targetCapabilities))} |`).join('\n')}
+
+## Lane readiness
+
+| Lane | Readiness | Routing kind | Subject | Relationship paths | Target owner | Declared observations | Declared policies | Live policies | Required proofs | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+${readinessRows}
 
 ## Relationship multiplicity
 
-| Edge | Status | Direction | Allowed sources | Allowed targets | Pair count | Production policies | Candidate signals | Rationale |
-| --- | --- | --- | --- | --- | ---: | --- | --- | --- |
+| Edge | Status | Direction | Allowed sources | Allowed targets | Pair count | Registered policies | Live policies | Candidate signals | Rationale |
+| --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- |
 ${relationshipRows}
 
 ## Event Routing Contracts
@@ -161,7 +175,7 @@ const html = `<!doctype html>
     .policy { border-color: rgba(141,255,184,0.45); color: var(--green); }
     .status-reactive, .status-production { border-color: rgba(141,255,184,0.6); color: var(--green); }
     .status-candidate { border-color: rgba(255,211,110,0.7); color: var(--amber); }
-    .status-non_reactive, .status-reference { border-color: rgba(157,179,168,0.35); color: var(--muted); }
+    .status-parked, .status-non_reactive, .status-reference { border-color: rgba(157,179,168,0.35); color: var(--muted); }
     .status-topology { border-color: rgba(199,164,255,0.7); color: var(--violet); }
     table { width: 100%; border-collapse: collapse; background: rgba(21,28,25,0.72); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
     th, td { padding: 10px 12px; border-bottom: 1px solid rgba(49,69,59,0.72); vertical-align: top; text-align: left; font-size: 12px; }
@@ -190,19 +204,43 @@ const html = `<!doctype html>
       <div class="card"><div class="metric">${atlas.stats.candidateEventCount}</div><div class="label">Candidate events</div></div>
       <div class="card"><div class="metric">${atlas.stats.relationshipEdgeCount}</div><div class="label">Relationship edge types</div></div>
       <div class="card"><div class="metric">${atlas.stats.relationshipAllowedPairCount}</div><div class="label">Allowed endpoint pairs</div></div>
-      <div class="card"><div class="metric">${atlas.stats.productionPolicyCount}</div><div class="label">Production policies</div></div>
+      <div class="card"><div class="metric">${atlas.stats.registeredPolicyCount}</div><div class="label">Registered policies</div></div>
+      <div class="card"><div class="metric">${atlas.stats.productionPolicyCount}</div><div class="label">Live policies</div></div>
+      <div class="card"><div class="metric">${atlas.stats.productionLaneCount}/${atlas.stats.candidateLaneCount}/${atlas.stats.parkedLaneCount}</div><div class="label">Production / candidate / parked lanes</div></div>
     </section>
 
     <h2>Production Reactor lanes</h2>
-    ${productionLanes.map(({ event, policyId }) => `
+    ${productionLanes.map((lane) => `
       <div class="lane">
-        <div><strong>${escapeHtml(event.tag)}</strong><br>${chipList(event.signals)}</div>
+        <div><strong>${escapeHtml(lane.id)}</strong><br>${chipList(lane.signals)}</div>
         <div class="arrow">→</div>
-        <div>${statusLabel('production')} <span class="policy">${escapeHtml(policyId)}</span></div>
+        <div>${statusLabel('production')} ${chipList(lane.livePolicyIds, 'policy')}</div>
         <div class="arrow">→</div>
-        <div>${chipList(event.targetCapabilities)}</div>
+        <div>${chipList(lane.targetCapabilities)}</div>
       </div>
     `).join('')}
+
+    <h2>Lane readiness</h2>
+    <section class="grid">
+      ${[
+        { label: 'Production', lanes: productionLanes },
+        { label: 'Candidate', lanes: candidateLanes },
+        { label: 'Parked', lanes: parkedLanes },
+      ].map((group) => `
+        <article class="card">
+          <h3>${escapeHtml(group.label)} lanes · ${group.lanes.length}</h3>
+          ${group.lanes.slice(0, 18).map((lane) => `
+            <div class="route">
+              <div><strong>${escapeHtml(lane.id)}</strong> ${statusLabel(lane.readiness)}</div>
+              <div><span class="muted">Proofs:</span> ${chipList(lane.requiredProofs)}</div>
+              <div><span class="muted">Declared:</span> ${chipList(lane.declaredPolicyIds, 'policy')}</div>
+              <div><span class="muted">Live:</span> ${chipList(lane.livePolicyIds, 'policy')}</div>
+            </div>
+          `).join('')}
+          ${group.lanes.length > 18 ? `<p class="muted">${group.lanes.length - 18} more lanes in markdown table.</p>` : ''}
+        </article>
+      `).join('')}
+    </section>
 
     <h2>Relationship multiplicity</h2>
     <section class="grid">
@@ -214,7 +252,8 @@ const html = `<!doctype html>
           </div>
           <p><strong>${entry.allowedPairCount}</strong> allowed source/target combinations · ${escapeHtml(entry.directionality)}</p>
           <p>${escapeHtml(entry.rationale)}</p>
-          <div><span class="muted">Policies:</span> ${chipList(entry.productionPolicyIds, 'policy')}</div>
+          <div><span class="muted">Registered policies:</span> ${chipList(entry.productionPolicyIds, 'policy')}</div>
+          <div><span class="muted">Live policies:</span> ${chipList(entry.livePolicyIds, 'policy')}</div>
           <div><span class="muted">Candidate signals:</span> ${chipList(entry.candidateSignals)}</div>
           <div><span class="muted">Target capabilities:</span> ${chipList(entry.targetCapabilities)}</div>
         </article>
