@@ -72,6 +72,7 @@ Rationale:
 | Schema policy noun decomposition | Done | `11671088 refactor(effect-sui): decompose schema policy nouns` |
 | Reservation acquire guard decomposition | Done | `d2c6c85d refactor(effect-sui): decompose reservation acquire guards` |
 | Type-tag string normalization decomposition | Done | `0724c054 refactor(effect-sui): decompose type-tag string normalization` |
+| PTB analyzer arity decomposition | Done | `3143116b refactor(effect-sui): decompose PTB analyzer arity` |
 
 ## Surgical decomposition closeout
 
@@ -80,7 +81,7 @@ Source-only line budgets stayed under the 120% cap:
 | Namespace | Baseline | Final source lines | Ratio |
 |---|---:|---:|---:|
 | `src/flow` | 787 | 901 | 114.5% |
-| `src/ptb` | 622 | 725 | 116.6% |
+| `src/ptb` | 622 | 727 | 116.9% |
 | `src/schema` | 571 | 614 | 107.5% |
 | `src/query` | 401 | 473 | 118.0% |
 | `src/services` | 321 | 361 | 112.5% |
@@ -89,7 +90,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/rpc` | 175 | 178 | 101.7% |
 | `src/flow/runner` | 169 | 171 | 101.2% |
 | `src/ptb/compiler` | 179 | 186 | 103.9% |
-| `src/ptb/analyzer` | 181 | 203 | 112.2% |
+| `src/ptb/analyzer` | 181 | 205 | 113.3% |
 | `src/schema/move` | 174 | 173 | 99.4% |
 | `src/query/resolver` | 160 | 162 | 101.3% |
 | `src/flow/auth` | 152 | 166 | 109.2% |

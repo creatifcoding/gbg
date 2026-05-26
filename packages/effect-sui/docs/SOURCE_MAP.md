@@ -136,6 +136,7 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/ptb/decode.ts` | PTB AST decode helpers |
 | `src/ptb/analyzer.ts` | PTB analyzer service/public surface |
 | `src/ptb/analyzer-arguments.ts` | PTB command argument validation |
+| `src/ptb/analyzer-arity.ts` | PTB command result arity inference |
 | `src/ptb/analyzer-diagnostics.ts` | PTB command diagnostic collection |
 | `src/ptb/analyzer-inputs.ts` | PTB input name/object-id collection |
 | `src/ptb/analyzer-core.ts` | End-to-end PTB analysis orchestration |
