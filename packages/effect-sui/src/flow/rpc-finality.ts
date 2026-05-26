@@ -3,13 +3,29 @@
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 import type { SuiExecutionError, SuiInvariantViolation } from '../schema';
-import { SuiClientService, SuiFinalityService, type SuiFinalityRequest, type SuiFinalityResult, type SuiFinalityServiceShape } from '../services';
+import {
+  SuiClientService,
+  SuiFinalityService,
+  type SuiFinalityIncludeOptions,
+  type SuiFinalityRequest,
+  type SuiFinalityResult,
+  type SuiFinalityServiceShape,
+  type SuiFinalityWatchRequest,
+} from '../services';
 import { execution, invariant } from './errors';
 import { transactionPayload } from './rpc-shared';
 import type { ClientWithTransactionLifecycle } from './types';
 
+const defaultFinalityInclude = {
+  effects: true,
+  transaction: true,
+  events: true,
+  balanceChanges: true,
+} satisfies SuiFinalityIncludeOptions;
+
 export const makeFinalityService = (client: ClientWithTransactionLifecycle): SuiFinalityServiceShape => ({
-  wait: (request) => waitForTransaction(client, request),
+  wait: (request) => waitForTransaction(client, { ...request, digest: request.execution.digest }),
+  waitForDigest: (request) => waitForTransaction(client, request),
 });
 
 export const SuiFinalityServiceFromClient = Layer.effect(SuiFinalityService)(
@@ -18,7 +34,7 @@ export const SuiFinalityServiceFromClient = Layer.effect(SuiFinalityService)(
 
 const waitForTransaction = (
   client: ClientWithTransactionLifecycle,
-  request: SuiFinalityRequest,
+  request: SuiFinalityWatchRequest,
 ): Effect.Effect<SuiFinalityResult, SuiExecutionError | SuiInvariantViolation> => {
   if (!client.core.waitForTransaction) {
     return Effect.fail(invariant('SuiFinalityService.client', 'Client does not expose core.waitForTransaction'));
@@ -26,14 +42,20 @@ const waitForTransaction = (
 
   return Effect.gen(function* () {
     const raw = yield* Effect.tryPromise({
-      try: () => client.core.waitForTransaction!({
-        digest: request.execution.digest,
-        include: { effects: true, transaction: true, events: true, balanceChanges: true },
-        timeout: 60_000,
+      try: (signal) => client.core.waitForTransaction!({
+        digest: request.digest,
+        include: request.include ?? defaultFinalityInclude,
+        timeout: request.timeoutMs ?? 60_000,
+        signal,
+        ...(request.pollSchedule ? { pollSchedule: [...request.pollSchedule] } : {}),
       }),
       catch: (cause) => execution('SuiFinalityService.waitForTransaction', cause),
     });
     const transaction = transactionPayload(raw);
-    return { digest: request.execution.digest, transaction: raw, effects: transaction?.effects, events: transaction?.events ?? [] } satisfies SuiFinalityResult;
-  });
+    return { digest: request.digest, transaction: raw, effects: transaction?.effects, events: transaction?.events ?? [] } satisfies SuiFinalityResult;
+  }).pipe(
+    Effect.withSpan('@tmnl/effect-sui/SuiFinalityService.waitForTransaction', {
+      attributes: { digest: request.digest, timeoutMs: request.timeoutMs ?? 60_000 },
+    }),
+  );
 };

@@ -9,7 +9,9 @@ import type {
   SuiAuthService,
   SuiClientService,
   SuiExecutionService,
+  SuiFinalityResult,
   SuiFinalityService,
+  SuiFinalityWatchRequest,
   SuiGasPlanner,
   SuiPaymentService,
   SuiPreflightService,
@@ -28,11 +30,20 @@ export interface SuiFlowRuntimeOptions extends SuiTxRunnerOptions {
   readonly memoMap?: Layer.MemoMap;
 }
 
+export interface SuiFinalityWatcher {
+  readonly fiber: Fiber.Fiber<SuiFinalityResult, unknown>;
+  readonly join: () => Promise<SuiFinalityResult>;
+  readonly exit: () => Promise<Exit.Exit<SuiFinalityResult, unknown>>;
+  readonly interrupt: () => Promise<void>;
+  readonly dispose: () => Promise<void>;
+}
+
 export interface SuiFlowClient {
   readonly runtime: SuiFlowRuntime;
   readonly run: (tx: SuiTx<unknown, unknown, unknown>, options?: { readonly signal?: AbortSignal }) => Promise<SuiTxLifecycleResult>;
   readonly runExit: (tx: SuiTx<unknown, unknown, unknown>, options?: { readonly signal?: AbortSignal }) => Promise<Exit.Exit<SuiTxLifecycleResult, unknown>>;
   readonly runFork: (tx: SuiTx<unknown, unknown, unknown>, options?: Effect.RunOptions) => Fiber.Fiber<SuiTxLifecycleResult, unknown>;
   readonly runCallback: (tx: SuiTx<unknown, unknown, unknown>, options: Effect.RunOptions & { readonly onExit: (exit: Exit.Exit<SuiTxLifecycleResult, unknown>) => void }) => (interruptor?: number | undefined) => void;
+  readonly watchFinality: (request: SuiFinalityWatchRequest, options?: Effect.RunOptions) => SuiFinalityWatcher;
   readonly dispose: () => Promise<void>;
 }

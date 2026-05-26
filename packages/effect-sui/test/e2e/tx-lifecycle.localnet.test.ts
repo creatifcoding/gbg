@@ -51,28 +51,38 @@ describeLocalnet('@tmnl/effect-sui SuiTx lifecycle localnet proof', () => {
     });
     const ptb = makePtb(ast);
     const flow = makeFlowClient(client);
-    const tx = new SuiTx({
-      label: 'localnet.tx-lifecycle.tx',
-      ptb,
-      sender,
-      buildMode: 'execute',
-      gasPolicy: new AutoGasPolicy({}),
-      paymentPolicy: new AutoPaymentPolicy({ addressBalance: true }),
-      authPolicy: new KeypairAuthPolicy({ signer: keypair, sender }),
-      execute: (self) => runTx(self),
-    });
+    try {
+      const tx = new SuiTx({
+        label: 'localnet.tx-lifecycle.tx',
+        ptb,
+        sender,
+        buildMode: 'execute',
+        gasPolicy: new AutoGasPolicy({}),
+        paymentPolicy: new AutoPaymentPolicy({ addressBalance: true }),
+        authPolicy: new KeypairAuthPolicy({ signer: keypair, sender }),
+        execute: (self) => runTx(self),
+      });
 
-    const lifecycle = await flow.run(tx).finally(() => flow.dispose());
+      const lifecycle = await flow.run(tx);
 
-    expect(lifecycle.artifact.transaction).toBeDefined();
-    expect(lifecycle.gasPlan.price).toBeDefined();
-    expect(lifecycle.payment).toEqual({ gasPayment: [], sponsored: false, addressBalance: true });
-    expect(lifecycle.auth.signatures).toHaveLength(1);
-    expect(lifecycle.auth.transactionBytes?.byteLength).toBeGreaterThan(0);
-    expect(lifecycle.preflight?.status).toBe('success');
-    expect(lifecycle.execution?.digest).toBeDefined();
-    expect(lifecycle.finality?.digest).toBe(lifecycle.execution?.digest);
-    expect(lifecycle.finality?.effects).toBeDefined();
+      expect(lifecycle.artifact.transaction).toBeDefined();
+      expect(lifecycle.gasPlan.price).toBeDefined();
+      expect(lifecycle.payment).toEqual({ gasPayment: [], sponsored: false, addressBalance: true });
+      expect(lifecycle.auth.signatures).toHaveLength(1);
+      expect(lifecycle.auth.transactionBytes?.byteLength).toBeGreaterThan(0);
+      expect(lifecycle.preflight?.status).toBe('success');
+      expect(lifecycle.execution?.digest).toBeDefined();
+      expect(lifecycle.finality?.digest).toBe(lifecycle.execution?.digest);
+      expect(lifecycle.finality?.effects).toBeDefined();
+
+      const watcher = flow.watchFinality({ digest: lifecycle.execution!.digest, timeoutMs: 60_000 });
+      const watched = await watcher.join().finally(() => watcher.dispose());
+
+      expect(watched.digest).toBe(lifecycle.execution?.digest);
+      expect(watched.effects).toBeDefined();
+    } finally {
+      await flow.dispose();
+    }
   });
 });
 

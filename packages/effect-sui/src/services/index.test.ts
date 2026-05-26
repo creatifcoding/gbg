@@ -149,6 +149,7 @@ describe('Effect-Sui service contracts', () => {
         }),
         Effect.provideService(SuiFinalityService, {
           wait: (request) => Effect.succeed({ digest: request.execution.digest, transaction: request.execution.raw }),
+          waitForDigest: (request) => Effect.succeed({ digest: request.digest, transaction: { ok: true } }),
         }),
       ),
     );

@@ -25,6 +25,8 @@ export interface ClientWithTransactionLifecycle extends ClientWithTransactionBui
       readonly digest: string;
       readonly include?: { readonly effects?: boolean; readonly transaction?: boolean; readonly events?: boolean; readonly balanceChanges?: boolean };
       readonly timeout?: number;
+      readonly pollSchedule?: number[];
+      readonly signal?: AbortSignal;
     }) => Promise<unknown>;
   };
 }

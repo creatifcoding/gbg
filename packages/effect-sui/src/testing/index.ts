@@ -160,6 +160,11 @@ export const makeFakeFinalityService = (
     transaction: request.execution.raw,
     events: [],
   }),
+  waitForDigest: (request) => Effect.succeed({
+    digest: request.digest,
+    transaction: { _tag: 'FakeFinality', digest: request.digest },
+    events: [],
+  }),
   ...overrides,
 });
 

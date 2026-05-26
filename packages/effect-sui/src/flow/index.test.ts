@@ -10,13 +10,14 @@ import {
   AutoPaymentPolicy,
   decodeSuiObjectDigest,
   decodeSuiObjectId,
+  decodeSuiTransactionDigest,
   ExplicitGasPolicy,
   ExplicitPaymentPolicy,
   SuiInvariantViolation,
   SuiObjectRef,
 } from '../schema';
 import { object } from '../ptb';
-import { SuiTxRunner } from '../services';
+import { SuiFinalityService, SuiTxRunner } from '../services';
 import {
   makeClient,
   makeGasPlanner,
@@ -129,6 +130,48 @@ describe('Sui payment/gas/auth policies', () => {
 
     expect(result.tx.label).toBe('runtime.ok');
     expect(result.auth.signatures).toEqual(['sig']);
+  });
+
+  it('watches finality through a ManagedRuntime-backed Flow client', async () => {
+    const txDigest = decodeSuiTransactionDigest('11111111111111111111111111111112');
+    const runtime = ManagedRuntime.make(
+      Layer.succeed(SuiFinalityService)({
+        wait: (request) => Effect.succeed({ digest: request.execution.digest, transaction: request.execution.raw }),
+        waitForDigest: (request) => Effect.succeed({ digest: request.digest, transaction: { _tag: 'WatchedFinality' }, events: [] }),
+      }),
+    ) as SuiFlowRuntime;
+    const client = makeClient(runtime);
+
+    const watcher = client.watchFinality({ digest: txDigest });
+    const result = await watcher.join();
+    await client.dispose();
+
+    expect(result).toEqual({ digest: txDigest, transaction: { _tag: 'WatchedFinality' }, events: [] });
+  });
+
+  it('interrupts finality watchers when the Flow runtime is disposed', async () => {
+    const txDigest = decodeSuiTransactionDigest('11111111111111111111111111111112');
+    let interrupted = false;
+    const runtime = ManagedRuntime.make(
+      Layer.succeed(SuiFinalityService)({
+        wait: (request) => Effect.succeed({ digest: request.execution.digest, transaction: request.execution.raw }),
+        waitForDigest: () => Effect.callback((resume) => {
+          const timeout = setTimeout(() => resume(Effect.succeed({ digest: txDigest, transaction: { late: true } })), 60_000);
+          return Effect.sync(() => {
+            interrupted = true;
+            clearTimeout(timeout);
+          });
+        }),
+      }),
+    ) as SuiFlowRuntime;
+    const client = makeClient(runtime);
+
+    const watcher = client.watchFinality({ digest: txDigest });
+    await client.dispose();
+    const exit = await watcher.exit();
+
+    expect(Exit.isFailure(exit)).toBe(true);
+    expect(interrupted).toBe(true);
   });
 
   it('exposes runPromiseExit and disposal semantics at the Flow runtime edge', async () => {
