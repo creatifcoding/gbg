@@ -76,6 +76,7 @@ Rationale:
 | Flow gas planning decomposition | Done | `dcb2286c refactor(effect-sui): decompose flow gas planning` |
 | Transaction RPC contract decomposition | Done | `e0d7dea6 refactor(effect-sui): decompose transaction RPC contracts` |
 | Flow runner reconciliation decomposition | Done | `2376b139 refactor(effect-sui): decompose flow runner reconciliation` |
+| Query BCS codec decomposition | Done | `5cbbe567 refactor(effect-sui): decompose query BCS codec helpers` |
 
 ## Surgical decomposition closeout
 
@@ -86,7 +87,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow` | 787 | 921 | 117.0% |
 | `src/ptb` | 622 | 727 | 116.9% |
 | `src/schema` | 571 | 614 | 107.5% |
-| `src/query` | 401 | 473 | 118.0% |
+| `src/query` | 401 | 470 | 117.2% |
 | `src/services` | 321 | 382 | 119.0% |
 | `src/effectable` | 287 | 311 | 108.4% |
 | `src/reservation` | 226 | 264 | 116.8% |
@@ -107,6 +108,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/flow/gas` | 63 | 66 | 104.8% |
 | `src/schema/errors` | 89 | 75 | 84.3% |
 | `src/schema/policies` | 72 | 67 | 93.1% |
+| `src/query/bcs` | 84 | 81 | 96.4% |
 | `src/query/runtime` | 88 | 82 | 93.2% |
 | `src/query/resolver-core` | 102 | 113 | 110.8% |
 
