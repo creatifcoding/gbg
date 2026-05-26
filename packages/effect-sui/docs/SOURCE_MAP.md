@@ -92,7 +92,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/move.ts` | Public barrel for Move identifiers and Sui type tags |
 | `src/schema/move-identifiers.ts` | Move identifier schema/brand |
 | `src/schema/type-tag-string.ts` | Type-tag string normalization and branded schemas |
-| `src/schema/type-tag.ts` | Type-tag AST classes, stringify, and parser |
+| `src/schema/type-tag.ts` | Structured type-tag public barrel |
+| `src/schema/type-tag-model.ts` | Recursive Sui type-tag model classes and stringify |
+| `src/schema/type-tag-parser.ts` | Structured recursive Sui type-tag parser |
 | `src/schema/objects.ts` | Object refs, shared refs, object args |
 | `src/schema/descriptors.ts` | Package/module descriptors |
 | `src/schema/errors.ts` | Typed error barrel |
