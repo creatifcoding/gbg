@@ -163,5 +163,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/reservation/operations.ts` | STM acquire/release/reconcile operations |
 | `src/reservation/service.ts` | `SuiReservationService` layer assembly |
 | `src/package` | Registry layer and SuiPackage/SuiModule factory helpers |
-| `src/adapter` | Mysten `$extend` registration and Promise facade |
+| `src/adapter/index.ts` | Public adapter barrel |
+| `src/adapter/types.ts` | Adapter client/source/cache/extension contracts |
+| `src/adapter/cache.ts` | WeakMap-backed runtime cache |
+| `src/adapter/client.ts` | ManagedRuntime-backed Flow/Query Promise facade |
+| `src/adapter/extension.ts` | Mysten `$extend` registration factory |
 | `src/testing` | Fake clients, fixtures, localnet helpers |

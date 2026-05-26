@@ -56,6 +56,7 @@ Rationale:
 | Schema Move type-tag decomposition | Done | `f3cd3241 refactor(effect-sui): decompose Move type tags` |
 | Query resolver decomposition | Done | `a0fa7b5c refactor(effect-sui): decompose query resolver` |
 | Flow auth decomposition | Done | `882a9bb9 refactor(effect-sui): decompose flow auth service` |
+| Adapter edge decomposition | Done | `0c8ed7c2 refactor(effect-sui): decompose adapter edge` |
 
 ## Surgical decomposition closeout
 
@@ -77,6 +78,7 @@ Source-only line budgets stayed under the 120% cap:
 | `src/schema/move` | 174 | 159 | 91.4% |
 | `src/query/resolver` | 160 | 162 | 101.3% |
 | `src/flow/auth` | 152 | 165 | 108.6% |
+| `src/adapter` | 118 | 133 | 112.7% |
 
 Final decomposition gates passed:
 
