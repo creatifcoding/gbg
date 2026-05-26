@@ -10,7 +10,7 @@ import {
 } from '../../schemas/reactor'
 import type { PropagationId } from '../../schemas/identifiers'
 import { RelationshipEndpoint } from '../../schemas/relationships'
-import { AlarmEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../schemas/events/groups'
+import { AlarmEvents, ContextEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../schemas/events/groups'
 import type { EventObservationSpec } from './ReactorRegistry'
 
 const unavailableEquipmentStates = new Set([
@@ -434,12 +434,98 @@ export const SensorDecommissionedObservationSpec = structuralDecommissionObserva
   idField: 'sensorId',
 })
 
-export const DeviceDecommissionedObservationSpec = structuralDecommissionObservationSpec({
+export const DeviceDecommissionedObservationSpec: EventObservationSpec = {
   id: 'device-decommissioned-structural-observation',
   eventTag: 'DeviceDecommissioned',
-  entityType: 'device',
-  idField: 'deviceId',
-})
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = StructuralEvents.events.DeviceDecommissioned
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return new ReactorObservation({
+        event: eventEnvelopeFromEntry(entry),
+        subject: new RelationshipEndpoint({ type: 'device', id: payload.deviceId }),
+        signals: [
+          new ObservationSignal({
+            axis: 'structural.lifecycle',
+            kind: 'condition_asserted',
+            value: 'decommissioned',
+            reason: payload.reason,
+          }),
+          new ObservationSignal({
+            axis: 'device.availability',
+            kind: 'condition_asserted',
+            value: 'unavailable',
+            reason: payload.reason,
+          }),
+        ],
+        causality: new ReactorCausality({
+          propagationId: entry.idString as PropagationId,
+        }),
+        payload,
+      })
+    }),
+}
+
+const externalAvailabilityObservation = (input: {
+  readonly entry: EventJournal.Entry
+  readonly externalRefId: string
+  readonly value: 'available' | 'unavailable'
+  readonly reason: string
+  readonly payload: unknown
+}): ReactorObservation =>
+  new ReactorObservation({
+    event: eventEnvelopeFromEntry(input.entry),
+    subject: new RelationshipEndpoint({ type: 'external', id: input.externalRefId }),
+    signals: [
+      new ObservationSignal({
+        axis: 'external.availability',
+        kind: 'condition_asserted',
+        value: input.value,
+        reason: input.reason,
+      }),
+    ],
+    causality: new ReactorCausality({
+      propagationId: input.entry.idString as PropagationId,
+    }),
+    payload: input.payload,
+  })
+
+export const ExternalRefLinkedAvailabilityObservationSpec: EventObservationSpec = {
+  id: 'external-ref-linked-availability-observation',
+  eventTag: 'ExternalRefLinked',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = ContextEvents.events.ExternalRefLinked
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return externalAvailabilityObservation({
+        entry,
+        externalRefId: payload.externalRefId,
+        value: 'available',
+        reason: `external_ref_linked:${payload.externalSystem}:${payload.externalType}`,
+        payload,
+      })
+    }),
+}
+
+export const ExternalRefUnlinkedAvailabilityObservationSpec: EventObservationSpec = {
+  id: 'external-ref-unlinked-availability-observation',
+  eventTag: 'ExternalRefUnlinked',
+  observe: (entry) =>
+    Effect.gen(function* () {
+      const event = ContextEvents.events.ExternalRefUnlinked
+      const payload = yield* Schema.decodeUnknown(event.payloadMsgPack)(entry.payload)
+
+      return externalAvailabilityObservation({
+        entry,
+        externalRefId: payload.externalRefId,
+        value: 'unavailable',
+        reason: `external_ref_unlinked:${payload.reason}`,
+        payload,
+      })
+    }),
+}
 
 export const ReactiveEquipmentStateObservationSpecs = [
   EquipmentStateChangedObservationSpec,
@@ -462,6 +548,15 @@ export const StructuralDecommissionObservationSpecs = [
   WorkCellDecommissionedObservationSpec,
   MachineDecommissionedObservationSpec,
   SensorDecommissionedObservationSpec,
+  DeviceDecommissionedObservationSpec,
+] as const
+
+export const ExternalAvailabilityObservationSpecs = [
+  ExternalRefLinkedAvailabilityObservationSpec,
+  ExternalRefUnlinkedAvailabilityObservationSpec,
+] as const
+
+export const DeviceAvailabilityObservationSpecs = [
   DeviceDecommissionedObservationSpec,
 ] as const
 

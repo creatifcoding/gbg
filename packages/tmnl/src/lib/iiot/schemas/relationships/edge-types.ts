@@ -553,6 +553,97 @@ export const StructuralDecommissionPropagationPolicies = [
   RequiresStructuralDecommissionBlocksSource,
 ] as const
 
+/** Required external dependency became unavailable. */
+export const RequiresExternalUnavailableBlocksSource = new RelationshipPropagationPolicy({
+  id: 'requires.external-unavailable.blocks-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'external.availability',
+    kind: 'condition_asserted',
+    value: 'unavailable',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyBlocked,
+    reason: 'required_external_unavailable',
+    payloadDefaults: { dependencyKind: 'external', suspensionReason: 'external_dependency' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/** Required external dependency became available again. */
+export const RequiresExternalAvailableReleasesSource = new RelationshipPropagationPolicy({
+  id: 'requires.external-available.releases-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'external.availability',
+    kind: 'condition_asserted',
+    value: 'available',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyReleased,
+    reason: 'required_external_available',
+    payloadDefaults: { dependencyKind: 'external' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/** Required device became unavailable. */
+export const RequiresDeviceUnavailableBlocksSource = new RelationshipPropagationPolicy({
+  id: 'requires.device-unavailable.blocks-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'device.availability',
+    kind: 'condition_asserted',
+    value: 'unavailable',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyBlocked,
+    reason: 'required_device_unavailable',
+    payloadDefaults: { dependencyKind: 'device', suspensionReason: 'equipment_unavailable' },
+  }),
+  effect: 'blocking',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+/** Required device became available again. */
+export const RequiresDeviceAvailableReleasesSource = new RelationshipPropagationPolicy({
+  id: 'requires.device-available.releases-source' as never,
+  edgeType: 'requires',
+  observedEndpoint: 'target',
+  accepts: new SignalMatcher({
+    axis: 'device.availability',
+    kind: 'condition_asserted',
+    value: 'available',
+  }),
+  requestEndpoint: 'source',
+  request: new EntityReactionRequestTemplate({
+    capability: EntityCapabilityIds.DependencyReleased,
+    reason: 'required_device_available',
+    payloadDefaults: { dependencyKind: 'device' },
+  }),
+  effect: 'consistency',
+  idempotencyStrategy: 'source_propagation_id',
+  version: '1',
+})
+
+export const ExternalDeviceRequiresAvailabilityPropagationPolicies = [
+  RequiresExternalUnavailableBlocksSource,
+  RequiresExternalAvailableReleasesSource,
+  RequiresDeviceUnavailableBlocksSource,
+  RequiresDeviceAvailableReleasesSource,
+] as const
+
 export const RELATIONSHIP_EDGE_REGISTRY = {
   targets: descriptor(
     'targets',
@@ -578,6 +669,10 @@ export const RELATIONSHIP_EDGE_REGISTRY = {
       RequiresAlarmSafetyHoldHoldsSource,
       RequiresAlarmSafetyHoldRetractedReleasesSource,
       RequiresStructuralDecommissionBlocksSource,
+      RequiresExternalUnavailableBlocksSource,
+      RequiresExternalAvailableReleasesSource,
+      RequiresDeviceUnavailableBlocksSource,
+      RequiresDeviceAvailableReleasesSource,
     ],
   ),
   caused_by: descriptor('caused_by', 'directed', ['work_order', 'alarm'], ['alarm', 'machine', 'sensor', 'device', 'work_order']),

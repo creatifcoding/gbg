@@ -9,7 +9,11 @@ import {
   DependsOnWorkOrderSatisfiedSatisfiesSource,
   RequiresAlarmSafetyHoldHoldsSource,
   RequiresAlarmSafetyHoldRetractedReleasesSource,
+  RequiresDeviceAvailableReleasesSource,
+  RequiresDeviceUnavailableBlocksSource,
   RequiresEquipmentUnavailableBlocksSource,
+  RequiresExternalAvailableReleasesSource,
+  RequiresExternalUnavailableBlocksSource,
   RequiresStructuralDecommissionBlocksSource,
   TargetsAlarmSafetyHoldHoldsSource,
   TargetsAlarmSafetyHoldRetractedReleasesSource,
@@ -87,6 +91,10 @@ describe('ReactorRegistry', () => {
       RequiresAlarmSafetyHoldHoldsSource.id,
       RequiresAlarmSafetyHoldRetractedReleasesSource.id,
       RequiresStructuralDecommissionBlocksSource.id,
+      RequiresExternalUnavailableBlocksSource.id,
+      RequiresExternalAvailableReleasesSource.id,
+      RequiresDeviceUnavailableBlocksSource.id,
+      RequiresDeviceAvailableReleasesSource.id,
     ])
   })
 
@@ -152,6 +160,51 @@ describe('ReactorRegistry', () => {
     })).map((policy) => policy.id)).toEqual([
       TargetsAlarmSafetyHoldRetractedReleasesSource.id,
       RequiresAlarmSafetyHoldRetractedReleasesSource.id,
+    ])
+  })
+
+  it('matches external/device requires availability signals through declared policies', () => {
+    const registry = makeReactorRegistry({
+      observations: [],
+      propagationPolicies: [
+        RequiresExternalUnavailableBlocksSource,
+        RequiresExternalAvailableReleasesSource,
+        RequiresDeviceUnavailableBlocksSource,
+        RequiresDeviceAvailableReleasesSource,
+      ],
+      entities: [workOrderContract],
+    })
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'external.availability',
+      kind: 'condition_asserted',
+      value: 'unavailable',
+    })).map((policy) => policy.id)).toEqual([
+      RequiresExternalUnavailableBlocksSource.id,
+    ])
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'external.availability',
+      kind: 'condition_asserted',
+      value: 'available',
+    })).map((policy) => policy.id)).toEqual([
+      RequiresExternalAvailableReleasesSource.id,
+    ])
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'device.availability',
+      kind: 'condition_asserted',
+      value: 'unavailable',
+    })).map((policy) => policy.id)).toEqual([
+      RequiresDeviceUnavailableBlocksSource.id,
+    ])
+
+    expect(registry.policiesForSignal(new ObservationSignal({
+      axis: 'device.availability',
+      kind: 'condition_asserted',
+      value: 'available',
+    })).map((policy) => policy.id)).toEqual([
+      RequiresDeviceAvailableReleasesSource.id,
     ])
   })
 

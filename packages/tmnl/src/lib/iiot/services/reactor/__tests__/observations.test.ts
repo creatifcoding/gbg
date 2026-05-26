@@ -6,7 +6,12 @@ import {
   AlarmEscalatedObservationSpec,
   AlarmSafetyObservationSpecs,
   AlarmTriggeredObservationSpec,
+  DeviceAvailabilityObservationSpecs,
+  DeviceDecommissionedObservationSpec,
   EquipmentStateChangedObservationSpec,
+  ExternalAvailabilityObservationSpecs,
+  ExternalRefLinkedAvailabilityObservationSpec,
+  ExternalRefUnlinkedAvailabilityObservationSpec,
   FaultDetectedObservationSpec,
   LineDecommissionedObservationSpec,
   MaintenanceModeEnteredObservationSpec,
@@ -17,17 +22,19 @@ import {
   WorkOrderResumedObservationSpec,
   WorkOrderSuspendedObservationSpec,
 } from '../observations'
-import { AlarmEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../../schemas/events/groups'
+import { AlarmEvents, ContextEvents, EquipmentStateEvents, StructuralEvents, WorkOrderEvents } from '../../../schemas/events/groups'
 import type {
   AlarmId,
   AssetId,
   DeviceId,
   EquipmentLevel,
   EventId,
+  ExternalRefId,
   LineId,
   MachineId,
   PlantId,
   PropagationId,
+  WorkOrderContextId,
   WorkOrderId,
 } from '../../../schemas/identifiers'
 
@@ -37,6 +44,8 @@ const TEST_ALARM_ID = 'ALM-OBSERVATION-001' as AlarmId
 const TEST_DEVICE_ID = 'DEV-OBSERVATION-001' as DeviceId
 const TEST_LINE_ID = 'LIN-OBSERVATION-001' as LineId
 const TEST_PLANT_ID = 'PLT-OBSERVATION-001' as PlantId
+const TEST_CONTEXT_ID = 'WOC-OBSERVATION-001' as WorkOrderContextId
+const TEST_EXTERNAL_REF_ID = 'EXT-OBSERVATION-001' as ExternalRefId
 
 const basePayload = () => ({
   eventId: `EVT-OBSERVATION-${Date.now()}` as EventId,
@@ -110,6 +119,21 @@ const makeStructuralEntry = <Tag extends keyof typeof StructuralEvents.events>(
   })
 })
 
+const makeContextEntry = <Tag extends keyof typeof ContextEvents.events>(
+  tag: Tag,
+  payload: Record<string, unknown>,
+) => Effect.gen(function* () {
+  const event = ContextEvents.events[tag] as { payloadMsgPack: Schema.Schema<unknown, Uint8Array> }
+  const encodedPayload = yield* Schema.encode(event.payloadMsgPack)(payload)
+
+  return new EventJournal.Entry({
+    id: EventJournal.makeEntryId(),
+    event: tag,
+    primaryKey: TEST_CONTEXT_ID,
+    payload: encodedPayload,
+  })
+})
+
 const makeEquipmentStateChangedEntry = (overrides?: {
   readonly newState?: 'operational' | 'degraded' | 'faulted' | 'maintenance' | 'offline'
   readonly propagationId?: PropagationId
@@ -176,6 +200,18 @@ const baseStructuralPayload = (input: {
   hierarchyPath: [input.entityId],
   correlationId: Option.none(),
   schemaVersion: 1,
+})
+
+const baseContextPayload = () => ({
+  eventId: `EVT-CONTEXT-OBSERVATION-${Date.now()}` as EventId,
+  occurredAt: DateTime.unsafeNow(),
+  causedBy: 'reactor-observation-test',
+  entityId: TEST_MACHINE_ID as unknown as AssetId,
+  entityType: 'machine' as EquipmentLevel,
+  correlationId: Option.none(),
+  schemaVersion: 1,
+  workOrderId: TEST_WORK_ORDER_ID,
+  contextId: TEST_CONTEXT_ID,
 })
 
 describe('Reactor observation adapters', () => {
@@ -494,6 +530,98 @@ describe('Reactor observation adapters', () => {
         kind: 'condition_asserted',
         value: 'decommissioned',
         reason: 'line retired',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('decodes DeviceDecommissioned into structural and device availability signals', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeStructuralEntry('DeviceDecommissioned', TEST_DEVICE_ID, {
+        ...baseStructuralPayload({
+          entityId: TEST_DEVICE_ID as unknown as AssetId,
+          entityType: 'device' as EquipmentLevel,
+        }),
+        deviceId: TEST_DEVICE_ID,
+        machineId: TEST_MACHINE_ID,
+        reason: 'controller removed',
+        effectiveDate: DateTime.unsafeNow(),
+        totalOperationHours: Option.none(),
+        notes: Option.none(),
+      })
+      const observation = yield* DeviceDecommissionedObservationSpec.observe(entry)
+
+      expect(observation.subject).toMatchObject({ type: 'device', id: TEST_DEVICE_ID })
+      expect(observation.signals).toHaveLength(2)
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'structural.lifecycle',
+        kind: 'condition_asserted',
+        value: 'decommissioned',
+        reason: 'controller removed',
+      })
+      expect(observation.signals[1]).toMatchObject({
+        axis: 'device.availability',
+        kind: 'condition_asserted',
+        value: 'unavailable',
+        reason: 'controller removed',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('exports external/device availability observation specs', () => {
+    expect(ExternalAvailabilityObservationSpecs.map((spec) => spec.eventTag)).toEqual([
+      'ExternalRefLinked',
+      'ExternalRefUnlinked',
+    ])
+    expect(DeviceAvailabilityObservationSpecs.map((spec) => spec.eventTag)).toEqual([
+      'DeviceDecommissioned',
+    ])
+  })
+
+  it('decodes ExternalRefLinked into external available signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeContextEntry('ExternalRefLinked', {
+        ...baseContextPayload(),
+        externalRefId: TEST_EXTERNAL_REF_ID,
+        externalSystem: 'erp',
+        externalType: 'purchase_order',
+        externalIdentifier: 'PO-OBSERVATION-001',
+        linkUrl: Option.none(),
+        metadata: Option.none(),
+      })
+      const observation = yield* ExternalRefLinkedAvailabilityObservationSpec.observe(entry)
+
+      expect(observation.subject).toMatchObject({ type: 'external', id: TEST_EXTERNAL_REF_ID })
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'external.availability',
+        kind: 'condition_asserted',
+        value: 'available',
+        reason: 'external_ref_linked:erp:purchase_order',
+      })
+    })
+
+    await Effect.runPromise(program)
+  })
+
+  it('decodes ExternalRefUnlinked into external unavailable signal', async () => {
+    const program = Effect.gen(function* () {
+      const entry = yield* makeContextEntry('ExternalRefUnlinked', {
+        ...baseContextPayload(),
+        externalRefId: TEST_EXTERNAL_REF_ID,
+        reason: 'external_deleted',
+        notes: Option.none(),
+      })
+      const observation = yield* ExternalRefUnlinkedAvailabilityObservationSpec.observe(entry)
+
+      expect(observation.subject).toMatchObject({ type: 'external', id: TEST_EXTERNAL_REF_ID })
+      expect(observation.signals[0]).toMatchObject({
+        axis: 'external.availability',
+        kind: 'condition_asserted',
+        value: 'unavailable',
+        reason: 'external_ref_unlinked:external_deleted',
       })
     })
 
