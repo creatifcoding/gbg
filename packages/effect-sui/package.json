@@ -42,6 +42,10 @@
       "import": "./dist/flow/index.js",
       "types": "./dist/flow/index.d.ts"
     },
+    "./diagnostics": {
+      "import": "./dist/diagnostics/index.js",
+      "types": "./dist/diagnostics/index.d.ts"
+    },
     "./reservation": {
       "import": "./dist/reservation/index.js",
       "types": "./dist/reservation/index.d.ts"

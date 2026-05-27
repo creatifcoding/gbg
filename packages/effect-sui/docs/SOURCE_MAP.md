@@ -74,6 +74,7 @@ This is the grounding map for implementation work. Read the relevant source befo
 | Service ecosystem and normalized service form | `docs/SERVICE_ECOSYSTEM.md` |
 | ManagedRuntime insertion strategy | `docs/MANAGED_RUNTIME_STRATEGY.md` |
 | Tracked realization ledger and proposal-maintenance home | `docs/REALIZATION_LEDGER.md` |
+| Release candidate notes and publish checklist | `docs/RELEASE_NOTES.md` |
 | Exploratory grand proposal / scratch plan | `../../packages/tmnl/thoughts/shared/plans/effect-sui-grand-proposal.md` |
 
 ## Package seams

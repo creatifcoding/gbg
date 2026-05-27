@@ -17,7 +17,7 @@ This package will wrap Mysten's Sui TypeScript SDK with:
 
 ## Current status
 
-Workspace scaffold, package-local Sui development infrastructure, localnet e2e harness, and Schema-backed domain/error core are present. The stable module seams are ready for implementation slices behind explicit test and commit gates.
+Effect-Sui now has a realized Effect-smol-first core: Schema-backed nouns/errors/diagnostics, Effectable objects/PTBs/transactions/packages, service-scoped Query and Flow runtimes, STM reservations with optional persistence hooks, Move package publishing, finality watcher fibers, wallet callback auth, adapter run handles, and package-local localnet proof gates. The public API is namespace-first and the release gate is `bun run quality:localnet`.
 
 ## Ontology
 
@@ -38,11 +38,13 @@ Effect-Sui follows Effect's namespace API style: import a module namespace and c
 
 ```ts
 import * as Effect from 'effect-v4/Effect';
+import * as Layer from 'effect-v4/Layer';
 import * as SuiPTB from '@tmnl/effect-sui/ptb';
 import * as SuiFlow from '@tmnl/effect-sui/flow';
 import * as SuiQuery from '@tmnl/effect-sui/query';
 import * as SuiAdapter from '@tmnl/effect-sui/adapter';
 import * as SuiPackage from '@tmnl/effect-sui/package';
+import * as SuiDiagnostics from '@tmnl/effect-sui/diagnostics';
 import * as SuiReservation from '@tmnl/effect-sui/reservation';
 
 const ptb = SuiPTB.make(ast);
@@ -70,7 +72,74 @@ const pkg = SuiPackage.make(counter);
 const module = await Effect.runPromise(SuiPackage.module(pkg, 'counter'));
 ```
 
-No long compatibility aliases are kept; the namespace is the public API surface. Services remain Effect-returning; ManagedRuntime-backed clients live at package/application edges. Tests can use `SuiTesting.makeFakeClient()` for one disposable fake runtime with shared Flow and Query facades.
+No long compatibility aliases are kept; the namespace is the public API surface. Services remain Effect-returning; ManagedRuntime-backed clients live at package/application edges. Tests can use `SuiTesting.makeFakeClient()` or `SuiTesting.makeFakeFixtureScope()` for disposable fake runtimes with shared Flow and Query facades.
+
+## Release-ready examples
+
+### Wait for finality without owning the whole runtime
+
+```ts
+const flow = SuiFlow.makeClient(client);
+const watcher = flow.watchFinality({ digest, include: { effects: true, objectTypes: true } });
+
+const finalized = await watcher.join();
+await watcher.dispose();
+await flow.dispose();
+```
+
+### Publish compiled Move bytecode and register the package descriptor
+
+```ts
+const request = SuiPackage.publishRequestFromCompiled({
+  name: 'counter',
+  sender,
+  modules: compiled.counter.modules,
+  dependencies: compiled.counter.dependencies,
+  moduleNames: ['counter'],
+});
+
+const published = await Effect.runPromise(
+  SuiPackage.publishMovePackage({ request, authPolicy }).pipe(
+    Effect.provide(Layer.mergeAll(SuiFlow.makeLayer(client), SuiPackage.makeRegistryLayer())),
+  ),
+);
+```
+
+### Wallet callback auth at an adapter edge
+
+```ts
+const adapter = SuiAdapter.makeClient(client);
+const handle = adapter.runWalletTx(tx, {
+  sender,
+  chain: 'sui:localnet',
+  account,
+  signTransaction: ({ transaction, signal }) => wallet.signTransaction({ transaction, account, chain, signal }),
+});
+
+const lifecycle = await handle.promise;
+handle.dispose();
+await adapter.dispose();
+```
+
+### Reservation persistence is explicit and side-effect-free inside STM
+
+```ts
+const service = await Effect.runPromise(
+  SuiReservation.makePersistentReservationService({
+    persistence: {
+      load: () => Effect.succeed(savedSnapshot),
+      save: (next) => Effect.sync(() => { savedSnapshot = next; }),
+    },
+  }),
+);
+```
+
+### Diagnostics classify; they do not change execution semantics
+
+```ts
+const diagnostic = await Effect.runPromise(SuiDiagnostics.classifyUnknown(error));
+console.info(diagnostic.category, diagnostic.retryHint);
+```
 
 ## Grounding
 
