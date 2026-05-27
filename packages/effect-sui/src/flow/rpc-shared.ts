@@ -10,6 +10,7 @@ export type TransactionPayloadLike = {
   readonly status?: { readonly success?: boolean; readonly error?: unknown };
   readonly effects?: { readonly gasUsed?: unknown; readonly status?: { readonly success?: boolean; readonly error?: unknown } };
   readonly events?: ReadonlyArray<unknown>;
+  readonly objectTypes?: Record<string, string>;
 };
 
 export const requireTransactionBytes = (
@@ -36,9 +37,10 @@ export const transactionPayload = (result: unknown): TransactionPayloadLike | un
     readonly digest?: string;
     readonly effects?: TransactionPayloadLike['effects'];
     readonly events?: ReadonlyArray<unknown>;
+    readonly objectTypes?: Record<string, string>;
   };
   return envelope.Transaction ?? envelope.FailedTransaction ?? (envelope.digest
-    ? { digest: envelope.digest, effects: envelope.effects, events: envelope.events }
+    ? { digest: envelope.digest, effects: envelope.effects, events: envelope.events, objectTypes: envelope.objectTypes }
     : undefined);
 };
 

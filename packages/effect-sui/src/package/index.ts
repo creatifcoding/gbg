@@ -10,3 +10,14 @@ export {
 } from './registry';
 export { get, getDescriptor, register } from './operations';
 export { fromDescriptor, make, module, object, ptb, tx } from './factories';
+export {
+  extractPublishResult,
+  makePublishPtb,
+  makePublishTx,
+  publishMovePackage,
+  publishRequestFromCompiled,
+  SuiPackagePublishRequest,
+  SuiPackagePublishResult,
+  type CompiledMovePackageInput,
+  type PublishMovePackageOptions,
+} from './publish';

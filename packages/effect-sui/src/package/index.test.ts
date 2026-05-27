@@ -2,7 +2,8 @@ import * as Effect from 'effect-v4/Effect';
 import { describe, expect, it } from 'vitest';
 
 import { SuiObject, SuiPTB, SuiTx } from '../effectable';
-import { decodeSuiObjectId, SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
+import { decodeSuiAddress, decodeSuiObjectId, decodeSuiTransactionDigest, OfflineAuthPolicy, SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
+import { SuiTxRunner, type SuiTxLifecycleResult } from '../services';
 import {
   counterFixtureDescriptor,
   fromDescriptor,
@@ -12,6 +13,9 @@ import {
   module,
   object,
   ptb,
+  publishMovePackage,
+  publishRequestFromCompiled,
+  makePublishPtb,
   register,
   tx,
 } from './index';
@@ -86,6 +90,71 @@ describe('SuiPackage registry and factories', () => {
     expect(call.label).toContain('counter::increment');
     expect(lifecycle).toBeInstanceOf(SuiTx);
     expect(lifecycle.label).toContain('counter::increment.tx');
+  });
+
+  it('builds package publish requests and PTBs from compiled Move bytecode', () => {
+    const sender = decodeSuiAddress('0x8');
+    const request = publishRequestFromCompiled({
+      name: 'counter',
+      sender,
+      modules: ['AQID'],
+      dependencies: ['0x1', '0x2'],
+      moduleNames: ['counter'],
+    });
+    const ptb = makePublishPtb(request);
+
+    expect([...request.modules[0]]).toEqual([1, 2, 3]);
+    expect(request.dependencies.map(String)).toEqual([
+      '0x0000000000000000000000000000000000000000000000000000000000000001',
+      '0x0000000000000000000000000000000000000000000000000000000000000002',
+    ]);
+    expect(ptb.commands.map((command) => command._tag)).toEqual(['Publish', 'TransferObjects']);
+  });
+
+  it('extracts publish results and registers descriptors through the package registry', async () => {
+    const sender = decodeSuiAddress('0x8');
+    const publishedPackageId = decodeSuiObjectId('0x42');
+    const upgradeCapId = decodeSuiObjectId('0x99');
+    const digest = decodeSuiTransactionDigest('11111111111111111111111111111112');
+    const request = publishRequestFromCompiled({
+      name: 'counter',
+      sender,
+      modules: ['AQID'],
+      dependencies: ['0x1', '0x2'],
+      moduleNames: ['counter'],
+    });
+    const lifecycle = {
+      execution: { digest, raw: {} },
+      finality: {
+        digest,
+        transaction: {},
+        effects: {
+          changedObjects: [
+            { objectId: publishedPackageId, outputState: 'PackageWrite', idOperation: 'Created' },
+            { objectId: upgradeCapId, outputState: 'ObjectWrite', idOperation: 'Created' },
+          ],
+        },
+        objectTypes: { [upgradeCapId]: '0x2::package::UpgradeCap' },
+      },
+    } as unknown as SuiTxLifecycleResult;
+
+    const output = await Effect.runPromise(
+      Effect.gen(function* () {
+        const published = yield* publishMovePackage({
+          request,
+          authPolicy: new OfflineAuthPolicy({ sender }),
+        });
+        const descriptor = yield* getDescriptor(published.packageId);
+        return { published, descriptor };
+      }).pipe(
+        Effect.provideService(SuiTxRunner, { run: () => Effect.succeed(lifecycle) }),
+        Effect.provide(makeRegistryLayer()),
+      ),
+    );
+
+    expect(output.published.packageId).toBe(publishedPackageId);
+    expect(output.published.upgradeCapId).toBe(upgradeCapId);
+    expect(output.descriptor.modules).toEqual(['counter']);
   });
 
   it('rejects modules not declared by the descriptor', async () => {

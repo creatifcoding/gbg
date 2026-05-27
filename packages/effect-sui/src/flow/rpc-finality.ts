@@ -20,6 +20,7 @@ const defaultFinalityInclude = {
   transaction: true,
   events: true,
   balanceChanges: true,
+  objectTypes: true,
 } satisfies SuiFinalityIncludeOptions;
 
 export const makeFinalityService = (client: ClientWithTransactionLifecycle): SuiFinalityServiceShape => ({
@@ -51,7 +52,13 @@ const waitForTransaction = (
       catch: (cause) => wait(request.digest, request.timeoutMs ?? 60_000, cause),
     });
     const transaction = transactionPayload(raw);
-    return { digest: request.digest, transaction: raw, effects: transaction?.effects, events: transaction?.events ?? [] } satisfies SuiFinalityResult;
+    return {
+      digest: request.digest,
+      transaction: raw,
+      effects: transaction?.effects,
+      events: transaction?.events ?? [],
+      objectTypes: transaction?.objectTypes,
+    } satisfies SuiFinalityResult;
   }).pipe(
     Effect.withSpan('@tmnl/effect-sui/SuiFinalityService.waitForTransaction', {
       attributes: { digest: request.digest, timeoutMs: request.timeoutMs ?? 60_000 },

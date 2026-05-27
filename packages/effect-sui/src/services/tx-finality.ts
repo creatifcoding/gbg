@@ -10,6 +10,7 @@ export interface SuiFinalityIncludeOptions {
   readonly transaction?: boolean;
   readonly events?: boolean;
   readonly balanceChanges?: boolean;
+  readonly objectTypes?: boolean;
 }
 
 export interface SuiFinalityWaitOptions {
@@ -23,6 +24,7 @@ export interface SuiFinalityResult {
   readonly transaction: unknown;
   readonly effects?: unknown;
   readonly events?: ReadonlyArray<unknown>;
+  readonly objectTypes?: Record<string, string>;
 }
 
 export interface SuiFinalityRequest extends SuiFinalityWaitOptions {
