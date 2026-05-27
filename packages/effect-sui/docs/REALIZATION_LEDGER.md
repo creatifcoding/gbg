@@ -86,6 +86,7 @@ Rationale:
 | Move package publish helper | Done | `0d3f4bd3 feat(effect-sui): add move package publish helper` |
 | Wallet callback bridge | Done | `8634429f feat(effect-sui): add wallet callback bridge` |
 | Runtime fixture scopes | Done | `19e0106b feat(effect-sui): add runtime fixture scopes` |
+| Reservation persistence hooks | Done | `69f2033f feat(effect-sui): add reservation persistence hooks` |
 
 ## Surgical decomposition closeout
 
