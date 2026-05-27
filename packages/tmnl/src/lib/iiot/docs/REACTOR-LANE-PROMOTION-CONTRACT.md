@@ -99,7 +99,7 @@ Typical parking reasons:
 - target entity does not yet own the requested capability
 - release cannot address the exact SQL constraint
 
-## Current baseline
+## Current activation state
 
 Baseline-live today:
 
@@ -107,15 +107,28 @@ Baseline-live today:
 | --- | --- | --- | --- | --- |
 | `EquipmentStateChanged`, `MaintenanceModeEntered`, `FaultDetected` | `equipment.availability = unavailable` | `targets`, `requires` | `work_order` | `dependency.blocked` |
 
+Guarded opt-in-live today:
+
+| Lane | Layer | Flag |
+| --- | --- | --- |
+| WorkOrder `depends_on` | `ReactorDependsOnLive` | `REACTOR_LANE_DEPENDS_ON_ENABLED` |
+| Alarm safety-hold | `ReactorAlarmSafetyLive` | `REACTOR_LANE_ALARM_SAFETY_ENABLED` |
+| Structural decommission cascade | `ReactorStructuralDecommissionLive` | `REACTOR_LANE_STRUCTURAL_DECOMMISSION_ENABLED` |
+| External/device availability | `ReactorExternalDeviceAvailabilityLive` | `REACTOR_LANE_EXTERNAL_DEVICE_AVAILABILITY_ENABLED` |
+
 Everything else remains declared-only, candidate, or parked until this contract is satisfied.
 
 ## v2 promotion order
 
-1. **WorkOrder `depends_on`** — safest first promotion: WorkOrder target ownership and dependency release vertical slice already exist.
-2. **Alarm safety-hold** — requires distinct `safety.hold`/`safety.release` target semantics and multi-alarm constraint behavior.
-3. **Structural decommission cascade** — requires structural `lifecycle.inherited` target decision before live contains cascade.
-4. **External/device availability** — requires projection-ordering/as-of expansion decision before unlink/unavailable can route safely.
-5. **Worker/replay hardening** — required before any opt-in lane becomes baseline-live.
+Completed guarded opt-in promotions:
+
+1. **WorkOrder `depends_on`** — WorkOrder target ownership and dependency release vertical slice proven.
+2. **Alarm safety-hold** — distinct `safety.hold`/`safety.release` semantics proven with alarm-addressed constraints.
+3. **Structural decommission cascade** — direct structural lifecycle pressure and WorkOrder blocking proven.
+4. **External/device availability** — projection-ordering/as-of expansion proven for unlink/unavailable routing.
+5. **Worker/replay hardening** — source-claim phases, checkpoint repair, fingerprint fences, and zombie recovery coverage added.
+
+Next promotion decision: whether any opt-in-live lane earns baseline-live status. That is an operational decision, not a code-default side effect.
 
 ## Non-negotiables
 
