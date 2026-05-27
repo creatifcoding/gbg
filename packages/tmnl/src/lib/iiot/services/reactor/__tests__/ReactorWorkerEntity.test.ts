@@ -6,6 +6,7 @@ import { Reactor } from '../Reactor'
 import {
   ReactorWorkerEntity,
   ReactorWorkerEntityHandlers,
+  ReactorWorkerError,
 } from '../ReactorWorkerEntity'
 import {
   ObservationSignal,
@@ -78,6 +79,16 @@ const TestHandlers = ReactorWorkerEntityHandlers.pipe(
   Layer.provide(ReactorWorkerTestLayer),
 )
 
+const ReactorWorkerFailureTestLayer = Layer.succeed(Reactor, Reactor.of({
+  planJournalEntry: () => Effect.fail(new Error('planner unavailable')),
+  execute: () => Effect.fail(new Error('dispatcher unavailable')),
+  reactToJournalEntry: () => Effect.fail(new Error('reactor boom')),
+}))
+
+const FailureHandlers = ReactorWorkerEntityHandlers.pipe(
+  Layer.provide(ReactorWorkerFailureTestLayer),
+)
+
 describe('ReactorWorkerEntity', () => {
   it('delegates owner-key serialized processing to Reactor and preserves dedupe results', async () => {
     const program = Effect.gen(function* () {
@@ -108,5 +119,29 @@ describe('ReactorWorkerEntity', () => {
     })
     expect(duplicate.processed).toBe(false)
     expect(duplicate.run).toBeUndefined()
+  })
+
+  it('wraps Reactor failures with owner-key and source-entry context', async () => {
+    const program = Effect.gen(function* () {
+      const makeClient = yield* Entity.makeTestClient(ReactorWorkerEntity, FailureHandlers)
+      const client = yield* makeClient(OWNER_KEY)
+      const entry = new EventJournal.Entry({
+        id: EventJournal.makeEntryId(),
+        event: 'EquipmentStateChanged',
+        primaryKey: 'MCH-WORKER-001',
+        payload: new Uint8Array(),
+      })
+
+      return yield* client.ProcessJournalEntry({ ownerKey: OWNER_KEY, entry }).pipe(Effect.flip)
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(TestShardingConfig),
+    )
+
+    const error = await Effect.runPromise(program)
+    expect(error).toBeInstanceOf(ReactorWorkerError)
+    expect(error.ownerKey).toBe(OWNER_KEY)
+    expect(error.sourceEvent).toBe('EquipmentStateChanged')
+    expect(error.message).toContain('reactor boom')
   })
 })

@@ -13,7 +13,7 @@ import * as EventJournal from '@effect/experimental/EventJournal'
 import { ReactorCheckpointRepo } from '../../repos/ReactorCheckpointRepo'
 import { ReactorSourceClaimRepo } from '../../repos/ReactorSourceClaimRepo'
 import type { ReactorCheckpointOutcome, ReactorClaimToken, ReactorOwnerKey, ReactorSourceEntryId } from '../../schemas/reactor'
-import { ReactorPlan, ReactorRun } from '../../schemas/reactor'
+import { ReactorClaimPhases, ReactorPlan, ReactorRun } from '../../schemas/reactor'
 import { ReactorDispatcher } from './ReactorDispatcher'
 import { ReactorPlanner } from './ReactorPlanner'
 import { ReactorRegistry } from './ReactorRegistry'
@@ -95,6 +95,26 @@ export const ReactorLive = Layer.effect(
 
         let activeClaimToken: ReactorClaimToken | undefined
 
+        const auditMetadataBase = {
+          policyEpoch: registry.policyEpoch,
+          registryFingerprint: registry.registryFingerprint,
+          subjectType: observation.value.subject.type,
+          subjectId: observation.value.subject.id,
+          signalAxes: observation.value.signals.map((signal) => signal.axis),
+          signalValues: observation.value.signals.map((signal) => signal.value),
+        }
+
+        const heartbeatClaim = (phase: typeof ReactorClaimPhases[keyof typeof ReactorClaimPhases], metadata: Record<string, unknown>) =>
+          Option.isSome(sourceClaims) && activeClaimToken !== undefined
+            ? admission.withSqlBudget(sourceClaims.value.heartbeat({
+              consumerId: GENERIC_REACTOR_CONSUMER_ID,
+              sourceEntryId,
+              claimToken: activeClaimToken,
+              phase,
+              metadata: { ...auditMetadataBase, ...metadata },
+            }))
+            : Effect.succeed(true)
+
         if (Option.isSome(sourceClaims)) {
           const ownerKey = `relationship-reactor:${observation.value.subject.type}:${observation.value.subject.id}` as ReactorOwnerKey
           const acquire = yield* admission.withSourceEntryClaim(
@@ -111,10 +131,7 @@ export const ReactorLive = Layer.effect(
               policyEpoch: registry.policyEpoch,
               registryFingerprint: registry.registryFingerprint,
               claimedBy: GENERIC_REACTOR_CLAIMED_BY,
-              metadata: {
-                subjectType: observation.value.subject.type,
-                subjectId: observation.value.subject.id,
-              },
+              metadata: auditMetadataBase,
             })),
           )
 
@@ -135,14 +152,33 @@ export const ReactorLive = Layer.effect(
           }
         }
 
+        const planningLeaseActive = yield* heartbeatClaim(ReactorClaimPhases.Planning, { reactorPhase: 'planning' })
+        if (!planningLeaseActive) return Option.none<ReactorRun>()
+
         const plan = yield* planner.planObservation(observation.value)
+        const policyIds = Array.from(new Set(plan.decisions.map((decision) => decision.request.policyId)))
+        const targetIds = Array.from(new Set(plan.decisions.map((decision) => `${decision.target.type}:${decision.target.id}`)))
+
+        const dispatchLeaseActive = yield* heartbeatClaim(ReactorClaimPhases.Dispatching, {
+          reactorPhase: 'dispatching',
+          decisionCount: plan.decisions.length,
+          policyIds,
+          targetIds,
+        })
+        if (!dispatchLeaseActive) return Option.none<ReactorRun>()
+
         const run = yield* execute(plan)
         const outcome = checkpointOutcome(run)
         const metadata = {
+          ...auditMetadataBase,
+          policyIds,
+          targetIds,
           decisionCount: run.results.length,
           dispatchedCount: run.results.filter((result) => result.outcome === 'dispatched').length,
           failedCount: run.results.filter((result) => result.outcome === 'failed').length,
         }
+
+        yield* heartbeatClaim(ReactorClaimPhases.Completing, { ...metadata, reactorPhase: 'completing' })
 
         if (Option.isSome(sourceClaims) && activeClaimToken !== undefined) {
           const completedClaim = yield* admission.withSqlBudget(sourceClaims.value.complete({

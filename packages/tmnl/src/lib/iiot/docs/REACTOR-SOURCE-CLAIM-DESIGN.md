@@ -392,10 +392,13 @@ EventJournal entry
   -> observe durable event into ReactorObservation
   -> derive ownerKey = relationship-reactor:<subject.type>:<subject.id>
   -> tryAcquire(source_entry_id, ownerKey, policyEpoch, fingerprint)
+  -> heartbeat phase=planning with observation/subject metadata
   -> if acquired/reacquired: plan observation
+  -> heartbeat phase=dispatching with policyIds + targetIds
   -> dispatch target-owned EntityReactionRequest(s)
-  -> complete claim
-  -> write reactor checkpoint
+  -> heartbeat phase=completing with result counters
+  -> complete claim with audit metadata
+  -> write reactor checkpoint with the same completion metadata
 ```
 
 ### 9.2 Cluster-worker flow after ReactorWorkerEntity exists
@@ -406,8 +409,10 @@ Event adapter / Singleton
   -> send ProcessEntry(entry) to ReactorWorkerEntity(ownerKey)
 
 ReactorWorkerEntity(ownerKey)
-  -> tryAcquire before planning
-  -> plan + dispatch sequentially in entity mailbox
+  -> delegates to Reactor.reactToJournalEntry inside the entity mailbox
+  -> Reactor.tryAcquire before planning
+  -> phase heartbeat through planning / dispatching / completing
+  -> plan + dispatch sequentially for that ownerKey
   -> complete claim + checkpoint
 ```
 
@@ -482,6 +487,8 @@ WITH expired AS (
   FROM iiot.reactor_source_claims
   WHERE claim_status = 'processing'
     AND lease_expires_at < NOW()
+    AND policy_epoch = $policyEpoch
+    AND registry_fingerprint = $registryFingerprint
   ORDER BY lease_expires_at ASC, consumer_id ASC, source_entry_id ASC
   FOR UPDATE SKIP LOCKED
   LIMIT $batchSize
@@ -491,7 +498,9 @@ SET claim_token = $tokenPrefix || ':' || gen_random_uuid(),
     claimed_by = $claimedBy,
     attempt = attempt + 1,
     heartbeat_at = NOW(),
-    lease_expires_at = NOW() + $leaseDuration::interval
+    lease_expires_at = NOW() + $leaseDuration::interval,
+    phase = 'recovering',
+    metadata = metadata || $recoveryMetadata::jsonb
 FROM expired e
 WHERE c.consumer_id = e.consumer_id
   AND c.source_entry_id = e.source_entry_id
@@ -541,6 +550,8 @@ Spike script: `tmp/reactor-source-claim-zombie-spike.sh`.
 
 - Same logical policy epoch but different fingerprint is a deployment defect.
 - The row is not processed by the drifting worker.
+- Completed rows remain terminal even if a later bundle has a different
+  fingerprint; drift fences only apply to processing/deferred recovery.
 - This should page loudly in production.
 
 ## 12. Test plan
@@ -571,6 +582,9 @@ Spike script: `tmp/reactor-source-claim-zombie-spike.sh`.
    reacquires, old owner attempts stale completion and receives zero-row update.
 5. Sweeper concurrency simulation: two sweepers process expired rows with
    `SKIP LOCKED`; no row is reacquired by both.
+6. Multi-lane recovery simulation: baseline and candidate fingerprints recover
+   only their own expired rows; completed rows are terminal across later
+   fingerprint changes.
 
 ### Production E2E prerequisite
 
@@ -581,7 +595,9 @@ The full Machine unavailable -> WorkOrder suspended E2E should include:
 - real SQL WorkOrder state;
 - real WorkOrderEntity RPC/machine transition;
 - real `work_order_transitions.caused_by_propagation_id` uniqueness;
-- real `reactor_checkpoints` final row.
+- real `reactor_checkpoints` final row;
+- claim/checkpoint metadata containing subject, signal axes, policy IDs,
+  target IDs, and dispatched/failed counters.
 
 ## 13. Migration path
 

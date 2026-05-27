@@ -422,11 +422,20 @@ describe('Reactor source-claim production-path E2E', () => {
         const inboundHandled = yield* transitionRepo.hasInboundPropagation(created.id, propagationId)
         expect(inboundHandled).toBe(true)
 
-        const claimRows = yield* sql<{ claimStatus: string; outcome: string | null; policyEpoch: string; registryFingerprint: string }>`
+        const claimRows = yield* sql<{
+          claimStatus: string
+          outcome: string | null
+          phase: string
+          policyEpoch: string
+          registryFingerprint: string
+          metadata: Record<string, unknown>
+        }>`
           SELECT claim_status AS "claimStatus",
                  outcome,
+                 phase,
                  policy_epoch AS "policyEpoch",
-                 registry_fingerprint AS "registryFingerprint"
+                 registry_fingerprint AS "registryFingerprint",
+                 metadata
           FROM iiot.reactor_source_claims
           WHERE consumer_id = 'relationship-reactor-generic-v1'
             AND source_entry_id = ${entry!.idString}
@@ -434,17 +443,30 @@ describe('Reactor source-claim production-path E2E', () => {
         expect(claimRows).toHaveLength(1)
         expect(claimRows[0]?.claimStatus).toBe('completed')
         expect(claimRows[0]?.outcome).toBe('processed')
+        expect(claimRows[0]?.phase).toBe('completing')
         expect(claimRows[0]?.policyEpoch).toBe('reactor-policy-epoch.v1')
         expect(claimRows[0]?.registryFingerprint).toMatch(/^fnv1a32:/)
+        expect(claimRows[0]?.metadata).toMatchObject({
+          subjectType: 'machine',
+          subjectId: TEST_MACHINE_ID,
+          signalAxes: ['equipment.availability'],
+          policyIds: ['targets.machine-unavailable.blocks-source'],
+          dispatchedCount: 1,
+        })
 
-        const checkpointRows = yield* sql<{ outcome: string }>`
-          SELECT outcome
+        const checkpointRows = yield* sql<{ outcome: string; metadata: Record<string, unknown> }>`
+          SELECT outcome, metadata
           FROM iiot.reactor_checkpoints
           WHERE consumer_id = 'relationship-reactor-generic-v1'
             AND source_entry_id = ${entry!.idString}
         `
         expect(checkpointRows).toHaveLength(1)
         expect(checkpointRows[0]?.outcome).toBe('processed')
+        expect(checkpointRows[0]?.metadata).toMatchObject({
+          registryFingerprint: claimRows[0]?.registryFingerprint,
+          targetIds: expect.arrayContaining([`work_order:${created.id}`]),
+        })
+        expect(Number(checkpointRows[0]?.metadata.decisionCount)).toBeGreaterThanOrEqual(1)
 
         yield* graph.executeCypher(
           `MATCH (wo:work_order {id: '${created.id}'}) DETACH DELETE wo`,

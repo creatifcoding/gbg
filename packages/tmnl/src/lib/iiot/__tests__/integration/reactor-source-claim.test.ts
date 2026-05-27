@@ -219,6 +219,36 @@ describe('ReactorSourceClaimRepo integration', () => {
     await Effect.runPromise(program)
   })
 
+  it('keeps completed claims terminal across later lane fingerprint changes', async () => {
+    if (!dbAvailable) return
+    const sourceEntryId = entryId('COMPLETED-DRIFT')
+
+    const program = Effect.gen(function* () {
+      const repo = yield* ReactorSourceClaimRepo
+      const acquired = yield* repo.tryAcquire(acquireInput(sourceEntryId))
+      expect(acquired._tag).toBe('ReactorClaimAcquired')
+
+      const completed = yield* repo.complete({
+        consumerId: TEST_CONSUMER,
+        sourceEntryId,
+        claimToken: acquired.claim.claimToken,
+        outcome: 'processed',
+        metadata: { lane: 'baseline' },
+      })
+      expect(completed).toBe(true)
+
+      const replayUnderNewFingerprint = yield* repo.tryAcquire(acquireInput(sourceEntryId, {
+        registryFingerprint: OTHER_FINGERPRINT,
+        claimedBy: CLAIMED_BY_B,
+      }))
+      expect(replayUnderNewFingerprint._tag).toBe('ReactorClaimCompleted')
+      expect(replayUnderNewFingerprint.claim.registryFingerprint).toBe(TEST_FINGERPRINT)
+      expect(replayUnderNewFingerprint.claim.metadata).toMatchObject({ lane: 'baseline' })
+    }).pipe(Effect.provide(ReactorSourceClaimIntegrationLayer))
+
+    await Effect.runPromise(program)
+  })
+
   it('caps heartbeat at attempt deadline and rejects heartbeats after deadline', async () => {
     if (!dbAvailable) return
     const sourceEntryId = entryId('DEADLINE')
@@ -297,6 +327,45 @@ describe('ReactorSourceClaimRepo integration', () => {
       expect(blocked._tag).toBe('ReactorClaimBlocked')
       expect(blocked.claim.claimStatus).toBe('blocked')
       expect(blocked.claim.conflictReason).toBe('max_attempts_exhausted')
+    }).pipe(Effect.provide(ReactorSourceClaimIntegrationLayer))
+
+    await Effect.runPromise(program)
+  })
+
+  it('sweeper only recovers claims for the requested lane fingerprint', async () => {
+    if (!dbAvailable) return
+    const baselineEntry = entryId('SWEEP-FP-BASELINE')
+    const candidateEntry = entryId('SWEEP-FP-CANDIDATE')
+
+    const program = Effect.gen(function* () {
+      const repo = yield* ReactorSourceClaimRepo
+
+      yield* repo.tryAcquire(acquireInput(baselineEntry))
+      yield* repo.tryAcquire(acquireInput(candidateEntry, { registryFingerprint: OTHER_FINGERPRINT }))
+      yield* setLeaseExpired(baselineEntry)
+      yield* setLeaseExpired(candidateEntry)
+
+      const recovered = yield* repo.findExpired({
+        policyEpoch: TEST_EPOCH,
+        registryFingerprint: TEST_FINGERPRINT,
+        claimedBy: 'source-claim-sweeper-baseline',
+        batchSize: 10,
+      })
+
+      expect(recovered.map((claim) => claim.sourceEntryId)).toEqual([baselineEntry])
+      expect(recovered[0]?.registryFingerprint).toBe(TEST_FINGERPRINT)
+
+      const candidateRecovered = yield* repo.findExpired({
+        policyEpoch: TEST_EPOCH,
+        registryFingerprint: OTHER_FINGERPRINT,
+        claimedBy: 'source-claim-sweeper-candidate',
+        batchSize: 10,
+      })
+
+      expect(candidateRecovered.map((claim) => claim.sourceEntryId)).toEqual([candidateEntry])
+      expect(candidateRecovered[0]?.registryFingerprint).toBe(OTHER_FINGERPRINT)
+      expect(candidateRecovered[0]?.phase).toBe(ReactorClaimPhases.Recovering)
+      expect(yield* countClaims).toBe(2)
     }).pipe(Effect.provide(ReactorSourceClaimIntegrationLayer))
 
     await Effect.runPromise(program)
