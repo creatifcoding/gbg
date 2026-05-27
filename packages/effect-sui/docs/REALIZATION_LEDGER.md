@@ -83,6 +83,7 @@ Rationale:
 | Rich typed error topology | Done | `1f0cc502 feat(effect-sui): add typed error topology` |
 | Typed error cause normalization | Done | `dbc38faf feat(effect-sui): normalize typed error causes` |
 | Diagnostics classification surface | Done | `62f60a15 feat(effect-sui): add diagnostics classification surface` |
+| Move package publish helper | Done | `0d3f4bd3 feat(effect-sui): add move package publish helper` |
 
 ## Surgical decomposition closeout
 

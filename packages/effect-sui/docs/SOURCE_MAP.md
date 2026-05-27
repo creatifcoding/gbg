@@ -224,6 +224,7 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/package/registry.ts` | `SuiPackageRegistry` state, service, and live layer |
 | `src/package/operations.ts` | Effect operations over the package registry service |
 | `src/package/factories.ts` | `SuiPackage`/`SuiModule` typed factory helpers |
+| `src/package/publish.ts` | Move bytecode publish request/result contracts and SuiFlow publish helper |
 | `src/adapter/index.ts` | Public adapter barrel |
 | `src/adapter/types.ts` | Adapter client/source/cache/extension contracts |
 | `src/adapter/cache.ts` | WeakMap-backed runtime cache |
