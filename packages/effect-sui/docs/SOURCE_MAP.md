@@ -176,7 +176,11 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/query/runtime-client.ts` | ManagedRuntime-backed Query client facade |
 | `src/flow/index.ts` | Public barrel for transaction flow helpers |
 | `src/flow/types.ts` | Flow client/signer contracts |
-| `src/flow/errors.ts` | Flow typed error constructors |
+| `src/flow/errors.ts` | Flow typed error constructor/normalizer barrel |
+| `src/flow/error-shared.ts` | Shared error message/record helpers |
+| `src/flow/error-execution.ts` | SDK execution/Move abort/validator rejection normalization |
+| `src/flow/error-finality.ts` | Finality wait/indexer visibility normalization |
+| `src/flow/error-policy.ts` | Gas/payment/auth/invariant normalization and `SuiFlowError` union |
 | `src/flow/gas.ts` | Gas planner service and layer surface |
 | `src/flow/gas-plan.ts` | Gas price/budget resolution and rationale helpers |
 | `src/flow/payment.ts` | Payment planning service assembly |
