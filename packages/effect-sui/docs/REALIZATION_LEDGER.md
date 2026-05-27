@@ -87,6 +87,7 @@ Rationale:
 | Wallet callback bridge | Done | `8634429f feat(effect-sui): add wallet callback bridge` |
 | Runtime fixture scopes | Done | `19e0106b feat(effect-sui): add runtime fixture scopes` |
 | Reservation persistence hooks | Done | `69f2033f feat(effect-sui): add reservation persistence hooks` |
+| Release candidate notes | Done | `f1239de6 docs(effect-sui): prepare release candidate notes` |
 
 ## Surgical decomposition closeout
 
