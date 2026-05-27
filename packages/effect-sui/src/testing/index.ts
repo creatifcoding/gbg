@@ -6,7 +6,9 @@ import * as Layer from 'effect-v4/Layer';
 import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
 
 import { makeClient as makeFlowClient, makeTxRunner, type SuiFlowClient, type SuiFlowRuntime } from '../flow';
+import type { ClientWithTransactionLifecycle } from '../flow/types';
 import { makeClient as makeQueryClient, type SuiQueryClient, type SuiQueryRuntime } from '../query';
+import type { ClientWithCoreReads } from '../query/types';
 import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiDiagnostic, SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
 import {
   SuiAuthService,
@@ -243,6 +245,27 @@ export interface FakeSuiRuntimeOptions {
   readonly memoMap?: Layer.MemoMap;
 }
 
+export interface FakeSuiFixtureScopeOptions {
+  readonly memoMap?: Layer.MemoMap;
+  readonly defaults?: FakeSuiServiceOverrides;
+}
+
+export type SharedRuntimeFixtureClient = ClientWithTransactionLifecycle & ClientWithCoreReads;
+
+export interface SuiRuntimeFixtureScope {
+  readonly memoMap: Layer.MemoMap;
+  readonly flow: SuiFlowClient;
+  readonly query: SuiQueryClient;
+  readonly dispose: () => Promise<void>;
+}
+
+export interface FakeSuiRuntimeFixtureScope {
+  readonly memoMap: Layer.MemoMap;
+  readonly makeClient: (overrides?: FakeSuiServiceOverrides) => FakeSuiClient;
+  readonly clients: ReadonlyArray<FakeSuiClient>;
+  readonly dispose: () => Promise<void>;
+}
+
 export interface FakeSuiClient {
   readonly runtime: FakeSuiRuntime;
   readonly flow: SuiFlowClient;
@@ -321,3 +344,57 @@ export const makeFakeClient = (
     dispose: () => runtime.dispose(),
   };
 };
+
+export const makeRuntimeFixtureScope = (
+  client: SharedRuntimeFixtureClient,
+  options: FakeSuiRuntimeOptions = {},
+): SuiRuntimeFixtureScope => {
+  const memoMap = options.memoMap ?? Layer.makeMemoMapUnsafe();
+  const flow = makeFlowClient(client, { memoMap });
+  const query = makeQueryClient(client, { memoMap });
+  return {
+    memoMap,
+    flow,
+    query,
+    dispose: () => Promise.all([flow.dispose(), query.dispose()]).then(() => undefined),
+  };
+};
+
+export const makeFakeFixtureScope = (
+  options: FakeSuiFixtureScopeOptions = {},
+): FakeSuiRuntimeFixtureScope => {
+  const memoMap = options.memoMap ?? Layer.makeMemoMapUnsafe();
+  const clients: FakeSuiClient[] = [];
+  const makeClient = (overrides: FakeSuiServiceOverrides = {}) => {
+    const client = makeFakeClient(mergeOverrides(options.defaults, overrides), { memoMap });
+    clients.push(client);
+    return client;
+  };
+  return {
+    memoMap,
+    clients,
+    makeClient,
+    dispose: () => Promise.all(clients.map((client) => client.dispose())).then(() => undefined),
+  };
+};
+
+const mergeOverrides = (
+  defaults: FakeSuiServiceOverrides | undefined,
+  overrides: FakeSuiServiceOverrides,
+): FakeSuiServiceOverrides => ({
+  ...defaults,
+  ...overrides,
+  objectResolver: { ...defaults?.objectResolver, ...overrides.objectResolver },
+  bcsBridge: { ...defaults?.bcsBridge, ...overrides.bcsBridge },
+  ptbAnalyzer: { ...defaults?.ptbAnalyzer, ...overrides.ptbAnalyzer },
+  ptbCompiler: { ...defaults?.ptbCompiler, ...overrides.ptbCompiler },
+  gasPlanner: { ...defaults?.gasPlanner, ...overrides.gasPlanner },
+  paymentService: { ...defaults?.paymentService, ...overrides.paymentService },
+  authService: { ...defaults?.authService, ...overrides.authService },
+  preflightService: { ...defaults?.preflightService, ...overrides.preflightService },
+  executionService: { ...defaults?.executionService, ...overrides.executionService },
+  finalityService: { ...defaults?.finalityService, ...overrides.finalityService },
+  reservationService: { ...defaults?.reservationService, ...overrides.reservationService },
+  packageRegistry: { ...defaults?.packageRegistry, ...overrides.packageRegistry },
+  diagnostics: { ...defaults?.diagnostics, ...overrides.diagnostics },
+});
