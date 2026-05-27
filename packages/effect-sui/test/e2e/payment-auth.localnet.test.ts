@@ -11,6 +11,7 @@ import {
   decodeSuiAddress,
   decodeSuiTypeTagString,
   KeypairAuthPolicy,
+  WalletCallbackAuthPolicy,
 } from '../../src/schema';
 import {
   makeAuthService,
@@ -81,6 +82,23 @@ describeLocalnet('@tmnl/effect-sui payment/gas/auth localnet proof', () => {
     expect(paymentPlan).toEqual({ gasPayment: [], sponsored: false, addressBalance: true });
     expect(authResult.signatures).toHaveLength(1);
     expect(authResult.transactionBytes?.byteLength).toBeGreaterThan(0);
+
+    const walletAuthResult = await Effect.runPromise(
+      makeAuthService(client).authorize(new SuiTx({
+        ...tx.options,
+        authPolicy: new WalletCallbackAuthPolicy({
+          sender,
+          chain: 'sui:localnet',
+          account: { address: sender },
+          signTransaction: ({ transactionBytes, signal }) => {
+            expect(signal.aborted).toBe(false);
+            return keypair.signTransaction(transactionBytes);
+          },
+        }),
+      }), paymentPlan, artifact, gasPlan),
+    );
+    expect(walletAuthResult.signatures).toHaveLength(1);
+    expect(walletAuthResult.transactionBytes?.byteLength).toBeGreaterThan(0);
 
     const simulation = await client.core.simulateTransaction({
       transaction: authResult.transactionBytes!,

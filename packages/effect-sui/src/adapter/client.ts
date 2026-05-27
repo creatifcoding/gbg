@@ -6,6 +6,7 @@ import * as SuiFlow from '../flow';
 import * as SuiQuery from '../query';
 import { makeRuntimeCache } from './cache';
 import type { EffectSuiAdapterClient, EffectSuiAdapterOptions, EffectSuiClientSource } from './types';
+import { runWalletTxWithFlow } from './wallet';
 
 export const makeClient = (
   client: EffectSuiClientSource,
@@ -35,6 +36,7 @@ const makeUncachedClient = (
     query,
     runTx: (tx, runOptions) => flow.run(tx, runOptions),
     runTxExit: (tx, runOptions) => flow.runExit(tx, runOptions),
+    runWalletTx: (tx, wallet, runOptions) => runWalletTxWithFlow(flow, tx, wallet, runOptions),
     resolveObject: (request, runOptions) => query.resolve(
       typeof request === 'string' ? { id: request } : request,
       runOptions,

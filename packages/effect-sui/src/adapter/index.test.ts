@@ -1,12 +1,26 @@
+import * as Effect from 'effect-v4/Effect';
 import * as Exit from 'effect-v4/Exit';
 import { describe, expect, it } from 'vitest';
 
-import { decodeSuiObjectDigest, decodeSuiObjectId } from '../schema';
-import type { EffectSuiClientSource } from './index';
-import { effectSui, makeClient, makeRuntimeCache } from './index';
+import { SuiTx } from '../effectable';
+import { decodeSuiAddress, decodeSuiObjectDigest, decodeSuiObjectId, WalletCallbackAuthPolicy } from '../schema';
+import type { SuiTxLifecycleResult } from '../services';
+import type { EffectSuiClientSource, EffectSuiWalletRunOptions } from './index';
+import { effectSui, makeClient, makeRuntimeCache, runWalletTxWithFlow } from './index';
 
 const objectId = decodeSuiObjectId('0x7');
 const digest = decodeSuiObjectDigest('11111111111111111111111111111112');
+const sender = decodeSuiAddress('0x8');
+const walletOptions: EffectSuiWalletRunOptions = {
+  sender,
+  chain: 'sui:localnet',
+  account: { address: sender },
+  signTransaction: () => Promise.resolve({ signature: 'wallet-signature' }),
+};
+const walletTx = new SuiTx({
+  label: 'wallet.tx',
+  execute: () => Effect.succeed({} as never),
+});
 
 const makeReadClient = (): EffectSuiClientSource => ({
   core: {
@@ -52,5 +66,31 @@ describe('effectSui adapter runtime cache', () => {
   it('supports custom extension names', () => {
     const extension = effectSui({ name: 'tmnl' });
     expect(extension.name).toBe('tmnl');
+  });
+
+  it('creates explicit wallet run handles with cancel/dispose semantics', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    const lifecycle = { execution: { digest, raw: {} } } as unknown as SuiTxLifecycleResult;
+    const handle = runWalletTxWithFlow({
+      runExit: (tx, options) => {
+        capturedSignal = options?.signal;
+        expect(tx.authPolicy).toBeInstanceOf(WalletCallbackAuthPolicy);
+        return Promise.resolve(Exit.succeed(lifecycle));
+      },
+    }, walletTx, walletOptions);
+
+    expect(capturedSignal?.aborted).toBe(false);
+    handle.cancel('user-cancelled');
+    expect(capturedSignal?.aborted).toBe(true);
+    expect(capturedSignal?.reason).toBe('user-cancelled');
+    await expect(handle.promise).resolves.toBe(lifecycle);
+  });
+
+  it('maps wallet run failures onto the handle promise without a hidden retry', async () => {
+    const handle = runWalletTxWithFlow({
+      runExit: () => Promise.resolve(Exit.fail('wallet rejected')),
+    }, walletTx, walletOptions);
+
+    await expect(handle.promise).rejects.toMatchObject({ reasons: [{ error: 'wallet rejected' }] });
   });
 });
