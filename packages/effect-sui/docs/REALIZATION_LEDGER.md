@@ -82,6 +82,7 @@ Rationale:
 | Finality watcher fibers | Done | `7105b7ae feat(effect-sui): add finality watcher fibers` |
 | Rich typed error topology | Done | `1f0cc502 feat(effect-sui): add typed error topology` |
 | Typed error cause normalization | Done | `dbc38faf feat(effect-sui): normalize typed error causes` |
+| Diagnostics classification surface | Done | `62f60a15 feat(effect-sui): add diagnostics classification surface` |
 
 ## Surgical decomposition closeout
 

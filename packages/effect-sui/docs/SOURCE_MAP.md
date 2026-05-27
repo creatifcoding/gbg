@@ -102,6 +102,7 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/schema/type-tag-parser.ts` | Structured recursive Sui type-tag parser |
 | `src/schema/objects.ts` | Object refs, shared refs, object args |
 | `src/schema/descriptors.ts` | Package/module descriptors |
+| `src/schema/diagnostics.ts` | Diagnostic category/severity/retry/event schemas |
 | `src/schema/errors.ts` | Typed error barrel |
 | `src/schema/error-codes.ts` | Error code, phase, mode, and topology literals |
 | `src/schema/error-classes.ts` | Public barrel and `SuiError` union for Schema-backed tagged errors |
@@ -138,6 +139,9 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/services/reservation.ts` | Reservation service contracts |
 | `src/services/package.ts` | Package registry contracts |
 | `src/services/diagnostics.ts` | Diagnostics contracts |
+| `src/diagnostics/index.ts` | Diagnostics public barrel |
+| `src/diagnostics/classify.ts` | Typed error/Cause/Exit diagnostic classification |
+| `src/diagnostics/service.ts` | Degrading diagnostics service implementation and event helpers |
 | `src/ptb/index.ts` | Public barrel for PTB AST/analyzer/compiler |
 | `src/ptb/arguments.ts` | PTB argument schemas |
 | `src/ptb/inputs.ts` | PTB input schemas |
