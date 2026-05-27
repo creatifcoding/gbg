@@ -9,11 +9,14 @@ import {
   SuiReservationConflict,
 } from '../schema';
 import {
+  makePersistentReservationService,
   makeReservationService,
   makeTxState,
+  makeTxStateFromSnapshot,
   objectKey,
   senderKey,
   snapshot,
+  type SuiTxStateSnapshot,
 } from './index';
 
 const objectId = decodeSuiObjectId('0x7');
@@ -107,6 +110,56 @@ describe('SuiReservationService STM state', () => {
     expect(stateSnapshot.reservations).toEqual([]);
     expect(stateSnapshot.completed).toHaveLength(1);
     expect(stateSnapshot.completed[0]?.result).toEqual({ status: 'finalized' });
+  });
+
+  it('restores active reservations from a snapshot and preserves conflicts', async () => {
+    const state = await Effect.runPromise(makeTxState());
+    const service = makeReservationService(state);
+    const first = await Effect.runPromise(service.acquire({
+      objectRefs: [objectRef],
+      gasRefs: [],
+      intent: 'tx/persisted',
+    }));
+    const saved = await Effect.runPromise(snapshot(state));
+    const restored = await Effect.runPromise(makeTxStateFromSnapshot(saved));
+    const restoredService = makeReservationService(restored);
+    const conflict = await Effect.runPromise(Effect.flip(restoredService.acquire({
+      objectRefs: [objectRef],
+      gasRefs: [],
+      intent: 'tx/after-restore',
+    })));
+
+    expect(conflict).toBeInstanceOf(SuiReservationConflict);
+    expect(conflict.heldBy).toBe(first.id);
+  });
+
+  it('persists reservation snapshots through configured hooks', async () => {
+    let saved: SuiTxStateSnapshot | undefined;
+    const persistence = {
+      load: () => Effect.succeed(saved),
+      save: (next: SuiTxStateSnapshot) => Effect.sync(() => {
+        saved = next;
+      }),
+    };
+    const service = await Effect.runPromise(makePersistentReservationService({ persistence }));
+    const token = await Effect.runPromise(service.acquire({
+      objectRefs: [objectRef],
+      gasRefs: [],
+      intent: 'tx/persist-hook',
+    }));
+    expect(saved?.reservations[0]?.id).toBe(token.id);
+
+    const restoredService = await Effect.runPromise(makePersistentReservationService({ persistence }));
+    const conflict = await Effect.runPromise(Effect.flip(restoredService.acquire({
+      objectRefs: [objectRef],
+      gasRefs: [],
+      intent: 'tx/conflict-after-hook-restore',
+    })));
+    expect(conflict.heldBy).toBe(token.id);
+
+    await Effect.runPromise(restoredService.reconcile(token, { status: 'done' }));
+    expect(saved?.reservations).toEqual([]);
+    expect(saved?.completed[0]?.result).toEqual({ status: 'done' });
   });
 
   it('permits non-overlapping reservations concurrently and rejects overlapping sender dispatch', async () => {

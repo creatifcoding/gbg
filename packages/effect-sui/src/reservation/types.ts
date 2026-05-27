@@ -1,5 +1,6 @@
 /** Reservation STM state and record types. */
 
+import type * as Effect from 'effect-v4/Effect';
 import type * as TxHashMap from 'effect-v4/TxHashMap';
 import type * as TxRef from 'effect-v4/TxRef';
 
@@ -39,4 +40,13 @@ export interface SuiTxStateSnapshot {
   readonly locks: ReadonlyArray<SuiReservationLock>;
   readonly reservations: ReadonlyArray<SuiReservationRecord>;
   readonly completed: ReadonlyArray<SuiReservationRecord>;
+}
+
+export interface SuiReservationPersistence {
+  readonly load: () => Effect.Effect<SuiTxStateSnapshot | undefined, never, never>;
+  readonly save: (snapshot: SuiTxStateSnapshot) => Effect.Effect<void, never, never>;
+}
+
+export interface SuiReservationServiceOptions {
+  readonly persistence?: SuiReservationPersistence;
 }
