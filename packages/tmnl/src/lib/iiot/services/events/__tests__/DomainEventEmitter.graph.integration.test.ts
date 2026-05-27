@@ -15,6 +15,7 @@ import {
   IIoTEventLogLayer,
 } from '../../../infrastructure/eventlog-layer'
 import { GraphClient } from '../../l1/GraphClient'
+import { WorkOrderGraphQueries } from '../../l2/WorkOrderGraphQueries'
 import { WorkOrder } from '../../../schemas/work-orders'
 import type {
   AssetId,
@@ -86,7 +87,7 @@ describe('DomainEventEmitter graph projection integration', () => {
 
     const program = Effect.gen(function* () {
       const journal = yield* EventJournal.makeMemory
-      const graph = yield* GraphClient
+      const workOrderGraph = yield* WorkOrderGraphQueries
 
       yield* Effect.gen(function* () {
         const emitter = yield* DomainEventEmitter
@@ -97,7 +98,7 @@ describe('DomainEventEmitter graph projection integration', () => {
         })
       }).pipe(Effect.provide(makeEmitterLayer(journal)))
 
-      const ids = yield* graph.getWorkOrderIdsTargetingMachine(TEST_MACHINE_ID)
+      const ids = yield* workOrderGraph.getWorkOrderIdsTargetingMachine(TEST_MACHINE_ID)
       expect(ids).toContain(workOrderId)
     }).pipe(
       Effect.ensuring(

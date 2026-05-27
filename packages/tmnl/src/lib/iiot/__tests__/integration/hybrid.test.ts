@@ -18,6 +18,7 @@ import { Effect, Stream, Chunk } from 'effect'
 import { PgClient } from '@effect/sql-pg'
 import { TimeSeriesClient } from '../../services/l1/TimeSeriesClient'
 import { GraphClient } from '../../services/l1/GraphClient'
+import { AlarmGraphQueries, AssetGraphQueries } from '../../services/l2'
 import type { DeviceId, PlantId, MachineId } from '../../schemas/identifiers'
 import {
   IIoTIntegrationLayer,
@@ -61,10 +62,10 @@ describe('Hybrid Query Integration Tests', () => {
       const program = withCleanDatabase(
         Effect.gen(function* () {
           const tsClient = yield* TimeSeriesClient
-          const graphClient = yield* GraphClient
+          const assetGraph = yield* AssetGraphQueries
 
           // 1. Get sensors for machine from graph
-          const sensors = yield* graphClient.getSensorsForMachine(MOCK_MACHINE_ID).pipe(
+          const sensors = yield* assetGraph.getSensorsForMachine(MOCK_MACHINE_ID).pipe(
             Stream.runCollect,
             Effect.map(Chunk.toArray)
           )
@@ -88,10 +89,10 @@ describe('Hybrid Query Integration Tests', () => {
 
       const program = Effect.gen(function* () {
         const tsClient = yield* TimeSeriesClient
-        const graphClient = yield* GraphClient
+        const assetGraph = yield* AssetGraphQueries
 
         // 1. Get all sensors from graph
-        const sensors = yield* graphClient.getAllSensors().pipe(
+        const sensors = yield* assetGraph.getAllSensors().pipe(
           Stream.runCollect,
           Effect.map(Chunk.toArray)
         )
@@ -100,7 +101,7 @@ describe('Hybrid Query Integration Tests', () => {
 
         // 2. Get hierarchy for first sensor
         const firstSensor = sensors[0]
-        const hierarchy = yield* graphClient.getSensorHierarchy(firstSensor.deviceId)
+        const hierarchy = yield* assetGraph.getSensorHierarchy(firstSensor.deviceId)
 
         expect(hierarchy.deviceId).toBe(firstSensor.deviceId)
         expect(hierarchy.plantName).toBeTruthy()
@@ -180,13 +181,14 @@ describe('Hybrid Query Integration Tests', () => {
         Effect.gen(function* () {
           const sql = yield* PgClient.PgClient
           const graphClient = yield* GraphClient
+          const alarmGraph = yield* AlarmGraphQueries
           const tsClient = yield* TimeSeriesClient
 
           // 1. Create test alarm linked to a sensor
           const testAlarmId = 'TEST-HYBRID-ALM-001'
           const testTime = new Date()
 
-          yield* graphClient.createAlarmNode({
+          yield* alarmGraph.createAlarmNode({
             id: testAlarmId,
             alarmType: 'TEMPERATURE_HIGH',
             severity: 'warning',
@@ -195,7 +197,7 @@ describe('Hybrid Query Integration Tests', () => {
           })
 
           // Link to existing sensor TMP-001
-          yield* graphClient.linkAlarmToSensor(testAlarmId, 'TMP-001' as DeviceId)
+          yield* alarmGraph.linkAlarmToSensor(testAlarmId, 'TMP-001' as DeviceId)
 
           // 2. Insert some readings around the alarm time
           const readings = Array.from({ length: 10 }, (_, i) => ({
@@ -266,11 +268,11 @@ describe('Hybrid Query Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const graphClient = yield* GraphClient
+        const assetGraph = yield* AssetGraphQueries
         const sql = yield* PgClient.PgClient
 
         // 1. Get plant hierarchy from graph
-        const hierarchy = yield* graphClient.getPlantHierarchy(MOCK_PLANT_ID)
+        const hierarchy = yield* assetGraph.getPlantHierarchy(MOCK_PLANT_ID)
 
         expect(hierarchy.plant.id).toBe(MOCK_PLANT_ID)
 

@@ -14,6 +14,7 @@ import { it as effectIt } from '@effect/vitest'
 // L1 Services
 import { TimeSeriesClient } from '../services/l1/TimeSeriesClient'
 import { GraphClient } from '../services/l1/GraphClient'
+import { AssetGraphQueries } from '../services/l2/AssetGraphQueries'
 
 // L2 Services
 import { SensorService } from '../services/l2/SensorService'
@@ -110,14 +111,14 @@ describe('Feature: L1 GraphClient', () => {
   })
 
   describe('Scenario: Get plants stream', () => {
-    effectIt.effect('Given GraphClient, When getting plants, Then should return stream', () =>
+    effectIt.effect('Given AssetGraphQueries, When getting plants, Then should return stream', () =>
       Effect.gen(function* () {
-        const client = yield* GraphClient
+        const assetGraph = yield* AssetGraphQueries
 
-        const plants = yield* client.getPlants().pipe(Stream.runCollect)
+        const plants = yield* assetGraph.getPlants().pipe(Stream.runCollect)
 
         expect(Chunk.isChunk(plants)).toBe(true)
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AssetGraphQueries.Default))
     )
   })
 })

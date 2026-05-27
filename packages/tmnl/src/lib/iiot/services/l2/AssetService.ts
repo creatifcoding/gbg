@@ -27,7 +27,7 @@ import {
   HierarchyError,
   GraphQueryError,
 } from '../../schemas/errors'
-import { GraphClient } from '../l1/GraphClient'
+import { AssetGraphQueries } from './AssetGraphQueries'
 
 // =============================================================================
 // Error Union
@@ -44,10 +44,10 @@ export type AssetServiceError =
 // =============================================================================
 
 export class AssetService extends Effect.Service<AssetService>()('iiot/AssetService', {
-  dependencies: [GraphClient.Default],
+  dependencies: [AssetGraphQueries.Default],
 
   effect: Effect.gen(function* () {
-    const graphClient = yield* GraphClient
+    const assetGraph = yield* AssetGraphQueries
 
     // -------------------------------------------------------------------------
     // Plant Operations
@@ -56,14 +56,14 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
     /**
      * Get all plants
      */
-    const getPlants = (): Stream.Stream<Plant, GraphQueryError> => graphClient.getPlants()
+    const getPlants = (): Stream.Stream<Plant, GraphQueryError> => assetGraph.getPlants()
 
     /**
      * Get plant by ID
      */
     const getPlant = (plantId: PlantId): Effect.Effect<Plant, PlantNotFoundError | GraphQueryError> =>
       Effect.gen(function* () {
-        const plants = yield* graphClient.getPlants().pipe(Stream.runCollect)
+        const plants = yield* assetGraph.getPlants().pipe(Stream.runCollect)
         const plant = Chunk.toArray(plants).find((p) => p.id === plantId)
 
         if (!plant) {
@@ -81,7 +81,7 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
      * Get all lines for a plant
      */
     const getLinesForPlant = (plantId: PlantId): Stream.Stream<Line, GraphQueryError> =>
-      graphClient.getLinesForPlant(plantId)
+      assetGraph.getLinesForPlant(plantId)
 
     // -------------------------------------------------------------------------
     // Machine Operations
@@ -91,7 +91,7 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
      * Get all machines for a line
      */
     const getMachinesForLine = (lineId: LineId): Stream.Stream<Machine, GraphQueryError> =>
-      graphClient.getMachinesForLine(lineId)
+      assetGraph.getMachinesForLine(lineId)
 
     /**
      * Get machine with its sensors
@@ -100,7 +100,7 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
       machineId: MachineId
     ): Effect.Effect<MachineWithSensors, MachineNotFoundError | GraphQueryError> =>
       Effect.gen(function* () {
-        const sensors = yield* graphClient.getSensorsForMachine(machineId).pipe(Stream.runCollect)
+        const sensors = yield* assetGraph.getSensorsForMachine(machineId).pipe(Stream.runCollect)
 
         // Build machine object (would come from graph in real impl)
         const machine: Machine = {
@@ -124,7 +124,7 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
      * Get all sensors for a machine
      */
     const getSensorsForMachine = (machineId: MachineId): Stream.Stream<Sensor, GraphQueryError> =>
-      graphClient.getSensorsForMachine(machineId)
+      assetGraph.getSensorsForMachine(machineId)
 
     /**
      * Get hierarchy path for a sensor (sensor → machine → line → plant)
@@ -132,7 +132,7 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
     const getSensorHierarchy = (
       deviceId: DeviceId
     ): Effect.Effect<SensorHierarchy, GraphQueryError | HierarchyError> =>
-      graphClient.getSensorHierarchy(deviceId)
+      assetGraph.getSensorHierarchy(deviceId)
 
     // -------------------------------------------------------------------------
     // Full Hierarchy
@@ -149,20 +149,20 @@ export class AssetService extends Effect.Service<AssetService>()('iiot/AssetServ
         const plant = yield* getPlant(plantId)
 
         // Get lines
-        const linesChunk = yield* graphClient.getLinesForPlant(plantId).pipe(Stream.runCollect)
+        const linesChunk = yield* assetGraph.getLinesForPlant(plantId).pipe(Stream.runCollect)
         const lines = Chunk.toArray(linesChunk)
 
         // Build hierarchy
         const linesWithMachines: LineWithMachines[] = yield* Effect.all(
           lines.map((line) =>
             Effect.gen(function* () {
-              const machinesChunk = yield* graphClient.getMachinesForLine(line.id).pipe(Stream.runCollect)
+              const machinesChunk = yield* assetGraph.getMachinesForLine(line.id).pipe(Stream.runCollect)
               const machines = Chunk.toArray(machinesChunk)
 
               const machinesWithSensors: MachineWithSensors[] = yield* Effect.all(
                 machines.map((machine) =>
                   Effect.gen(function* () {
-                    const sensorsChunk = yield* graphClient
+                    const sensorsChunk = yield* assetGraph
                       .getSensorsForMachine(machine.id)
                       .pipe(Stream.runCollect)
 

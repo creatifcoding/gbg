@@ -11,6 +11,7 @@ import { DateTime, Effect, Layer, Option } from 'effect'
 import * as EventLog from '@effect/experimental/EventLog'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import { GraphClient } from '../../services/l1/GraphClient'
+import { WorkOrderGraphQueries } from '../../services/l2/WorkOrderGraphQueries'
 import { DomainEventEmitter, DomainEventEmitterLive } from '../../services/events'
 import {
   IIoTDomainEventHandlersLayer,
@@ -288,6 +289,7 @@ describe('Generic Reactor integration', () => {
 
     const program = Effect.gen(function* () {
       const graph = yield* GraphClient
+      const workOrderGraph = yield* WorkOrderGraphQueries
       const state = yield* WorkOrderState
       const journal = yield* EventJournal.makeMemory
 
@@ -296,7 +298,7 @@ describe('Generic Reactor integration', () => {
         { type: 'machine', id: TEST_MACHINE_ID },
         { name: 'Generic Reactor Test Machine' },
       )
-      yield* graph.upsertWorkOrderTargetingMachine({
+      yield* workOrderGraph.upsertWorkOrderTargetingMachine({
         id: workOrderId,
         status: 'started',
         machineId: TEST_MACHINE_ID,
@@ -369,6 +371,7 @@ describe('Generic Reactor integration', () => {
 
     const program = Effect.gen(function* () {
       const graph = yield* GraphClient
+      const workOrderGraph = yield* WorkOrderGraphQueries
       const state = yield* WorkOrderState
       const journal = yield* EventJournal.makeMemory
 
@@ -449,6 +452,7 @@ describe('Generic Reactor integration', () => {
 
     const program = Effect.gen(function* () {
       const graph = yield* GraphClient
+      const workOrderGraph = yield* WorkOrderGraphQueries
       const state = yield* WorkOrderState
 
       yield* state.set(makeWorkOrder(workOrderId, 'started'))

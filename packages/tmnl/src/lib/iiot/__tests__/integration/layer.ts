@@ -15,6 +15,7 @@ import { PgClient } from '@effect/sql-pg'
 import * as BunContext from '@effect/platform-bun/BunContext'
 import { TimeSeriesClient } from '../../services/l1/TimeSeriesClient'
 import { GraphClient } from '../../services/l1/GraphClient'
+import { AlarmGraphQueries, AssetGraphQueries, WorkOrderGraphQueries } from '../../services/l2'
 import {
   IIoTRepositoriesLive,
   HierarchyRepositoriesLive,
@@ -110,6 +111,9 @@ const TimeSeriesClientLayer = TimeSeriesClient.Default.pipe(
  * GraphClient layer using test database
  */
 const GraphClientLayer = GraphClient.Default.pipe(Layer.provide(TestPgClient))
+const AssetGraphQueriesLayer = AssetGraphQueries.Default.pipe(Layer.provide(GraphClientLayer))
+const AlarmGraphQueriesLayer = AlarmGraphQueries.Default.pipe(Layer.provide(GraphClientLayer))
+const WorkOrderGraphQueriesLayer = WorkOrderGraphQueries.Default.pipe(Layer.provide(GraphClientLayer))
 
 // =============================================================================
 // Repository Layers (built on TestPgClient)
@@ -215,7 +219,10 @@ export const HierarchyRepositoriesIntegrationLayer = Layer.merge(
 export const IIoTIntegrationLayer = Layer.mergeAll(
   TestPgClientWithMigrations,
   TimeSeriesClientLayer,
-  GraphClientLayer
+  GraphClientLayer,
+  AssetGraphQueriesLayer,
+  AlarmGraphQueriesLayer,
+  WorkOrderGraphQueriesLayer,
 )
 
 /**
@@ -228,7 +235,10 @@ export const FullIIoTIntegrationLayer = Layer.mergeAll(
   TestPgClientWithMigrations,
   TimeSeriesClientLayer,
   GraphClientLayer,
-  RepositoriesIntegrationLayer
+  AssetGraphQueriesLayer,
+  AlarmGraphQueriesLayer,
+  WorkOrderGraphQueriesLayer,
+  RepositoriesIntegrationLayer,
 )
 
 /**
@@ -240,9 +250,15 @@ export const TimeSeriesIntegrationLayer = Layer.merge(
 )
 
 /**
- * Layer with only GraphClient (includes migrations)
+ * Layer with graph boundary plus domain graph query services (includes migrations).
  */
-export const GraphIntegrationLayer = Layer.merge(TestPgClientWithMigrations, GraphClientLayer)
+export const GraphIntegrationLayer = Layer.mergeAll(
+  TestPgClientWithMigrations,
+  GraphClientLayer,
+  AssetGraphQueriesLayer,
+  AlarmGraphQueriesLayer,
+  WorkOrderGraphQueriesLayer,
+)
 
 // =============================================================================
 // Event Journal Layers

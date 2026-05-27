@@ -17,7 +17,7 @@
 import { Effect, Option, Cause } from 'effect'
 import * as EventLog from '@effect/experimental/EventLog'
 import { WorkOrderEvents } from '../schemas/events/groups'
-import { GraphClient } from '../services/l1/GraphClient'
+import { WorkOrderGraphQueries } from '../services/l2/WorkOrderGraphQueries'
 import type { MachineId } from '../schemas/identifiers'
 
 // =============================================================================
@@ -45,7 +45,7 @@ const projectWorkOrderTargetToGraph = (input: {
   Effect.gen(function* () {
     if (input.entityType !== 'machine') return
 
-    const graph = yield* Effect.serviceOption(GraphClient)
+    const graph = yield* Effect.serviceOption(WorkOrderGraphQueries)
     if (Option.isNone(graph)) return
 
     yield* graph.value.upsertWorkOrderTargetingMachine({
@@ -57,7 +57,7 @@ const projectWorkOrderTargetToGraph = (input: {
 
 const projectWorkOrderStatusToGraph = (workOrderId: string, status: string) =>
   Effect.gen(function* () {
-    const graph = yield* Effect.serviceOption(GraphClient)
+    const graph = yield* Effect.serviceOption(WorkOrderGraphQueries)
     if (Option.isNone(graph)) return
 
     yield* graph.value.upsertWorkOrderNode({

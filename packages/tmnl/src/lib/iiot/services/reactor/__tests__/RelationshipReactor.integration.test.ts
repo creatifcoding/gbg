@@ -11,6 +11,7 @@ import { DateTime, Effect, Layer, Option } from 'effect'
 import * as EventLog from '@effect/experimental/EventLog'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import { GraphClient } from '../../l1/GraphClient'
+import { WorkOrderGraphQueries } from '../../l2/WorkOrderGraphQueries'
 import {
   RelationshipReactor,
   RelationshipReactorLive,
@@ -115,12 +116,12 @@ describe('RelationshipReactor integration', () => {
     const workOrderId = `TEST-WO-REACTOR-JOURNAL-${suffix}` as WorkOrderId
 
     const program = Effect.gen(function* () {
-      const graph = yield* GraphClient
+      const workOrderGraph = yield* WorkOrderGraphQueries
       const state = yield* WorkOrderState
       const journal = yield* EventJournal.makeMemory
 
       yield* state.set(makeWorkOrder(workOrderId, 'started'))
-      yield* graph.upsertWorkOrderTargetingMachine({
+      yield* workOrderGraph.upsertWorkOrderTargetingMachine({
         id: workOrderId,
         status: 'started',
         machineId: TEST_MACHINE_ID,
@@ -189,7 +190,7 @@ describe('RelationshipReactor integration', () => {
     const ids = [startedId, resumedId, completedId]
 
     const program = Effect.gen(function* () {
-      const graph = yield* GraphClient
+      const workOrderGraph = yield* WorkOrderGraphQueries
       const state = yield* WorkOrderState
 
       yield* state.set(makeWorkOrder(startedId, 'started'))
@@ -197,7 +198,7 @@ describe('RelationshipReactor integration', () => {
       yield* state.set(makeWorkOrder(completedId, 'completed'))
 
       for (const id of ids) {
-        yield* graph.upsertWorkOrderTargetingMachine({
+        yield* workOrderGraph.upsertWorkOrderTargetingMachine({
           id,
           status: id === completedId ? 'completed' : 'started',
           machineId: TEST_MACHINE_ID,

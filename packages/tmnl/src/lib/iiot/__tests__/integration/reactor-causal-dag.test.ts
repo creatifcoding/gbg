@@ -10,7 +10,7 @@ import { describe, expect } from 'vitest'
 import { it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { PgClient } from '@effect/sql-pg'
-import { GraphClient } from '../../services/l1/GraphClient'
+import { WorkOrderGraphQueries } from '../../services/l2/WorkOrderGraphQueries'
 import {
   ReactorCausalDagRepo,
   ReactorCausalDagRepoLive,
@@ -32,7 +32,7 @@ describe.skipIf(!RUN)('Reactor causal DAG reconstruction', () => {
     withCleanMachineDatabase(
       Effect.gen(function* () {
         const sql = yield* PgClient.PgClient
-        const graph = yield* GraphClient
+        const workOrderGraph = yield* WorkOrderGraphQueries
         const causalDag = yield* ReactorCausalDagRepo
 
         const machineId = nextId('TEST-MCH-CAUSAL') as MachineId
@@ -129,7 +129,7 @@ describe.skipIf(!RUN)('Reactor causal DAG reconstruction', () => {
           { type: 'machine', id: machineId },
           { status: 'planned_downtime' },
         )
-        yield* graph.upsertWorkOrderTargetingMachine({
+        yield* workOrderGraph.upsertWorkOrderTargetingMachine({
           id: workOrderId,
           status: 'suspended',
           machineId,

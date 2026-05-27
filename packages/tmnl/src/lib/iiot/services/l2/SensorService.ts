@@ -26,7 +26,7 @@ import {
   GraphQueryError,
 } from '../../schemas/errors'
 import { TimeSeriesClient } from '../l1/TimeSeriesClient'
-import { GraphClient } from '../l1/GraphClient'
+import { AssetGraphQueries } from './AssetGraphQueries'
 
 // =============================================================================
 // Error Union
@@ -43,11 +43,11 @@ export type SensorServiceError =
 // =============================================================================
 
 export class SensorService extends Effect.Service<SensorService>()('iiot/SensorService', {
-  dependencies: [TimeSeriesClient.Default, GraphClient.Default],
+  dependencies: [TimeSeriesClient.Default, AssetGraphQueries.Default],
 
   scoped: Effect.gen(function* () {
     const tsClient = yield* TimeSeriesClient
-    const graphClient = yield* GraphClient
+    const assetGraph = yield* AssetGraphQueries
 
     // -------------------------------------------------------------------------
     // Atoms for reactive state
@@ -131,7 +131,7 @@ export class SensorService extends Effect.Service<SensorService>()('iiot/SensorS
     /**
      * Get all sensors registered in the system
      */
-    const getAllSensors = (): Stream.Stream<Sensor, GraphQueryError> => graphClient.getAllSensors()
+    const getAllSensors = (): Stream.Stream<Sensor, GraphQueryError> => assetGraph.getAllSensors()
 
     /**
      * Get sensors for a specific machine
@@ -139,7 +139,7 @@ export class SensorService extends Effect.Service<SensorService>()('iiot/SensorS
     const getSensorsForMachine = (
       machineId: string
     ): Stream.Stream<Sensor, GraphQueryError> =>
-      graphClient.getSensorsForMachine(machineId as any)
+      assetGraph.getSensorsForMachine(machineId as any)
 
     /**
      * Subscribe to real-time readings for a device
@@ -175,7 +175,7 @@ export class SensorService extends Effect.Service<SensorService>()('iiot/SensorS
       IIoTQueryError | GraphQueryError
     > =>
       Effect.gen(function* () {
-        const sensors = yield* graphClient.getAllSensors().pipe(Stream.runCollect)
+        const sensors = yield* assetGraph.getAllSensors().pipe(Stream.runCollect)
         const hypertable = yield* tsClient.getHypertableStats()
 
         return {

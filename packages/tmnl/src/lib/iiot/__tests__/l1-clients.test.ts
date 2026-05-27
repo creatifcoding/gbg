@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest'
 import { Effect, Stream, Chunk } from 'effect'
 import { TimeSeriesClient } from '../services/l1/TimeSeriesClient'
 import { GraphClient } from '../services/l1/GraphClient'
+import { AlarmGraphQueries, AssetGraphQueries } from '../services/l2'
 import type { DeviceId, PlantId, LineId, MachineId } from '../schemas/identifiers'
 
 // =============================================================================
@@ -169,11 +170,11 @@ describe('Feature: GraphClient Operations', () => {
   describe('Scenario: Get plants', () => {
     it('Given the graph database, When getting plants, Then it should return plant list', async () => {
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const plantsChunk = yield* client.getPlants().pipe(Stream.runCollect)
         return Chunk.toArray(plantsChunk)
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AssetGraphQueries.Default))
 
       const result = await Effect.runPromise(program)
       expect(Array.isArray(result)).toBe(true)
@@ -183,11 +184,11 @@ describe('Feature: GraphClient Operations', () => {
   describe('Scenario: Navigate hierarchy', () => {
     it('Given a plant ID, When getting lines, Then it should return lines for plant', async () => {
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const linesChunk = yield* client.getLinesForPlant(mockPlantId).pipe(Stream.runCollect)
         return Chunk.toArray(linesChunk)
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AssetGraphQueries.Default))
 
       const result = await Effect.runPromise(program)
       expect(Array.isArray(result)).toBe(true)
@@ -195,11 +196,11 @@ describe('Feature: GraphClient Operations', () => {
 
     it('Given a line ID, When getting machines, Then it should return machines', async () => {
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const machinesChunk = yield* client.getMachinesForLine(mockLineId).pipe(Stream.runCollect)
         return Chunk.toArray(machinesChunk)
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AssetGraphQueries.Default))
 
       const result = await Effect.runPromise(program)
       expect(Array.isArray(result)).toBe(true)
@@ -207,11 +208,11 @@ describe('Feature: GraphClient Operations', () => {
 
     it('Given a machine ID, When getting sensors, Then it should return sensors', async () => {
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const sensorsChunk = yield* client.getSensorsForMachine(mockMachineId).pipe(Stream.runCollect)
         return Chunk.toArray(sensorsChunk)
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AssetGraphQueries.Default))
 
       const result = await Effect.runPromise(program)
       expect(Array.isArray(result)).toBe(true)
@@ -222,11 +223,11 @@ describe('Feature: GraphClient Operations', () => {
     // Skip: Requires mock data setup - empty mock returns HierarchyError
     it.skip('Given a device ID, When getting hierarchy, Then it should return full path', async () => {
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const hierarchy = yield* client.getSensorHierarchy(mockDeviceId)
         return hierarchy
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AssetGraphQueries.Default))
 
       const result = await Effect.runPromise(program)
       expect(result).toHaveProperty('sensor')
@@ -239,11 +240,11 @@ describe('Feature: GraphClient Operations', () => {
   describe('Scenario: Link alarms to sensors', () => {
     it('Given alarm and device IDs, When linking, Then it should create edge', async () => {
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AlarmGraphQueries
 
         yield* client.linkAlarmToSensor('ALM-001' as any, mockDeviceId)
         return true
-      }).pipe(Effect.provide(GraphClient.Default))
+      }).pipe(Effect.provide(AlarmGraphQueries.Default))
 
       const result = await Effect.runPromise(program)
       expect(result).toBe(true)

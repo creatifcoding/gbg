@@ -10,7 +10,7 @@
 
 import { Context, Effect, Layer } from 'effect'
 import { SqlClient, SqlError } from '@effect/sql'
-import { GraphClient } from '../services/l1/GraphClient'
+import { WorkOrderGraphQueries } from '../services/l2/WorkOrderGraphQueries'
 import { MachineId, PropagationId, WorkOrderId } from '../schemas/identifiers'
 import type { StateType } from '../schemas/equipment-state/schema'
 import type { WorkOrderStatus } from '../schemas/work-orders'
@@ -74,7 +74,7 @@ export const ReactorCausalDagRepoLive = Layer.effect(
   ReactorCausalDagRepo,
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient
-    const graph = yield* GraphClient
+    const workOrderGraph = yield* WorkOrderGraphQueries
 
     const getMachineWorkOrderChains = (query: typeof MachineWorkOrderCausalQuery.Type) =>
       Effect.gen(function* () {
@@ -113,7 +113,7 @@ export const ReactorCausalDagRepoLive = Layer.effect(
 
         return yield* Effect.forEach(rows, (row) =>
           Effect.gen(function* () {
-            const relatedWorkOrders = yield* graph.getWorkOrderIdsTargetingMachine(row.sourceMachineId as MachineId)
+            const relatedWorkOrders = yield* workOrderGraph.getWorkOrderIdsTargetingMachine(row.sourceMachineId as MachineId)
             const relationshipVerified = relatedWorkOrders.includes(row.targetWorkOrderId as WorkOrderId)
 
             return new MachineWorkOrderCausalChain({

@@ -19,6 +19,7 @@ import * as EventJournal from '@effect/experimental/EventJournal'
 import { SqlClient } from '@effect/sql'
 import { PgClient } from '@effect/sql-pg'
 import { GraphClient } from '../../services/l1/GraphClient'
+import { WorkOrderGraphQueries } from '../../services/l2/WorkOrderGraphQueries'
 import { DomainEventEmitter, DomainEventEmitterLive } from '../../services/events'
 import {
   IIoTDomainEventHandlersLayer,
@@ -234,6 +235,7 @@ const runDirectEquipmentEventLane = (input: {
     yield* cleanupSourceClaimE2E
 
     const graph = yield* GraphClient
+    const workOrderGraph = yield* WorkOrderGraphQueries
     const state = yield* WorkOrderState
     const transitionRepo = yield* WorkOrderTransitionRepo
     const sql = yield* PgClient.PgClient
@@ -261,7 +263,7 @@ const runDirectEquipmentEventLane = (input: {
     )
 
     if (input.edgeType === 'targets') {
-      yield* graph.upsertWorkOrderTargetingMachine({
+      yield* workOrderGraph.upsertWorkOrderTargetingMachine({
         id: created.id,
         status: 'started',
         machineId: TEST_MACHINE_ID,
@@ -338,6 +340,7 @@ describe('Reactor source-claim production-path E2E', () => {
         yield* cleanupSourceClaimE2E
 
         const graph = yield* GraphClient
+        const workOrderGraph = yield* WorkOrderGraphQueries
         const state = yield* WorkOrderState
         const transitionRepo = yield* WorkOrderTransitionRepo
         const journal = yield* EventJournal.EventJournal
@@ -372,7 +375,7 @@ describe('Reactor source-claim production-path E2E', () => {
           { type: 'machine', id: TEST_MACHINE_ID },
           { name: 'Reactor Source Claim E2E Machine' },
         )
-        yield* graph.upsertWorkOrderTargetingMachine({
+        yield* workOrderGraph.upsertWorkOrderTargetingMachine({
           id: created.id,
           status: 'started',
           machineId: TEST_MACHINE_ID,

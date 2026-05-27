@@ -15,6 +15,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Effect, Stream, Chunk } from 'effect'
 import { GraphClient } from '../../services/l1/GraphClient'
+import { AlarmGraphQueries, AssetGraphQueries, WorkOrderGraphQueries } from '../../services/l2'
 import type { DeviceId, PlantId, LineId, MachineId, WorkOrderId } from '../../schemas/identifiers'
 import {
   RELATIONSHIP_EDGE_REGISTRY,
@@ -148,7 +149,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const plants = yield* client.getPlants().pipe(
           Stream.runCollect,
@@ -168,7 +169,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const plants = yield* client.getPlants().pipe(
           Stream.runCollect,
@@ -193,7 +194,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const lines = yield* client.getLinesForPlant(MOCK_PLANT_ID).pipe(
           Stream.runCollect,
@@ -212,7 +213,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const machines = yield* client.getMachinesForLine(MOCK_LINE_ID).pipe(
           Stream.runCollect,
@@ -231,7 +232,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const sensors = yield* client.getSensorsForMachine(MOCK_MACHINE_ID).pipe(
           Stream.runCollect,
@@ -250,7 +251,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const hierarchy = yield* client.getSensorHierarchy(MOCK_SENSOR_ID)
 
@@ -269,7 +270,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const hierarchy = yield* client.getPlantHierarchy(MOCK_PLANT_ID)
 
@@ -295,7 +296,7 @@ describe('GraphClient Integration Tests', () => {
       if (!dbAvailable) return
 
       const program = Effect.gen(function* () {
-        const client = yield* GraphClient
+        const client = yield* AssetGraphQueries
 
         const sensors = yield* client.getAllSensors().pipe(
           Stream.runCollect,
@@ -486,15 +487,16 @@ describe('GraphClient Integration Tests', () => {
 
       const program = Effect.gen(function* () {
         const client = yield* GraphClient
+        const workOrderGraph = yield* WorkOrderGraphQueries
         const workOrderId = `TEST-WO-GRAPH-${Date.now()}` as WorkOrderId
 
-        yield* client.upsertWorkOrderTargetingMachine({
+        yield* workOrderGraph.upsertWorkOrderTargetingMachine({
           id: workOrderId,
           status: 'started',
           machineId: MOCK_MACHINE_ID,
         })
 
-        const ids = yield* client.getWorkOrderIdsTargetingMachine(MOCK_MACHINE_ID)
+        const ids = yield* workOrderGraph.getWorkOrderIdsTargetingMachine(MOCK_MACHINE_ID)
 
         expect(ids).toContain(workOrderId)
 
@@ -519,8 +521,9 @@ describe('GraphClient Integration Tests', () => {
 
       const program = Effect.gen(function* () {
         const client = yield* GraphClient
+        const alarmGraph = yield* AlarmGraphQueries
 
-        yield* client.createAlarmNode({
+        yield* alarmGraph.createAlarmNode({
           id: 'TEST-ALM-001',
           alarmType: 'TEMPERATURE_HIGH',
           severity: 'warning',
@@ -552,9 +555,10 @@ describe('GraphClient Integration Tests', () => {
 
       const program = Effect.gen(function* () {
         const client = yield* GraphClient
+        const alarmGraph = yield* AlarmGraphQueries
 
         // Create test alarm
-        yield* client.createAlarmNode({
+        yield* alarmGraph.createAlarmNode({
           id: 'TEST-ALM-002',
           alarmType: 'VIBRATION_ANOMALY',
           severity: 'critical',
@@ -563,7 +567,7 @@ describe('GraphClient Integration Tests', () => {
         })
 
         // Link to sensor
-        yield* client.linkAlarmToSensor('TEST-ALM-002', MOCK_SENSOR_ID)
+        yield* alarmGraph.linkAlarmToSensor('TEST-ALM-002', MOCK_SENSOR_ID)
 
         // Verify relationship
         // Note: Use snake_case aliases so transformResultNames converts to camelCase
