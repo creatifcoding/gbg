@@ -11,6 +11,7 @@ export * from './bytes';
 export * from './constants';
 export * from './decode';
 export * from './descriptors';
+export * from './diagnostics';
 export * from './errors';
 export * from './move';
 export * from './objects';

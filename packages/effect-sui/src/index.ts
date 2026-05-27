@@ -17,6 +17,7 @@ export * as SuiServices from './services';
 export * as SuiPTB from './ptb';
 export * as SuiQuery from './query';
 export * as SuiFlow from './flow';
+export * as SuiDiagnostics from './diagnostics';
 export * as SuiReservation from './reservation';
 export * as SuiPackage from './package';
 export * as SuiAdapter from './adapter';

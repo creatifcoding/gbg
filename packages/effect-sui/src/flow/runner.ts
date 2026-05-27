@@ -5,6 +5,7 @@ import * as Layer from 'effect-v4/Layer';
 import type { SuiTx } from '../effectable';
 import {
   SuiAuthService,
+  SuiDiagnostics,
   SuiExecutionService,
   SuiFinalityService,
   SuiGasPlanner,
@@ -42,7 +43,8 @@ export const makeTxRunnerLayer = (options: SuiTxRunnerOptions = {}) => Layer.eff
     const executionService = yield* SuiExecutionService;
     const finalityService = yield* SuiFinalityService;
     const reservationService = yield* SuiReservationService;
-    return makeTxRunner({ ptbAnalyzer, ptbCompiler, gasPlanner, paymentService, authService, preflightService, executionService, finalityService, reservationService }, options);
+    const diagnostics = yield* SuiDiagnostics;
+    return makeTxRunner({ ptbAnalyzer, ptbCompiler, gasPlanner, paymentService, authService, preflightService, executionService, finalityService, reservationService, diagnostics }, options);
   }),
 );
 

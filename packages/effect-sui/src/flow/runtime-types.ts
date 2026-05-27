@@ -8,6 +8,7 @@ import type { SuiTx } from '../effectable';
 import type {
   SuiAuthService,
   SuiClientService,
+  SuiDiagnostics,
   SuiExecutionService,
   SuiFinalityResult,
   SuiFinalityService,
@@ -23,7 +24,7 @@ import type {
 } from '../services';
 import type { SuiTxRunnerOptions } from './runner';
 
-export type SuiFlowServices = SuiClientService | SuiPtbAnalyzer | SuiPtbCompiler | SuiGasPlanner | SuiPaymentService | SuiAuthService | SuiPreflightService | SuiExecutionService | SuiFinalityService | SuiReservationService | SuiTxRunner;
+export type SuiFlowServices = SuiClientService | SuiPtbAnalyzer | SuiPtbCompiler | SuiGasPlanner | SuiPaymentService | SuiAuthService | SuiPreflightService | SuiExecutionService | SuiFinalityService | SuiReservationService | SuiDiagnostics | SuiTxRunner;
 export type SuiFlowRuntime = ManagedRuntime.ManagedRuntime<SuiFlowServices, never>;
 
 export interface SuiFlowRuntimeOptions extends SuiTxRunnerOptions {

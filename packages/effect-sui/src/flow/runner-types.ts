@@ -3,6 +3,7 @@ import type * as Exit from 'effect-v4/Exit';
 import type { SuiTx } from '../effectable';
 import type {
   SuiAuthServiceShape,
+  SuiDiagnosticsShape,
   SuiExecutionServiceShape,
   SuiFinalityServiceShape,
   SuiGasPlannerShape,
@@ -24,6 +25,7 @@ export interface SuiTxRunnerDependencies {
   readonly executionService: SuiExecutionServiceShape;
   readonly finalityService: SuiFinalityServiceShape;
   readonly reservationService: SuiReservationServiceShape;
+  readonly diagnostics: SuiDiagnosticsShape;
 }
 
 export interface SuiTxRunnerOptions {

@@ -2,6 +2,7 @@
 
 import * as Layer from 'effect-v4/Layer';
 
+import { SuiDiagnosticsLive } from '../diagnostics';
 import { SuiPtbLive } from '../ptb';
 import { SuiReservationServiceLive } from '../reservation';
 import { SuiClientService } from '../services';
@@ -26,6 +27,7 @@ export const SuiTxLifecycleServices = Layer.mergeAll(
   SuiExecutionServiceFromClient,
   SuiFinalityServiceFromClient,
   SuiReservationServiceLive,
+  SuiDiagnosticsLive,
 );
 
 export const makeTxLifecycleLayer = (options: SuiTxRunnerOptions = {}) =>

@@ -7,7 +7,7 @@ import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
 
 import { makeClient as makeFlowClient, makeTxRunner, type SuiFlowClient, type SuiFlowRuntime } from '../flow';
 import { makeClient as makeQueryClient, type SuiQueryClient, type SuiQueryRuntime } from '../query';
-import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
+import { decodeSuiObjectId, decodeSuiTransactionDigest, SuiDiagnostic, SuiInvariantViolation, SuiPackageDescriptor } from '../schema';
 import {
   SuiAuthService,
   type SuiAuthServiceShape,
@@ -203,11 +203,22 @@ export const makeFakePackageRegistry = (
 
 export const makeFakeDiagnostics = (
   overrides: Partial<SuiDiagnosticsShape> = {},
-): SuiDiagnosticsShape => ({
-  record: () => Effect.void,
-  classify: () => Effect.succeed('fake-diagnostic'),
-  ...overrides,
-});
+): SuiDiagnosticsShape => {
+  const diagnostic = new SuiDiagnostic({
+    category: 'unknown',
+    severity: 'debug',
+    retryHint: 'notApplicable',
+    message: 'fake-diagnostic',
+    reasonKinds: ['unknown'],
+  });
+  return {
+    record: () => Effect.void,
+    classify: () => Effect.succeed(diagnostic),
+    classifyCause: () => Effect.succeed(diagnostic),
+    classifyExit: () => Effect.succeed(diagnostic),
+    ...overrides,
+  };
+};
 
 export type FakeSuiRuntimeServices =
   | SuiClientService
@@ -259,6 +270,7 @@ export const FakeSuiRuntimeLayer = (overrides: FakeSuiServiceOverrides = {}) => 
   const executionService = makeFakeExecutionService(overrides.executionService);
   const finalityService = makeFakeFinalityService(overrides.finalityService);
   const reservationService = makeFakeReservationService(overrides.reservationService);
+  const diagnostics = makeFakeDiagnostics(overrides.diagnostics);
 
   return Layer.mergeAll(
     SuiClientService.layer(overrides.client ?? fakeClient),
@@ -282,10 +294,11 @@ export const FakeSuiRuntimeLayer = (overrides: FakeSuiServiceOverrides = {}) => 
       executionService,
       finalityService,
       reservationService,
+      diagnostics,
     })),
     Layer.succeed(SuiReservationService)(reservationService),
     Layer.succeed(SuiPackageRegistry)(makeFakePackageRegistry(overrides.packageRegistry)),
-    Layer.succeed(SuiDiagnostics)(makeFakeDiagnostics(overrides.diagnostics)),
+    Layer.succeed(SuiDiagnostics)(diagnostics),
   );
 };
 
