@@ -466,7 +466,7 @@ export const DeviceDecommissionedObservationSpec: EventObservationSpec = {
           }),
         ],
         causality: new ReactorCausality({
-          propagationId: entry.idString as PropagationId,
+          propagationId: payload.deviceId as PropagationId,
         }),
         payload,
       })
@@ -491,9 +491,14 @@ const externalAvailabilityObservation = (input: {
         reason: input.reason,
       }),
     ],
-    causality: new ReactorCausality({
-      propagationId: input.entry.idString as PropagationId,
-    }),
+    causality: new ReactorCausality(input.value === 'available'
+      ? {
+        propagationId: input.entry.idString as PropagationId,
+        causedByPropagationId: input.externalRefId as PropagationId,
+      }
+      : {
+        propagationId: input.externalRefId as PropagationId,
+      }),
     payload: input.payload,
   })
 

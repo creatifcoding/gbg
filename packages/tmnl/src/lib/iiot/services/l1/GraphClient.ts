@@ -8,7 +8,7 @@
  * @module
  */
 
-import { Context, Effect, Layer, Schema } from 'effect'
+import { Context, DateTime, Effect, Layer, Schema } from 'effect'
 import { PgClient } from '@effect/sql-pg'
 import type { EdgeId } from '../../schemas/identifiers'
 import { GraphQueryError } from '../../schemas/errors'
@@ -382,6 +382,72 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
         return result.rows.map((row) => String(row['targetId']))
       })
 
+    const asOfActiveTargetIdsFromAudit = (input: {
+      readonly source: RelationshipEndpoint
+      readonly edgeType: typeof RelationshipEdgeType.Type
+      readonly targetType: typeof RelationshipNodeType.Type
+      readonly asOf: Date
+    }): Effect.Effect<readonly string[], GraphQueryError> =>
+      sql<{ requestId: string }>`
+        SELECT DISTINCT upsert.target_id AS "requestId"
+        FROM iiot.relationship_edge_audit upsert
+        WHERE upsert.action = 'upsert'
+          AND upsert.edge_type = ${input.edgeType}
+          AND upsert.source_type = ${input.source.type}
+          AND upsert.source_id = ${input.source.id}
+          AND upsert.target_type = ${input.targetType}
+          AND (upsert.valid_from IS NULL OR upsert.valid_from <= ${input.asOf})
+          AND NOT EXISTS (
+            SELECT 1
+            FROM iiot.relationship_edge_audit deleted
+            WHERE deleted.edge_id = upsert.edge_id
+              AND deleted.action = 'soft_delete'
+              AND deleted.valid_to IS NOT NULL
+              AND deleted.valid_to < ${input.asOf}
+          )
+        ORDER BY upsert.target_id
+      `.pipe(
+        Effect.map((rows) => rows.map((row) => row.requestId)),
+        Effect.mapError((cause) => new GraphQueryError({
+          query: 'relationship_edge_audit.as_of_targets',
+          message: `Audit-backed propagation target expansion failed: ${String(cause)}`,
+          cause,
+        })),
+      )
+
+    const asOfActiveSourceIdsFromAudit = (input: {
+      readonly target: RelationshipEndpoint
+      readonly edgeType: typeof RelationshipEdgeType.Type
+      readonly sourceType: typeof RelationshipNodeType.Type
+      readonly asOf: Date
+    }): Effect.Effect<readonly string[], GraphQueryError> =>
+      sql<{ requestId: string }>`
+        SELECT DISTINCT upsert.source_id AS "requestId"
+        FROM iiot.relationship_edge_audit upsert
+        WHERE upsert.action = 'upsert'
+          AND upsert.edge_type = ${input.edgeType}
+          AND upsert.source_type = ${input.sourceType}
+          AND upsert.target_type = ${input.target.type}
+          AND upsert.target_id = ${input.target.id}
+          AND (upsert.valid_from IS NULL OR upsert.valid_from <= ${input.asOf})
+          AND NOT EXISTS (
+            SELECT 1
+            FROM iiot.relationship_edge_audit deleted
+            WHERE deleted.edge_id = upsert.edge_id
+              AND deleted.action = 'soft_delete'
+              AND deleted.valid_to IS NOT NULL
+              AND deleted.valid_to < ${input.asOf}
+          )
+        ORDER BY upsert.source_id
+      `.pipe(
+        Effect.map((rows) => rows.map((row) => row.requestId)),
+        Effect.mapError((cause) => new GraphQueryError({
+          query: 'relationship_edge_audit.as_of_sources',
+          message: `Audit-backed propagation source expansion failed: ${String(cause)}`,
+          cause,
+        })),
+      )
+
     const expandPropagationTargets = (input: {
       readonly observation: ReactorObservation
       readonly policy: RelationshipPropagationPolicy
@@ -391,6 +457,7 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
         const edge = getRelationshipEdgeDescriptor(input.policy.edgeType)
         const subject = input.observation.subject
         const subjectIdProperty = nodeIdProperty(subject.type)
+        const asOf = DateTime.toDate(input.observation.event.occurredAt)
 
         if (input.policy.observedEndpoint === 'source') {
           if (!edge.allowedSourceTypes.includes(subject.type)) return []
@@ -409,10 +476,17 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
                    ORDER BY target.${targetIdProperty}`,
                   '(request_id agtype)',
                 )
+                const activeIds = result.rows.map((row) => String(row['requestId']))
+                const auditIds = yield* asOfActiveTargetIdsFromAudit({
+                  source: subject,
+                  edgeType: input.policy.edgeType,
+                  targetType,
+                  asOf,
+                })
 
-                return result.rows.map((row): PropagationTargetExpansion => {
+                return Array.from(new Set([...activeIds, ...auditIds])).map((id): PropagationTargetExpansion => {
                   const source = subject
-                  const target = new RelationshipEndpoint({ type: targetType, id: String(row['requestId']) })
+                  const target = new RelationshipEndpoint({ type: targetType, id })
                   return {
                     edgeType: input.policy.edgeType,
                     source,
@@ -443,9 +517,16 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
                  ORDER BY source.${sourceIdProperty}`,
                 '(request_id agtype)',
               )
+              const activeIds = result.rows.map((row) => String(row['requestId']))
+              const auditIds = yield* asOfActiveSourceIdsFromAudit({
+                target: subject,
+                edgeType: input.policy.edgeType,
+                sourceType,
+                asOf,
+              })
 
-              return result.rows.map((row): PropagationTargetExpansion => {
-                const source = new RelationshipEndpoint({ type: sourceType, id: String(row['requestId']) })
+              return Array.from(new Set([...activeIds, ...auditIds])).map((id): PropagationTargetExpansion => {
+                const source = new RelationshipEndpoint({ type: sourceType, id })
                 const target = subject
                 return {
                   edgeType: input.policy.edgeType,

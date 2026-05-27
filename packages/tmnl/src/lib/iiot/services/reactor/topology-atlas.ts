@@ -749,14 +749,14 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   }),
   DeviceDecommissioned: structuralDecommission({
     entityType: 'device',
-    relationshipEdges: ['targets', 'requires', 'triggered_by'],
+    relationshipEdges: ['targets', 'requires'],
     signals: ['device.lifecycle = decommissioned', 'device.availability = unavailable'],
     declaredPolicyIds: [
       'targets.structural-decommission.blocks-source',
       'requires.structural-decommission.blocks-source',
       ...deviceUnavailablePolicies,
     ],
-    rationale: 'Device removal can invalidate required/targeted dependencies; device availability is declared but remains candidate until live activation proves required graph expansion and target-owned release/blocking semantics.',
+    rationale: 'Guarded opt-in lane: device removal asserts structural lifecycle and device availability pressure; required WorkOrders block through SQL-backed target-owned dependency semantics.',
   }),
   AlarmTriggered: {
     status: 'candidate',
@@ -917,18 +917,18 @@ const eventOverrides: Record<string, EventCoverageSeed> = {
   },
   ExternalRefLinked: {
     status: 'candidate',
-    rationale: 'Can materialize external requires/produces relationships; availability release remains candidate until projection ordering and target-owned release proofs are complete.',
+    rationale: 'Guarded opt-in lane: relinked required external references can retract only the matching external dependency constraint via SQL natural-address release.',
     signals: ['context.external_ref = linked', 'external.availability = available'],
     declaredPolicyIds: externalAvailablePolicies,
-    candidateRelationshipEdges: ['requires', 'produces', 'related_to'],
+    candidateRelationshipEdges: ['requires'],
     targetCapabilities: [Capability.DependencyReleased],
   },
   ExternalRefUnlinked: {
     status: 'candidate',
-    rationale: 'Can close external relationships and assert external unavailability; dispatch waits for as-of graph expansion or event-carried target identity.',
+    rationale: 'Guarded opt-in lane: unlink closes projection edges but Reactor expands targets as-of event time from relationship audit before asserting external dependency pressure.',
     signals: ['context.external_ref = unlinked', 'external.availability = unavailable'],
     declaredPolicyIds: externalUnavailablePolicies,
-    candidateRelationshipEdges: ['requires', 'produces', 'related_to'],
+    candidateRelationshipEdges: ['requires'],
     targetCapabilities: [Capability.DependencyBlocked],
   },
   ChildWorkOrderSpawned: {
@@ -1452,9 +1452,9 @@ const relationshipCoverageSeeds: Record<RelationshipEdgeTypeValue, RelationshipC
   },
   requires: {
     status: 'production',
-    rationale: 'Production lane for required machine availability; external/device availability remain candidate expansions.',
+    rationale: 'Production lane for required machine availability; external/device availability are guarded opt-in expansions outside ReactorGenericLive.',
     candidateSignals: ['equipment.availability', 'device.availability', 'external.availability'],
-    targetCapabilities: [Capability.DependencyBlocked],
+    targetCapabilities: [Capability.DependencyBlocked, Capability.DependencyReleased],
   },
   caused_by: {
     status: 'candidate',

@@ -735,6 +735,12 @@ export const RequiresExternalAvailableReleasesSource = new RelationshipPropagati
   effect: 'consistency',
   idempotencyStrategy: 'source_propagation_id',
   version: '1',
+  constraintAddressHint: new RelationshipConstraintAddressHint({
+    assertedCapability: EntityCapabilityIds.DependencyBlocked,
+    assertionPolicyId: RequiresExternalUnavailableBlocksSource.id,
+    propagationIdSource: 'caused_by',
+    notes: 'External unlink observations assert with externalRefId as the stable propagation id; relink observations keep their own journal-entry propagation id for release audit and carry externalRefId as causedByPropagationId for exact constraint addressing.',
+  }),
 })
 
 /** Required device became unavailable. */
@@ -777,6 +783,12 @@ export const RequiresDeviceAvailableReleasesSource = new RelationshipPropagation
   effect: 'consistency',
   idempotencyStrategy: 'source_propagation_id',
   version: '1',
+  constraintAddressHint: new RelationshipConstraintAddressHint({
+    assertedCapability: EntityCapabilityIds.DependencyBlocked,
+    assertionPolicyId: RequiresDeviceUnavailableBlocksSource.id,
+    propagationIdSource: 'caused_by',
+    notes: 'Parked until a durable device availability recovery event exists; future recovery observations should keep a distinct release propagation id and carry the unavailable assertion propagation id as causedByPropagationId.',
+  }),
 })
 
 export const ExternalDeviceRequiresAvailabilityPropagationPolicies = [

@@ -375,7 +375,8 @@ describe('Reactor observation adapters', () => {
       const observation = yield* WorkOrderResumedObservationSpec.observe(entry)
 
       expect(observation.subject).toMatchObject({ type: 'work_order', id: TEST_WORK_ORDER_ID })
-      expect(observation.causality.propagationId).toBe(causedByPropagationId)
+      expect(observation.causality.propagationId).toBe(entry.idString)
+      expect(observation.causality.causedByPropagationId).toBe(causedByPropagationId)
       expect(observation.signals[0]).toMatchObject({
         axis: 'work_order.execution',
         kind: 'condition_retracted',
@@ -411,7 +412,7 @@ describe('Reactor observation adapters', () => {
 
       expect(observation.event.tag).toBe('AlarmTriggered')
       expect(observation.subject).toMatchObject({ type: 'device', id: TEST_DEVICE_ID })
-      expect(observation.causality.propagationId).toBe(entry.idString)
+      expect(observation.causality.propagationId).toBe(TEST_ALARM_ID)
       expect(observation.signals[0]).toMatchObject({
         axis: 'alarm.safety',
         kind: 'condition_asserted',
@@ -553,6 +554,7 @@ describe('Reactor observation adapters', () => {
       const observation = yield* DeviceDecommissionedObservationSpec.observe(entry)
 
       expect(observation.subject).toMatchObject({ type: 'device', id: TEST_DEVICE_ID })
+      expect(observation.causality.propagationId).toBe(TEST_DEVICE_ID)
       expect(observation.signals).toHaveLength(2)
       expect(observation.signals[0]).toMatchObject({
         axis: 'structural.lifecycle',
@@ -595,6 +597,8 @@ describe('Reactor observation adapters', () => {
       const observation = yield* ExternalRefLinkedAvailabilityObservationSpec.observe(entry)
 
       expect(observation.subject).toMatchObject({ type: 'external', id: TEST_EXTERNAL_REF_ID })
+      expect(observation.causality.propagationId).toBe(entry.idString)
+      expect(observation.causality.causedByPropagationId).toBe(TEST_EXTERNAL_REF_ID)
       expect(observation.signals[0]).toMatchObject({
         axis: 'external.availability',
         kind: 'condition_asserted',
@@ -617,6 +621,7 @@ describe('Reactor observation adapters', () => {
       const observation = yield* ExternalRefUnlinkedAvailabilityObservationSpec.observe(entry)
 
       expect(observation.subject).toMatchObject({ type: 'external', id: TEST_EXTERNAL_REF_ID })
+      expect(observation.causality.propagationId).toBe(TEST_EXTERNAL_REF_ID)
       expect(observation.signals[0]).toMatchObject({
         axis: 'external.availability',
         kind: 'condition_asserted',
