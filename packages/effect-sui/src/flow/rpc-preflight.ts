@@ -2,9 +2,8 @@
 
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
-import type { SuiExecutionError, SuiInvariantViolation } from '../schema';
 import { SuiClientService, SuiPreflightService, type SuiPreflightRequest, type SuiPreflightResult, type SuiPreflightServiceShape } from '../services';
-import { execution, invariant } from './errors';
+import { dryRun, invariant, type SuiFlowError } from './errors';
 import { requireTransactionBytes, transactionPayload, transactionStatus } from './rpc-shared';
 import type { ClientWithTransactionLifecycle } from './types';
 
@@ -19,7 +18,7 @@ export const SuiPreflightServiceFromClient = Layer.effect(SuiPreflightService)(
 const dryRunTransaction = (
   client: ClientWithTransactionLifecycle,
   request: SuiPreflightRequest,
-): Effect.Effect<SuiPreflightResult, SuiExecutionError | SuiInvariantViolation> => {
+): Effect.Effect<SuiPreflightResult, SuiFlowError> => {
   if (!client.core.simulateTransaction) {
     return Effect.fail(invariant('SuiPreflightService.client', 'Client does not expose core.simulateTransaction'));
   }
@@ -31,7 +30,7 @@ const dryRunTransaction = (
         transaction: transactionBytes,
         include: { effects: true, transaction: true, events: true, balanceChanges: true },
       }),
-      catch: (cause) => execution('SuiPreflightService.simulateTransaction', cause),
+      catch: (cause) => dryRun('SuiPreflightService.simulateTransaction', cause),
     });
     const transaction = transactionPayload(raw);
     const status = transactionStatus(raw);

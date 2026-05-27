@@ -3,7 +3,7 @@ import * as Effect from 'effect-v4/Effect';
 import * as Schema from 'effect-v4/Schema';
 import { describe, expect, it } from 'vitest';
 
-import { decodeSuiAddress, decodeSuiObjectId, decodeSuiTypeTagString, SuiInvariantViolation } from '../schema';
+import { decodeSuiAddress, decodeSuiObjectId, decodeSuiTypeTagString, SuiPtbInvalidError } from '../schema';
 import {
   analyzePtb,
   gas,
@@ -84,7 +84,7 @@ describe('SuiPTB AST and compiler', () => {
     });
 
     const error = Effect.runSync(Effect.flip(analyzePtb(ast.label, ast.inputs, ast.commands)));
-    expect(error).toBeInstanceOf(SuiInvariantViolation);
+    expect(error).toBeInstanceOf(SuiPtbInvalidError);
     expect(error.message).toMatch(/unavailable result 0/);
   });
 
@@ -99,7 +99,7 @@ describe('SuiPTB AST and compiler', () => {
     });
 
     const badResultError = Effect.runSync(Effect.flip(analyzePtb(badResult.label, badResult.inputs, badResult.commands)));
-    expect(badResultError).toBeInstanceOf(SuiInvariantViolation);
+    expect(badResultError).toBeInstanceOf(SuiPtbInvalidError);
     expect(badResultError.message).toMatch(/uses Result\(0\) but command 0 has 2 results/);
 
     const badGasAmount = new SuiPtbAst({
@@ -111,7 +111,7 @@ describe('SuiPTB AST and compiler', () => {
     const badGasAmountError = Effect.runSync(
       Effect.flip(analyzePtb(badGasAmount.label, badGasAmount.inputs, badGasAmount.commands)),
     );
-    expect(badGasAmountError).toBeInstanceOf(SuiInvariantViolation);
+    expect(badGasAmountError).toBeInstanceOf(SuiPtbInvalidError);
     expect(badGasAmountError.message).toMatch(/SplitCoins amount 0 cannot use GasCoin by value/);
   });
 
@@ -141,7 +141,7 @@ describe('SuiPTB AST and compiler', () => {
     expect(data.commands?.map((command) => command.$kind)).toEqual(['SplitCoins', 'TransferObjects']);
   });
 
-  it('normalizes live compiler failures as SuiInvariantViolation through the ManagedRuntime builder', async () => {
+  it('normalizes live compiler failures as SuiPtbInvalidError through the ManagedRuntime builder', async () => {
     const ast = new SuiPtbAst({
       label: 'bad-compiler-ref',
       inputs: [],
@@ -152,8 +152,8 @@ describe('SuiPTB AST and compiler', () => {
     const error = builder.runtime.runSync(Effect.flip(make(ast)));
     await builder.dispose();
 
-    expect(error).toBeInstanceOf(SuiInvariantViolation);
-    expect(error.invariant).toBe('SuiPTB.analyze');
+    expect(error).toBeInstanceOf(SuiPtbInvalidError);
+    expect(error.phase).toBe('analyze');
     expect(error.message).toContain('missing input 99');
   });
 });

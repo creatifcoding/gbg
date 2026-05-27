@@ -1,14 +1,13 @@
 import { Transaction } from '@mysten/sui/transactions';
 import * as Effect from 'effect-v4/Effect';
-import { SuiInvariantViolation } from '../schema';
-import { normalizePtbError } from './errors';
+import { normalizePtbError, type SuiPtbError } from './errors';
 import { type SuiPtbInputAst } from './inputs';
 import type { MystenArgument } from './compiler-types';
 
 export const compileInput = (
   tx: Transaction,
   entry: SuiPtbInputAst,
-): Effect.Effect<MystenArgument, SuiInvariantViolation> => Effect.try({
+): Effect.Effect<MystenArgument, SuiPtbError> => Effect.try({
   try: () => {
     switch (entry._tag) {
       case 'PureInput':

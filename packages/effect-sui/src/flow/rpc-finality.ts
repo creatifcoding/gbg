@@ -2,7 +2,6 @@
 
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
-import type { SuiExecutionError, SuiInvariantViolation } from '../schema';
 import {
   SuiClientService,
   SuiFinalityService,
@@ -12,7 +11,7 @@ import {
   type SuiFinalityServiceShape,
   type SuiFinalityWatchRequest,
 } from '../services';
-import { execution, invariant } from './errors';
+import { invariant, wait, type SuiFlowError } from './errors';
 import { transactionPayload } from './rpc-shared';
 import type { ClientWithTransactionLifecycle } from './types';
 
@@ -35,7 +34,7 @@ export const SuiFinalityServiceFromClient = Layer.effect(SuiFinalityService)(
 const waitForTransaction = (
   client: ClientWithTransactionLifecycle,
   request: SuiFinalityWatchRequest,
-): Effect.Effect<SuiFinalityResult, SuiExecutionError | SuiInvariantViolation> => {
+): Effect.Effect<SuiFinalityResult, SuiFlowError> => {
   if (!client.core.waitForTransaction) {
     return Effect.fail(invariant('SuiFinalityService.client', 'Client does not expose core.waitForTransaction'));
   }
@@ -49,7 +48,7 @@ const waitForTransaction = (
         signal,
         ...(request.pollSchedule ? { pollSchedule: [...request.pollSchedule] } : {}),
       }),
-      catch: (cause) => execution('SuiFinalityService.waitForTransaction', cause),
+      catch: (cause) => wait(request.digest, request.timeoutMs ?? 60_000, cause),
     });
     const transaction = transactionPayload(raw);
     return { digest: request.digest, transaction: raw, effects: transaction?.effects, events: transaction?.events ?? [] } satisfies SuiFinalityResult;

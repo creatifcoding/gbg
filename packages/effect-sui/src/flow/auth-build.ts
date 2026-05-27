@@ -4,9 +4,9 @@ import { Transaction } from '@mysten/sui/transactions';
 import * as Effect from 'effect-v4/Effect';
 
 import type { SuiPtbBuildArtifact, SuiTx } from '../effectable';
-import { SuiExecutionError, SuiInvariantViolation } from '../schema';
+import { SuiInvariantViolation } from '../schema';
 import type { SuiGasPlan, SuiPaymentPlan } from '../services';
-import { execution, invariant } from './errors';
+import { execution, invariant, type SuiExecutionFailure } from './errors';
 import type { ClientWithTransactionBuild } from './types';
 
 export const getTransaction = (
@@ -37,7 +37,7 @@ export const applyGasAndPayment = (
 export const buildTransaction = (
   transaction: Transaction,
   client: ClientWithTransactionBuild,
-): Effect.Effect<Uint8Array, SuiExecutionError> => Effect.tryPromise({
+): Effect.Effect<Uint8Array, SuiExecutionFailure> => Effect.tryPromise({
   try: () => transaction.build({ client: client as never }),
   catch: (cause) => execution('SuiAuthService.buildTransaction', cause),
 });

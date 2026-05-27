@@ -1,17 +1,17 @@
 import * as Effect from 'effect-v4/Effect';
 
-import { SuiInvariantViolation } from '../schema';
 import type { SuiPtbAnalysis } from '../services';
 import { commandArguments, validateArgument } from './analyzer-arguments';
 import { collectCommandDiagnostics } from './analyzer-diagnostics';
 import { analyzeInputs } from './analyzer-inputs';
 import { decodeCommand, decodeInput } from './decode';
+import type { SuiPtbError } from './errors';
 
 export const analyzePtb = (
   label: string,
   inputs: ReadonlyArray<unknown>,
   commands: ReadonlyArray<unknown>,
-): Effect.Effect<SuiPtbAnalysis, SuiInvariantViolation> => Effect.gen(function* () {
+): Effect.Effect<SuiPtbAnalysis, SuiPtbError> => Effect.gen(function* () {
   const parsedInputs = yield* Effect.all(inputs.map((entry, index) => decodeInput(entry, index)));
   const parsedCommands = yield* Effect.all(commands.map((entry, index) => decodeCommand(entry, index)));
   const inputAnalysis = analyzeInputs(parsedInputs);

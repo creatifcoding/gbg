@@ -2,9 +2,8 @@
 
 import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
-import type { SuiExecutionError, SuiInvariantViolation } from '../schema';
 import { SuiClientService, SuiExecutionService, type SuiExecutionRequest, type SuiExecutionResultEnvelope, type SuiExecutionServiceShape } from '../services';
-import { execution, invariant } from './errors';
+import { execution, invariant, type SuiFlowError } from './errors';
 import { digestFromTransactionResult, requireTransactionBytes } from './rpc-shared';
 import type { ClientWithTransactionLifecycle } from './types';
 
@@ -19,7 +18,7 @@ export const SuiExecutionServiceFromClient = Layer.effect(SuiExecutionService)(
 const executeTransaction = (
   client: ClientWithTransactionLifecycle,
   request: SuiExecutionRequest,
-): Effect.Effect<SuiExecutionResultEnvelope, SuiExecutionError | SuiInvariantViolation> => {
+): Effect.Effect<SuiExecutionResultEnvelope, SuiFlowError> => {
   if (!client.core.executeTransaction) {
     return Effect.fail(invariant('SuiExecutionService.client', 'Client does not expose core.executeTransaction'));
   }

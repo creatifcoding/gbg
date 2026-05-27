@@ -3,11 +3,11 @@
 import * as Effect from 'effect-v4/Effect';
 
 import type { SuiPtbBuildArtifact, SuiTx } from '../effectable';
-import { SuiExecutionError, SuiInvariantViolation, type SuiAuthPolicy } from '../schema';
+import { type SuiAuthPolicy } from '../schema';
 import type { SuiAuthResult, SuiGasPlan, SuiPaymentPlan } from '../services';
 import { applyGasAndPayment, getTransaction } from './auth-build';
 import { authorizeTransactionWithPolicy } from './auth-policy-handlers';
-import { invariant } from './errors';
+import { auth, type SuiFlowError } from './errors';
 import type { ClientWithTransactionBuild } from './types';
 
 export interface AuthorizeWithPolicyOptions {
@@ -20,7 +20,7 @@ export interface AuthorizeWithPolicyOptions {
 
 export const authorizeWithPolicy = (
   options: AuthorizeWithPolicyOptions,
-): Effect.Effect<SuiAuthResult, SuiExecutionError | SuiInvariantViolation> => Effect.gen(function* () {
+): Effect.Effect<SuiAuthResult, SuiFlowError> => Effect.gen(function* () {
   const authPolicy = yield* getAuthPolicy(options.tx);
   const transaction = yield* getTransaction(options.artifact);
   yield* applyGasAndPayment(transaction, options.tx, options.payment, options.gasPlan);
@@ -29,6 +29,6 @@ export const authorizeWithPolicy = (
 
 export const getAuthPolicy = (
   tx: SuiTx<unknown, unknown, unknown>,
-): Effect.Effect<SuiAuthPolicy, SuiInvariantViolation> => tx.authPolicy
+): Effect.Effect<SuiAuthPolicy, ReturnType<typeof auth>> => tx.authPolicy
   ? Effect.succeed(tx.authPolicy)
-  : Effect.fail(invariant('SuiAuthService.authPolicy', `SuiTx ${tx.label} has no auth policy`));
+  : Effect.fail(auth('unknown', `SuiTx ${tx.label} has no auth policy`));

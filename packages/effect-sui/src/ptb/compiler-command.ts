@@ -1,8 +1,7 @@
 import { Transaction } from '@mysten/sui/transactions';
 import * as Effect from 'effect-v4/Effect';
-import { SuiInvariantViolation } from '../schema';
 import { type SuiPtbCommandAst } from './commands';
-import { normalizePtbError } from './errors';
+import { normalizePtbError, type SuiPtbError } from './errors';
 import { compileArg } from './compiler-args';
 import type { MystenArgument } from './compiler-types';
 
@@ -11,7 +10,7 @@ export const compileCommand = (
   command: SuiPtbCommandAst,
   commandIndex: number,
   inputs: ReadonlyArray<MystenArgument>,
-): Effect.Effect<void, SuiInvariantViolation> => Effect.gen(function* () {
+): Effect.Effect<void, SuiPtbError> => Effect.gen(function* () {
   switch (command._tag) {
     case 'SplitCoins': {
       const coin = yield* compileArg(command.coin, inputs);
@@ -64,7 +63,7 @@ export const compileCommand = (
 const applyCommand = (
   commandIndex: number,
   apply: () => unknown,
-): Effect.Effect<void, SuiInvariantViolation> => Effect.try({
+): Effect.Effect<void, SuiPtbError> => Effect.try({
   try: () => { apply(); },
   catch: (cause) => normalizePtbError(`compile.command.${commandIndex}`, cause),
 });

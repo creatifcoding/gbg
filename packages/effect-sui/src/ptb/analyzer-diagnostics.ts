@@ -1,14 +1,14 @@
 import * as Effect from 'effect-v4/Effect';
 
-import { SuiInvariantViolation } from '../schema';
 import type { SuiPtbCommandAst } from './commands';
 import { rejectGasCoin } from './analyzer-arguments';
+import type { SuiPtbError } from './errors';
 
 export const collectCommandDiagnostics = (
   command: SuiPtbCommandAst,
   commandIndex: number,
   diagnostics: string[],
-): Effect.Effect<void, SuiInvariantViolation> => Effect.gen(function* () {
+): Effect.Effect<void, SuiPtbError> => Effect.gen(function* () {
   switch (command._tag) {
     case 'SplitCoins':
       if (command.amounts.length === 0) diagnostics.push(`command ${commandIndex} SplitCoins has no amounts`);

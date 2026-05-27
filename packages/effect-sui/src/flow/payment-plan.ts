@@ -4,18 +4,18 @@ import type { SuiTx } from '../effectable';
 import {
   ExplicitPaymentPolicy,
   SponsoredPaymentPolicy,
-  SuiInvariantViolation,
+  SuiGasCoinConflictError,
   type SuiObjectId,
   type SuiObjectRef,
   type SuiPaymentPolicy,
 } from '../schema';
 import type { SuiPaymentPlan } from '../services';
-import { invariant } from './errors';
+import { gasCoinConflict } from './errors';
 
 export const planPayment = (
   policy: SuiPaymentPolicy,
   objectInputIds: ReadonlySet<SuiObjectId>,
-): Effect.Effect<SuiPaymentPlan, SuiInvariantViolation> => Effect.gen(function* () {
+): Effect.Effect<SuiPaymentPlan, SuiGasCoinConflictError> => Effect.gen(function* () {
   if (policy instanceof ExplicitPaymentPolicy) {
     yield* rejectGasOverlap(policy.gasPayment, objectInputIds);
     return { gasOwner: policy.gasOwner, gasPayment: policy.gasPayment, sponsored: false, addressBalance: false };
@@ -35,10 +35,10 @@ export const planPayment = (
 const rejectGasOverlap = (
   gasPayment: ReadonlyArray<SuiObjectRef>,
   objectInputIds: ReadonlySet<SuiObjectId>,
-): Effect.Effect<void, SuiInvariantViolation> => {
+): Effect.Effect<void, SuiGasCoinConflictError> => {
   const overlap = gasPayment.find((ref) => objectInputIds.has(ref.objectId));
   return overlap
-    ? Effect.fail(invariant('SuiPaymentService.gasOverlap', `Gas payment overlaps PTB object input ${overlap.objectId}`))
+    ? Effect.fail(gasCoinConflict(`Gas payment overlaps PTB object input ${overlap.objectId}`, overlap.objectId, `owned:${overlap.objectId}`))
     : Effect.void;
 };
 

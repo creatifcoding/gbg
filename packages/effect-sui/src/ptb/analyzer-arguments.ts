@@ -1,9 +1,8 @@
 import * as Effect from 'effect-v4/Effect';
-import { SuiInvariantViolation } from '../schema';
 import { type SuiPtbArgument } from './arguments';
 import { type SuiPtbCommandAst } from './commands';
 import { knownCommandResultArity } from './analyzer-arity';
-import { ptbInvariant } from './errors';
+import { ptbInvariant, type SuiPtbError } from './errors';
 
 export const commandArguments = (command: SuiPtbCommandAst): ReadonlyArray<SuiPtbArgument> => {
   switch (command._tag) {
@@ -30,7 +29,7 @@ export const validateArgument = (
   argIndex: number,
   inputCount: number,
   commands: ReadonlyArray<SuiPtbCommandAst>,
-): Effect.Effect<void, SuiInvariantViolation> => {
+): Effect.Effect<void, SuiPtbError> => {
   switch (arg._tag) {
     case 'Input':
       return arg.index >= inputCount
@@ -59,7 +58,7 @@ export const validateArgument = (
   }
 };
 
-export const rejectGasCoin = (arg: SuiPtbArgument, context: string): Effect.Effect<void, SuiInvariantViolation> =>
+export const rejectGasCoin = (arg: SuiPtbArgument, context: string): Effect.Effect<void, SuiPtbError> =>
   arg._tag === 'GasCoin'
     ? Effect.fail(ptbInvariant('analyze', `${context} cannot use GasCoin by value`))
     : Effect.void;

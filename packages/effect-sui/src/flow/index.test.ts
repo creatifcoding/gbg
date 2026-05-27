@@ -13,15 +13,21 @@ import {
   decodeSuiTransactionDigest,
   ExplicitGasPolicy,
   ExplicitPaymentPolicy,
+  SuiGasCoinConflictError,
+  SuiGasPlanningError,
   SuiInvariantViolation,
+  SuiMoveAbortError,
   SuiObjectRef,
+  SuiWaitError,
 } from '../schema';
 import { object } from '../ptb';
 import { SuiFinalityService, SuiTxRunner } from '../services';
 import {
   makeClient,
+  makeFinalityService,
   makeGasPlanner,
   makePaymentService,
+  makePreflightService,
   runTx,
   type SuiFlowRuntime,
 } from './index';
@@ -72,6 +78,20 @@ describe('Sui payment/gas/auth policies', () => {
     expect(plan.budget).toBeUndefined();
   });
 
+  it('normalizes gas planning failures into SuiGasPlanningError', () => {
+    const planner = makeGasPlanner();
+    const tx = new SuiTx({
+      label: 'gas.invalid-budget',
+      gasPolicy: new ExplicitGasPolicy({ budget: 'not-a-bigint' }),
+      execute: () => Effect.void,
+    });
+
+    const error = Effect.runSync(Effect.flip(planner.plan(tx)));
+
+    expect(error).toBeInstanceOf(SuiGasPlanningError);
+    expect(error.message).toContain('Cannot convert not-a-bigint to a BigInt');
+  });
+
   it('plans address-balance payment by default', () => {
     const service = makePaymentService();
     const tx = new SuiTx({
@@ -107,7 +127,52 @@ describe('Sui payment/gas/auth policies', () => {
       Effect.flip(service.plan(tx, { requiresDryRun: false, rationale: 'test' })),
     );
 
-    expect(String(error)).toContain('Gas payment overlaps PTB object input');
+    expect(error).toBeInstanceOf(SuiGasCoinConflictError);
+    expect(error.message).toContain('Gas payment overlaps PTB object input');
+  });
+
+  it('normalizes SDK dry-run MoveAbort and finality wait failures into typed flow errors', async () => {
+    const txDigest = decodeSuiTransactionDigest('11111111111111111111111111111112');
+    const tx = new SuiTx({ label: 'flow.error-topology', execute: () => Effect.void });
+    const preflight = makePreflightService({
+      core: {
+        simulateTransaction: async () => {
+          throw {
+            message: 'Move abort in counter::increment',
+            executionError: {
+              $kind: 'MoveAbort',
+              message: 'Move abort in counter::increment',
+              command: 0,
+              MoveAbort: {
+                abortCode: '42',
+                location: { package: '0x2', module: 'counter', functionName: 'increment' },
+              },
+            },
+          };
+        },
+      },
+    });
+    const finality = makeFinalityService({
+      core: {
+        waitForTransaction: async () => {
+          throw { name: 'AbortError', message: 'aborted by caller' };
+        },
+      },
+    });
+
+    const moveAbort = await Effect.runPromise(Effect.flip(preflight.dryRun({
+      tx,
+      artifact: { inputs: [], commands: [], requirements: {} },
+      auth: { signatures: ['sig'], transactionBytes: new Uint8Array([1]) },
+      gasPlan: { requiresDryRun: true, rationale: 'test' },
+      payment: { gasPayment: [], sponsored: false, addressBalance: true },
+    })));
+    const waitError = await Effect.runPromise(Effect.flip(finality.waitForDigest({ digest: txDigest })));
+
+    expect(moveAbort).toBeInstanceOf(SuiMoveAbortError);
+    expect(moveAbort.message).toContain('Move abort');
+    expect(waitError).toBeInstanceOf(SuiWaitError);
+    expect(waitError.kind).toBe('aborted');
   });
 
   it('runs lifecycle programs through a ManagedRuntime-backed Flow client', async () => {

@@ -1,13 +1,12 @@
 import * as Effect from 'effect-v4/Effect';
-import { SuiInvariantViolation } from '../schema';
 import { type SuiPtbArgument } from './arguments';
-import { ptbInvariant } from './errors';
+import { ptbInvariant, type SuiPtbError } from './errors';
 import type { MystenArgument } from './compiler-types';
 
 export const compileArg = (
   arg: SuiPtbArgument,
   inputs: ReadonlyArray<MystenArgument>,
-): Effect.Effect<MystenArgument, SuiInvariantViolation> => {
+): Effect.Effect<MystenArgument, SuiPtbError> => {
   switch (arg._tag) {
     case 'GasCoin':
       return Effect.succeed({ $kind: 'GasCoin', GasCoin: true });

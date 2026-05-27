@@ -1,22 +1,22 @@
 import type { Transaction } from '@mysten/sui/transactions';
 import * as Effect from 'effect-v4/Effect';
 
-import { KeypairAuthPolicy, OfflineAuthPolicy, SponsoredAuthPolicy, SuiExecutionError, SuiInvariantViolation, type SuiAuthPolicy } from '../schema';
+import { KeypairAuthPolicy, OfflineAuthPolicy, SponsoredAuthPolicy, type SuiAuthPolicy } from '../schema';
 import type { SuiAuthResult } from '../services';
 import { buildTransaction } from './auth-build';
 import { asSigner, signerAddress, signTransaction } from './auth-signing';
-import { invariant } from './errors';
+import { auth, type SuiFlowError } from './errors';
 import type { ClientWithTransactionBuild } from './types';
 
 export const authorizeTransactionWithPolicy = (
   authPolicy: SuiAuthPolicy,
   transaction: Transaction,
   client: ClientWithTransactionBuild,
-): Effect.Effect<SuiAuthResult, SuiExecutionError | SuiInvariantViolation> => Effect.gen(function* () {
+): Effect.Effect<SuiAuthResult, SuiFlowError> => Effect.gen(function* () {
   if (authPolicy instanceof OfflineAuthPolicy) return yield* authorizeOffline(authPolicy, transaction, client);
   if (authPolicy instanceof KeypairAuthPolicy) return yield* authorizeKeypair(authPolicy, transaction, client);
   if (authPolicy instanceof SponsoredAuthPolicy) return yield* authorizeSponsored(authPolicy, transaction, client);
-  return yield* Effect.fail(invariant('SuiAuthService.policy', 'Unsupported auth policy'));
+  return yield* Effect.fail(auth('unknown', 'Unsupported auth policy'));
 });
 
 const authorizeOffline = (policy: OfflineAuthPolicy, transaction: Transaction, client: ClientWithTransactionBuild) => Effect.gen(function* () {

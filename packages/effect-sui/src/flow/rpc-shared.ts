@@ -1,9 +1,9 @@
 /** Shared transaction RPC normalization helpers. */
 
 import * as Effect from 'effect-v4/Effect';
-import { decodeSuiTransactionDigest, type SuiExecutionError, type SuiInvariantViolation } from '../schema';
+import { decodeSuiTransactionDigest, type SuiInvariantViolation } from '../schema';
 import type { SuiAuthResult } from '../services';
-import { execution, invariant } from './errors';
+import { execution, invariant, type SuiExecutionFailure } from './errors';
 
 export type TransactionPayloadLike = {
   readonly digest?: string;
@@ -22,7 +22,7 @@ export const requireTransactionBytes = (
 export const digestFromTransactionResult = (
   result: unknown,
   command: string,
-): Effect.Effect<ReturnType<typeof decodeSuiTransactionDigest>, SuiExecutionError> => {
+): Effect.Effect<ReturnType<typeof decodeSuiTransactionDigest>, SuiExecutionFailure> => {
   const digest = transactionPayload(result)?.digest;
   return digest
     ? Effect.try({ try: () => decodeSuiTransactionDigest(digest), catch: (cause) => execution(command, cause) })

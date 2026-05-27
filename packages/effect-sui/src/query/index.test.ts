@@ -5,7 +5,15 @@ import * as Schema from 'effect-v4/Schema';
 import { describe, expect, it } from 'vitest';
 
 import { SuiObject } from '../effectable';
-import { decodeSuiObjectId, decodeSuiObjectDigest, SuiObjectVersion } from '../schema';
+import {
+  decodeSuiObjectDigest,
+  decodeSuiObjectId,
+  SuiBcsParseError,
+  SuiObjectLoadError,
+  SuiObjectVersion,
+  SuiPureEncodeError,
+  SuiTransportError,
+} from '../schema';
 import { SuiBcsBridge, SuiObjectResolver } from '../services';
 import {
   makeBcsBridge,
@@ -46,6 +54,19 @@ describe('Sui query services', () => {
     expect(decoded).toBe('42');
   });
 
+  it('normalizes BCS parse and pure encode failures into typed codec errors', async () => {
+    const bridge = makeBcsBridge();
+    const parseError = await Effect.runPromise(
+      Effect.flip(bridge.decode({ bytes: new Uint8Array([1, 2]), codec: {}, schema: undefined, label: 'MissingCodec' })),
+    );
+    const encodeError = await Effect.runPromise(
+      Effect.flip(bridge.encodePure({ value: 1n, typeTag: 'u64' as never, codec: {} })),
+    );
+
+    expect(parseError).toBeInstanceOf(SuiBcsParseError);
+    expect(encodeError).toBeInstanceOf(SuiPureEncodeError);
+  });
+
   it('resolves object refs and snapshots through a Core client', async () => {
     const client: ClientWithCoreReads = {
       core: {
@@ -70,6 +91,30 @@ describe('Sui query services', () => {
     expect(resolved.ref?.version).toBe('3');
     expect(resolved.sharedRef?.initialSharedVersion).toBe('1');
     expect(resolved.snapshot?.content).toEqual({ balance: '99' });
+  });
+
+  it('normalizes SDK object and transport failures through typed resolver errors', async () => {
+    const objectFailureResolver = makeObjectResolver({
+      core: {
+        getObject: async () => {
+          throw { code: 'deleted', message: 'Object has been deleted' };
+        },
+      },
+    });
+    const transportFailureResolver = makeObjectResolver({
+      core: {
+        getObject: async () => {
+          throw { message: 'network unavailable' };
+        },
+      },
+    });
+
+    const objectError = await Effect.runPromise(Effect.flip(objectFailureResolver.resolve({ id: objectId })));
+    const transportError = await Effect.runPromise(Effect.flip(transportFailureResolver.resolve({ id: objectId })));
+
+    expect(objectError).toBeInstanceOf(SuiObjectLoadError);
+    expect(objectError.code).toBe('deleted');
+    expect(transportError).toBeInstanceOf(SuiTransportError);
   });
 
   it('refreshes SuiObject capabilities through the resolver service shape', async () => {

@@ -1,26 +1,26 @@
 import * as Effect from 'effect-v4/Effect';
 
-import { ExplicitGasPolicy, type SuiGasPolicy, SuiInvariantViolation } from '../schema';
-import { invariant } from './errors';
+import { ExplicitGasPolicy, SuiGasPlanningError, type SuiGasPolicy } from '../schema';
+import { gasPlanning } from './errors';
 import type { ClientWithCoreGas } from './types';
 
 export const resolveGasPrice = (
   policy: SuiGasPolicy,
   client?: ClientWithCoreGas,
-): Effect.Effect<bigint | undefined, SuiInvariantViolation> => {
+): Effect.Effect<bigint | undefined, SuiGasPlanningError> => {
   if (policy.price !== undefined) return parseBigInt(policy.price, 'SuiGasPlanner.price');
   if (!client?.core.getReferenceGasPrice) return Effect.succeed(undefined);
 
   return Effect.flatMap(
     Effect.tryPromise({
       try: () => client.core.getReferenceGasPrice!(),
-      catch: (cause) => invariant('SuiGasPlanner.referenceGasPrice', cause),
+      catch: (cause) => gasPlanning('referenceGasPrice', cause),
     }),
     (response) => parseBigInt(response.referenceGasPrice, 'SuiGasPlanner.referenceGasPrice'),
   );
 };
 
-export const resolveGasBudget = (policy: SuiGasPolicy): Effect.Effect<bigint | undefined, SuiInvariantViolation> =>
+export const resolveGasBudget = (policy: SuiGasPolicy): Effect.Effect<bigint | undefined, SuiGasPlanningError> =>
   policy.budget === undefined
     ? Effect.succeed(undefined)
     : parseBigInt(policy.budget, 'SuiGasPlanner.budget');
@@ -30,8 +30,8 @@ export const gasRationale = (policy: SuiGasPolicy, price: bigint | undefined, bu
   return `${source} gas policy; price=${price?.toString() ?? 'sdk-default'}; budget=${budget?.toString() ?? 'dry-run'}`;
 };
 
-const parseBigInt = (value: string | number | bigint, invariantName: string): Effect.Effect<bigint, SuiInvariantViolation> =>
+const parseBigInt = (value: string | number | bigint, policy: string): Effect.Effect<bigint, SuiGasPlanningError> =>
   Effect.try({
     try: () => BigInt(value),
-    catch: (cause) => invariant(invariantName, cause),
+    catch: (cause) => gasPlanning(policy, cause),
   });

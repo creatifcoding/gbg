@@ -5,8 +5,8 @@ import * as Effect from 'effect-v4/Effect';
 import * as Layer from 'effect-v4/Layer';
 
 import { SuiBcsBridge, type SuiBcsBridgeShape, type SuiBcsDecodeRequest } from '../services';
-import { parseWithCodec, serializeWithCodec } from './bcs-codec';
-import { decodeWithOptionalSchema, normalizeSchemaError } from './schema';
+import { normalizePureEncodeError, parseWithCodec, serializeWithCodec } from './bcs-codec';
+import { decodeWithOptionalSchema } from './schema';
 import type { BcsCodecLike } from './types';
 
 export const makeBcsBridge = (): SuiBcsBridgeShape => ({
@@ -28,7 +28,7 @@ export const makeBcsBridge = (): SuiBcsBridgeShape => ({
           .serialize(request.value as never)
           .toBytes(),
       ),
-      catch: (cause) => normalizeSchemaError(String(request.typeTag), request.value, cause),
+      catch: (cause) => normalizePureEncodeError(String(request.typeTag), request.value, cause),
     });
   }),
 
