@@ -229,5 +229,6 @@ Public namespace modules keep stable `index.ts` barrels. Internal logic is split
 | `src/adapter/types.ts` | Adapter client/source/cache/extension contracts |
 | `src/adapter/cache.ts` | WeakMap-backed runtime cache |
 | `src/adapter/client.ts` | ManagedRuntime-backed Flow/Query Promise facade |
+| `src/adapter/wallet.ts` | Wallet callback auth policy/run-handle bridge for adapter-owned edges |
 | `src/adapter/extension.ts` | Mysten `$extend` registration factory |
 | `src/testing` | Fake clients, fixtures, localnet helpers |
