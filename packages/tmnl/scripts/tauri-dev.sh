@@ -1,11 +1,11 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TMNL Tauri Dev Server with FIFO Error Output + Audit Logging
 # ═══════════════════════════════════════════════════════════════════════════════
-# Creates a named pipe for error streaming, enabling Claude to monitor build errors
-# in real-time via: cat /tmp/tmnl/tauri-dev.fifo
+# Creates a named pipe as an internal diagnostics stream and mirrors it to
+# /tmp/tmnl/tauri-dev.log for replayable agent-readable diagnostics.
 #
 # AUDIT LOGGING:
 # - All output also written to .audit/tauri-dev-latest.log
@@ -30,24 +30,42 @@ AUDIT_LATEST="${AUDIT_DIR}/tauri-dev-latest.log"
 
 # Ensure FIFO directory exists
 mkdir -p "$FIFO_DIR"
+: > "$LOG_PATH"
+: > "$AUDIT_LOG"
+
+tmnl_log() {
+  printf '%s\n' "$*" | tee -a "$LOG_PATH" "$AUDIT_LOG"
+}
 
 # Clean up any stale FIFO
 [ -p "$FIFO_PATH" ] && rm -f "$FIFO_PATH"
 
 # Create named pipe
 mkfifo "$FIFO_PATH"
-echo "[tmnl] Created FIFO: $FIFO_PATH"
-echo "[tmnl] Claude can read errors via: cat $FIFO_PATH"
+tmnl_log "[tmnl] Created FIFO: $FIFO_PATH"
+tmnl_log "[tmnl] Diagnostics log: $LOG_PATH"
+tmnl_log "[tmnl] Claude can read diagnostics via: tail -f $LOG_PATH"
 
 HARNESS_WS_PID=""
+FIFO_READER_PID=""
+CLEANED_UP=0
 
 # Cleanup function
 cleanup() {
-  echo "[tmnl] Cleaning up FIFO..."
+  if [ "${CLEANED_UP:-0}" = "1" ]; then
+    return
+  fi
+  CLEANED_UP=1
+
+  tmnl_log "[tmnl] Cleaning up FIFO..."
   rm -f "$FIFO_PATH"
 
-  if [ -n "$HARNESS_WS_PID" ]; then
+  if [ -n "${HARNESS_WS_PID:-}" ]; then
     kill "$HARNESS_WS_PID" 2>/dev/null || true
+  fi
+
+  if [ -n "${FIFO_READER_PID:-}" ]; then
+    kill "$FIFO_READER_PID" 2>/dev/null || true
   fi
 
   # Kill any background tee processes
@@ -56,14 +74,14 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Detect WSLg and apply WebKitGTK compositing workaround
-if [ -n "$WSL_DISTRO_NAME" ]; then
-  echo "[WSLg detected] Setting WEBKIT_DISABLE_COMPOSITING_MODE=1"
+if [ -n "${WSL_DISTRO_NAME:-}" ]; then
+  tmnl_log "[WSLg detected] Setting WEBKIT_DISABLE_COMPOSITING_MODE=1"
   export WEBKIT_DISABLE_COMPOSITING_MODE=1
 fi
 
 # Enable Rust debug logging for window pooling and other tmnl modules
 export RUST_LOG="${RUST_LOG:-tmnl=debug}"
-echo "[tmnl] RUST_LOG=$RUST_LOG"
+tmnl_log "[tmnl] RUST_LOG=$RUST_LOG"
 
 HARNESS_WS_HEALTH_URL="http://127.0.0.1:8787/health"
 
@@ -75,20 +93,23 @@ harness_ws_health_ok() {
 
 # Ensure harness remote WS server is available
 if harness_ws_health_ok; then
-  echo "[tmnl] harness remote WS already running on :8787"
+  tmnl_log "[tmnl] harness remote WS already running on :8787"
 else
-  echo "[tmnl] starting harness remote WS on :8787..."
-  bun run harness:remote-ws >/tmp/tmnl/harness-remote-ws.log 2>&1 &
+  tmnl_log "[tmnl] starting harness remote WS on :8787..."
+  bash scripts/harness-remote-ws.sh >/tmp/tmnl/harness-remote-ws.log 2>&1 &
   HARNESS_WS_PID=$!
 
-  for _ in $(seq 1 80); do
+  # Cold starts can take a while because the harness scans pi extensions before
+  # binding :8787. Give it a real startup budget; failing early here prevents
+  # Tauri from even reaching Vite.
+  for _ in $(seq 1 480); do
     if harness_ws_health_ok; then
-      echo "[tmnl] harness remote WS ready"
+      tmnl_log "[tmnl] harness remote WS ready"
       break
     fi
 
     if ! kill -0 "$HARNESS_WS_PID" 2>/dev/null; then
-      echo "[tmnl] harness remote WS process exited early"
+      tmnl_log "[tmnl] harness remote WS process exited early"
       break
     fi
 
@@ -96,25 +117,28 @@ else
   done
 
   if ! harness_ws_health_ok; then
-    echo "[tmnl] failed to start harness remote WS (see /tmp/tmnl/harness-remote-ws.log)"
-    tail -n 80 /tmp/tmnl/harness-remote-ws.log 2>/dev/null || true
+    tmnl_log "[tmnl] failed to start harness remote WS (see /tmp/tmnl/harness-remote-ws.log)"
+    tail -n 80 /tmp/tmnl/harness-remote-ws.log 2>/dev/null | tee -a "$LOG_PATH" "$AUDIT_LOG" || true
     exit 1
   fi
 fi
 
-# Start a background process to keep FIFO open and write to log
-# This prevents blocking if no reader is connected
-cat > "$LOG_PATH" < "$FIFO_PATH" &
+# Start a background process to keep FIFO open and mirror diagnostics to a normal file.
+# Named pipes are not replayable and multiple readers split data, so agents should read LOG_PATH.
+cat < "$FIFO_PATH" >> "$LOG_PATH" &
 FIFO_READER_PID=$!
 
 # Create symlink to latest audit log
 ln -sf "$(basename "$AUDIT_LOG")" "$AUDIT_LATEST"
 
-echo "[tmnl] Audit log: $AUDIT_LOG"
-echo "[tmnl] Latest symlink: $AUDIT_LATEST"
-echo "[tmnl] Claude can read: cat $AUDIT_LATEST"
-echo "---"
+tmnl_log "[tmnl] Audit log: $AUDIT_LOG"
+tmnl_log "[tmnl] Latest symlink: $AUDIT_LATEST"
+tmnl_log "[tmnl] Claude can read audit log: tail -f $AUDIT_LATEST"
+tmnl_log "[tmnl] Claude can read diagnostics log: tail -f $LOG_PATH"
+tmnl_log "---"
 
-# Run Tauri in development mode
-# Output goes to: terminal, FIFO, and audit log
-bunx tauri dev 2>&1 | tee -a "$AUDIT_LOG" 2> >(tee "$FIFO_PATH" >&2)
+# Run Tauri in development mode.
+# Mirror both stdout and stderr to the diagnostics FIFO/log and the audit log while preserving terminal output.
+bunx tauri dev \
+  > >(tee -a "$AUDIT_LOG" "$FIFO_PATH") \
+  2> >(tee -a "$AUDIT_LOG" "$FIFO_PATH" >&2)

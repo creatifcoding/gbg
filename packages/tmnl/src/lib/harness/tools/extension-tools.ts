@@ -9,6 +9,8 @@
 
 import { discoverAndLoadExtensions } from '@mariozechner/pi-coding-agent'
 import type { RegisteredTool, ExtensionContext } from '@mariozechner/pi-coding-agent'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
 import * as path from 'node:path'
 
 /**
@@ -86,16 +88,68 @@ function wrapRegisteredToolForHarness(
   }
 }
 
+const parseExtensionAllowlist = () => {
+  const raw = process.env.TMNL_HARNESS_PI_EXTENSIONS
+    ?? process.env.TMNL_HARNESS_PI_EXTENSION_ALLOWLIST
+    ?? ''
+
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
+
+const expandHomePath = (value: string) =>
+  value.startsWith('~/') ? path.join(os.homedir(), value.slice(2)) : value
+
+const resolveApprovedExtensionPaths = (cwd: string) => {
+  const approved = parseExtensionAllowlist()
+  const defaultAgentDir = process.env.TMNL_GLOBAL_PI_AGENT_DIR
+    ?? path.join(os.homedir(), '.pi', 'agent')
+
+  return approved.flatMap((entry) => {
+    const expanded = expandHomePath(entry)
+    const candidates = path.isAbsolute(expanded) || expanded.includes('/')
+      ? [path.resolve(cwd, expanded)]
+      : [
+          path.join(cwd, '.pi', 'extensions', expanded),
+          path.join(defaultAgentDir, 'extensions', expanded),
+        ]
+
+    const match = candidates.find((candidate) => fs.existsSync(candidate))
+    if (!match) {
+      console.warn(`[harness] approved pi extension '${entry}' was not found; checked ${candidates.join(', ')}`)
+      return []
+    }
+
+    return [match]
+  })
+}
+
+const ensureHarnessAgentDir = (cwd: string) => {
+  const agentDir = path.resolve(
+    cwd,
+    process.env.TMNL_HARNESS_PI_AGENT_DIR ?? '.pi/harness-agent',
+  )
+  fs.mkdirSync(path.join(agentDir, 'extensions'), { recursive: true })
+  return agentDir
+}
+
 /**
- * Discover and load all extension tools from `.pi/extensions/` directories.
+ * Discover and load approved extension tools from a harness-local pi agent dir.
  */
 export async function loadExtensionTools(cwd: string) {
   const resolvedCwd = path.resolve(cwd)
+  const harnessAgentDir = ensureHarnessAgentDir(resolvedCwd)
+  const harnessDiscoveryCwd = path.join(harnessAgentDir, 'discovery-cwd')
+  fs.mkdirSync(path.join(harnessDiscoveryCwd, '.pi', 'extensions'), { recursive: true })
+
+  const configuredPaths = resolveApprovedExtensionPaths(resolvedCwd)
 
   const result = await discoverAndLoadExtensions(
-    [], // configuredPaths — let it discover from standard locations
-    resolvedCwd,
-    undefined, // agentDir — uses default ~/.pi/agent
+    configuredPaths,
+    harnessDiscoveryCwd,
+    harnessAgentDir,
   )
 
   if (result.errors.length > 0) {
@@ -121,6 +175,10 @@ export async function loadExtensionTools(cwd: string) {
     }
   }
 
-  console.info(`[harness] loaded ${wrappedTools.length} extension tool(s) from ${result.extensions.length} extension(s)`)
+  console.info(
+    `[harness] loaded ${wrappedTools.length} approved extension tool(s) `
+      + `from ${result.extensions.length} extension(s) `
+      + `(agentDir=${harnessAgentDir}, allowlist=${parseExtensionAllowlist().join(',') || '<none>'})`,
+  )
   return { tools: wrappedTools, extensions: result.extensions }
 }
