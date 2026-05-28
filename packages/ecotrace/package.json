@@ -58,7 +58,7 @@
     "prepublishOnly": "bun run clean && bun run build"
   },
   "dependencies": {
-    "effect": "3.19.18"
+    "effect": "3.21.2"
   },
   "devDependencies": {
     "@effect/vitest": "^0.17.4",

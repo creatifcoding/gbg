@@ -26,7 +26,7 @@
     "@react-three/fiber": "^9.4.0",
     "@react-three/xr": "^6.6.27",
     "@supabase/supabase-js": "^2.78.0",
-    "effect": "^3.18.4",
+    "effect": "3.21.2",
     "iwer": "^2.1.1",
     "react": "^19.2.0",
     "three": "^0.180.0",

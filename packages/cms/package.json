@@ -14,7 +14,7 @@
     "@hygraph/management-sdk": "^1.5.2",
     "@urql/core": "^6.0.1",
     "dotenv": "^17.2.3",
-    "effect": "^3.19.3",
+    "effect": "3.21.2",
     "urql": "^4.0.7"
   },
   "devDependencies": {
