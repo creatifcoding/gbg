@@ -183,10 +183,21 @@ Mission-control entrypoint:
 
 ```bash
 effect-sui info
-effect-sui sui-env-init
-effect-sui sui-localnet-up-docker
-effect-sui sui-localnet-status
-effect-sui sui-localnet-down
+effect-sui sui-localnet help
+effect-sui sui-localnet up-docker
+effect-sui sui-localnet status
+effect-sui sui-localnet down
+effect-sui sui-move help
+```
+
+Localnet and Move helpers are intentionally collapsed behind `sui-localnet` and `sui-move` so nxi / Command Center stays readable:
+
+```bash
+effect-sui sui-move list
+effect-sui sui-move new my_contract
+effect-sui sui-move build counter
+effect-sui sui-move test counter
+effect-sui sui-move bytecode counter > /tmp/counter-bytecode.json
 ```
 
 E2E harness modes:

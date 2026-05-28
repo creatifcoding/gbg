@@ -67,7 +67,7 @@
           if command -v sui >/dev/null 2>&1; then
             echo "  sui: $(sui --version 2>/dev/null || command -v sui)"
           else
-            echo "  sui: not on host PATH; use effect-sui sui-localnet-up-docker or build from ../../submodules/sui"
+            echo "  sui: not on host PATH; use effect-sui sui-localnet up-docker or build from ../../submodules/sui"
           fi
         '';
       };

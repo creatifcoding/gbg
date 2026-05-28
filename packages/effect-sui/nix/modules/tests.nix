@@ -12,19 +12,9 @@
     let
       requiredScripts = [
         "info"
-        "sui-env-init"
-        "sui-localnet-up"
-        "sui-localnet-up-docker"
-        "sui-localnet-status"
-        "sui-localnet-logs"
-        "sui-localnet-down"
-        "sui-faucet"
-        "sui-move-build"
-        "sui-move-test"
-        "sui-codegen"
+        "sui-localnet"
+        "sui-move"
         "sui-e2e"
-        "sui-fork-up"
-        "sui-fork-status"
       ];
       scripts = config.mission-control.scripts;
       missingScripts = builtins.filter (name: !(builtins.hasAttr name scripts)) requiredScripts;
