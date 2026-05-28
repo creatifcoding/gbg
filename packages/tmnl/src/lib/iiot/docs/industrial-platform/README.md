@@ -42,6 +42,12 @@ A self-contained guided reader is generated at:
 
 The reader mirrors the FRKNK RFC guided-reader pattern: sticky table of contents, recommended reading route, card summaries, and embedded RFC excerpts.
 
+Regenerate it after RFC edits with:
+
+```bash
+bun run scripts/industrial-platform-rfc-reader.ts
+```
+
 ## Non-negotiables
 
 1. **No hidden baseline activation.** Reactor lanes remain explicit activation bundles.
