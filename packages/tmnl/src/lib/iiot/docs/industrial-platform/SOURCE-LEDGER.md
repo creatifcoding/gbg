@@ -18,7 +18,25 @@ Status: living source ledger for the RFC pack
 | `../pct/RFC-FRAME-PROJECTIONS.md` | Projection scheduler/admission and Timescale/LNK frame-stream design precedent. |
 | `../effect-sui/docs/MANAGED_RUNTIME_STRATEGY.md` | ManagedRuntime is an edge object for long-lived service stacks; services themselves remain compositional Effects. |
 
-## External source anchors
+## Standards source anchors
+
+Detailed observations live in `STANDARDS-RESEARCH-LEDGER.md`; traceability and proof obligations live in `STANDARDS-CONFORMANCE-MATRIX.md`.
+
+| Source | RFC relevance |
+| --- | --- |
+| OPC UA Part 1 Overview and Concepts | Scope, AddressSpace, Nodes/References, information/message/communication/conformance models, security, alarms/events, history, and audit. |
+| OPC UA Part 4 Services | Browse/View, Attribute read/write, Method, MonitoredItem, Subscription, session and secure-channel service boundaries. |
+| OPC UA Part 9 Alarms & Conditions | OPC UA alarm/condition ingestion model and acknowledgement semantics; not a replacement for ISA-18.2 alarm management lifecycle. |
+| OPC UA Part 11 Historical Access | Historical time-series/event access; validates historian as a separate port from EventJournal authority. |
+| Eclipse Sparkplug specification chapters 5/6 and Eclipse Tahu protobuf | Primary Host, Birth/Death, STATE, NBIRTH/NDEATH, DBIRTH/DDEATH, DDATA, NCMD/DCMD, seq/bdSeq, stale quality, and protobuf payload grounding. |
+| ISA-95 / IEC 62264 public overview and OPC UA ISA-95 companion reference | L3/MOM positioning and material/equipment/physical-asset/personnel exchange semantics. |
+| ANSI/ISA-18.2 / ISA-18 series public overview | Alarm lifecycle, philosophy, rationalization, prioritization, performance monitoring, and audit grounding. |
+| ISA/IEC 62443 public overview | IACS lifecycle security, stakeholder/risk/security-level framing for command governance and deployment profiles. |
+| PackML / ISA-TR88.00.02 public references and OPC UA PackML companion reference | Optional normalized machine states, modes, PackTags, OEE/RCA and SCADA/MES integration semantics. |
+| ISO 22400 public overview | Manufacturing operations KPI/OEE framework requiring evidence-backed calculations. |
+| MIMOSA / OSA-CBM / OpenO&M public references | Supplier-neutral physical asset management, condition-based maintenance, and identifier harmonization. |
+
+## Market and deployment source anchors
 
 | Source | RFC relevance |
 | --- | --- |

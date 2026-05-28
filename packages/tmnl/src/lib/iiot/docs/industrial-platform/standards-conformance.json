@@ -1,0 +1,453 @@
+{
+  "$schema": "./standards-conformance.schema.json",
+  "version": 1,
+  "evidenceLevels": [
+    "E0",
+    "E1",
+    "E2",
+    "E3",
+    "E4",
+    "E5"
+  ],
+  "statuses": [
+    "researched",
+    "design-aligned",
+    "schema-planned",
+    "implemented",
+    "verified",
+    "certification-required"
+  ],
+  "sources": [
+    {
+      "id": "STD-OPCUA-P1-OVERVIEW",
+      "standard": "OPC UA Part 1: Overview and Concepts",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://reference.opcfoundation.org/Core/Part1/v105/docs/4"
+      ],
+      "summary": "OPC UA scope, information/message/communication/conformance models, AddressSpace, Nodes/References, security, alarms/events, history, and auditing."
+    },
+    {
+      "id": "STD-OPCUA-P4-SERVICES",
+      "standard": "OPC UA Part 4: Services",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://reference.opcfoundation.org/specs/OPC-10000-4/4"
+      ],
+      "summary": "Discovery, SecureChannel, Session, NodeManagement, View, Attribute, Method, MonitoredItem, and Subscription service sets."
+    },
+    {
+      "id": "STD-OPCUA-P9-ALARMS",
+      "standard": "OPC UA Part 9: Alarms & Conditions",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://reference.opcfoundation.org/specs/OPC-10000-9",
+        "https://reference.opcfoundation.org/Core/Part9/v105/docs/4"
+      ],
+      "summary": "OPC UA Alarm and Condition information model, acknowledgement capabilities, and relation to ISA-18.2 / IEC 62682 for broader alarm management."
+    },
+    {
+      "id": "STD-OPCUA-P11-HISTORICAL",
+      "standard": "OPC UA Part 11: Historical Access",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://reference.opcfoundation.org/Core/Part11/v104/docs/4"
+      ],
+      "summary": "Historical time-series and historical event access semantics."
+    },
+    {
+      "id": "STD-SPARKPLUG-OP-BEHAVIOR",
+      "standard": "Eclipse Sparkplug Chapter 5: Operational Behavior",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://github.com/eclipse-sparkplug/sparkplug/blob/3.x/specification/src/main/asciidoc/chapters/Sparkplug_5_Operational_Behavior.adoc"
+      ],
+      "summary": "Primary Host, Birth/Death certificates, STATE, NBIRTH/NDEATH, DBIRTH/DDEATH, DDATA, NCMD/DCMD, UTC timestamps, seq/bdSeq, stale metrics, and command/security considerations."
+    },
+    {
+      "id": "STD-SPARKPLUG-PAYLOAD",
+      "standard": "Eclipse Sparkplug Chapter 6 Payloads / Tahu protobuf",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://github.com/eclipse-sparkplug/sparkplug/blob/3.x/specification/src/main/asciidoc/chapters/Sparkplug_6_Payloads.adoc",
+        "https://github.com/eclipse/tahu/blob/3.x/sparkplug_b/sparkplug_b.proto"
+      ],
+      "summary": "Sparkplug B payloads use protobuf and metrics with names/aliases, datatypes, values, timestamps, metadata, properties, and sequence/session fields."
+    },
+    {
+      "id": "STD-ISA95-CONCEPT",
+      "standard": "ISA-95 / IEC 62264 Enterprise-Control System Integration",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard",
+        "https://reference.opcfoundation.org/ISA-95/v100/docs/4"
+      ],
+      "summary": "Five manufacturing activity levels; Level 3 MOM; exchange information for material, equipment, physical assets, and personnel; role equipment identity distinct from physical asset identity."
+    },
+    {
+      "id": "STD-ISA18-SERIES",
+      "standard": "ANSI/ISA-18.2 Alarm Management and ISA-18 series",
+      "evidenceLevel": "E1",
+      "urls": [
+        "https://www.isa.org/standards-and-publications/isa-standards/isa-18-series-of-standards"
+      ],
+      "summary": "Alarm lifecycle, alarm philosophy, rationalization, prioritization, implementation, maintenance, performance monitoring, auditing, nuisance/flood reduction, and HMI guidance."
+    },
+    {
+      "id": "STD-IEC62443-SERIES",
+      "standard": "ISA/IEC 62443 IACS Cybersecurity",
+      "evidenceLevel": "E1",
+      "urls": [
+        "https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards",
+        "https://isagca.org/isa-iec-62443-standards"
+      ],
+      "summary": "Secure IACS lifecycle, stakeholder responsibilities, risk assessment, security levels, secure development lifecycle, and technical security requirements."
+    },
+    {
+      "id": "STD-PACKML-CONCEPT",
+      "standard": "PackML / ISA-TR88.00.02",
+      "evidenceLevel": "E2",
+      "urls": [
+        "https://packml.org/",
+        "https://reference.opcfoundation.org/PackML/v101/docs/4"
+      ],
+      "summary": "Standard state-based machine model, Unit Modes, StateMachine, PackTags, command/status/admin tags, OEE/RCA data, and consistent SCADA/MES inputs."
+    },
+    {
+      "id": "STD-ISO22400-KPI",
+      "standard": "ISO 22400 Manufacturing Operations Management KPIs",
+      "evidenceLevel": "E1",
+      "urls": [
+        "https://www.iso.org/standard/56847.html",
+        "https://www.iso.org/standard/87563.html"
+      ],
+      "summary": "Industry-neutral KPI framework for defining, composing, exchanging, and using manufacturing operations management KPIs."
+    },
+    {
+      "id": "STD-MIMOSA-OSA-CBM",
+      "standard": "MIMOSA / OSA-CBM / OpenO&M",
+      "evidenceLevel": "E1",
+      "urls": [
+        "https://mimosa.org/",
+        "https://www.mimosa.org/specifications/osa-cbm-3-3-1/"
+      ],
+      "summary": "Supplier-neutral physical asset management, OSA-CBM condition-based maintenance information architecture, ISBM integration, and identifier harmonization."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-IND-001",
+      "title": "Treat external industrial systems as dependency-injected ports",
+      "status": "design-aligned",
+      "sourceIds": [
+        "STD-OPCUA-P1-OVERVIEW",
+        "STD-OPCUA-P4-SERVICES",
+        "STD-ISA95-CONCEPT",
+        "STD-MIMOSA-OSA-CBM"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0001-INTEGRATION-PORTS.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md"
+      ],
+      "proofObligations": [
+        "PROOF-PORT-CONTRACTS"
+      ]
+    },
+    {
+      "id": "DEC-IND-002",
+      "title": "Preserve OPC UA information-model semantics at ingestion",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-OPCUA-P1-OVERVIEW",
+        "STD-OPCUA-P4-SERVICES",
+        "STD-OPCUA-P9-ALARMS",
+        "STD-OPCUA-P11-HISTORICAL"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0002-DMN-DATA-MESSAGE-NETWORK.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0007-OPCUA-SPARKPLUG-EMULATORS.md"
+      ],
+      "proofObligations": [
+        "PROOF-OPCUA-CONTRACT"
+      ]
+    },
+    {
+      "id": "DEC-IND-003",
+      "title": "Model Sparkplug session and lifecycle semantics, not just MQTT messages",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-SPARKPLUG-OP-BEHAVIOR",
+        "STD-SPARKPLUG-PAYLOAD"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0002-DMN-DATA-MESSAGE-NETWORK.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0007-OPCUA-SPARKPLUG-EMULATORS.md"
+      ],
+      "proofObligations": [
+        "PROOF-SPARKPLUG-GOLDEN-TRACE"
+      ]
+    },
+    {
+      "id": "DEC-IND-004",
+      "title": "Center the product at ISA-95 Level 3 while integrating L2/L4",
+      "status": "design-aligned",
+      "sourceIds": [
+        "STD-ISA95-CONCEPT"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0000-CHARTER.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md"
+      ],
+      "proofObligations": [
+        "PROOF-ISA95-SCHEMA-SPLIT"
+      ]
+    },
+    {
+      "id": "DEC-IND-005",
+      "title": "Distinguish equipment role identity from physical asset identity",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-ISA95-CONCEPT",
+        "STD-MIMOSA-OSA-CBM"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md"
+      ],
+      "proofObligations": [
+        "PROOF-ASSET-IDENTITY-SWAP"
+      ]
+    },
+    {
+      "id": "DEC-IND-006",
+      "title": "Alarm management follows ISA-18.2 lifecycle; OPC UA Part 9 supplies one ingestion model",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-ISA18-SERIES",
+        "STD-OPCUA-P9-ALARMS"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0003-COMMAND-GOVERNANCE.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md"
+      ],
+      "proofObligations": [
+        "PROOF-ALARM-LIFECYCLE-TRACE"
+      ]
+    },
+    {
+      "id": "DEC-IND-007",
+      "title": "Agent commands require policy, interlocks, approvals, audit, and deny-by-default OT posture",
+      "status": "design-aligned",
+      "sourceIds": [
+        "STD-IEC62443-SERIES",
+        "STD-OPCUA-P1-OVERVIEW",
+        "STD-SPARKPLUG-OP-BEHAVIOR"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0003-COMMAND-GOVERNANCE.md"
+      ],
+      "proofObligations": [
+        "PROOF-COMMAND-DENIAL",
+        "PROOF-COMMAND-REPLAY"
+      ]
+    },
+    {
+      "id": "DEC-IND-008",
+      "title": "Use PackML as optional normalized machine-state overlay",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-PACKML-CONCEPT"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0007-OPCUA-SPARKPLUG-EMULATORS.md"
+      ],
+      "proofObligations": [
+        "PROOF-PACKML-SCENARIO"
+      ]
+    },
+    {
+      "id": "DEC-IND-009",
+      "title": "OEE/KPI calculations must be evidence-backed",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-ISO22400-KPI",
+        "STD-PACKML-CONCEPT",
+        "STD-ISA95-CONCEPT"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0007-OPCUA-SPARKPLUG-EMULATORS.md"
+      ],
+      "proofObligations": [
+        "PROOF-OEE-GOLDEN-TRACE"
+      ]
+    },
+    {
+      "id": "DEC-IND-010",
+      "title": "Condition-based maintenance and asset health use supplier-neutral maintenance semantics",
+      "status": "schema-planned",
+      "sourceIds": [
+        "STD-MIMOSA-OSA-CBM",
+        "STD-ISA95-CONCEPT"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0006-INDUSTRIAL-SCHEMAS.md",
+        "src/lib/iiot/docs/industrial-platform/RFC-0005-MARKET-WEDGES.md"
+      ],
+      "proofObligations": [
+        "PROOF-CBM-WORKORDER-TRACE"
+      ]
+    },
+    {
+      "id": "DEC-IND-011",
+      "title": "Agents consume replayable context packets that separate evidence from inference",
+      "status": "design-aligned",
+      "sourceIds": [
+        "STD-ISA95-CONCEPT",
+        "STD-ISA18-SERIES",
+        "STD-IEC62443-SERIES",
+        "STD-OPCUA-P1-OVERVIEW",
+        "STD-SPARKPLUG-OP-BEHAVIOR",
+        "STD-ISO22400-KPI",
+        "STD-MIMOSA-OSA-CBM"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0008-AGENT-CONTEXT-PACKETS.md"
+      ],
+      "proofObligations": [
+        "PROOF-AGENT-CONTEXT-REPLAY"
+      ]
+    },
+    {
+      "id": "DEC-IND-012",
+      "title": "Industrial commands use SQL-backed authority records before execution",
+      "status": "design-aligned",
+      "sourceIds": [
+        "STD-IEC62443-SERIES",
+        "STD-OPCUA-P1-OVERVIEW",
+        "STD-OPCUA-P4-SERVICES",
+        "STD-SPARKPLUG-OP-BEHAVIOR",
+        "STD-ISA18-SERIES",
+        "STD-ISA95-CONCEPT"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0009-COMMAND-SQL-AUTHORITY.md"
+      ],
+      "proofObligations": [
+        "PROOF-COMMAND-SQL-AUTHORITY",
+        "PROOF-COMMAND-DENIAL",
+        "PROOF-COMMAND-REPLAY"
+      ]
+    },
+    {
+      "id": "DEC-IND-013",
+      "title": "Implementation roadmap is gated by standards traceability, emulators, golden traces, and command governance",
+      "status": "design-aligned",
+      "sourceIds": [
+        "STD-OPCUA-P1-OVERVIEW",
+        "STD-SPARKPLUG-OP-BEHAVIOR",
+        "STD-ISA95-CONCEPT",
+        "STD-ISA18-SERIES",
+        "STD-IEC62443-SERIES",
+        "STD-PACKML-CONCEPT",
+        "STD-ISO22400-KPI",
+        "STD-MIMOSA-OSA-CBM"
+      ],
+      "artifacts": [
+        "src/lib/iiot/docs/industrial-platform/RFC-0010-IMPLEMENTATION-ROADMAP.md",
+        "src/lib/iiot/docs/industrial-platform/STANDARDS-RESEARCH-LEDGER.md",
+        "src/lib/iiot/docs/industrial-platform/STANDARDS-CONFORMANCE-MATRIX.md",
+        "scripts/industrial-platform-standards-check.ts"
+      ],
+      "proofObligations": [
+        "PROOF-STANDARDS-TRACEABILITY-GATE"
+      ]
+    }
+  ],
+  "proofObligations": [
+    {
+      "id": "PROOF-PORT-CONTRACTS",
+      "owner": "integration-platform",
+      "status": "planned",
+      "kind": "adapter-contract-tests"
+    },
+    {
+      "id": "PROOF-OPCUA-CONTRACT",
+      "owner": "opcua-adapter",
+      "status": "planned",
+      "kind": "adapter-contract-tests"
+    },
+    {
+      "id": "PROOF-SPARKPLUG-GOLDEN-TRACE",
+      "owner": "sparkplug-adapter",
+      "status": "planned",
+      "kind": "golden-trace"
+    },
+    {
+      "id": "PROOF-ISA95-SCHEMA-SPLIT",
+      "owner": "industrial-schemas",
+      "status": "planned",
+      "kind": "schema-tests"
+    },
+    {
+      "id": "PROOF-ASSET-IDENTITY-SWAP",
+      "owner": "industrial-graph",
+      "status": "planned",
+      "kind": "golden-trace"
+    },
+    {
+      "id": "PROOF-ALARM-LIFECYCLE-TRACE",
+      "owner": "alarm-domain",
+      "status": "planned",
+      "kind": "golden-trace"
+    },
+    {
+      "id": "PROOF-COMMAND-DENIAL",
+      "owner": "command-governance",
+      "status": "planned",
+      "kind": "policy-tests"
+    },
+    {
+      "id": "PROOF-COMMAND-REPLAY",
+      "owner": "command-governance",
+      "status": "planned",
+      "kind": "replay-tests"
+    },
+    {
+      "id": "PROOF-PACKML-SCENARIO",
+      "owner": "virtual-plant",
+      "status": "planned",
+      "kind": "golden-trace"
+    },
+    {
+      "id": "PROOF-OEE-GOLDEN-TRACE",
+      "owner": "oee-read-model",
+      "status": "planned",
+      "kind": "golden-trace"
+    },
+    {
+      "id": "PROOF-CBM-WORKORDER-TRACE",
+      "owner": "maintenance-domain",
+      "status": "planned",
+      "kind": "golden-trace"
+    },
+    {
+      "id": "PROOF-AGENT-CONTEXT-REPLAY",
+      "owner": "agent-context",
+      "status": "planned",
+      "kind": "replay-tests"
+    },
+    {
+      "id": "PROOF-COMMAND-SQL-AUTHORITY",
+      "owner": "command-governance",
+      "status": "planned",
+      "kind": "sql-authority-tests"
+    },
+    {
+      "id": "PROOF-STANDARDS-TRACEABILITY-GATE",
+      "owner": "industrial-platform",
+      "status": "implemented",
+      "kind": "docs-traceability-check"
+    }
+  ]
+}

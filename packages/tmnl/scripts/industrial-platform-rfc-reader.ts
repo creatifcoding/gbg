@@ -21,6 +21,13 @@ const docs = [
   ['governance', 'RFC-0003 Command Governance', 'RFC-0003-COMMAND-GOVERNANCE.md', 'Agent autonomy, approvals, interlocks, IEC 62443 boundaries, and command audit.', 'red'],
   ['deployment', 'RFC-0004 Virtual Plant + Deployment', 'RFC-0004-VIRTUAL-PLANT-DEPLOYMENT.md', 'Virtual plant scenarios, Kubernetes/Pepr deployment matrix, and CI/CD profiles.', 'purple'],
   ['market', 'RFC-0005 Market Wedges', 'RFC-0005-MARKET-WEDGES.md', 'Market-informed feature wedges and first demo acceptance rubric.', 'olive'],
+  ['schemas', 'RFC-0006 Industrial Schemas', 'RFC-0006-INDUSTRIAL-SCHEMAS.md', 'Standards-grounded schema taxonomy for ISA-95, ISA-18.2, PackML, ISO 22400, maintenance, telemetry, and command contracts.', 'cyan'],
+  ['emulators', 'RFC-0007 OPC UA + Sparkplug Emulators', 'RFC-0007-OPCUA-SPARKPLUG-EMULATORS.md', 'Standards-grounded emulator contracts, scenario DSL, and golden trace requirements for OPC UA and Sparkplug B.', 'green'],
+  ['agent-context', 'RFC-0008 Agent Context Packets', 'RFC-0008-AGENT-CONTEXT-PACKETS.md', 'Evidence-backed context packets, observation/inference separation, standards traceability, and replay contracts for industrial agents.', 'purple'],
+  ['command-sql', 'RFC-0009 Command SQL Authority', 'RFC-0009-COMMAND-SQL-AUTHORITY.md', 'SQL-backed command proposal, policy, interlock, approval, execution receipt, and reconciliation authority model.', 'red'],
+  ['roadmap', 'RFC-0010 Implementation Roadmap', 'RFC-0010-IMPLEMENTATION-ROADMAP.md', 'Standards-grounded implementation roadmap with schema, emulator, golden trace, command, adapter, deployment, and market gates.', 'olive'],
+  ['standards-research', 'Standards Research Ledger', 'STANDARDS-RESEARCH-LEDGER.md', 'Observed source facts and design implications from OPC UA, Sparkplug, ISA-95, ISA-18.2, IEC 62443, PackML, ISO 22400, and MIMOSA.', 'blue'],
+  ['standards-matrix', 'Standards Conformance Matrix', 'STANDARDS-CONFORMANCE-MATRIX.md', 'Traceability matrix connecting standard anchors to platform decisions and proof obligations.', 'red'],
   ['sources', 'Source Ledger', 'SOURCE-LEDGER.md', 'Internal and external source anchors for the RFC pack.', 'slate'],
 ] as const
 

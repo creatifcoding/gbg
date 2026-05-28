@@ -30,6 +30,13 @@ Prime's architectural constraint is decisive: **every integration point is a por
 | RFC-0003 | `RFC-0003-COMMAND-GOVERNANCE.md` | Agent autonomy, approval, interlocks, IEC 62443 safety boundaries, and command audit |
 | RFC-0004 | `RFC-0004-VIRTUAL-PLANT-DEPLOYMENT.md` | Virtual plant, simulation, Kubernetes/Pepr deployment matrix, and CI/CD environment strategy |
 | RFC-0005 | `RFC-0005-MARKET-WEDGES.md` | Market-informed feature wedges and demo acceptance strategy |
+| RFC-0006 | `RFC-0006-INDUSTRIAL-SCHEMAS.md` | Standards-grounded schema taxonomy for ISA-95, ISA-18.2, PackML, ISO 22400, maintenance, telemetry, and command contracts |
+| RFC-0007 | `RFC-0007-OPCUA-SPARKPLUG-EMULATORS.md` | OPC UA and Sparkplug B emulator contracts, scenario DSL, and golden trace requirements |
+| RFC-0008 | `RFC-0008-AGENT-CONTEXT-PACKETS.md` | Evidence-backed agent context packets, observation/inference separation, and replay contract |
+| RFC-0009 | `RFC-0009-COMMAND-SQL-AUTHORITY.md` | SQL-backed command proposal, policy, interlock, approval, execution receipt, and reconciliation authority model |
+| RFC-0010 | `RFC-0010-IMPLEMENTATION-ROADMAP.md` | Standards-grounded implementation sequence with emulator, golden trace, command governance, and deployment gates |
+| Standards | `STANDARDS-RESEARCH-LEDGER.md` | Observed source facts and design implications from the industrial standards research pass |
+| Standards | `STANDARDS-CONFORMANCE-MATRIX.md` | Traceability matrix connecting standards anchors to platform design decisions and proof obligations |
 | Ledger | `SOURCE-LEDGER.md` | Internal and external source anchors used by this RFC pack |
 
 ## Reader artifact
@@ -48,6 +55,12 @@ Regenerate it after RFC edits with:
 bun run scripts/industrial-platform-rfc-reader.ts
 ```
 
+Run the standards traceability gate with:
+
+```bash
+bun run scripts/industrial-platform-standards-check.ts
+```
+
 ## Non-negotiables
 
 1. **No hidden baseline activation.** Reactor lanes remain explicit activation bundles.
@@ -56,12 +69,16 @@ bun run scripts/industrial-platform-rfc-reader.ts
 4. **No graph-as-authority.** Graph is still a projection; SQL/event logs remain authoritative.
 5. **No PLC safety-loop fantasy.** Millisecond safety remains PLC/SIS territory. We provide supervisory intelligence and auditable orchestration.
 6. **No Effect v4 migration by accident.** TMNL stays on Effect v3 unless an explicit migration program exists.
+7. **No decorative standards citations.** Any design decision that claims industrial alignment must map to a standards source, implementation artifact, and proof obligation in `STANDARDS-CONFORMANCE-MATRIX.md`.
 
 ## Recommended implementation order
 
-1. Industrial integration port contracts.
-2. OPC UA and Sparkplug B emulators.
-3. Virtual plant topology + fault/alarm scenarios.
-4. DMN normalized telemetry and command envelopes.
-5. Command governance registry and policy simulator.
-6. First demo: live simulated fault -> alarm lifecycle -> graph/Reactor impact -> agent recommendation -> human approval -> CMMS update -> audit replay.
+1. Standards research ledger and conformance matrix.
+2. Industrial integration port contracts.
+3. OPC UA and Sparkplug B emulators.
+4. Virtual plant topology + fault/alarm scenarios.
+5. DMN normalized telemetry and command envelopes.
+6. Agent context packet assembler and replay surface.
+7. SQL command authority and command governance registry.
+8. Command policy simulator.
+9. First demo: live simulated fault -> alarm lifecycle -> graph/Reactor impact -> agent recommendation -> human approval -> CMMS update -> audit replay.
