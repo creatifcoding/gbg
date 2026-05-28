@@ -24,7 +24,6 @@ import { SqlClient, make as makeSqlClient } from "effect-v4/unstable/sql/SqlClie
 import { SqlError } from "effect-v4/unstable/sql/SqlError"
 import * as Statement from "effect-v4/unstable/sql/Statement"
 import { Reactivity } from "effect-v4/unstable/reactivity/Reactivity"
-import { DatabaseSync } from "node:sqlite"
 
 // ── Connection type (mirrors v4's SqlConnection) ─────────────────
 
@@ -75,6 +74,9 @@ export const layer = (config: SqliteNodeConfig): Layer.Layer<SqlClient> => {
       ? Statement.defaultTransforms(config.transformResultNames).array
       : undefined
 
+    // Import node:sqlite lazily so Bun can import this module without failing
+    // during extension discovery. The layer still requires Node when executed.
+    const { DatabaseSync } = yield* Effect.promise(() => import("node:sqlite"))
     const db = new DatabaseSync(config.filename, {
       readOnly: config.readonly ?? false,
     } as any)
