@@ -31,20 +31,13 @@ import '@/lib/egui/panels';
 // Code editor floating panel registration (side-effect)
 import '@/lib/code-editor/panels/CodeEditorPanel';
 
-// React Grab: UI element selector + Claude Code integration (dev only)
+// Dev diagnostics (browser log forwarding + atom tracing)
 if (import.meta.env.DEV) {
   import('./dev/browserLogForwarder').then(({ installBrowserLogForwarder }) => {
     installBrowserLogForwarder();
   });
 
-  // 1. Core: enables hover-to-select UI elements
-  import('react-grab');
-  // 2. Agent: connects selected elements to Claude Code
-  import('@react-grab/claude-code/client').then(({ attachAgent }) => {
-    attachAgent();
-  });
-
-  // 3. Atom DevTools: enable observability hook for atom tracing
+  // Atom DevTools: enable observability hook for atom tracing
   import('@/lib/primitives/atoms/observability').then(
     ({ initAtomDevTools }) => {
       initAtomDevTools();

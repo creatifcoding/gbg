@@ -52,8 +52,6 @@ cleanup() {
 
   # Kill any background tee processes
   jobs -p | xargs -r kill 2>/dev/null || true
-  # Kill react-grab server if running
-  pkill -f "react-grab.*server" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
@@ -103,10 +101,6 @@ else
     exit 1
   fi
 fi
-
-# Start react-grab Claude Code server (detached, port 4567)
-echo "[tmnl] Starting react-grab server on port 4567..."
-bunx @react-grab/claude-code &
 
 # Start a background process to keep FIFO open and write to log
 # This prevents blocking if no reader is connected

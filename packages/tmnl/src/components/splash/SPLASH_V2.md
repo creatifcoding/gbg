@@ -395,8 +395,6 @@ Side-effect imports:
 
 Dev-only (import.meta.env.DEV):
   browserLogForwarder            DEV:LOGS           log forwarder installed         dev
-  react-grab                     DEV:GRAB           element selector loaded         dev
-  @react-grab/claude-code        DEV:AGENT          claude-code agent attached      dev
   atom observability             DEV:ATOMS          atom devtools initialized       dev
 
 Route resolution:
