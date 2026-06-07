@@ -10,7 +10,7 @@
  */
 
 import type { Effect, Stream, Layer, ManagedRuntime } from 'effect'
-import type { Observable, ObservableObject } from '@legendapp/state'
+import type { ObservableObject } from '@legendapp/state'
 import type {
   AnyStateMachine,
   Actor,
@@ -264,6 +264,15 @@ export type UseStxEffectReturn<TEffects extends EffectsConfig> = <K extends keyo
 /**
  * Configuration for stream-based progressive state
  */
+export interface StxStreamState {
+  value: unknown | undefined
+  error: { cause: unknown }
+  hasValue: boolean
+  hasError: boolean
+  buffer: unknown[]
+  status: 'idle' | 'streaming' | 'complete' | 'error'
+}
+
 export interface StreamStxConfig<A, E> {
   /** The stream source */
   readonly stream: Stream.Stream<A, E>
@@ -292,14 +301,7 @@ export interface StxStream<A, E> {
   readonly status: Atom.Atom<'idle' | 'streaming' | 'complete' | 'error'>
 
   /** Raw Legend-State observable for direct reads outside React */
-  readonly state$: import('@legendapp/state').Observable<{
-    value: A | undefined
-    error: E | undefined
-    hasValue: boolean
-    hasError: boolean
-    buffer: A[]
-    status: 'idle' | 'streaming' | 'complete' | 'error'
-  }>
+  readonly state$: ObservableObject<StxStreamState>
 
   /** Pause streaming */
   readonly pause: () => void

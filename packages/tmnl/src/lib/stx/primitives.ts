@@ -29,7 +29,6 @@ export {
   type Observable,
   type ObservableObject,
   type ObservablePrimitive,
-  type ObservableArray,
 } from '@legendapp/state'
 
 export {

@@ -11,10 +11,10 @@
  */
 
 import { Effect, Stream, Fiber, Exit } from 'effect'
-import { observable, type Observable } from '@legendapp/state'
+import { observable, type ObservableObject } from '@legendapp/state'
 import { Atom } from '@effect-atom/atom'
 
-import type { StxStream, StreamStxConfig } from './types'
+import type { StxStream, StreamStxConfig, StxStreamState } from './types'
 
 // =============================================================================
 // stxStream Factory
@@ -25,19 +25,19 @@ export function stxStream<A, E = never>(
 ): StxStream<A, E> {
   // ---- Mutable core state (Legend-State observables for reactivity) ----
   const state$ = observable({
-    value: config.initial as A | undefined,
-    error: undefined as E | undefined,
+    value: config.initial as unknown | undefined,
+    error: { cause: undefined as unknown },
     hasValue: config.initial !== undefined,
     hasError: false,
-    buffer: [] as A[],
-    status: 'idle' as 'idle' | 'streaming' | 'complete' | 'error',
-  })
+    buffer: [] as unknown[],
+    status: 'idle' as StxStreamState['status'],
+  } satisfies StxStreamState) as ObservableObject<StxStreamState>
 
   // ---- Effect-atom atoms derived from observables for React ----
   // These are readable atoms that React components subscribe to via useAtomValue
   const valueAtom = Atom.make(() => {
     const s = state$.get()
-    if (s.hasError) return { _tag: 'Failure' as const, cause: s.error }
+    if (s.hasError) return { _tag: 'Failure' as const, cause: s.error.cause as E }
     if (s.hasValue) return { _tag: 'Success' as const, value: s.value as A }
     return undefined
   })
@@ -61,16 +61,16 @@ export function stxStream<A, E = never>(
           state$.value.set(value as any)
           state$.hasValue.set(true)
           state$.hasError.set(false)
-          state$.error.set(undefined)
+          state$.error.set({ cause: undefined })
 
           // Update buffer based on strategy
           if (bufferStrategy === 'all') {
-            state$.buffer.set([...state$.buffer.get(), value] as any)
+            state$.buffer.set([...state$.buffer.get(), value] as unknown[])
           } else if (typeof bufferStrategy === 'object' && bufferSize) {
             const current = state$.buffer.get()
             const updated = [...current, value]
             state$.buffer.set(
-              (updated.length > bufferSize ? updated.slice(-bufferSize) : updated) as any
+              updated.length > bufferSize ? updated.slice(-bufferSize) : updated
             )
           }
           // 'latest': no buffer accumulation
@@ -96,7 +96,7 @@ export function stxStream<A, E = never>(
             if (cause._tag !== 'Interrupt') {
               state$.status.set('error')
               state$.hasError.set(true)
-              state$.error.set(cause as any)
+              state$.error.set({ cause })
             }
           },
         })
@@ -124,7 +124,7 @@ export function stxStream<A, E = never>(
     state$.value.set(config.initial as any)
     state$.hasValue.set(config.initial !== undefined)
     state$.hasError.set(false)
-    state$.error.set(undefined)
+    state$.error.set({ cause: undefined })
     state$.buffer.set([])
     state$.status.set('idle')
   }
