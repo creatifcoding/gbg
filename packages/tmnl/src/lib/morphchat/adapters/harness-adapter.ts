@@ -332,6 +332,21 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         break
       }
 
+      case 'chat:v2/user_message': {
+        const userMsg: ChatMessage = {
+          id: event.messageId as string,
+          role: 'operator',
+          content: event.text,
+          timestamp: new Date(event.at).toISOString(),
+          status: 'sent',
+          parts: [{ _tag: 'text' as const, content: event.text }],
+        }
+        morphChatRegistry.update(messages$, (prev) =>
+          prev.some((msg) => msg.id === userMsg.id) ? prev : [...prev, userMsg],
+        )
+        break
+      }
+
       case 'chat:v2/assistant_start': {
         // Create new streaming message with empty parts array
         const streamMsg: ChatMessage = {

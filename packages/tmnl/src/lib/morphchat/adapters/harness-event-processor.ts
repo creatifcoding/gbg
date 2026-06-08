@@ -557,6 +557,24 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         break
       }
 
+      case 'chat:v2/user_message': {
+        const userMsg: ChatMessage = {
+          id: event.messageId as string,
+          role: 'operator',
+          content: event.text,
+          timestamp: new Date(event.at).toISOString(),
+          status: 'sent',
+          parts: [{ _tag: 'text' as const, content: event.text }],
+        }
+        registryUpdate(atoms.messages$, (prev) =>
+          prev.some((msg) => msg.id === userMsg.id) ? prev : [...prev, userMsg],
+        )
+        if (config.instanceId) {
+          appendToSessionV2(config.instanceId, chatMessageToSessionMessage(userMsg))
+        }
+        break
+      }
+
       case 'chat:v2/assistant_start': {
         // Finalize any previously streaming message (multi-turn tool loop:
         // the engine may start a new assistant turn without sending assistant_final

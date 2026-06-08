@@ -80,6 +80,7 @@
     "spike": "bun run scripts/spike-cli.ts",
     "spike:provider-marker:match": "bun run scripts/spikes/provider-marker-match-bench.ts",
     "spike:overlay-reducer:pipeline": "bun run scripts/spikes/overlay-reducer-pipeline-bench.ts",
+    "spike:pi-session:list": "bun run scripts/spikes/pi-session-list-bench.ts",
     "spike:nu-cmdk:impl-spec": "bun run scripts/spikes/nu-cmdk-impl-spec-spike.ts",
     "seed:iiot": "bun run src/lib/iiot/seed/ctl/src/index.ts",
     "reactor:atlas": "bun run scripts/reactor-topology-atlas.ts",

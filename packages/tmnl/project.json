@@ -367,6 +367,13 @@
         "cwd": "packages/tmnl"
       }
     },
+    "spike:pi-session:list": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:pi-session:list",
+        "cwd": "packages/tmnl"
+      }
+    },
     "spike:nu-cmdk:impl-spec": {
       "executor": "nx:run-commands",
       "options": {

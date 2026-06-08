@@ -148,6 +148,16 @@ export const HarnessSendAcceptedEvent = Schema.TaggedStruct('chat:v2/send_accept
   userMessageId: HarnessMessageId,
 })
 
+/** Replay/materialized user message. Existing live sends still optimistically
+ * insert user messages client-side; imported pi sessions use this event so
+ * read-only snapshots can reconstruct both sides of the conversation. */
+export const HarnessUserMessageEvent = Schema.TaggedStruct('chat:v2/user_message', {
+  ...HarnessEventBase,
+  messageId: HarnessMessageId,
+  clientMessageId: HarnessClientMessageId,
+  text: Schema.String,
+})
+
 export const HarnessAssistantStartEvent = Schema.TaggedStruct('chat:v2/assistant_start', {
   ...HarnessEventBase,
   messageId: HarnessMessageId,
@@ -328,6 +338,7 @@ export const HarnessEvent = Schema.Union(
   HarnessSessionOpenedEvent,
   HarnessToolManifestEvent,
   HarnessSendAcceptedEvent,
+  HarnessUserMessageEvent,
   HarnessAssistantStartEvent,
   HarnessAssistantDeltaEvent,
   HarnessAssistantThinkingDeltaEvent,
