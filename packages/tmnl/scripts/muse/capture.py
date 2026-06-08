@@ -246,6 +246,73 @@ class SampleCsvSink:
             self._writer = None
 
 
+class OscSampleSink:
+    """Optional decoded sample UDP OSC fanout.
+
+    Paths follow common Muse/Mind-Monitor conventions where possible:
+    `/muse/eeg/tp9`, `/muse/eeg/af7`, `/muse/eeg/af8`, `/muse/eeg/tp10`,
+    `/muse/acc`, `/muse/gyro`, `/muse/ppg/<channel>`, and telemetry leaves.
+    """
+
+    def __init__(self, host: str, port: int) -> None:
+        self.host = host
+        self.port = port
+        self._client = None
+
+    def open(self) -> None:
+        if self.port <= 0:
+            return
+        try:
+            from pythonosc.udp_client import SimpleUDPClient
+        except ImportError as exc:
+            raise RuntimeError("--osc-port requires the 'python-osc' package in .venv-muse") from exc
+        self._client = SimpleUDPClient(self.host, self.port)
+
+    def write_sample_event(self, event: dict[str, object]) -> None:
+        if self._client is None:
+            return
+        sensor = str(event.get("sensor", "unknown"))
+        channel = str(event.get("channel", sensor)).lower()
+        samples = event.get("samples")
+        values = event.get("values")
+
+        if sensor == "eeg" and isinstance(samples, (list, tuple)):
+            self._send(f"/muse/eeg/{channel}", samples)
+            return
+        if sensor in {"acc", "gyro"} and isinstance(samples, (list, tuple)):
+            self._send(f"/muse/{sensor}", self._flatten(samples))
+            return
+        if sensor == "ppg" and isinstance(samples, (list, tuple)):
+            self._send(f"/muse/ppg/{channel}", samples)
+            return
+        if sensor == "telemetry" and isinstance(values, dict):
+            for key, value in values.items():
+                self._send(f"/muse/telemetry/{key}", [value])
+
+    def _send(self, address: str, values: object) -> None:
+        if self._client is None:
+            return
+        if isinstance(values, tuple):
+            payload = list(values)
+        elif isinstance(values, list):
+            payload = values
+        else:
+            payload = [values]
+        self._client.send_message(address, payload)
+
+    @staticmethod
+    def _flatten(values: object) -> list[object]:
+        out: list[object] = []
+        if not isinstance(values, (list, tuple)):
+            return out
+        for value in values:
+            if isinstance(value, (list, tuple)):
+                out.extend(value)
+            else:
+                out.append(value)
+        return out
+
+
 @dataclass(slots=True)
 class LatestFrame:
     values: dict[str, object] = field(default_factory=dict)
@@ -304,6 +371,7 @@ async def decoder_loop(
     queue: asyncio.Queue[RawItem],
     sink: NdjsonSink,
     csv_sink: SampleCsvSink,
+    osc_sink: OscSampleSink,
     stats: CaptureStats,
     latest: LatestFrame,
     cadences: set[Cadence],
@@ -372,6 +440,7 @@ async def decoder_loop(
         }
         latest.update(event)
         csv_sink.write_sample_event(event)
+        osc_sink.write_sample_event(event)
 
         if "sample" in cadences:
             sink.write(event)
@@ -458,8 +527,10 @@ async def run_capture(args: argparse.Namespace) -> int:
         await broadcaster.start()
     sink = NdjsonSink(args.output, batch_size=args.batch_size, broadcaster=broadcaster)
     csv_sink = SampleCsvSink(args.csv_output)
+    osc_sink = OscSampleSink(args.osc_host, args.osc_port)
     sink.open()
     csv_sink.open()
+    osc_sink.open()
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -533,7 +604,7 @@ async def run_capture(args: argparse.Namespace) -> int:
         stats.events_emitted += 1
 
         async with BleakClient(device, timeout=args.connect_timeout) as client:
-            decoder = asyncio.create_task(decoder_loop(queue, sink, csv_sink, stats, latest, cadences, stop_event))
+            decoder = asyncio.create_task(decoder_loop(queue, sink, csv_sink, osc_sink, stats, latest, cadences, stop_event))
             summary = asyncio.create_task(summary_loop(queue, sink, stats, stop_event)) if "summary" in cadences else None
             frame = asyncio.create_task(frame_loop(sink, latest, stats, args.frame_hz, stop_event)) if "frame" in cadences else None
             if not client.is_connected:
@@ -612,6 +683,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch-size", type=int, default=128, help="File write batch size in JSONL lines.")
     parser.add_argument("--ws-host", default="127.0.0.1", help="WebSocket bind host for browser/TMNL consumers.")
     parser.add_argument("--ws-port", type=int, default=0, help="Optional WebSocket port. 0 disables WebSocket fanout.")
+    parser.add_argument("--osc-host", default="127.0.0.1", help="OSC UDP target host for decoded sample fanout.")
+    parser.add_argument("--osc-port", type=int, default=0, help="Optional OSC UDP target port. 0 disables OSC fanout.")
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--scan-timeout", type=float, default=12.0)
     parser.add_argument("--command-delay", type=float, default=0.10)

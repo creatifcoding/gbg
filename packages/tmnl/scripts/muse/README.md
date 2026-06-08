@@ -16,7 +16,7 @@ Mode:    classic Muse GATT characteristics, not Athena universal char
 `muselsl` can stream the device with the `bleak` backend, but its debug output is noisy and its scanner/gatt paths can be brittle against newer BlueZ/Python stacks. These scripts give TMNL a controlled, streaming-first ingest boundary:
 
 - `protocol.py` — fast dependency-free decoders for classic Muse packets
-- `capture.py` — BLE capture CLI emitting NDJSON cadences to stdout, optional JSONL/CSV files, and optional WebSocket
+- `capture.py` — BLE capture CLI emitting NDJSON cadences to stdout, optional JSONL/CSV files, optional WebSocket, and optional OSC fanout
 - `bench_protocol.py` — decoder throughput benchmark
 
 ## Cadences
@@ -90,6 +90,20 @@ python scripts/muse/capture.py \
 ```
 
 Then connect to `ws://127.0.0.1:8765`. Every message is one JSON event with the same shape as stdout/file NDJSON.
+
+OSC fanout for Max/MSP, SuperCollider, TouchDesigner, etc.:
+
+```bash
+python scripts/muse/capture.py \
+  --address 00:55:DA:BB:8C:66 \
+  --duration 0 \
+  --cadence sample,summary \
+  --osc-host 127.0.0.1 \
+  --osc-port 4545
+```
+
+OSC output is derived from decoded `muse.samples` events. Paths follow common Muse/Mind-Monitor conventions where possible:
+`/muse/eeg/tp9`, `/muse/eeg/af7`, `/muse/eeg/af8`, `/muse/eeg/tp10`, `/muse/acc`, `/muse/gyro`, `/muse/ppg/<channel>`, and `/muse/telemetry/<field>`.
 
 Include PPG:
 
