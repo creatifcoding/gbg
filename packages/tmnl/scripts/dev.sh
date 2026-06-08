@@ -71,8 +71,12 @@ harness_ws_health_ok() {
 
 diagnose_harness_ws_failure() {
   tmnl_log "[tmnl] harness remote WS diagnostic bundle"
-  tmnl_log "[tmnl] bun: $(bun --version 2>/dev/null || echo unavailable)"
-  tmnl_log "[tmnl] bun runtime: $(bun -e \"console.log(process.version + ' modules=' + (process.versions.modules ?? 'n/a'))\" 2>/dev/null || echo unavailable)"
+  local bun_version
+  local bun_runtime
+  bun_version=$(bun --version 2>/dev/null || echo unavailable)
+  bun_runtime=$(bun -e 'console.log(process.version + " modules=" + (process.versions.modules ?? "n/a"))' 2>/dev/null || echo unavailable)
+  tmnl_log "[tmnl] bun: ${bun_version}"
+  tmnl_log "[tmnl] bun runtime: ${bun_runtime}"
 
   if [ -n "${HARNESS_WS_PID:-}" ]; then
     tmnl_log "[tmnl] harness remote WS pid: ${HARNESS_WS_PID}"
