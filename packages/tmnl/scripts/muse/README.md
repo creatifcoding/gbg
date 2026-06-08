@@ -137,6 +137,19 @@ python scripts/muse/analyze_capture.py \
 
 The analyzer rejects malformed JSON with `path:line` diagnostics, counts non-sample events separately, and summarizes `muse.samples` by sensor/channel with sequence gaps, observed rates, online scalar statistics, and conservative first-order quality flags. Future session manifests and labels can be attached with `--manifest` and `--labels`.
 
+## Validate protocol compliance
+
+Run the protocol-compliance gate before downstream metric packs:
+
+```bash
+python scripts/muse/validate_protocol.py \
+  --session-dir /tmp/muse-session \
+  --output /tmp/muse-session/metric-packs/protocol-compliance.result.json \
+  --report /tmp/muse-session/metric-packs/protocol-compliance.report.md
+```
+
+The validator emits a canonical `muse.metric_pack_result` with `packId: protocol-compliance`. It verifies manifest structure, artifact paths, capture sanity, marker/session/protocol alignment, block coverage, `events.tsv` readiness, and claim boundaries. A no-contact session may be transport-compliant but still returns warnings that bar EEG/physiology/alpha/ML claims. Prime, bureaucracy is only ugly when it lies.
+
 ## Stream commands
 
 `capture.py` sends standard classic Muse control commands used by existing open-source clients:
