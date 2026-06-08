@@ -69,35 +69,75 @@ harness_ws_health_ok() {
   echo "$payload" | grep -q '"service":"harness-remote-ws"'
 }
 
-# Ensure harness remote WS server is available
-if harness_ws_health_ok; then
-  tmnl_log "[tmnl] harness remote WS already running on :8787"
-else
+diagnose_harness_ws_failure() {
+  tmnl_log "[tmnl] harness remote WS diagnostic bundle"
+  tmnl_log "[tmnl] bun: $(bun --version 2>/dev/null || echo unavailable)"
+  tmnl_log "[tmnl] bun runtime: $(bun -e \"console.log(process.version + ' modules=' + (process.versions.modules ?? 'n/a'))\" 2>/dev/null || echo unavailable)"
+
+  if [ -n "${HARNESS_WS_PID:-}" ]; then
+    tmnl_log "[tmnl] harness remote WS pid: ${HARNESS_WS_PID}"
+    ps -fp "$HARNESS_WS_PID" 2>&1 | tee -a "$LOG_PATH" || true
+  fi
+
+  tmnl_log "[tmnl] harness remote WS log tail:"
+  tail -n 120 /tmp/tmnl/harness-remote-ws.log 2>/dev/null | tee -a "$LOG_PATH" || true
+
+  tmnl_log "[tmnl] import probe: HarnessRemoteWsServer"
+  timeout 30 bun -e "const t=performance.now(); await import('./src/lib/harness/server/HarnessRemoteWsServer.ts'); console.log('[tmnl] import probe ok '+Math.round(performance.now()-t)+'ms'); process.exit(0)" \
+    2>&1 | tee -a "$LOG_PATH" || tmnl_log "[tmnl] import probe failed or timed out"
+}
+
+start_harness_ws() {
   tmnl_log "[tmnl] starting harness remote WS on :8787..."
   bash scripts/harness-remote-ws.sh >/tmp/tmnl/harness-remote-ws.log 2>&1 &
   HARNESS_WS_PID=$!
+}
 
+wait_for_harness_ws() {
   # Cold starts can take a while because the harness scans pi extensions before
   # binding :8787. Give it a real startup budget; failing early here makes
   # Vite/Tauri report a misleading beforeDevCommand failure.
   for _ in $(seq 1 480); do
     if harness_ws_health_ok; then
       tmnl_log "[tmnl] harness remote WS ready"
-      break
+      return 0
     fi
 
     if ! kill -0 "$HARNESS_WS_PID" 2>/dev/null; then
       tmnl_log "[tmnl] harness remote WS process exited early"
-      break
+      return 1
     fi
 
     sleep 0.25
   done
 
-  if ! harness_ws_health_ok; then
-    tmnl_log "[tmnl] failed to start harness remote WS (see /tmp/tmnl/harness-remote-ws.log)"
-    tail -n 80 /tmp/tmnl/harness-remote-ws.log 2>/dev/null | tee -a "$LOG_PATH" || true
-    exit 1
+  return 1
+}
+
+# Ensure harness remote WS server is available
+if harness_ws_health_ok; then
+  tmnl_log "[tmnl] harness remote WS already running on :8787"
+else
+  start_harness_ws
+
+  if ! wait_for_harness_ws; then
+    tmnl_log "[tmnl] harness remote WS failed first startup attempt (see /tmp/tmnl/harness-remote-ws.log)"
+    diagnose_harness_ws_failure
+
+    if [ -n "${HARNESS_WS_PID:-}" ]; then
+      kill "$HARNESS_WS_PID" 2>/dev/null || true
+      wait "$HARNESS_WS_PID" 2>/dev/null || true
+      HARNESS_WS_PID=""
+    fi
+
+    tmnl_log "[tmnl] retrying harness remote WS once after diagnostic probe..."
+    start_harness_ws
+
+    if ! wait_for_harness_ws; then
+      tmnl_log "[tmnl] failed to start harness remote WS after retry (see /tmp/tmnl/harness-remote-ws.log)"
+      diagnose_harness_ws_failure
+      exit 1
+    fi
   fi
 fi
 

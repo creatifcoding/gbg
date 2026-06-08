@@ -10,6 +10,7 @@ import { sourceExtractPlugin } from './vite-plugin-source-extract';
 import importMetaUrlPlugin from '@codingame/esbuild-import-meta-url-plugin';
 
 const host = process.env.TAURI_DEV_HOST;
+const devServerHost = host || '127.0.0.1';
 
 function tmnlCursorChatPlugin(): Plugin {
   return {
@@ -220,7 +221,7 @@ export default defineConfig(() => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
+    host: devServerHost,
     hmr: host
       ? {
           protocol: 'ws',

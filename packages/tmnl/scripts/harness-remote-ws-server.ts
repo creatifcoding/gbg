@@ -14,6 +14,8 @@ class HarnessRemoteWsBootstrapError extends Schema.TaggedError<HarnessRemoteWsBo
 const main = Effect.gen(function* () {
   yield* Effect.logInfo('[boot] harness remote ws bootstrap start')
 
+  yield* Effect.logInfo('[boot] importing HarnessRemoteWsServer module')
+
   const serverModule = yield* Effect.tryPromise({
     try: () => import('../src/lib/harness/server/HarnessRemoteWsServer'),
     catch: (cause) =>
@@ -22,6 +24,8 @@ const main = Effect.gen(function* () {
         cause: Option.some(cause),
       }),
   })
+
+  yield* Effect.logInfo('[boot] HarnessRemoteWsServer module imported')
 
   const runServer =
     typeof (serverModule as { runHarnessRemoteWsServer?: unknown }).runHarnessRemoteWsServer === 'function'
