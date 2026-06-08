@@ -112,6 +112,8 @@ Machine policies: `docs/muse/transport-integrity-thresholds.json`
 
 ### Round 2 — operational metric pack
 
+Design spec: `docs/muse/contact-fit-proxy-design.md`
+
 **Inputs**
 
 - muse.samples EEG
