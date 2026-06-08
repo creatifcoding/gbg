@@ -148,7 +148,7 @@ python scripts/muse/validate_protocol.py \
   --report /tmp/muse-session/metric-packs/protocol-compliance.report.md
 ```
 
-The validator emits a canonical `muse.metric_pack_result` with `packId: protocol-compliance`. It verifies manifest structure, artifact paths, capture sanity, marker/session/protocol alignment, block coverage, `events.tsv` readiness, and claim boundaries. A no-contact session may be transport-compliant but still returns warnings that bar EEG/physiology/alpha/ML claims. Prime, bureaucracy is only ugly when it lies.
+The validator emits a canonical `muse.metric_pack_result` with `packId: protocol-compliance`. It verifies manifest structure, artifact paths, capture sanity, marker/session/protocol alignment, block coverage, `events.tsv` readiness, manifest/observed channel metadata, decoded sample CSV export columns, and claim boundaries. A no-contact session may be transport-compliant but still returns warnings that bar EEG/physiology/alpha/ML claims. Prime, bureaucracy is only ugly when it lies.
 
 ## Stream commands
 

@@ -163,14 +163,21 @@ Metric keys:
 
 ### 6. Events TSV readiness
 
-If `events.tsv` exists:
+For `events.tsv`:
 
+- artifact is required for controlled/labeled sessions,
 - parses as TSV,
 - contains required columns:
   - `onset`
   - `duration`
   - `trial_type`
   - `value`
+- should include TMNL marker export columns:
+  - `block_id`
+  - `cue_id`
+  - `repetition_index`
+  - `expected_action`
+  - `expected_signal_class`
 - onsets are numeric and non-negative,
 - durations are numeric and non-negative,
 - block IDs, when present, are known,
@@ -181,9 +188,38 @@ Metric keys:
 - `eventsTsv.present`
 - `eventsTsv.rows.count`
 - `eventsTsv.requiredColumns.present`
+- `eventsTsv.recommendedColumns.present`
 - `eventsTsv.markerConsistency.fraction`
 
-### 7. Claim-boundary enforcement
+### 7. Channel metadata export readiness
+
+- `manifest.device.channels` must be non-empty.
+- Every observed Muse sample channel must be declared in `manifest.device.channels`.
+- Declared-but-unobserved channels produce warnings for preset/mode review.
+- If `muse_samples_csv` is declared, the CSV must include the canonical sample export columns:
+  - `timestampHostNs`
+  - `uuid`
+  - `sensor`
+  - `channel`
+  - `sequence`
+  - `unit`
+  - `sampleRate`
+  - `sampleIndex`
+  - `axis`
+  - `value`
+- CSV channel rows must not contain channels absent from `manifest.device.channels`.
+
+Metric keys:
+
+- `channels.manifest.count`
+- `channels.observed.count`
+- `channels.missingFromManifest.count`
+- `channels.declaredNotObserved.count`
+- `sampleCsv.present`
+- `sampleCsv.requiredColumns.present`
+- `sampleCsv.channelRowsUndeclared.count`
+
+### 8. Claim-boundary enforcement
 
 The validator must detect and propagate claim barriers.
 
@@ -218,14 +254,16 @@ Initial policy set:
 | `protocol.capture.samples_present.v1` | hard_gate | fail | yes for captured sessions |
 | `protocol.markers.match_manifest.v1` | hard_gate | fail | yes |
 | `protocol.blocks.paired.v1` | hard_gate | fail | yes |
-| `protocol.events_tsv.valid.v1` | soft_warning initially | warn | no, unless BIDS export claimed |
+| `protocol.events_tsv.valid.v1` | hard_gate | fail | yes for controlled/labeled sessions |
+| `protocol.channels.observed_declared.v1` | hard_gate | fail | yes |
+| `protocol.channels.sample_csv_export.v1` | soft_warning / hard row check | warn/fail | yes when CSV has undeclared channels |
 | `protocol.posthoc_markers.disclose.v1` | soft_warning | warn | yes for live-conductor claims |
 | `protocol.no_contact.blocks_physiology.v1` | claim_boundary | fail/warn depending pack | yes |
 
 ## Status aggregation
 
 - `fail`: manifest missing/invalid, required artifacts missing, marker/manifest mismatch, unpaired blocks, invalid protocol IDs, or hard claim barrier for attempted physiology/ML analysis.
-- `warn`: post-hoc markers, missing optional events.tsv, incomplete environment notes, non-critical artifact missing.
+- `warn`: post-hoc markers, missing optional sample CSV, incomplete environment notes, non-critical artifact missing.
 - `pass`: required manifest/artifacts/markers/events are present and internally consistent.
 - `not_applicable`: no labeled analysis attempted and validator is run only as a no-contact transport audit; must still emit claim-boundary caveats.
 

@@ -112,6 +112,19 @@ REQUIRED_TOP_LEVEL = (
     "limitations",
 )
 REQUIRED_EVENTS_COLUMNS = ("onset", "duration", "trial_type", "value")
+RECOMMENDED_EVENTS_COLUMNS = ("block_id", "cue_id", "repetition_index", "expected_action", "expected_signal_class")
+REQUIRED_SAMPLE_CSV_COLUMNS = (
+    "timestampHostNs",
+    "uuid",
+    "sensor",
+    "channel",
+    "sequence",
+    "unit",
+    "sampleRate",
+    "sampleIndex",
+    "axis",
+    "value",
+)
 
 
 class ProtocolValidationFatal(ValueError):
@@ -129,6 +142,8 @@ class CaptureStats:
     first_timestamp_ns: int | None = None
     last_timestamp_ns: int | None = None
     sample_timestamps_ns: list[int] = field(default_factory=list)
+    observed_channels: set[str] = field(default_factory=set)
+    observed_streams: set[str] = field(default_factory=set)
 
 
 @dataclass(slots=True)
@@ -161,6 +176,7 @@ class EventsTsvStats:
     invalid_rows: int = 0
     unknown_block_ids: int = 0
     marker_consistency_fraction: float | None = None
+    recommended_columns_present: bool = False
 
 
 @dataclass(slots=True)
@@ -790,9 +806,9 @@ def validate_artifact_inventory(ctx: ValidationContext) -> None:
             comparator="eq",
             threshold=True,
             observed=events_present,
-            status="pass" if events_present else "warn",
-            severity="warn" if not events_present else "info",
-            description="events.tsv is expected for controlled sessions; warning until full BIDS export is claimed.",
+            status="pass" if events_present else "fail",
+            severity="critical" if not events_present else "info",
+            description="events.tsv is required for controlled/labeled protocol compliance.",
             policy_id="protocol.events_tsv.valid.v1",
         )
 
@@ -875,6 +891,10 @@ def validate_capture(ctx: ValidationContext) -> CaptureStats:
                     stats.capture_stop_present = True
                 elif event_type == "muse.samples":
                     stats.sample_events += 1
+                    sensor = str(event.get("sensor", "unknown"))
+                    channel = str(event.get("channel", sensor))
+                    stats.observed_channels.add(channel)
+                    stats.observed_streams.add(f"{sensor}:{channel}")
                     if isinstance(ts, int):
                         stats.sample_timestamps += 1
                         stats.sample_timestamps_ns.append(ts)
@@ -889,6 +909,12 @@ def validate_capture(ctx: ValidationContext) -> CaptureStats:
     ctx.add_metric("capture.start.present", stats.capture_start_present)
     ctx.add_metric("capture.stop.present", stats.capture_stop_present)
     ctx.add_metric("capture.timestampHostNs.presentFraction", timestamp_fraction)
+    ctx.add_metric("capture.observedChannels.count", len(stats.observed_channels), unit="count")
+    ctx.add_metric("capture.observedStreams.count", len(stats.observed_streams), unit="count")
+    if stats.observed_channels:
+        ctx.add_metric("capture.observedChannels", sorted(stats.observed_channels), unit="labels")
+    if stats.observed_streams:
+        ctx.add_metric("capture.observedStreams", sorted(stats.observed_streams), unit="labels")
 
     for key, observed, threshold, status, severity, description, policy in (
         ("capture.malformedLines.count", stats.malformed_lines, 0, "fail", "critical", "Capture JSONL should parse without malformed lines.", "protocol.capture.jsonl_valid.v1"),
@@ -930,6 +956,124 @@ def validate_capture(ctx: ValidationContext) -> CaptureStats:
         description="All sample events should carry timestampHostNs.",
     )
     return stats
+
+
+def validate_channel_metadata_export(ctx: ValidationContext, capture: CaptureStats) -> None:
+    device = ctx.manifest.get("device") if isinstance(ctx.manifest.get("device"), dict) else {}
+    manifest_channels_raw = device.get("channels") if isinstance(device, dict) else []
+    manifest_channels = [str(channel) for channel in manifest_channels_raw] if isinstance(manifest_channels_raw, list) else []
+    manifest_lookup = {channel.lower(): channel for channel in manifest_channels}
+    observed_lookup = {channel.lower(): channel for channel in capture.observed_channels}
+    missing_from_manifest = sorted(observed_lookup[key] for key in observed_lookup.keys() - manifest_lookup.keys())
+    declared_not_observed = sorted(manifest_lookup[key] for key in manifest_lookup.keys() - observed_lookup.keys())
+
+    ctx.add_metric("channels.manifest.count", len(manifest_channels), unit="count")
+    ctx.add_metric("channels.observed.count", len(capture.observed_channels), unit="count")
+    ctx.add_metric("channels.missingFromManifest.count", len(missing_from_manifest), unit="count")
+    ctx.add_metric("channels.declaredNotObserved.count", len(declared_not_observed), unit="count")
+    if manifest_channels:
+        ctx.add_metric("channels.manifest.labels", manifest_channels, unit="labels")
+    if missing_from_manifest:
+        ctx.add_metric("channels.missingFromManifest.labels", missing_from_manifest, unit="labels")
+    if declared_not_observed:
+        ctx.add_metric("channels.declaredNotObserved.labels", declared_not_observed, unit="labels")
+
+    ctx.evaluate(
+        metric_key="channels.manifest.count",
+        comparator="gt",
+        threshold=0,
+        observed=len(manifest_channels),
+        status="pass" if manifest_channels else "fail",
+        severity="critical" if not manifest_channels else "info",
+        description="Manifest device.channels must declare channel metadata for export.",
+        policy_id="protocol.channels.manifest_present.v1",
+    )
+    ctx.evaluate(
+        metric_key="channels.missingFromManifest.count",
+        comparator="eq",
+        threshold=0,
+        observed=len(missing_from_manifest),
+        status="pass" if not missing_from_manifest else "fail",
+        severity="critical" if missing_from_manifest else "info",
+        description="Every observed Muse sample channel should be declared in manifest device.channels.",
+        policy_id="protocol.channels.observed_declared.v1",
+    )
+    if declared_not_observed:
+        ctx.evaluate(
+            metric_key="channels.declaredNotObserved.count",
+            comparator="eq",
+            threshold=0,
+            observed=len(declared_not_observed),
+            status="warn",
+            severity="warn",
+            description="Some manifest-declared channels were not observed in this capture; confirm capture preset and hardware mode.",
+            policy_id="protocol.channels.declared_observed.v1",
+        )
+
+    csv_path = first_artifact_path(ctx.manifest, "muse_samples_csv", manifest_path=ctx.manifest_path)
+    if csv_path is None:
+        ctx.add_metric("sampleCsv.present", False)
+        ctx.evaluate(
+            metric_key="sampleCsv.present",
+            comparator="present",
+            status="warn",
+            severity="warn",
+            description="Decoded sample CSV is absent; NDJSON remains canonical but tabular channel export is incomplete.",
+            policy_id="protocol.channels.sample_csv_export.v1",
+        )
+        return
+    if not csv_path.exists():
+        ctx.add_metric("sampleCsv.present", False)
+        ctx.evaluate(
+            metric_key="sampleCsv.present",
+            comparator="present",
+            status="warn",
+            severity="warn",
+            description=f"Decoded sample CSV artifact is declared but missing: {csv_path}",
+            policy_id="protocol.channels.sample_csv_export.v1",
+        )
+        return
+
+    row_count = 0
+    header_present = False
+    invalid_channel_rows = 0
+    try:
+        with csv_path.open("r", encoding="utf-8", newline="") as file:
+            reader = csv.DictReader(file)
+            fieldnames = reader.fieldnames or []
+            header_present = all(column in fieldnames for column in REQUIRED_SAMPLE_CSV_COLUMNS)
+            for row in reader:
+                row_count += 1
+                channel = str(row.get("channel", ""))
+                if channel and channel.lower() not in manifest_lookup:
+                    invalid_channel_rows += 1
+    except OSError as exc:
+        ctx.add_caveat(severity="warn", message=f"Could not read decoded sample CSV: {exc}", blocks_claim=False, source=str(csv_path))
+
+    ctx.add_metric("sampleCsv.present", True)
+    ctx.add_metric("sampleCsv.rows.count", row_count, unit="count")
+    ctx.add_metric("sampleCsv.requiredColumns.present", header_present)
+    ctx.add_metric("sampleCsv.channelRowsUndeclared.count", invalid_channel_rows, unit="count")
+    ctx.evaluate(
+        metric_key="sampleCsv.requiredColumns.present",
+        comparator="eq",
+        threshold=True,
+        observed=header_present,
+        status="pass" if header_present else "warn",
+        severity="warn" if not header_present else "info",
+        description="Decoded sample CSV should include the canonical sample export columns.",
+        policy_id="protocol.channels.sample_csv_export.v1",
+    )
+    ctx.evaluate(
+        metric_key="sampleCsv.channelRowsUndeclared.count",
+        comparator="eq",
+        threshold=0,
+        observed=invalid_channel_rows,
+        status="pass" if invalid_channel_rows == 0 else "fail",
+        severity="critical" if invalid_channel_rows else "info",
+        description="CSV sample rows should not contain channels absent from manifest device.channels.",
+        policy_id="protocol.channels.sample_csv_export.v1",
+    )
 
 
 def marker_event_contract_issues(event: Mapping[str, Any], *, source: str) -> list[str]:
@@ -1252,9 +1396,9 @@ def validate_events_tsv(ctx: ValidationContext, markers: MarkerStats) -> EventsT
             ctx.evaluate(
                 metric_key="eventsTsv.present",
                 comparator="present",
-                status="warn",
-                severity="warn",
-                description="events.tsv is absent; marker JSONL remains canonical but BIDS-style export is incomplete.",
+                status="fail",
+                severity="critical",
+                description="events.tsv is absent; controlled/labeled protocol compliance requires a BIDS-style event export.",
                 policy_id="protocol.events_tsv.valid.v1",
             )
         return stats
@@ -1263,8 +1407,8 @@ def validate_events_tsv(ctx: ValidationContext, markers: MarkerStats) -> EventsT
         ctx.evaluate(
             metric_key="eventsTsv.present",
             comparator="present",
-            status="warn",
-            severity="warn",
+            status="fail",
+            severity="critical",
             description=f"events.tsv artifact is declared but missing: {path}",
             policy_id="protocol.events_tsv.valid.v1",
         )
@@ -1277,6 +1421,7 @@ def validate_events_tsv(ctx: ValidationContext, markers: MarkerStats) -> EventsT
         reader = csv.DictReader(file, delimiter="\t")
         fieldnames = reader.fieldnames or []
         stats.required_columns_present = all(column in fieldnames for column in REQUIRED_EVENTS_COLUMNS)
+        stats.recommended_columns_present = all(column in fieldnames for column in RECOMMENDED_EVENTS_COLUMNS)
         for row in reader:
             stats.rows += 1
             try:
@@ -1298,14 +1443,16 @@ def validate_events_tsv(ctx: ValidationContext, markers: MarkerStats) -> EventsT
     ctx.add_metric("eventsTsv.present", True)
     ctx.add_metric("eventsTsv.rows.count", stats.rows, unit="count")
     ctx.add_metric("eventsTsv.requiredColumns.present", stats.required_columns_present)
+    ctx.add_metric("eventsTsv.recommendedColumns.present", stats.recommended_columns_present)
     ctx.add_metric("eventsTsv.invalidRows.count", stats.invalid_rows, unit="count")
     ctx.add_metric("eventsTsv.unknownBlockIds.count", stats.unknown_block_ids, unit="count")
     ctx.add_metric("eventsTsv.markerConsistency.fraction", stats.marker_consistency_fraction)
 
     for key, observed, threshold, status, description in (
-        ("eventsTsv.requiredColumns.present", stats.required_columns_present, True, "warn", "events.tsv should contain required BIDS-style columns."),
-        ("eventsTsv.invalidRows.count", stats.invalid_rows, 0, "warn", "events.tsv onset/duration rows should be numeric and non-negative."),
-        ("eventsTsv.unknownBlockIds.count", stats.unknown_block_ids, 0, "warn", "events.tsv block IDs should exist in manifest protocol."),
+        ("eventsTsv.requiredColumns.present", stats.required_columns_present, True, "fail", "events.tsv must contain required BIDS-style columns."),
+        ("eventsTsv.recommendedColumns.present", stats.recommended_columns_present, True, "warn", "events.tsv should include TMNL marker export columns: block_id, cue_id, repetition_index, expected_action, expected_signal_class."),
+        ("eventsTsv.invalidRows.count", stats.invalid_rows, 0, "fail", "events.tsv onset/duration rows should be numeric and non-negative."),
+        ("eventsTsv.unknownBlockIds.count", stats.unknown_block_ids, 0, "fail", "events.tsv block IDs should exist in manifest protocol."),
     ):
         passed = observed == threshold
         ctx.evaluate(
@@ -1314,7 +1461,7 @@ def validate_events_tsv(ctx: ValidationContext, markers: MarkerStats) -> EventsT
             threshold=threshold,
             observed=observed,
             status="pass" if passed else status,
-            severity="warn" if not passed else "info",
+            severity="critical" if (not passed and status == "fail") else "warn" if not passed else "info",
             description=description,
             policy_id="protocol.events_tsv.valid.v1",
         )
@@ -1331,6 +1478,7 @@ def validate_protocol(manifest_path: Path) -> dict[str, Any]:
     validate_manifest_structure(ctx)
     validate_artifact_inventory(ctx)
     capture = validate_capture(ctx)
+    validate_channel_metadata_export(ctx, capture)
     markers = validate_markers(ctx, capture)
     validate_events_tsv(ctx, markers)
     if not ctx.recommendations:
