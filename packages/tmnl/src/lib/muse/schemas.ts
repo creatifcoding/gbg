@@ -22,6 +22,7 @@ export const MuseSampleUnit = Schema.Literal('uV', 'g', 'dps', 'raw24', 'mixed',
 export type MuseSampleUnit = typeof MuseSampleUnit.Type
 
 export const MuseExperimentClockDomain = Schema.Literal(
+  'host_time_ns',
   'host_monotonic_ns',
   'wall_clock_iso',
   'lsl_time',

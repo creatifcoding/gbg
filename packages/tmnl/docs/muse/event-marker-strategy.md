@@ -48,12 +48,12 @@ MuseMarkerEvent = {
 
 ## Clock rule
 
-For v1, marker `timestampHostNs` must use the same host monotonic-ish timestamp domain as Muse capture events whenever marker emission is local to TMNL/Python. The manifest `sync.timestampHostNsMeaning` must state the exact clock source.
+For v1, marker `timestampHostNs` must use the same host timestamp domain as Muse capture events whenever marker emission is local to TMNL/Python. `capture.py` currently uses Python `time.time_ns()`, i.e. nanoseconds since the Unix epoch, so the manifest should use `host_time_ns` unless a future conductor explicitly switches both capture and markers to `time.monotonic_ns()`. The manifest `sync.timestampHostNsMeaning` must state the exact clock source.
 
 Initial rule:
 
 ```text
-Use host_monotonic_ns for Muse samples and TMNL marker emission. If camera/pose streams are added, record their frame timestamps and latency limitations explicitly until LSL/XDF or measured clock mapping exists.
+Use host_time_ns for Muse samples and TMNL marker emission because capture.py uses Python time.time_ns(). If camera/pose streams are added, record their frame timestamps and latency limitations explicitly until LSL/XDF or measured clock mapping exists.
 ```
 
 ## Required marker lifecycle
@@ -133,10 +133,10 @@ Do not throw marker metadata away during TSV export; preserve a richer JSONL mar
 ## Example marker sequence
 
 ```jsonl
-{"type":"muse.marker","cadence":"marker","timestampHostNs":1000000000,"timestampWallIso":"2026-06-08T00:00:00Z","sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"session_start","eventCode":"SESSION_START","label":"Session start","clockDomain":"host_monotonic_ns","source":"tmnl-conductor"}
-{"type":"muse.marker","cadence":"marker","timestampHostNs":2000000000,"sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"block_start","eventCode":"BLOCK_BLINK_TASK_20X_START","label":"Blink task start","blockId":"blink-task-20x","expectedSignalClass":"artifact","clockDomain":"host_monotonic_ns","source":"tmnl-conductor"}
-{"type":"muse.marker","cadence":"marker","timestampHostNs":3000000000,"sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"cue_onset","eventCode":"CUE_BLINK_001_ONSET","label":"Blink cue 1","blockId":"blink-task-20x","cueId":"blink-001","repetitionIndex":1,"expectedAction":"blink_once","expectedSignalClass":"artifact","clockDomain":"host_monotonic_ns","source":"tmnl-conductor"}
-{"type":"muse.marker","cadence":"marker","timestampHostNs":3250000000,"sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"cue_offset","eventCode":"CUE_BLINK_001_OFFSET","label":"Blink cue 1 offset","blockId":"blink-task-20x","cueId":"blink-001","repetitionIndex":1,"expectedAction":"blink_once","expectedSignalClass":"artifact","clockDomain":"host_monotonic_ns","source":"tmnl-conductor"}
+{"type":"muse.marker","cadence":"marker","timestampHostNs":1000000000,"timestampWallIso":"2026-06-08T00:00:00Z","sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"session_start","eventCode":"SESSION_START","label":"Session start","clockDomain":"host_time_ns","source":"tmnl-conductor"}
+{"type":"muse.marker","cadence":"marker","timestampHostNs":2000000000,"sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"block_start","eventCode":"BLOCK_BLINK_TASK_20X_START","label":"Blink task start","blockId":"blink-task-20x","expectedSignalClass":"artifact","clockDomain":"host_time_ns","source":"tmnl-conductor"}
+{"type":"muse.marker","cadence":"marker","timestampHostNs":3000000000,"sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"cue_onset","eventCode":"CUE_BLINK_001_ONSET","label":"Blink cue 1","blockId":"blink-task-20x","cueId":"blink-001","repetitionIndex":1,"expectedAction":"blink_once","expectedSignalClass":"artifact","clockDomain":"host_time_ns","source":"tmnl-conductor"}
+{"type":"muse.marker","cadence":"marker","timestampHostNs":3250000000,"sessionId":"muse-20260608-001","protocolId":"basic-artifact-alpha-v1","markerKind":"cue_offset","eventCode":"CUE_BLINK_001_OFFSET","label":"Blink cue 1 offset","blockId":"blink-task-20x","cueId":"blink-001","repetitionIndex":1,"expectedAction":"blink_once","expectedSignalClass":"artifact","clockDomain":"host_time_ns","source":"tmnl-conductor"}
 ```
 
 ## Integrity checks

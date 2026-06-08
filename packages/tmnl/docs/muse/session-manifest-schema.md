@@ -142,7 +142,7 @@ Clock strategy for aligning Muse, markers, video, pose, and future LSL/XDF strea
 
 ```ts
 {
-  primaryClock: 'host_monotonic_ns' | 'wall_clock_iso' | 'lsl_time' | 'media_frame_time' | 'unknown'
+  primaryClock: 'host_time_ns' | 'host_monotonic_ns' | 'wall_clock_iso' | 'lsl_time' | 'media_frame_time' | 'unknown'
   timestampHostNsMeaning: string
   mappings: MuseClockMapping[]
   droppedFramePolicy?: string
@@ -150,7 +150,7 @@ Clock strategy for aligning Muse, markers, video, pose, and future LSL/XDF strea
 }
 ```
 
-The first TMNL-native version should use `host_monotonic_ns` as primary and explicitly state that tight multimodal claims require measured camera/pose latency or LSL/XDF synchronization.
+The first TMNL-native version should use `host_time_ns` as primary while `capture.py` uses Python `time.time_ns()` and explicitly state that tight multimodal claims require measured camera/pose latency or LSL/XDF synchronization.
 
 ### `environment`
 
@@ -260,12 +260,12 @@ Artifact roles include:
     ]
   },
   "sync": {
-    "primaryClock": "host_monotonic_ns",
-    "timestampHostNsMeaning": "Python time_ns() host clock at BLE notification callback or local marker emission.",
+    "primaryClock": "host_time_ns",
+    "timestampHostNsMeaning": "Python time.time_ns() host epoch clock at BLE notification callback or local marker emission.",
     "mappings": [],
     "limitations": [
       "No camera/pose latency calibration in minimal protocol.",
-      "Host timestamping is sufficient for first-order Muse analysis but not tight multimodal claims."
+      "Host epoch timestamping is sufficient for first-order Muse analysis but not tight multimodal claims."
     ]
   },
   "environment": {
@@ -282,13 +282,13 @@ Artifact roles include:
       "role": "session_manifest",
       "path": "sessions/muse-20260608-001/manifest.json",
       "mediaType": "application/json",
-      "clockDomain": "host_monotonic_ns"
+      "clockDomain": "host_time_ns"
     },
     {
       "role": "muse_jsonl",
       "path": "sessions/muse-20260608-001/muse.jsonl",
       "mediaType": "application/x-ndjson",
-      "clockDomain": "host_monotonic_ns"
+      "clockDomain": "host_time_ns"
     }
   ],
   "limitations": [
