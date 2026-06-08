@@ -74,6 +74,52 @@ class OnlineStats:
 
 
 @dataclass(slots=True)
+class DeltaStats:
+    """Exact timestamp-delta distribution for transport cadence diagnostics."""
+
+    count: int = 0
+    total_ns: int = 0
+    minimum_ns: int | None = None
+    maximum_ns: int | None = None
+    deltas_ns: list[int] = field(default_factory=list)
+
+    def push_ns(self, delta_ns: int) -> None:
+        if delta_ns < 0:
+            return
+        self.count += 1
+        self.total_ns += delta_ns
+        self.minimum_ns = delta_ns if self.minimum_ns is None else min(self.minimum_ns, delta_ns)
+        self.maximum_ns = delta_ns if self.maximum_ns is None else max(self.maximum_ns, delta_ns)
+        self.deltas_ns.append(delta_ns)
+
+    def percentile_ns(self, percentile: float) -> int | None:
+        if not self.deltas_ns:
+            return None
+        ordered = sorted(self.deltas_ns)
+        if len(ordered) == 1:
+            return ordered[0]
+        position = (len(ordered) - 1) * percentile
+        lower = math.floor(position)
+        upper = math.ceil(position)
+        if lower == upper:
+            return ordered[int(position)]
+        weight = position - lower
+        return round(ordered[lower] * (1.0 - weight) + ordered[upper] * weight)
+
+    def to_json(self) -> dict[str, Any]:
+        mean_ns = self.total_ns / self.count if self.count else None
+        return {
+            "count": self.count,
+            "minSec": ns_to_sec(self.minimum_ns),
+            "maxSec": ns_to_sec(self.maximum_ns),
+            "meanSec": ns_to_sec(mean_ns),
+            "p50Sec": ns_to_sec(self.percentile_ns(0.50)),
+            "p95Sec": ns_to_sec(self.percentile_ns(0.95)),
+            "p99Sec": ns_to_sec(self.percentile_ns(0.99)),
+        }
+
+
+@dataclass(slots=True)
 class StreamStats:
     """Per sensor/channel streaming stats."""
 
@@ -83,6 +129,9 @@ class StreamStats:
     sample_count: int = 0
     first_timestamp_ns: int | None = None
     last_timestamp_ns: int | None = None
+    previous_timestamp_ns: int | None = None
+    timestamp_regressions: int = 0
+    inter_event_delta: DeltaStats = field(default_factory=DeltaStats)
     sample_rate_hz: float | None = None
     unit: str | None = None
     uuid: str | None = None
@@ -107,6 +156,13 @@ class StreamStats:
     def _push_timestamp(self, value: Any) -> None:
         if not isinstance(value, int):
             return
+        if self.previous_timestamp_ns is not None:
+            delta_ns = value - self.previous_timestamp_ns
+            if delta_ns < 0:
+                self.timestamp_regressions += 1
+            else:
+                self.inter_event_delta.push_ns(delta_ns)
+        self.previous_timestamp_ns = value
         self.first_timestamp_ns = value if self.first_timestamp_ns is None else min(self.first_timestamp_ns, value)
         self.last_timestamp_ns = value if self.last_timestamp_ns is None else max(self.last_timestamp_ns, value)
 
@@ -175,6 +231,8 @@ class StreamStats:
             "durationSec": duration_sec,
             "eventRateHzObserved": event_rate_hz,
             "scalarRateHzObserved": scalar_rate_hz,
+            "interEventDeltaSec": self.inter_event_delta.to_json(),
+            "timestampRegressions": self.timestamp_regressions,
             "firstSequence": self.first_sequence,
             "lastSequence": self.last_sequence,
             "duplicateSequences": self.duplicate_sequences,
@@ -194,6 +252,8 @@ class StreamStats:
             flags.append("zero_duration_multiple_events")
         if self.sample_count == 0:
             flags.append("no_decoded_scalars")
+        if self.timestamp_regressions:
+            flags.append("timestamp_regressions_detected")
         if self.sequence_gaps:
             flags.append("sequence_gaps_detected")
         if self.missing_packets_estimate:
@@ -239,6 +299,35 @@ class CaptureSummary:
     sample_events: int = 0
     non_sample_events: int = 0
     malformed_events: int = 0
+    first_event_timestamp_ns: int | None = None
+    last_event_timestamp_ns: int | None = None
+    previous_event_timestamp_ns: int | None = None
+    event_timestamp_regressions: int = 0
+    inter_event_delta: DeltaStats = field(default_factory=DeltaStats)
+    first_sample_timestamp_ns: int | None = None
+    last_sample_timestamp_ns: int | None = None
+    previous_sample_timestamp_ns: int | None = None
+    sample_timestamp_regressions: int = 0
+    inter_sample_event_delta: DeltaStats = field(default_factory=DeltaStats)
+    capture_start_events: int = 0
+    capture_stop_events: int = 0
+    capture_start_timestamp_ns: int | None = None
+    capture_stop_timestamp_ns: int | None = None
+    summary_events: int = 0
+    previous_summary_timestamp_ns: int | None = None
+    summary_timestamp_regressions: int = 0
+    inter_summary_delta: DeltaStats = field(default_factory=DeltaStats)
+    last_summary: dict[str, Any] | None = None
+    max_queue_size_observed: int | None = None
+    queue_max_declared: int | None = None
+    max_decode_errors: int | None = None
+    max_packets_dropped: int | None = None
+    last_packets_seen: int | None = None
+    last_packets_decoded: int | None = None
+    last_decode_errors: int | None = None
+    last_packets_dropped: int | None = None
+    last_packets_per_sec: float | None = None
+    last_events_per_sec: float | None = None
     by_type: Counter[str] = field(default_factory=Counter)
     by_cadence: Counter[str] = field(default_factory=Counter)
     by_sensor: Counter[str] = field(default_factory=Counter)
@@ -249,14 +338,28 @@ class CaptureSummary:
         self.events += 1
         event_type = str(event.get("type", "<missing>"))
         cadence = str(event.get("cadence", "<missing>"))
+        timestamp_ns = event.get("timestampHostNs")
+        self._push_event_timestamp(timestamp_ns)
         self.by_type[event_type] += 1
         self.by_cadence[cadence] += 1
+
+        if event_type == "muse.capture_start":
+            self.capture_start_events += 1
+            if isinstance(timestamp_ns, int):
+                self.capture_start_timestamp_ns = timestamp_ns if self.capture_start_timestamp_ns is None else min(self.capture_start_timestamp_ns, timestamp_ns)
+        elif event_type == "muse.capture_stop":
+            self.capture_stop_events += 1
+            if isinstance(timestamp_ns, int):
+                self.capture_stop_timestamp_ns = timestamp_ns if self.capture_stop_timestamp_ns is None else max(self.capture_stop_timestamp_ns, timestamp_ns)
+        elif event_type == "muse.summary":
+            self._push_summary_event(event, timestamp_ns)
 
         if event_type != "muse.samples":
             self.non_sample_events += 1
             return
 
         self.sample_events += 1
+        self._push_sample_timestamp(timestamp_ns)
         sensor = str(event.get("sensor", "unknown"))
         channel = str(event.get("channel", sensor))
         self.by_sensor[sensor] += 1
@@ -267,6 +370,55 @@ class CaptureSummary:
             stream = StreamStats(sensor=sensor, channel=channel)
             self.streams[key] = stream
         stream.push_event(event)
+
+    def _push_event_timestamp(self, value: Any) -> None:
+        if not isinstance(value, int):
+            return
+        if self.previous_event_timestamp_ns is not None:
+            delta_ns = value - self.previous_event_timestamp_ns
+            if delta_ns < 0:
+                self.event_timestamp_regressions += 1
+            else:
+                self.inter_event_delta.push_ns(delta_ns)
+        self.previous_event_timestamp_ns = value
+        self.first_event_timestamp_ns = value if self.first_event_timestamp_ns is None else min(self.first_event_timestamp_ns, value)
+        self.last_event_timestamp_ns = value if self.last_event_timestamp_ns is None else max(self.last_event_timestamp_ns, value)
+
+    def _push_sample_timestamp(self, value: Any) -> None:
+        if not isinstance(value, int):
+            return
+        if self.previous_sample_timestamp_ns is not None:
+            delta_ns = value - self.previous_sample_timestamp_ns
+            if delta_ns < 0:
+                self.sample_timestamp_regressions += 1
+            else:
+                self.inter_sample_event_delta.push_ns(delta_ns)
+        self.previous_sample_timestamp_ns = value
+        self.first_sample_timestamp_ns = value if self.first_sample_timestamp_ns is None else min(self.first_sample_timestamp_ns, value)
+        self.last_sample_timestamp_ns = value if self.last_sample_timestamp_ns is None else max(self.last_sample_timestamp_ns, value)
+
+    def _push_summary_event(self, event: Mapping[str, Any], timestamp_ns: Any) -> None:
+        self.summary_events += 1
+        if isinstance(timestamp_ns, int):
+            if self.previous_summary_timestamp_ns is not None:
+                delta_ns = timestamp_ns - self.previous_summary_timestamp_ns
+                if delta_ns < 0:
+                    self.summary_timestamp_regressions += 1
+                else:
+                    self.inter_summary_delta.push_ns(delta_ns)
+            self.previous_summary_timestamp_ns = timestamp_ns
+
+        self.last_summary = dict(event)
+        self.max_queue_size_observed = max_optional_int(self.max_queue_size_observed, event.get("queueSize"))
+        self.queue_max_declared = max_optional_int(self.queue_max_declared, event.get("queueMax"))
+        self.max_decode_errors = max_optional_int(self.max_decode_errors, event.get("decodeErrors"))
+        self.max_packets_dropped = max_optional_int(self.max_packets_dropped, event.get("packetsDropped"))
+        self.last_packets_seen = optional_int(event.get("packetsSeen"), self.last_packets_seen)
+        self.last_packets_decoded = optional_int(event.get("packetsDecoded"), self.last_packets_decoded)
+        self.last_decode_errors = optional_int(event.get("decodeErrors"), self.last_decode_errors)
+        self.last_packets_dropped = optional_int(event.get("packetsDropped"), self.last_packets_dropped)
+        self.last_packets_per_sec = _optional_float(event.get("packetsPerSec"), self.last_packets_per_sec)
+        self.last_events_per_sec = _optional_float(event.get("eventsPerSec"), self.last_events_per_sec)
 
     def reset_sequence_boundaries(self) -> None:
         for stream in self.streams.values():
@@ -299,8 +451,85 @@ class CaptureSummary:
             "bySensor": dict(self.by_sensor),
             "byChannel": dict(self.by_channel),
             "qualityFlagCounts": dict(flag_counts),
+            "transport": self.transport_json(),
             "streams": streams,
         }
+
+    def transport_json(self) -> dict[str, Any]:
+        event_duration_sec = duration_between(self.first_event_timestamp_ns, self.last_event_timestamp_ns)
+        capture_event_duration_sec = duration_between(self.capture_start_timestamp_ns, self.capture_stop_timestamp_ns)
+        sample_coverage_sec = duration_between(self.first_sample_timestamp_ns, self.last_sample_timestamp_ns)
+        sample_coverage_ratio = (
+            sample_coverage_sec / capture_event_duration_sec
+            if sample_coverage_sec is not None and capture_event_duration_sec and capture_event_duration_sec > 0
+            else None
+        )
+        sample_event_rate_hz = (
+            self.sample_events / sample_coverage_sec
+            if sample_coverage_sec and sample_coverage_sec > 0
+            else None
+        )
+        summary_cadence_present = self.summary_events > 0
+        queue_fill_fraction_max = (
+            self.max_queue_size_observed / self.queue_max_declared
+            if self.max_queue_size_observed is not None and self.queue_max_declared and self.queue_max_declared > 0
+            else None
+        )
+        return {
+            "firstEventTimestampHostNs": self.first_event_timestamp_ns,
+            "lastEventTimestampHostNs": self.last_event_timestamp_ns,
+            "eventDurationSec": event_duration_sec,
+            "captureStartEvents": self.capture_start_events,
+            "captureStopEvents": self.capture_stop_events,
+            "captureStartTimestampHostNs": self.capture_start_timestamp_ns,
+            "captureStopTimestampHostNs": self.capture_stop_timestamp_ns,
+            "captureEventDurationSec": capture_event_duration_sec,
+            "firstSampleTimestampHostNs": self.first_sample_timestamp_ns,
+            "lastSampleTimestampHostNs": self.last_sample_timestamp_ns,
+            "sampleCoverageSec": sample_coverage_sec,
+            "sampleCoverageRatio": sample_coverage_ratio,
+            "sampleEventRateHzObserved": sample_event_rate_hz,
+            "summaryCadencePresent": summary_cadence_present,
+            "summaryEvents": self.summary_events,
+            "packetsSeenLast": self.last_packets_seen,
+            "packetsDecodedLast": self.last_packets_decoded,
+            "decodeErrorsLast": self.last_decode_errors,
+            "decodeErrorsMax": self.max_decode_errors,
+            "packetsDroppedLast": self.last_packets_dropped,
+            "packetsDroppedMax": self.max_packets_dropped,
+            "packetsPerSecLast": self.last_packets_per_sec,
+            "eventsPerSecLast": self.last_events_per_sec,
+            "queueSizeMaxObserved": self.max_queue_size_observed,
+            "queueMaxDeclared": self.queue_max_declared,
+            "queueFillFractionMax": queue_fill_fraction_max,
+            "eventTimestampRegressions": self.event_timestamp_regressions,
+            "sampleTimestampRegressions": self.sample_timestamp_regressions,
+            "summaryTimestampRegressions": self.summary_timestamp_regressions,
+            "interEventDeltaSec": self.inter_event_delta.to_json(),
+            "interSampleEventDeltaSec": self.inter_sample_event_delta.to_json(),
+            "interSummaryDeltaSec": self.inter_summary_delta.to_json(),
+        }
+
+
+def ns_to_sec(value: float | int | None) -> float | None:
+    return value / 1_000_000_000 if value is not None else None
+
+
+def duration_between(start_ns: int | None, end_ns: int | None) -> float | None:
+    if start_ns is None or end_ns is None:
+        return None
+    return max((end_ns - start_ns) / 1_000_000_000, 0.0)
+
+
+def optional_int(value: Any, fallback: int | None = None) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else fallback
+
+
+def max_optional_int(current: int | None, value: Any) -> int | None:
+    parsed = optional_int(value)
+    if parsed is None:
+        return current
+    return parsed if current is None else max(current, parsed)
 
 
 def _optional_float(value: Any, fallback: float | None) -> float | None:

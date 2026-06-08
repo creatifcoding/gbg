@@ -135,7 +135,7 @@ python scripts/muse/analyze_capture.py \
   --pretty > /tmp/muse-first-order-summary.json
 ```
 
-The analyzer rejects malformed JSON with `path:line` diagnostics, counts non-sample events separately, and summarizes `muse.samples` by sensor/channel with sequence gaps, observed rates, online scalar statistics, and conservative first-order quality flags. Future session manifests and labels can be attached with `--manifest` and `--labels`.
+The analyzer rejects malformed JSON with `path:line` diagnostics, counts non-sample events separately, and summarizes `muse.samples` by sensor/channel with sequence gaps, observed rates, inter-event delta p50/p95/p99, timestamp regressions, online scalar statistics, and conservative first-order quality flags. It also emits a top-level `transport` section with capture/sample coverage, summary cadence presence, queue/drop/decode counters, and aggregate inter-sample timing. Future session manifests and labels can be attached with `--manifest` and `--labels`.
 
 ## Validate protocol compliance
 
