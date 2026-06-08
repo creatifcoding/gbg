@@ -9,9 +9,10 @@
  */
 
 import { existsSync } from 'node:fs'
-import { open as openFile, readdir, stat } from 'node:fs/promises'
-import { basename, join } from 'node:path'
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { homedir } from 'node:os'
+import { open as openFile, mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
+import { Cache, Context, Duration, Effect, Either, Layer, Option, Schema } from 'effect'
 import { getAgentDir, SessionManager } from '@mariozechner/pi-coding-agent'
 
 import {
@@ -28,16 +29,134 @@ import {
 import {
   PiSessionListOptions,
   PiSessionListPayload,
+  PiSessionMetadataCacheFile,
+  type PiSessionListDiagnostics,
   type PiSessionListItem,
   type PiSessionListScope,
+  type PiSessionMetadataCacheEntry,
 } from './pi-session-schemas'
 
 const FAST_LIST_BYTES = 256 * 1024
 const DEFAULT_LIMIT = 200
+const CACHE_SCHEMA_VERSION = 1
+const DEFAULT_CACHE_PATH = () => join(homedir(), '.tmnl', 'pi-session-metadata-cache.v1.json')
 
 type JsonRecord = Record<string, unknown>
 
 type PiSessionSourceOptions = typeof PiSessionListOptions.Type
+
+type RankedDir = {
+  readonly dir: string
+  readonly rank: number
+}
+
+type FileStats = Awaited<ReturnType<typeof stat>>
+
+type CacheReadResult = {
+  readonly entries: Map<string, PiSessionMetadataCacheEntry>
+  readonly path: string
+  readonly readMs: number
+  readonly corrupt: boolean
+}
+
+type CacheWriteResult = {
+  readonly writeMs: number
+  readonly entriesWritten: number
+}
+
+type MetadataCacheKey = string
+
+type MetadataCacheLookup = {
+  readonly path: string
+  readonly size: number
+  readonly mtimeMs: number
+  readonly birthtimeMs: number
+}
+
+type MetadataCacheLookupResult =
+  | { readonly _tag: 'WarmStartHit'; readonly entry: PiSessionMetadataCacheEntry }
+  | { readonly _tag: 'Parsed'; readonly entry: PiSessionMetadataCacheEntry }
+  | { readonly _tag: 'InvalidSession'; readonly path: string; readonly reason: string }
+  | { readonly _tag: 'LookupError'; readonly path: string; readonly error: string }
+
+type MetadataEffectCache = Cache.Cache<MetadataCacheKey, MetadataCacheLookupResult, never>
+
+let metadataEffectCache: MetadataEffectCache | null = null
+let metadataWarmEntriesByKey = new Map<MetadataCacheKey, PiSessionMetadataCacheEntry>()
+
+const metadataCacheKey = (path: string, stats: FileStats): MetadataCacheKey =>
+  JSON.stringify({ path, size: stats.size, mtimeMs: stats.mtimeMs, birthtimeMs: stats.birthtimeMs })
+
+const parseMetadataCacheKey = (key: MetadataCacheKey): MetadataCacheLookup => JSON.parse(key) as MetadataCacheLookup
+
+const minimalStats = (lookup: MetadataCacheLookup): FileStats => ({
+  size: lookup.size,
+  mtimeMs: lookup.mtimeMs,
+  birthtimeMs: lookup.birthtimeMs,
+} as FileStats)
+
+const describeUnknown = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+const makeMetadataEffectCache = Effect.fn('tmnl.harness.pi-session-source.metadata-cache.make')(function* () {
+  if (metadataEffectCache) return metadataEffectCache
+
+  metadataEffectCache = yield* Cache.make({
+    capacity: 10_000,
+    timeToLive: Duration.infinity,
+    lookup: (key: MetadataCacheKey) =>
+      Effect.promise(async (): Promise<MetadataCacheLookupResult> => {
+        try {
+          const lookup = parseMetadataCacheKey(key)
+          const warmed = metadataWarmEntriesByKey.get(key)
+          const stats = minimalStats(lookup)
+
+          if (isCacheHit(warmed, lookup.path, stats)) {
+            return { _tag: 'WarmStartHit', entry: warmed }
+          }
+
+          const item = await buildFastListItemFromStats(lookup.path, stats, '', 0)
+          if (!item) {
+            return {
+              _tag: 'InvalidSession',
+              path: lookup.path,
+              reason: 'missing-or-invalid-session-header',
+            }
+          }
+
+          return {
+            _tag: 'Parsed',
+            entry: {
+              _tag: 'PiSessionMetadataCacheEntry' as const,
+              path: lookup.path,
+              size: lookup.size,
+              mtimeMs: lookup.mtimeMs,
+              item: withRequestRank(item, '', 0),
+            },
+          }
+        } catch (error) {
+          return {
+            _tag: 'LookupError',
+            path: (() => {
+              try {
+                return parseMetadataCacheKey(key).path
+              } catch {
+                return '<invalid-cache-key>'
+              }
+            })(),
+            error: describeUnknown(error),
+          }
+        }
+      }),
+  })
+
+  return metadataEffectCache
+})
+
+const resetMetadataEffectCache = (): void => {
+  metadataEffectCache = null
+  metadataWarmEntriesByKey = new Map()
+}
 
 export class PiSessionSourceError extends Schema.TaggedError<PiSessionSourceError>()(
   'PiSessionSourceError',
@@ -135,12 +254,13 @@ const parseJsonLines = (content: string): JsonRecord[] => {
   return records
 }
 
-const buildFastListItem = async (
+const buildFastListItemFromStats = async (
   path: string,
+  stats: FileStats,
   requestedCwd: string,
   sourceRank: number,
 ): Promise<PiSessionListItem | null> => {
-  const [stats, chunk] = await Promise.all([stat(path), readFirstChunk(path)])
+  const chunk = await readFirstChunk(path)
   const records = parseJsonLines(chunk)
   const header = records[0]
   if (!header || header.type !== 'session' || typeof header.id !== 'string') {
@@ -202,6 +322,13 @@ const buildFastListItem = async (
   }
 }
 
+const buildFastListItem = async (
+  path: string,
+  requestedCwd: string,
+  sourceRank: number,
+): Promise<PiSessionListItem | null> =>
+  buildFastListItemFromStats(path, await stat(path), requestedCwd, sourceRank)
+
 const listJsonlFiles = async (dir: string): Promise<string[]> => {
   if (!existsSync(dir)) return []
   const entries = await readdir(dir, { withFileTypes: true })
@@ -223,45 +350,293 @@ const sortItems = (items: ReadonlyArray<PiSessionListItem>): PiSessionListItem[]
     return b.updatedAt - a.updatedAt
   })
 
+const compactRankedDirs = (candidates: ReadonlyArray<RankedDir>): {
+  readonly dirs: ReadonlyArray<RankedDir>
+  readonly duplicateDirsSkipped: number
+} => {
+  const byDir = new Map<string, RankedDir>()
+  let duplicateDirsSkipped = 0
+
+  for (const candidate of candidates) {
+    const previous = byDir.get(candidate.dir)
+    if (!previous) {
+      byDir.set(candidate.dir, candidate)
+      continue
+    }
+
+    duplicateDirsSkipped++
+    if (candidate.rank < previous.rank) {
+      byDir.set(candidate.dir, candidate)
+    }
+  }
+
+  return {
+    dirs: [...byDir.values()].sort((a, b) => a.rank - b.rank || a.dir.localeCompare(b.dir)),
+    duplicateDirsSkipped,
+  }
+}
+
+const resolveRankedDirs = async (
+  cwd: string,
+  scope: PiSessionListScope,
+  sessionDir?: string,
+): Promise<ReturnType<typeof compactRankedDirs>> => {
+  if (sessionDir) {
+    return compactRankedDirs([{ dir: sessionDir, rank: 0 }])
+  }
+
+  if (scope === 'current') {
+    return compactRankedDirs([{ dir: getDefaultSessionDir(cwd), rank: 0 }])
+  }
+
+  if (scope === 'all') {
+    return compactRankedDirs((await listProjectDirs()).map((dir) => ({ dir, rank: 0 })))
+  }
+
+  const currentDir = getDefaultSessionDir(cwd)
+  return compactRankedDirs([
+    { dir: currentDir, rank: 0 },
+    ...(await listProjectDirs()).map((dir) => ({ dir, rank: 1 })),
+  ])
+}
+
+const getCachePath = (): string => process.env.TMNL_PI_SESSION_CACHE_PATH ?? DEFAULT_CACHE_PATH()
+
+const readMetadataCache = async (cachePath = getCachePath()): Promise<CacheReadResult> => {
+  const startedAt = performance.now()
+
+  try {
+    const content = await readFile(cachePath, 'utf8')
+    const decoded = Schema.decodeUnknownEither(PiSessionMetadataCacheFile)(JSON.parse(content))
+    if (Either.isLeft(decoded)) {
+      return {
+        entries: new Map(),
+        path: cachePath,
+        readMs: performance.now() - startedAt,
+        corrupt: true,
+      }
+    }
+
+    return {
+      entries: new Map(decoded.right.entries.map((entry) => [entry.path, entry])),
+      path: cachePath,
+      readMs: performance.now() - startedAt,
+      corrupt: false,
+    }
+  } catch (error) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? (error as { readonly code?: unknown }).code
+      : undefined
+
+    return {
+      entries: new Map(),
+      path: cachePath,
+      readMs: performance.now() - startedAt,
+      corrupt: code !== 'ENOENT',
+    }
+  }
+}
+
+const writeMetadataCache = async (
+  entries: ReadonlyArray<PiSessionMetadataCacheEntry>,
+  cachePath = getCachePath(),
+): Promise<CacheWriteResult> => {
+  const startedAt = performance.now()
+  await mkdir(dirname(cachePath), { recursive: true })
+
+  const payload: typeof PiSessionMetadataCacheFile.Type = {
+    _tag: 'PiSessionMetadataCacheFile',
+    schemaVersion: CACHE_SCHEMA_VERSION,
+    generatedAt: Date.now(),
+    entries,
+  }
+
+  const tmpPath = `${cachePath}.tmp-${process.pid}-${Date.now()}`
+  await writeFile(tmpPath, JSON.stringify(payload), 'utf8')
+  await rename(tmpPath, cachePath)
+
+  return {
+    writeMs: performance.now() - startedAt,
+    entriesWritten: entries.length,
+  }
+}
+
+const withRequestRank = (
+  item: PiSessionListItem,
+  requestedCwd: string,
+  sourceRank: number,
+): PiSessionListItem => ({
+  ...item,
+  ref: {
+    ...item.ref,
+    path: item.ref.path,
+  },
+  localProject: item.ref.cwd === requestedCwd,
+  sourceRank,
+})
+
+const isCacheHit = (
+  entry: PiSessionMetadataCacheEntry | undefined,
+  path: string,
+  stats: FileStats,
+): entry is PiSessionMetadataCacheEntry =>
+  !!entry
+  && entry.path === path
+  && entry.item.ref.path === path
+  && entry.size === stats.size
+  && entry.mtimeMs === stats.mtimeMs
+
 const listFast = async (options?: PiSessionSourceOptions): Promise<PiSessionListPayload> => {
   const startedAt = performance.now()
   const cwd = options?.cwd ?? process.cwd()
   const scope: PiSessionListScope = options?.scope ?? 'current-plus-all'
   const limit = options?.limit ?? DEFAULT_LIMIT
 
-  const dirs: Array<{ dir: string; rank: number }> = []
-  if (options?.sessionDir) {
-    dirs.push({ dir: options.sessionDir, rank: 0 })
-  } else if (scope === 'current') {
-    dirs.push({ dir: getDefaultSessionDir(cwd), rank: 0 })
-  } else if (scope === 'all') {
-    dirs.push(...(await listProjectDirs()).map((dir) => ({ dir, rank: 0 })))
-  } else {
-    dirs.push({ dir: getDefaultSessionDir(cwd), rank: 0 })
-    dirs.push(...(await listProjectDirs()).map((dir) => ({ dir, rank: 1 })))
-  }
+  const discoverStartedAt = performance.now()
+  const { dirs, duplicateDirsSkipped } = await resolveRankedDirs(cwd, scope, options?.sessionDir)
+  const discoverMs = performance.now() - discoverStartedAt
 
+  const cache = await readMetadataCache()
+  const effectCache = await Effect.runPromise(makeMetadataEffectCache())
+  const effectStatsBefore = await Effect.runPromise(effectCache.cacheStats)
+  const observedCacheEntries = new Map<string, PiSessionMetadataCacheEntry>()
+
+  const parseStartedAt = performance.now()
   const byPath = new Map<string, PiSessionListItem>()
+  let filesScanned = 0
+  let duplicatePathsSkipped = 0
+  let cacheMisses = 0
+  let cacheStale = 0
+  let diskCacheHits = 0
+  let cacheInvalidSessions = 0
+  let cacheLookupErrors = 0
+
   for (const { dir, rank } of dirs) {
     const files = await listJsonlFiles(dir)
-    const parsed = await Promise.all(files.map((file) => buildFastListItem(file, cwd, rank)))
+    filesScanned += files.length
+    const parsed = await Promise.all(files.map(async (file) => {
+      const stats = await stat(file)
+      const key = metadataCacheKey(file, stats)
+      const cached = cache.entries.get(file)
+      const alreadyInEffectCache = await Effect.runPromise(effectCache.contains(key))
+      const warmHit = isCacheHit(cached, file, stats)
+
+      if (!alreadyInEffectCache) {
+        if (warmHit) {
+          metadataWarmEntriesByKey.set(key, cached)
+          diskCacheHits++
+        } else if (cached) cacheStale++
+        else cacheMisses++
+      }
+
+      const lookupResult = await Effect.runPromise(effectCache.get(key))
+
+      switch (lookupResult._tag) {
+        case 'WarmStartHit':
+        case 'Parsed':
+          observedCacheEntries.set(file, lookupResult.entry)
+          return withRequestRank(lookupResult.entry.item, cwd, rank)
+        case 'InvalidSession':
+          cacheInvalidSessions++
+          return null
+        case 'LookupError':
+          cacheLookupErrors++
+          return null
+      }
+    }))
     for (const item of parsed) {
       if (!item) continue
       const previous = byPath.get(item.ref.path)
+      if (previous) duplicatePathsSkipped++
       if (!previous || item.sourceRank < previous.sourceRank) {
         byPath.set(item.ref.path, item)
       }
     }
   }
+  const parseMs = performance.now() - parseStartedAt
+  const effectStatsAfter = await Effect.runPromise(effectCache.cacheStats)
+  const effectCacheHits = Math.max(0, effectStatsAfter.hits - effectStatsBefore.hits)
+  const effectCacheMisses = Math.max(0, effectStatsAfter.misses - effectStatsBefore.misses)
 
+  let cacheWriteMs = 0
+  let cacheEntriesWritten = 0
+  const cacheNeedsWrite = cache.corrupt
+    || cacheMisses > 0
+    || cacheStale > 0
+    || observedCacheEntries.size !== cache.entries.size
+
+  if (cacheNeedsWrite) {
+    try {
+      const written = await writeMetadataCache([...observedCacheEntries.values()], cache.path)
+      cacheWriteMs = written.writeMs
+      cacheEntriesWritten = written.entriesWritten
+    } catch {
+      // Cache is an acceleration layer. Listing must never fail because cache write failed.
+    }
+  }
+
+  const sortStartedAt = performance.now()
   const sessions = sortItems([...byPath.values()]).slice(0, limit)
+  const sortMs = performance.now() - sortStartedAt
+  const elapsedMs = performance.now() - startedAt
+
+  const diagnostics: PiSessionListDiagnostics = {
+    dirsScanned: dirs.length,
+    filesScanned,
+    duplicateDirsSkipped,
+    duplicatePathsSkipped,
+    bytesPerFile: FAST_LIST_BYTES,
+    discoverMs: Math.round(discoverMs),
+    parseMs: Math.round(parseMs),
+    sortMs: Math.round(sortMs),
+    cacheEnabled: true,
+    cachePath: cache.path,
+    cacheReadMs: Math.round(cache.readMs),
+    cacheWriteMs: Math.round(cacheWriteMs),
+    cacheHits: effectCacheHits + diskCacheHits,
+    cacheMisses,
+    cacheStale,
+    cacheEntriesLoaded: cache.entries.size,
+    cacheEntriesWritten,
+    cacheCorrupt: cache.corrupt,
+    effectCacheHits,
+    effectCacheMisses,
+    effectCacheSize: effectStatsAfter.size,
+    diskCacheHits,
+    cacheInvalidSessions,
+    cacheLookupErrors,
+  }
+
   return {
     sessions,
     loadedAt: Date.now(),
-    elapsedMs: Math.round(performance.now() - startedAt),
+    elapsedMs: Math.round(elapsedMs),
     scope,
+    diagnostics,
   }
 }
+
+const listFastEffect = Effect.fn('tmnl.harness.pi-session-source.list-fast')(function* (
+  options?: PiSessionSourceOptions,
+) {
+  const result = yield* Effect.tryPromise({
+    try: () => listFast(options),
+    catch: toError('pi-session-list-failed', 'Failed to list pi CLI sessions'),
+  })
+
+  yield* Effect.annotateCurrentSpan({
+    scope: result.scope,
+    sessions: result.sessions.length,
+    elapsedMs: result.elapsedMs,
+    dirsScanned: result.diagnostics?.dirsScanned ?? 0,
+    filesScanned: result.diagnostics?.filesScanned ?? 0,
+    duplicateDirsSkipped: result.diagnostics?.duplicateDirsSkipped ?? 0,
+    duplicatePathsSkipped: result.diagnostics?.duplicatePathsSkipped ?? 0,
+  })
+
+  yield* Effect.logDebug('pi session fast-list complete', result.diagnostics ?? {})
+  return result
+})
 
 const eventTime = (entry: JsonRecord, fallback: number): number => {
   const messageTimestamp = isRecord(entry.message) ? entry.message.timestamp : undefined
@@ -389,11 +764,7 @@ const loadSnapshotFromPiFile = (path: string, sessionIdOverride?: string): Harne
 }
 
 const makePiSessionSource = (): PiSessionSourceShape => ({
-  list: (options) =>
-    Effect.tryPromise({
-      try: () => listFast(options),
-      catch: toError('pi-session-list-failed', 'Failed to list pi CLI sessions'),
-    }).pipe(Effect.withSpan('tmnl.harness.pi-session-source.list')),
+  list: (options) => listFastEffect(options),
 
   loadSnapshot: ({ path, sessionId }) =>
     Effect.try({
@@ -405,8 +776,10 @@ const makePiSessionSource = (): PiSessionSourceShape => ({
 export const PiSessionSourceLive = Layer.succeed(PiSessionSource, makePiSessionSource())
 
 export const PiSessionSourceTestApi = {
+  compactRankedDirs,
   getDefaultSessionDir,
   listFast,
   loadSnapshotFromPiFile,
+  resetMetadataEffectCache,
   textFromContent,
 }

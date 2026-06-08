@@ -75,11 +75,57 @@ export const PiSessionListItem = Schema.TaggedStruct('PiSessionListItem', {
 })
 export type PiSessionListItem = typeof PiSessionListItem.Type
 
+export const PiSessionListDiagnostics = Schema.Struct({
+  dirsScanned: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  filesScanned: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  duplicateDirsSkipped: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  duplicatePathsSkipped: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  bytesPerFile: Schema.Number.pipe(Schema.int(), Schema.positive()),
+  discoverMs: Schema.Number,
+  parseMs: Schema.Number,
+  sortMs: Schema.Number,
+  cacheEnabled: Schema.optional(Schema.Boolean),
+  cachePath: Schema.optional(Schema.String),
+  cacheReadMs: Schema.optional(Schema.Number),
+  cacheWriteMs: Schema.optional(Schema.Number),
+  cacheHits: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheMisses: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheStale: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheEntriesLoaded: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheEntriesWritten: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheCorrupt: Schema.optional(Schema.Boolean),
+  /** Effect Cache stats for computational lookup dedupe. */
+  effectCacheHits: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  effectCacheMisses: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  effectCacheSize: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  /** Persistent JSON warm-start hits. */
+  diskCacheHits: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheInvalidSessions: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+  cacheLookupErrors: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+})
+export type PiSessionListDiagnostics = typeof PiSessionListDiagnostics.Type
+
+export const PiSessionMetadataCacheEntry = Schema.TaggedStruct('PiSessionMetadataCacheEntry', {
+  path: Schema.String.pipe(Schema.nonEmptyString()),
+  size: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  mtimeMs: Schema.Number,
+  item: PiSessionListItem,
+})
+export type PiSessionMetadataCacheEntry = typeof PiSessionMetadataCacheEntry.Type
+
+export const PiSessionMetadataCacheFile = Schema.TaggedStruct('PiSessionMetadataCacheFile', {
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.Number,
+  entries: Schema.Array(PiSessionMetadataCacheEntry),
+})
+export type PiSessionMetadataCacheFile = typeof PiSessionMetadataCacheFile.Type
+
 export const PiSessionListPayload = Schema.Struct({
   sessions: Schema.Array(PiSessionListItem),
   loadedAt: Schema.Number,
   elapsedMs: Schema.Number,
   scope: PiSessionListScope,
+  diagnostics: Schema.optional(PiSessionListDiagnostics),
 })
 export type PiSessionListPayload = typeof PiSessionListPayload.Type
 

@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { appendFile, mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { promisify } from 'node:util'
@@ -9,6 +9,23 @@ import { PiSessionSourceTestApi } from '../pi-session-source'
 
 const execFileAsync = promisify(execFile)
 const line = (value: unknown) => JSON.stringify(value)
+
+async function withCachePath<T>(fn: (cachePath: string) => Promise<T>): Promise<T> {
+  const previous = process.env.TMNL_PI_SESSION_CACHE_PATH
+  const dir = await mkdtemp(join(tmpdir(), 'tmnl-pi-session-cache-'))
+  const cachePath = join(dir, 'cache.json')
+  process.env.TMNL_PI_SESSION_CACHE_PATH = cachePath
+  PiSessionSourceTestApi.resetMetadataEffectCache()
+
+  try {
+    return await fn(cachePath)
+  } finally {
+    PiSessionSourceTestApi.resetMetadataEffectCache()
+    if (previous === undefined) delete process.env.TMNL_PI_SESSION_CACHE_PATH
+    else process.env.TMNL_PI_SESSION_CACHE_PATH = previous
+    await rm(dir, { recursive: true, force: true })
+  }
+}
 
 async function makeFixture() {
   const dir = await mkdtemp(join(tmpdir(), 'tmnl-pi-session-'))
@@ -40,9 +57,179 @@ describe('PiSessionSource', () => {
       expect(result.sessions[0].preview).toContain('Hello pi')
       expect(result.sessions[0].localProject).toBe(true)
       expect(result.elapsedMs).toBeGreaterThanOrEqual(0)
+      expect(result.diagnostics).toMatchObject({
+        dirsScanned: 1,
+        filesScanned: 1,
+        duplicateDirsSkipped: 0,
+        duplicatePathsSkipped: 0,
+      })
     } finally {
       await rm(fixture.dir, { recursive: true, force: true })
     }
+  })
+
+  it('reuses warm metadata cache entries for unchanged files', async () => {
+    await withCachePath(async () => {
+      const fixture = await makeFixture()
+      try {
+        const cold = await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+        const warm = await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+
+        expect(cold.diagnostics).toMatchObject({
+          cacheHits: 0,
+          cacheMisses: 1,
+          cacheEntriesWritten: 1,
+          effectCacheHits: 0,
+          effectCacheMisses: 1,
+          diskCacheHits: 0,
+        })
+        expect(warm.diagnostics).toMatchObject({
+          cacheHits: 1,
+          cacheMisses: 0,
+          cacheStale: 0,
+          effectCacheHits: 1,
+          effectCacheMisses: 0,
+          diskCacheHits: 0,
+          cacheInvalidSessions: 0,
+          cacheLookupErrors: 0,
+        })
+        expect(warm.sessions[0].title).toBe('Named pi session')
+      } finally {
+        await rm(fixture.dir, { recursive: true, force: true })
+      }
+    })
+  })
+
+  it('invalidates cached metadata when a session file changes', async () => {
+    await withCachePath(async () => {
+      const fixture = await makeFixture()
+      try {
+        await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+        await appendFile(
+          fixture.file,
+          line({ type: 'message', id: 'u-2', timestamp: '2026-01-01T00:00:04.000Z', message: { role: 'user', content: 'Changed cache input', timestamp: Date.parse('2026-01-01T00:00:04.000Z') } }) + '\n',
+        )
+
+        const refreshed = await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+
+        expect(refreshed.diagnostics).toMatchObject({
+          cacheHits: 0,
+          cacheMisses: 0,
+          cacheStale: 1,
+        })
+        expect(refreshed.sessions[0].messageCount).toBe(3)
+      } finally {
+        await rm(fixture.dir, { recursive: true, force: true })
+      }
+    })
+  })
+
+  it('classifies readable non-session jsonl files as invalid, not lookup errors', async () => {
+    await withCachePath(async () => {
+      const fixture = await makeFixture()
+      try {
+        await writeFile(join(fixture.dir, 'not-a-session.jsonl'), line({ type: 'message', id: 'orphan' }) + '\n')
+
+        const result = await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+
+        expect(result.sessions).toHaveLength(1)
+        expect(result.diagnostics).toMatchObject({
+          cacheInvalidSessions: 1,
+          cacheLookupErrors: 0,
+        })
+      } finally {
+        await rm(fixture.dir, { recursive: true, force: true })
+      }
+    })
+  })
+
+  it('falls back to bounded scan when the metadata cache is corrupt', async () => {
+    await withCachePath(async (cachePath) => {
+      const fixture = await makeFixture()
+      try {
+        await writeFile(cachePath, '{not-json')
+        const result = await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+
+        expect(result.sessions).toHaveLength(1)
+        expect(result.diagnostics).toMatchObject({
+          cacheCorrupt: true,
+          cacheMisses: 1,
+        })
+      } finally {
+        await rm(fixture.dir, { recursive: true, force: true })
+      }
+    })
+  })
+
+  it('drops deleted session files from the persisted metadata cache', async () => {
+    await withCachePath(async (cachePath) => {
+      const fixture = await makeFixture()
+      try {
+        const secondFile = join(fixture.dir, '2026-01-01T00-00-05_sess-2.jsonl')
+        await writeFile(secondFile, [
+          line({ type: 'session', version: 1, id: 'sess-2', timestamp: '2026-01-01T00:00:05.000Z', cwd: fixture.cwd }),
+          line({ type: 'message', id: 'u-1', timestamp: '2026-01-01T00:00:06.000Z', message: { role: 'user', content: 'Second session', timestamp: Date.parse('2026-01-01T00:00:06.000Z') } }),
+        ].join('\n') + '\n')
+
+        await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+        await rm(secondFile, { force: true })
+        const result = await PiSessionSourceTestApi.listFast({
+          scope: 'current',
+          cwd: fixture.cwd,
+          sessionDir: fixture.dir,
+        })
+        const cache = JSON.parse(await readFile(cachePath, 'utf8')) as { entries: unknown[] }
+
+        expect(result.sessions).toHaveLength(1)
+        expect(result.diagnostics?.cacheEntriesWritten).toBe(1)
+        expect(cache.entries).toHaveLength(1)
+      } finally {
+        await rm(fixture.dir, { recursive: true, force: true })
+      }
+    })
+  })
+
+  it('dedupes ranked dirs while preserving the best project rank', () => {
+    const result = PiSessionSourceTestApi.compactRankedDirs([
+      { dir: '/sessions/current', rank: 0 },
+      { dir: '/sessions/other', rank: 1 },
+      { dir: '/sessions/current', rank: 1 },
+      { dir: '/sessions/current', rank: 2 },
+    ])
+
+    expect(result.duplicateDirsSkipped).toBe(2)
+    expect(result.dirs).toEqual([
+      { dir: '/sessions/current', rank: 0 },
+      { dir: '/sessions/other', rank: 1 },
+    ])
   })
 
   it('loads pi JSONL as a synthetic harness snapshot', async () => {
