@@ -18,6 +18,7 @@ Mode:    classic Muse GATT characteristics, not Athena universal char
 - `protocol.py` — fast dependency-free decoders for classic Muse packets
 - `capture.py` — BLE capture CLI emitting NDJSON cadences to stdout, optional JSONL/CSV files, optional WebSocket, and optional OSC fanout
 - `bench_protocol.py` — decoder throughput benchmark
+- `analyze_capture.py` — streaming JSONL artifact loader and first-order summarizer
 
 ## Cadences
 
@@ -123,6 +124,18 @@ python scripts/muse/capture.py \
   --duration 5 \
   --cadence raw,sample,summary
 ```
+
+## Analyze artifacts
+
+Analyze one or more capture artifacts without loading them fully into memory:
+
+```bash
+python scripts/muse/analyze_capture.py \
+  /tmp/muse-capture.jsonl \
+  --pretty > /tmp/muse-first-order-summary.json
+```
+
+The analyzer rejects malformed JSON with `path:line` diagnostics, counts non-sample events separately, and summarizes `muse.samples` by sensor/channel with sequence gaps, observed rates, online scalar statistics, and conservative first-order quality flags. Future session manifests and labels can be attached with `--manifest` and `--labels`.
 
 ## Stream commands
 
