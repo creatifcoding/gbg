@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import csv
 import json
 import signal
 import sys
@@ -177,6 +178,74 @@ class NdjsonSink:
             self._file = None
 
 
+class SampleCsvSink:
+    """Optional reproducibility artifact for decoded sample events.
+
+    NDJSON/WebSocket remains the primary stream. CSV is deliberately denormalized:
+    one row per scalar value, with IMU vectors expanded across x/y/z axes.
+    """
+
+    HEADER = (
+        "timestampHostNs",
+        "uuid",
+        "sensor",
+        "channel",
+        "sequence",
+        "unit",
+        "sampleRate",
+        "sampleIndex",
+        "axis",
+        "value",
+    )
+
+    def __init__(self, path: Path | None) -> None:
+        self.path = path
+        self._file = None
+        self._writer = None
+
+    def open(self) -> None:
+        if self.path is None:
+            return
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        new_file = not self.path.exists() or self.path.stat().st_size == 0
+        self._file = self.path.open("a", encoding="utf-8", newline="", buffering=1024 * 1024)
+        self._writer = csv.writer(self._file)
+        if new_file:
+            self._writer.writerow(self.HEADER)
+
+    def write_sample_event(self, event: dict[str, object]) -> None:
+        if self._writer is None:
+            return
+        common = (
+            event.get("timestampHostNs", ""),
+            event.get("uuid", ""),
+            event.get("sensor", ""),
+            event.get("channel", ""),
+            event.get("sequence", ""),
+            event.get("unit", ""),
+            event.get("sampleRate", ""),
+        )
+        samples = event.get("samples")
+        if isinstance(samples, (list, tuple)):
+            for sample_index, sample in enumerate(samples):
+                if isinstance(sample, (list, tuple)):
+                    for axis, value in zip(("x", "y", "z"), sample):
+                        self._writer.writerow((*common, sample_index, axis, value))
+                else:
+                    self._writer.writerow((*common, sample_index, "", sample))
+        values = event.get("values")
+        if isinstance(values, dict):
+            for key, value in values.items():
+                self._writer.writerow((*common, 0, key, value))
+
+    def close(self) -> None:
+        if self._file is not None:
+            self._file.flush()
+            self._file.close()
+            self._file = None
+            self._writer = None
+
+
 @dataclass(slots=True)
 class LatestFrame:
     values: dict[str, object] = field(default_factory=dict)
@@ -234,6 +303,7 @@ async def write_control(client: BleakClient, command: str) -> None:
 async def decoder_loop(
     queue: asyncio.Queue[RawItem],
     sink: NdjsonSink,
+    csv_sink: SampleCsvSink,
     stats: CaptureStats,
     latest: LatestFrame,
     cadences: set[Cadence],
@@ -301,6 +371,7 @@ async def decoder_loop(
             **decoded,
         }
         latest.update(event)
+        csv_sink.write_sample_event(event)
 
         if "sample" in cadences:
             sink.write(event)
@@ -386,7 +457,9 @@ async def run_capture(args: argparse.Namespace) -> int:
     if broadcaster is not None:
         await broadcaster.start()
     sink = NdjsonSink(args.output, batch_size=args.batch_size, broadcaster=broadcaster)
+    csv_sink = SampleCsvSink(args.csv_output)
     sink.open()
+    csv_sink.open()
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -460,7 +533,7 @@ async def run_capture(args: argparse.Namespace) -> int:
         stats.events_emitted += 1
 
         async with BleakClient(device, timeout=args.connect_timeout) as client:
-            decoder = asyncio.create_task(decoder_loop(queue, sink, stats, latest, cadences, stop_event))
+            decoder = asyncio.create_task(decoder_loop(queue, sink, csv_sink, stats, latest, cadences, stop_event))
             summary = asyncio.create_task(summary_loop(queue, sink, stats, stop_event)) if "summary" in cadences else None
             frame = asyncio.create_task(frame_loop(sink, latest, stats, args.frame_hz, stop_event)) if "frame" in cadences else None
             if not client.is_connected:
@@ -520,6 +593,7 @@ async def run_capture(args: argparse.Namespace) -> int:
             "address": args.address,
         })
         sink.close()
+        csv_sink.close()
         if broadcaster is not None:
             await broadcaster.stop()
 
@@ -531,6 +605,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--address", required=True, help="Muse BLE MAC address, e.g. 00:55:DA:BB:8C:66")
     parser.add_argument("--duration", type=float, default=10.0, help="Capture duration in seconds. 0 means until interrupted.")
     parser.add_argument("--output", type=Path, default=None, help="Optional JSONL artifact path.")
+    parser.add_argument("--csv-output", type=Path, default=None, help="Optional decoded sample CSV artifact path.")
     parser.add_argument("--cadence", type=parse_cadences, default=parse_cadences("sample,summary"), help="Comma-list: raw,sample,frame,summary")
     parser.add_argument("--frame-hz", type=float, default=20.0, help="Frame cadence when cadence includes frame.")
     parser.add_argument("--queue-size", type=int, default=8192, help="Bounded raw packet queue size.")

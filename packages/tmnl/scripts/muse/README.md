@@ -16,7 +16,7 @@ Mode:    classic Muse GATT characteristics, not Athena universal char
 `muselsl` can stream the device with the `bleak` backend, but its debug output is noisy and its scanner/gatt paths can be brittle against newer BlueZ/Python stacks. These scripts give TMNL a controlled, streaming-first ingest boundary:
 
 - `protocol.py` — fast dependency-free decoders for classic Muse packets
-- `capture.py` — BLE capture CLI emitting NDJSON cadences to stdout, optional JSONL file, and optional WebSocket
+- `capture.py` — BLE capture CLI emitting NDJSON cadences to stdout, optional JSONL/CSV files, and optional WebSocket
 - `bench_protocol.py` — decoder throughput benchmark
 
 ## Cadences
@@ -70,8 +70,13 @@ python scripts/muse/capture.py \
   --duration 10 \
   --cadence sample,frame,summary \
   --frame-hz 20 \
-  --output /tmp/muse-capture.jsonl
+  --output /tmp/muse-capture.jsonl \
+  --csv-output /tmp/muse-samples.csv
 ```
+
+`--csv-output` is a reproducibility side effect for decoded sample events. It writes one scalar per row:
+`timestampHostNs, uuid, sensor, channel, sequence, unit, sampleRate, sampleIndex, axis, value`.
+EEG/PPG samples use an empty `axis`; ACC/GYRO vectors expand to `x`, `y`, and `z`; telemetry values use the telemetry key as `axis`.
 
 Browser/TMNL WebSocket fanout:
 
