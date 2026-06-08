@@ -150,6 +150,19 @@ python scripts/muse/validate_protocol.py \
 
 The validator emits a canonical `muse.metric_pack_result` with `packId: protocol-compliance`. It verifies manifest structure, artifact paths, capture sanity, marker/session/protocol alignment, block coverage, `events.tsv` readiness, manifest/observed channel metadata, decoded sample CSV export columns, and claim boundaries. A no-contact session may be transport-compliant but still returns warnings that bar EEG/physiology/alpha/ML claims. Prime, bureaucracy is only ugly when it lies.
 
+## Emit Transport Integrity pack
+
+Generate a transport metric-pack result from a first-order summary:
+
+```bash
+python scripts/muse/transport_integrity_report.py \
+  /tmp/muse-session/first_order_summary.json \
+  --output /tmp/muse-session/metric-packs/transport-integrity.result.json \
+  --report /tmp/muse-session/metric-packs/transport-integrity.report.md
+```
+
+The pack consumes `docs/muse/transport-integrity-thresholds.json`, evaluates drops/decode errors/timing/cadence/queue pressure, and renders through the shared `metric_pack_report.py` report contract. It gates transport only. No physiology smuggling.
+
 ## Stream commands
 
 `capture.py` sends standard classic Muse control commands used by existing open-source clients:
