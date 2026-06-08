@@ -135,7 +135,7 @@ const piSessionToListItem = (item: PiSessionListItem): DrawerSessionListItem => 
   sessionId: `pi-cli:${item.ref.path}`,
   name: item.name ?? '',
   autoTitle: item.title || item.ref.id,
-  tags: [item.localProject ? 'current-project' : 'pi-cli', 'pi-cli'],
+  tags: item.localProject ? ['current-project', 'pi-cli'] : ['pi-cli'],
   status: 'active',
   starred: false,
   createdAt: item.createdAt,

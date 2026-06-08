@@ -44,9 +44,16 @@ const SOURCE_COLOR: Record<SessionSourceKind, string> = {
   local: 'oklch(0.72 0.11 285)',
 }
 
+function isFiniteTimestamp(timestamp: unknown): timestamp is number {
+  return typeof timestamp === 'number' && Number.isFinite(timestamp)
+}
+
 function formatRelativeTime(timestamp: number): string {
+  if (!isFiniteTimestamp(timestamp)) return 'unknown'
+
   const deltaMs = timestamp - Date.now()
   const abs = Math.abs(deltaMs)
+  if (!Number.isFinite(deltaMs) || !Number.isFinite(abs)) return 'unknown'
   if (abs < 45_000) return 'just now'
 
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
@@ -74,6 +81,7 @@ function compactPath(path: string): string {
 }
 
 function exactTime(timestamp: number): string {
+  if (!isFiniteTimestamp(timestamp)) return 'Unknown update time'
   return new Date(timestamp).toLocaleString()
 }
 
@@ -103,7 +111,8 @@ export function SessionCard({
   const provenance = session.sourceKind === 'pi-cli'
     ? compactPath(session.nodeId || session.piPath || '')
     : session.nodeId || session.role || ''
-  const editableTags = session.tags.filter((tag) => tag !== 'pi-cli' && tag !== 'current-project')
+  const displayTags = [...new Set(session.tags.filter(Boolean))]
+  const editableTags = displayTags.filter((tag) => tag !== 'pi-cli' && tag !== 'current-project')
   const modelBadge = session.provider && session.modelId
     ? `${session.provider}:${session.modelId}`
     : session.provider || session.modelId || 'runtime'
@@ -345,7 +354,7 @@ export function SessionCard({
           {preview}
         </p>
 
-        {(session.tags.length > 0 || session.annotationDescription) && (
+        {(displayTags.length > 0 || session.annotationDescription) && (
           <div
             style={{
               display: 'flex',
@@ -358,10 +367,10 @@ export function SessionCard({
             {session.annotationDescription && (
               <TinyBadge tone="annotated">note</TinyBadge>
             )}
-            {session.tags.slice(0, 4).map((tag) => (
+            {displayTags.slice(0, 4).map((tag) => (
               <TinyBadge key={tag}>{tag}</TinyBadge>
             ))}
-            {session.tags.length > 4 && <TinyBadge>+{session.tags.length - 4}</TinyBadge>}
+            {displayTags.length > 4 && <TinyBadge>+{displayTags.length - 4}</TinyBadge>}
           </div>
         )}
       </div>

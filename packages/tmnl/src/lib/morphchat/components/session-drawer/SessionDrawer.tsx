@@ -463,8 +463,11 @@ export function SessionDrawer({
               />
             ) : (
               <div data-tmnl-session-list="settled">
-                {sessions.map((session) => (
-                  <div key={session.sessionId} style={{ marginBottom: 8 }}>
+                {sessions.map((session, index) => (
+                  <div
+                    key={`${session.sourceKind}:${session.sessionId}:${session.sourceRef._tag}:${index}`}
+                    style={{ marginBottom: 8 }}
+                  >
                     <SessionCard
                       session={session}
                       isActive={currentSessionId === session.sessionId || currentSessionId === session.sourceRef.id}
