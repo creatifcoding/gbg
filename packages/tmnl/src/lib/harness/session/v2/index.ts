@@ -190,6 +190,43 @@ export {
   flushSession,
 } from './atoms'
 
+// Pi session + multi-session schemas/ledger
+export {
+  HarnessStoredSessionRef,
+  PiCliSessionRef,
+  SessionRef,
+  sessionRefKey,
+  PiSessionListScope,
+  PiSessionListOptions,
+  PiSessionListItem,
+  PiSessionListPayload,
+  SessionSummary,
+  SessionAnnotation,
+  MultiSessionMember,
+  MultiSessionGroup,
+  AsyncSessionSlotStatus,
+  AsyncSessionSlot,
+  MultiSessionLedgerSnapshot,
+} from './pi-session-schemas'
+
+export {
+  multiSessionAnnotations$,
+  multiSessionGroups$,
+  activeMultiSessionGroupId$,
+  asyncSessionSlots$,
+  getMultiSessionLedgerSnapshot,
+  hydrateMultiSessionLedger,
+  upsertSessionAnnotation,
+  blessSession,
+  createMultiSessionGroup,
+  addSessionToGroup,
+  removeSessionFromGroup,
+  setActiveMultiSessionGroup,
+  openGroupAsAsyncSlots,
+  markAsyncSessionSlot,
+  resetMultiSessionLedger,
+} from './multi-session-ledger'
+
 // useSession hook — typed consumer API
 export { useSession, type UseSessionResult } from './useSession'
 
