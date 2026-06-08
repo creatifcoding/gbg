@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect, Layer, Match, Option, PubSub, Ref, Stream } from 'effect'
+import { Effect, Layer, Match, Option, PubSub, Ref, Schema, Stream } from 'effect'
 
 import {
   HarnessBrowserTransport,
@@ -7,6 +7,7 @@ import {
 } from '../HarnessBrowserTransport'
 import { HarnessRuntime } from '../HarnessRuntime'
 import { HarnessRuntimeBrowserLive } from '../HarnessRuntimeBrowser'
+import { HarnessRemoteCommand, HarnessWsRequestEnvelope } from '../HarnessBrowserRemoteSchemas'
 
 describe('HarnessRuntimeBrowser', () => {
   it.effect('maps chat-v2 commands over browser transport', () =>
@@ -87,6 +88,103 @@ describe('HarnessRuntimeBrowser', () => {
       expect(commandLog.some((entry) => entry._tag === 'remote:chat_v2_get_snapshot')).toBe(true)
     }),
   )
+
+  it.effect('maps pi session commands over browser transport', () =>
+    Effect.gen(function* () {
+      const commandLogRef = yield* Ref.make<Array<Record<string, unknown>>>([])
+      const eventsPubSub = yield* PubSub.unbounded<unknown>()
+
+      const transportLayer = Layer.succeed(HarnessBrowserTransport, {
+        request: (command) =>
+          Effect.gen(function* () {
+            yield* Ref.update(commandLogRef, (current) => [...current, command as Record<string, unknown>])
+
+            return yield* Match.value(command._tag).pipe(
+              Match.when('remote:list_pi_sessions', () =>
+                Effect.succeed({
+                  ok: true,
+                  data: {
+                    sessions: [
+                      {
+                        _tag: 'PiSessionListItem',
+                        ref: {
+                          _tag: 'PiCliSessionRef',
+                          id: 'pi-session-1',
+                          path: '/tmp/pi-session-1.jsonl',
+                          cwd: '/workspace/tmnl',
+                        },
+                        title: 'pi replay',
+                        createdAt: 1,
+                        updatedAt: 2,
+                        messageCount: 2,
+                        preview: 'hello from pi',
+                        allMessagesText: 'hello from pi assistant reply',
+                        localProject: true,
+                        sourceRank: 0,
+                      },
+                    ],
+                    loadedAt: 3,
+                    elapsedMs: 4,
+                    scope: command.options?.scope ?? 'current-plus-all',
+                  },
+                }),
+              ),
+              Match.when('remote:load_pi_session_snapshot', () =>
+                Effect.succeed({
+                  ok: true,
+                  data: {
+                    sessionId: command.sessionId ?? 'pi:pi-session-1',
+                    headSeq: 0,
+                    events: [],
+                  },
+                }),
+              ),
+              Match.orElse(() => Effect.succeed({ ok: true, data: {} })),
+            )
+          }),
+        events: Stream.fromPubSub(eventsPubSub),
+      } satisfies HarnessBrowserTransportShape)
+
+      const runtimeLayer = HarnessRuntimeBrowserLive.pipe(Layer.provide(transportLayer))
+
+      const [list, snapshot, commandLog] = yield* Effect.gen(function* () {
+        const runtime = yield* HarnessRuntime
+        const list = yield* runtime.listPiSessions({ scope: 'current', limit: 5 })
+        const snapshot = yield* runtime.loadPiSessionSnapshot({
+          path: '/tmp/pi-session-1.jsonl',
+          sessionId: 'pi:custom-session-1',
+        })
+        const commandLog = yield* Ref.get(commandLogRef)
+        return [list, snapshot, commandLog] as const
+      }).pipe(Effect.provide(runtimeLayer))
+
+      expect(list.sessions).toHaveLength(1)
+      expect(list.sessions[0].ref.id).toBe('pi-session-1')
+      expect(snapshot.sessionId).toBe('pi:custom-session-1')
+      expect(commandLog.some((entry) => entry._tag === 'remote:list_pi_sessions')).toBe(true)
+      expect(commandLog.some((entry) => entry._tag === 'remote:list_pi_sessions' && (entry.options as any)?.scope === 'current')).toBe(true)
+      expect(commandLog.some((entry) => entry._tag === 'remote:load_pi_session_snapshot')).toBe(true)
+    }),
+  )
+
+  it('decodes pi session commands in the remote schema union', () => {
+    const listCommand = Schema.decodeSync(HarnessRemoteCommand)({
+      _tag: 'remote:list_pi_sessions' as const,
+      options: { scope: 'current' as const, limit: 10 },
+    })
+    expect(listCommand._tag).toBe('remote:list_pi_sessions')
+
+    const loadEnvelope = Schema.decodeSync(HarnessWsRequestEnvelope)({
+      _tag: 'remote:ws_request' as const,
+      requestId: 'req-pi-load',
+      command: {
+        _tag: 'remote:load_pi_session_snapshot' as const,
+        path: '/tmp/pi-session.jsonl',
+        sessionId: 'pi:session-1',
+      },
+    })
+    expect(loadEnvelope.command._tag).toBe('remote:load_pi_session_snapshot')
+  })
 
   it.effect('decodes remote chat-v2 events from browser transport stream', () =>
     Effect.gen(function* () {

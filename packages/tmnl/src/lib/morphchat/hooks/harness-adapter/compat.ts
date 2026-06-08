@@ -11,7 +11,7 @@ import {
 } from './atoms'
 import {
   connectOp$, sendOp$, cancelOp$, clearOp$, disposeOp$,
-  fetchModelsOp$, newSessionOp$, resumeSessionOp$,
+  fetchModelsOp$, newSessionOp$, resumeSessionOp$, resumePiSessionOp$,
 } from './operations'
 
 const DEFAULT_ID = '__default__'
@@ -46,4 +46,5 @@ export const harnessOps = {
   fetchModels: fetchModelsOp$(DEFAULT_ID),
   newSession: newSessionOp$(DEFAULT_ID),
   resumeSession: resumeSessionOp$(DEFAULT_ID),
+  resumePiSession: resumePiSessionOp$(DEFAULT_ID),
 }

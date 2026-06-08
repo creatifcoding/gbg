@@ -94,5 +94,6 @@ export interface UseHarnessAdapterResult {
   readonly connect: (args: { nodeId: string; role: HarnessRole; agentName: string }) => void
   readonly newSession: () => void
   readonly resumeSession: (sessionId: string) => void
+  readonly resumePiSession: (path: string, sessionId?: string) => void
   readonly hardReconnect: () => void
 }

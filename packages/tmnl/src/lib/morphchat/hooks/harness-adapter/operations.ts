@@ -537,6 +537,90 @@ export const resumeSessionOp$ = Atom.family((id: string) =>
   ),
 )
 
+// ─── Resume Pi CLI Session (read-only replay) ────────────────────────────────
+
+export const resumePiSessionOp$ = Atom.family((id: string) =>
+  harnessRuntimeAtom.fn<{ path: string; sessionId?: string }>()(
+    ({ path, sessionId }, _ctx) => {
+      const { rollback: rollbackContent } = snapshotContent(id)
+
+      return Effect.gen(function* () {
+        const runtime = yield* HarnessRuntime
+        const transport = yield* HarnessBrowserTransport
+        const cfg = getInstanceConfig(id)
+        if (!cfg) return yield* Effect.fail(new Error(`Missing harness config for instance: ${id}`))
+
+        yield* interruptInstanceFibers(id)
+
+        resetTransport(id)
+        resetSession(id, 'resumePiSessionOp.clear')
+        resetContent(id)
+
+        morphChatRegistry.set(connection$(id), { phase: 'connecting', endpoint: `pi-cli:${path}` } as ConnectionState)
+
+        const snapshot = yield* runtime.loadPiSessionSnapshot({ path, sessionId }).pipe(
+          Effect.timeoutFail({
+            duration: '12 seconds',
+            onTimeout: () => new HarnessRuntimeError({
+              code: 'resume-pi-session-timeout',
+              message: `Timed out loading pi session ${path}`,
+              cause: Option.none(),
+            }),
+          }),
+        )
+
+        yield* activateSessionWiring(
+          id,
+          snapshot.sessionId as HarnessSessionId,
+          cfg.nodeId,
+          cfg.agentName,
+          runtime,
+          transport,
+          snapshot,
+          'pi-cli',
+        )
+
+        pushStatusRow(id, {
+          id: `status-${Date.now()}-resume-pi-session`,
+          tone: 'warn',
+          text: `[pi-session] loaded read-only replay ${snapshot.sessionId}. Live continuation will be wired in the next slice.`,
+          source: 'harness',
+        })
+
+        return snapshot.sessionId
+      }).pipe(
+        Effect.catchTag('HarnessRuntimeError', (error) =>
+          Effect.sync(() => {
+            rollbackContent()
+            morphChatRegistry.set(connection$(id), { phase: 'error', error: `[${error.code}] ${error.message}` } as ConnectionState)
+            pushStatusRow(id, runtimeErrorToStatus(id, 'resume-pi-session', error))
+          }),
+        ),
+        Effect.catchAllCause((cause) =>
+          Effect.gen(function* () {
+            if (isInterruptedCause(cause)) {
+              rollbackContent()
+              yield* morphchatLogDebug(id, 'resume-pi-session-interrupted', { path })
+              return
+            }
+
+            rollbackContent()
+            yield* morphchatLogWarningCause(id, 'resume-pi-session-failed', cause, { path })
+            const parsed = formatUnknownErrorPayload(yield* morphchatCauseToMessage(cause))
+            morphChatRegistry.set(connection$(id), { phase: 'error', error: parsed.message } as ConnectionState)
+            pushStatusRow(id, {
+              id: `status-${Date.now()}-resume-pi-session`,
+              tone: 'error',
+              text: `[resume-pi-session] ${parsed.message}`,
+              source: 'harness',
+            })
+          }),
+        ),
+      )
+    },
+  ),
+)
+
 // ─── Hard Reconnect ───────────────────────────────────────────────────────────
 
 export function hardReconnect(

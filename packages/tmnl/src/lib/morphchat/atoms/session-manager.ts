@@ -7,6 +7,7 @@ import {
   type SessionListItem,
 } from '@/lib/harness/HarnessRuntime'
 import type { HarnessSessionId } from '@/lib/harness/schemas'
+import type { PiSessionListItem, PiSessionListOptions } from '@/lib/harness/session/v2/pi-session-schemas'
 import { morphChatRegistry } from './registry'
 import { harnessRuntimeAtom, statusRows$ } from '../hooks/useHarnessAdapter'
 
@@ -44,6 +45,10 @@ export interface SessionFetchDiagnostics {
 
 export const sessionList$ = Atom.family((_instanceId: string) =>
   Atom.make<ReadonlyArray<SessionListItem>>([]),
+)
+
+export const piSessionList$ = Atom.family((_instanceId: string) =>
+  Atom.make<ReadonlyArray<PiSessionListItem>>([]),
 )
 
 export const sessionQuery$ = Atom.family((_instanceId: string) =>
@@ -317,6 +322,38 @@ export const fetchSessionsOp$ = harnessRuntimeAtom.fn<{
   readonly instanceId: string
 }>()(({ instanceId }, _ctx) =>
   runFetch(instanceId),
+)
+
+export const fetchPiSessionsOp$ = harnessRuntimeAtom.fn<{
+  readonly instanceId: string
+  readonly options?: PiSessionListOptions
+}>()(({ instanceId, options }, _ctx) =>
+  Effect.gen(function* () {
+    yield* beginOperation(instanceId, 'fetch', null)
+    yield* logSessionStatus(instanceId, 'fetch', 'info', 'Fetching pi CLI session index…')
+
+    const runtime = yield* HarnessRuntime
+    const result = yield* runtime.listPiSessions(options).pipe(Effect.either)
+
+    if (Either.isRight(result)) {
+      morphChatRegistry.set(piSessionList$(instanceId), result.right.sessions)
+      yield* logSessionStatus(
+        instanceId,
+        'fetch',
+        'info',
+        `Pi session index synchronized (${result.right.sessions.length} sessions, ${result.right.elapsedMs}ms).`,
+        { scope: result.right.scope, elapsedMs: result.right.elapsedMs },
+      )
+      return
+    }
+
+    const message = formatSessionError(result.left)
+    yield* setError(instanceId, message)
+    yield* logSessionStatus(instanceId, 'fetch', 'error', message, result.left)
+  }).pipe(
+    Effect.ensuring(endOperation(instanceId)),
+    Effect.catchAll(() => Effect.void),
+  ),
 )
 
 export const renameSessionOp$ = harnessRuntimeAtom.fn<{

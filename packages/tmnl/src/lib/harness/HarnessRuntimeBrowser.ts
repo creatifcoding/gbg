@@ -24,6 +24,7 @@ import {
   HarnessRemoteSessionMetaUpdatedPayload,
   HarnessRemoteSessionDeletedPayload,
   HarnessRemoteSessionForkedPayload,
+  HarnessRemotePiSessionListPayload,
 } from './HarnessBrowserRemoteSchemas'
 import {
   HarnessRuntime,
@@ -383,6 +384,36 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         Effect.withSpan('tmnl.harness.runtime.browser.fork-session'),
       )
 
+    const listPiSessions: HarnessRuntimeShape['listPiSessions'] = (options) =>
+      requestData(
+        transport,
+        {
+          _tag: 'remote:list_pi_sessions' as const,
+          ...(options ? { options } : {}),
+        },
+        HarnessRemotePiSessionListPayload,
+      ).pipe(
+        traceRuntimeFailure('list-pi-sessions', 'remote:list_pi_sessions'),
+        Effect.mapError(toRuntimeError('list-pi-sessions-failed', 'Failed to list pi CLI sessions')),
+        Effect.withSpan('tmnl.harness.runtime.browser.list-pi-sessions'),
+      )
+
+    const loadPiSessionSnapshot: HarnessRuntimeShape['loadPiSessionSnapshot'] = (args) =>
+      requestData(
+        transport,
+        {
+          _tag: 'remote:load_pi_session_snapshot' as const,
+          path: args.path,
+          ...(args.sessionId ? { sessionId: args.sessionId } : {}),
+        },
+        HarnessRemoteSnapshotPayload,
+      ).pipe(
+        Effect.map((snapshot) => new HarnessSnapshot(snapshot)),
+        traceRuntimeFailure('load-pi-session-snapshot', 'remote:load_pi_session_snapshot'),
+        Effect.mapError(toRuntimeError('load-pi-session-failed', 'Failed to load pi CLI session snapshot')),
+        Effect.withSpan('tmnl.harness.runtime.browser.load-pi-session-snapshot'),
+      )
+
     const events = transport.events.pipe(
       Stream.flatMap((raw) =>
         Stream.fromEffect(
@@ -421,6 +452,8 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
       updateSessionMeta,
       deleteSession,
       forkSession,
+      listPiSessions,
+      loadPiSessionSnapshot,
       events,
     } satisfies HarnessRuntimeShape)
   }),

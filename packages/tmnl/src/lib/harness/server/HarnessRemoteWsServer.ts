@@ -435,6 +435,15 @@ const handleRemoteWs = Effect.gen(function* () {
           const result = yield* runtime.forkSession(command.sessionId, command.atSeq)
           return result
         }
+        case 'remote:list_pi_sessions': {
+          return yield* runtime.listPiSessions(command.options)
+        }
+        case 'remote:load_pi_session_snapshot': {
+          return yield* runtime.loadPiSessionSnapshot({
+            path: command.path,
+            sessionId: command.sessionId,
+          })
+        }
 
         // ── Interactive shell commands ──────────────────────────────────
         case 'remote:shell_input': {

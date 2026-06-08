@@ -16,6 +16,7 @@ import { HarnessSessionStoreJSONLLive } from './session/SessionStoreJSONL'
 import { AgentHarnessConfigDefault } from '@/lib/agents/AgentHarnessConfig'
 import { HarnessSendAck, HarnessSessionView, HarnessSnapshot } from './schemas'
 import { HarnessRuntime, HarnessRuntimeError } from './HarnessRuntime'
+import { PiSessionSource, PiSessionSourceLive } from './session/v2/pi-session-source'
 
 const toRuntimeError = (code: string, message: string) => (cause: unknown) =>
   new HarnessRuntimeError({
@@ -28,6 +29,7 @@ export const HarnessRuntimeLive = Layer.effect(
   HarnessRuntime,
   Effect.gen(function* () {
     const engine = yield* PiAiHarnessEngine
+    const piSessions = yield* PiSessionSource
 
     return HarnessRuntime.of({
       backend: 'pi-ai',
@@ -109,6 +111,18 @@ export const HarnessRuntimeLive = Layer.effect(
           Effect.withSpan('tmnl.harness.runtime.fork-session'),
         ),
 
+      listPiSessions: (options) =>
+        piSessions.list(options).pipe(
+          Effect.mapError(toRuntimeError('list-pi-sessions-failed', 'Failed to list pi CLI sessions')),
+          Effect.withSpan('tmnl.harness.runtime.list-pi-sessions'),
+        ),
+
+      loadPiSessionSnapshot: (args) =>
+        piSessions.loadSnapshot(args).pipe(
+          Effect.mapError(toRuntimeError('load-pi-session-failed', 'Failed to load pi CLI session snapshot')),
+          Effect.withSpan('tmnl.harness.runtime.load-pi-session-snapshot'),
+        ),
+
       getAvailableModels: () =>
         engine.getAvailableModels().pipe(
           Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models')),
@@ -142,4 +156,5 @@ export const HarnessRuntimeLive = Layer.effect(
   // provideMerge: provides to inner layers AND merges into output context.
   Layer.provideMerge(InteractiveShellServiceLive),
   Layer.provideMerge(PanelEventBusLive),
+  Layer.provideMerge(PiSessionSourceLive),
 )

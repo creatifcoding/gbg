@@ -19,6 +19,10 @@ import {
   ShellEvent,
 } from './interactive-shell/schemas'
 import { PanelEvent } from '@/lib/genifer/harness/panel-events'
+import {
+  PiSessionListOptions,
+  PiSessionListPayload,
+} from './session/v2/pi-session-schemas'
 
 // ── Model catalog schema ────────────────────────────────────────────────────
 export const HarnessModelInfo = Schema.Struct({
@@ -85,6 +89,8 @@ export const HarnessRemoteSessionForkedPayload = Schema.Struct({
   sessionId: Schema.String,
 })
 
+export const HarnessRemotePiSessionListPayload = PiSessionListPayload
+
 // ── Commands sent over WS to remote control plane ──────────────────────────
 export const HarnessRemoteOpenSessionCommand = Schema.TaggedStruct('remote:chat_v2_open_session', {
   nodeId: Schema.String,
@@ -137,6 +143,15 @@ export const HarnessRemoteForkSessionCommand = Schema.TaggedStruct('remote:fork_
   atSeq: Schema.optional(Schema.Number),
 })
 
+export const HarnessRemoteListPiSessionsCommand = Schema.TaggedStruct('remote:list_pi_sessions', {
+  options: Schema.optional(PiSessionListOptions),
+})
+
+export const HarnessRemoteLoadPiSessionSnapshotCommand = Schema.TaggedStruct('remote:load_pi_session_snapshot', {
+  path: Schema.String,
+  sessionId: Schema.optional(Schema.String),
+})
+
 export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteOpenSessionCommand,
   HarnessRemoteResumeSessionCommand,
@@ -149,6 +164,8 @@ export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteUpdateSessionMetaCommand,
   HarnessRemoteDeleteSessionCommand,
   HarnessRemoteForkSessionCommand,
+  HarnessRemoteListPiSessionsCommand,
+  HarnessRemoteLoadPiSessionSnapshotCommand,
   // Interactive shell commands (client → server PTY control)
   ShellInputCommand,
   ShellResizeCommand,

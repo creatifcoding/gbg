@@ -27,7 +27,7 @@ import {
 import { hasMessageTopologyChanged } from './helpers'
 import {
   connectOp$, sendOp$, cancelOp$, clearOp$, disposeOp$,
-  fetchModelsOp$, newSessionOp$, resumeSessionOp$, hardReconnect,
+  fetchModelsOp$, newSessionOp$, resumeSessionOp$, resumePiSessionOp$, hardReconnect,
 } from './operations'
 import { schedulePersist, hydrateContent } from './persistence'
 import { pendingDisposeTimers } from './panel-replay'
@@ -49,6 +49,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const [, doFetchModels] = useAtom(fetchModelsOp$(instanceId))
   const [, doNewSession] = useAtom(newSessionOp$(instanceId))
   const [, doResumeSession] = useAtom(resumeSessionOp$(instanceId))
+  const [, doResumePiSession] = useAtom(resumePiSessionOp$(instanceId))
 
   // Pin session atom subscription so session identity remains stable across
   // transient registry/GC cycles while panel stays mounted.
@@ -181,6 +182,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const clearRef = useRef(doClear); clearRef.current = doClear
   const newSessionRef = useRef(doNewSession); newSessionRef.current = doNewSession
   const resumeSessionRef = useRef(doResumeSession); resumeSessionRef.current = doResumeSession
+  const resumePiSessionRef = useRef(doResumePiSession); resumePiSessionRef.current = doResumePiSession
 
   // Build adapter — per-instance atoms
   const adapter = useMemo<MorphChatAdapter>(() => ({
@@ -226,6 +228,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     connect: doConnect,
     newSession: () => newSessionRef.current({ nodeId, role, agentName }),
     resumeSession: (sessionId: string) => resumeSessionRef.current({ sessionId }),
+    resumePiSession: (path: string, sessionId?: string) => resumePiSessionRef.current({ path, sessionId }),
     hardReconnect: () => hardReconnect(instanceId, nodeId, role, agentName, connectRef.current),
   }
 }

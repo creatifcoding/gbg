@@ -11,6 +11,10 @@ import {
   type HarnessThinkingLevel,
   type HarnessSessionId,
 } from './schemas'
+import type {
+  PiSessionListOptions,
+  PiSessionListPayload,
+} from './session/v2/pi-session-schemas'
 
 // Re-export these types so consumers that only need the shape
 // don't have to import PiAiHarnessEngine (server-only).
@@ -101,6 +105,12 @@ export interface HarnessRuntimeShape {
     sessionId: HarnessSessionId,
     atSeq?: number,
   ) => Effect.Effect<{ readonly sessionId: string }, HarnessRuntimeError>
+  readonly listPiSessions: (
+    options?: PiSessionListOptions,
+  ) => Effect.Effect<PiSessionListPayload, HarnessRuntimeError>
+  readonly loadPiSessionSnapshot: (
+    args: { readonly path: string; readonly sessionId?: string },
+  ) => Effect.Effect<HarnessSnapshot, HarnessRuntimeError>
   readonly events: Stream.Stream<HarnessEvent, HarnessRuntimeError>
 }
 
