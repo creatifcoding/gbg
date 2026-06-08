@@ -60,7 +60,7 @@ function MorphChatMockPanel({ panelId }: PanelContentProps) {
 function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
   // Each panel is an isolated session — like Cursor agent tabs.
   // The WS transport is shared, but atoms/session/messages are per-instance.
-  const { adapter, status, error, newSession, resumeSession, hardReconnect } = useHarnessAdapter({
+  const { adapter, status, error, newSession, resumeSession, resumePiSession, hardReconnect } = useHarnessAdapter({
     instanceId: panelId,
     // Per-panel node identity guarantees isolated sessions (no cross-panel reuse)
     // while preserving the Conductor role semantics.
@@ -78,6 +78,11 @@ function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
     resumeSession(sid)
     setIsSessionDrawerOpen(false)
   }, [resumeSession])
+
+  const handleResumePiSession = React.useCallback((path: string, sid?: string) => {
+    resumePiSession(path, sid)
+    setIsSessionDrawerOpen(false)
+  }, [resumePiSession])
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -201,6 +206,7 @@ function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
           isOpen={isSessionDrawerOpen}
           onClose={() => setIsSessionDrawerOpen(false)}
           onResumeSession={handleResumeSession}
+          onResumePiSession={handleResumePiSession}
           onNewSession={newSession}
           currentSessionId={currentSessionId}
           instanceId={panelId}
