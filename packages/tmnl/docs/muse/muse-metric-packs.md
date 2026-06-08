@@ -76,11 +76,17 @@ python scripts/muse/metric_pack_report.py pack-result.json --output pack-result.
 
 **Acceptance**
 
+Threshold spec: `docs/muse/transport-integrity-thresholds.md`  
+Machine policies: `docs/muse/transport-integrity-thresholds.json`
+
 - decodeErrors = 0 for controlled sessions
-- sequence gaps reviewed and ideally zero
-- EEG observedHz near 256 Hz after enough samples
 - queueDrops = 0
 - summary cadence present
+- exactly one capture_start and capture_stop
+- timestamp regressions = 0
+- sequence gaps/out-of-order counters = 0 for counter-bearing streams
+- classic Muse EEG event cadence in the current BLE packet path is ~21 Hz/channel; 256 Hz applies to decoded scalar sample rate, not packet event rate
+- inter-sample p99 and queue pressure stay below provisional warning limits
 
 **Caveats**
 
