@@ -10,6 +10,37 @@ These packs define what TMNL tracks separately for Muse work. Each pack has thre
 
 Interpretation rule: a metric pack can pass without authorizing a brain claim. Transport, contact, signal, artifact, alpha, protocol, and ML readiness are separate gates.
 
+## Canonical result contract
+
+Every realized pack emits `MuseMetricPackResult` from `src/lib/muse/schemas.ts`:
+
+```ts
+{
+  type: 'muse.metric_pack_result'
+  schemaVersion: 'muse-metric-pack-result/v1'
+  packId: MuseMetricPackId
+  status: 'pass' | 'warn' | 'fail' | 'not_applicable'
+  generatedAt: string
+  sessionId?: string
+  manifestPath?: string
+  interpretationBoundary: string
+  upstreamDependencies: MuseMetricPackDependency[]
+  metrics: MuseMetric[]
+  thresholdEvaluations: MuseMetricThresholdEvaluation[]
+  evidence: MuseMetricPackEvidence[]
+  caveats: MuseMetricPackCaveat[]
+  recommendations: string[]
+}
+```
+
+This envelope is the future analyzer/panel contract. It is intentionally stricter than a loose JSON blob: every result must say what pack it belongs to, what it measured, what thresholds were evaluated, what evidence backs it, and what claims remain blocked.
+
+Shared Markdown renderer: `scripts/muse/metric_pack_report.py`.
+
+```bash
+python scripts/muse/metric_pack_report.py pack-result.json --output pack-result.md
+```
+
 ## Transport Integrity Pack
 
 **Question:** Did the live hardware stream arrive complete, ordered, decodable, and fast enough?

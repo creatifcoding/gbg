@@ -441,3 +441,185 @@ export const MuseSessionManifest = Schema.Struct({
 export type MuseSessionManifest = typeof MuseSessionManifest.Type
 
 export const decodeMuseSessionManifest = Schema.decodeUnknownSync(MuseSessionManifest)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metric pack result contract
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MuseMetricPackResultSchemaVersion = Schema.Literal('muse-metric-pack-result/v1')
+export type MuseMetricPackResultSchemaVersion = typeof MuseMetricPackResultSchemaVersion.Type
+
+export const MuseMetricPackId = Schema.Literal(
+  'transport-integrity',
+  'contact-fit-quality',
+  'eeg-signal-quality',
+  'artifact-susceptibility',
+  'alpha-candidate-response',
+  'motion-head-geometry',
+  'protocol-compliance',
+  'ml-readiness-invariance',
+)
+export type MuseMetricPackId = typeof MuseMetricPackId.Type
+
+export const MuseMetricPackStatus = Schema.Literal('pass', 'warn', 'fail', 'not_applicable')
+export type MuseMetricPackStatus = typeof MuseMetricPackStatus.Type
+
+export const MuseMetricScope = Schema.Literal(
+  'session',
+  'artifact',
+  'stream',
+  'channel',
+  'axis',
+  'block',
+  'cue',
+  'window',
+  'model',
+)
+export type MuseMetricScope = typeof MuseMetricScope.Type
+
+export const MuseMetricSeverity = Schema.Literal('info', 'warn', 'fail', 'critical')
+export type MuseMetricSeverity = typeof MuseMetricSeverity.Type
+
+export const MuseMetricComparator = Schema.Literal(
+  'eq',
+  'neq',
+  'lt',
+  'lte',
+  'gt',
+  'gte',
+  'between_inclusive',
+  'outside_inclusive',
+  'present',
+  'absent',
+)
+export type MuseMetricComparator = typeof MuseMetricComparator.Type
+
+export const MuseMetricPackEvidenceRole = Schema.Literal(
+  'raw_input',
+  'manifest',
+  'markers',
+  'summary_json',
+  'report_markdown',
+  'visual_explainer',
+  'feature_table',
+  'model_artifact',
+  'other',
+)
+export type MuseMetricPackEvidenceRole = typeof MuseMetricPackEvidenceRole.Type
+
+export const MuseMetricValue = Schema.Union(
+  Schema.Number,
+  Schema.String,
+  Schema.Boolean,
+  Schema.Null,
+  Schema.Array(Schema.Number),
+  Schema.Array(Schema.String),
+)
+export type MuseMetricValue = typeof MuseMetricValue.Type
+
+export const MuseMetric = Schema.Struct({
+  key: Schema.String,
+  label: Schema.optional(Schema.String),
+  value: MuseMetricValue,
+  unit: Schema.optional(Schema.String),
+  scope: MuseMetricScope,
+  channel: Schema.optional(Schema.String),
+  axis: Schema.optional(Schema.String),
+  blockId: Schema.optional(Schema.String),
+  cueId: Schema.optional(Schema.String),
+  windowId: Schema.optional(Schema.String),
+  sourcePath: Schema.optional(Schema.String),
+  notes: Schema.optional(Schema.String),
+})
+export type MuseMetric = typeof MuseMetric.Type
+
+export const MuseMetricThresholdPolicyKind = Schema.Literal(
+  'hard_gate',
+  'soft_warning',
+  'sample_size',
+  'upstream_dependency',
+  'claim_boundary',
+)
+export type MuseMetricThresholdPolicyKind = typeof MuseMetricThresholdPolicyKind.Type
+
+export const MuseMetricThresholdPolicy = Schema.Struct({
+  policyId: Schema.String,
+  packId: MuseMetricPackId,
+  kind: MuseMetricThresholdPolicyKind,
+  metricKey: Schema.String,
+  scope: MuseMetricScope,
+  comparator: MuseMetricComparator,
+  threshold: Schema.optional(MuseMetricValue),
+  warnThreshold: Schema.optional(MuseMetricValue),
+  failThreshold: Schema.optional(MuseMetricValue),
+  missingStatus: MuseMetricPackStatus,
+  severity: MuseMetricSeverity,
+  required: Schema.Boolean,
+  blocksClaim: Schema.Boolean,
+  description: Schema.String,
+  rationale: Schema.String,
+  source: Schema.optional(Schema.String),
+  appliesWhen: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+})
+export type MuseMetricThresholdPolicy = typeof MuseMetricThresholdPolicy.Type
+
+export const decodeMuseMetricThresholdPolicy = Schema.decodeUnknownSync(MuseMetricThresholdPolicy)
+
+export const MuseMetricThresholdEvaluation = Schema.Struct({
+  metricKey: Schema.String,
+  comparator: MuseMetricComparator,
+  status: MuseMetricPackStatus,
+  severity: MuseMetricSeverity,
+  threshold: Schema.optional(MuseMetricValue),
+  observed: Schema.optional(MuseMetricValue),
+  policyId: Schema.optional(Schema.String),
+  description: Schema.String,
+})
+export type MuseMetricThresholdEvaluation = typeof MuseMetricThresholdEvaluation.Type
+
+export const MuseMetricPackEvidence = Schema.Struct({
+  role: MuseMetricPackEvidenceRole,
+  path: Schema.String,
+  mediaType: Schema.optional(Schema.String),
+  sha256: Schema.optional(Schema.String),
+  notes: Schema.optional(Schema.String),
+})
+export type MuseMetricPackEvidence = typeof MuseMetricPackEvidence.Type
+
+export const MuseMetricPackDependency = Schema.Struct({
+  packId: MuseMetricPackId,
+  requiredStatus: Schema.Array(MuseMetricPackStatus),
+  observedStatus: Schema.optional(MuseMetricPackStatus),
+  satisfied: Schema.Boolean,
+  notes: Schema.optional(Schema.String),
+})
+export type MuseMetricPackDependency = typeof MuseMetricPackDependency.Type
+
+export const MuseMetricPackCaveat = Schema.Struct({
+  severity: MuseMetricSeverity,
+  message: Schema.String,
+  blocksClaim: Schema.Boolean,
+  source: Schema.optional(Schema.String),
+})
+export type MuseMetricPackCaveat = typeof MuseMetricPackCaveat.Type
+
+export const MuseMetricPackResult = Schema.Struct({
+  type: Schema.Literal('muse.metric_pack_result'),
+  schemaVersion: MuseMetricPackResultSchemaVersion,
+  packId: MuseMetricPackId,
+  status: MuseMetricPackStatus,
+  generatedAt: Schema.String,
+  sessionId: Schema.optional(Schema.String),
+  manifestPath: Schema.optional(Schema.String),
+  interpretationBoundary: Schema.String,
+  upstreamDependencies: Schema.Array(MuseMetricPackDependency),
+  metrics: Schema.Array(MuseMetric),
+  thresholdEvaluations: Schema.Array(MuseMetricThresholdEvaluation),
+  evidence: Schema.Array(MuseMetricPackEvidence),
+  caveats: Schema.Array(MuseMetricPackCaveat),
+  recommendations: Schema.Array(Schema.String),
+  metadata: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+})
+export type MuseMetricPackResult = typeof MuseMetricPackResult.Type
+
+export const decodeMuseMetricPackResult = Schema.decodeUnknownSync(MuseMetricPackResult)
