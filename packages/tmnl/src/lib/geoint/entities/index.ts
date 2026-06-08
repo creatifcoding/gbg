@@ -91,7 +91,7 @@ const GeointEntitySchema = Schema.Union(
 
 export type GeointEntity = typeof GeointEntitySchema.Type
 
-interface GeointEntityFactorySchema extends typeof GeointEntitySchema {
+type GeointEntityFactorySchema = typeof GeointEntitySchema & {
   fromSearchResult: (result: SearchResultItem) => GeointEntity
 }
 

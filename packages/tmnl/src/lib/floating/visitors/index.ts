@@ -9,11 +9,13 @@
 
 import { registerMorphChatVisitors } from './morphchat-visitor'
 import { registerGeointVisitors } from './geoint-visitor'
+import { registerMuseLogVisitor } from './muse-log-visitor'
 
-export { registerMorphChatVisitors, registerGeointVisitors }
+export { registerMorphChatVisitors, registerGeointVisitors, registerMuseLogVisitor }
 
 /** Register all built-in panel visitors */
 export function registerAllVisitors() {
   registerMorphChatVisitors()
   registerGeointVisitors()
+  registerMuseLogVisitor()
 }
