@@ -6,15 +6,16 @@ import {
   GitFork,
   MessageSquare,
   Star,
+  Tags,
   Trash2,
 } from 'lucide-react'
 import {
   VANTA_ANIMATION,
   VANTA_TYPOGRAPHY,
 } from '@/components/portal/tokens'
-import type { SessionListItem } from '@/lib/harness/HarnessRuntime'
+import type { DrawerSessionListItem, SessionSourceKind } from '@/lib/morphchat/atoms/session-manager'
 
-export type SessionCardSession = SessionListItem
+export type SessionCardSession = DrawerSessionListItem
 
 export interface SessionCardProps {
   session: SessionCardSession
@@ -26,9 +27,22 @@ export interface SessionCardProps {
   onDelete: () => void
   onExport: () => void
   onFork: () => void
+  onEnrich: (patch: { readonly description?: string; readonly tags?: ReadonlyArray<string> }) => void
 }
 
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace'
+
+const SOURCE_LABEL: Record<SessionSourceKind, string> = {
+  harness: 'harness',
+  'pi-cli': 'pi-cli',
+  local: 'local',
+}
+
+const SOURCE_COLOR: Record<SessionSourceKind, string> = {
+  harness: 'oklch(0.68 0.12 195)',
+  'pi-cli': 'oklch(0.76 0.14 150)',
+  local: 'oklch(0.72 0.11 285)',
+}
 
 function formatRelativeTime(timestamp: number): string {
   const deltaMs = timestamp - Date.now()
@@ -47,6 +61,22 @@ function formatRelativeTime(timestamp: number): string {
   return rtf.format(Math.round(deltaMs / week), 'week')
 }
 
+function formatCount(value: number): string {
+  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}k`
+  return String(value)
+}
+
+function compactPath(path: string): string {
+  if (!path) return ''
+  const parts = path.split('/').filter(Boolean)
+  if (parts.length <= 2) return path
+  return `…/${parts.slice(-2).join('/')}`
+}
+
+function exactTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleString()
+}
+
 export function SessionCard({
   session,
   isActive,
@@ -57,6 +87,7 @@ export function SessionCard({
   onDelete,
   onExport,
   onFork,
+  onEnrich,
 }: SessionCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
@@ -64,6 +95,18 @@ export function SessionCard({
   const renameRef = useRef<HTMLDivElement>(null)
 
   const title = session.name.trim() || session.autoTitle.trim() || 'Untitled session'
+  const sourceColor = SOURCE_COLOR[session.sourceKind]
+  const isHarnessSource = session.sourceKind === 'harness'
+  const relativeTime = useMemo(() => formatRelativeTime(session.updatedAt), [session.updatedAt])
+  const updatedTitle = useMemo(() => exactTime(session.updatedAt), [session.updatedAt])
+  const preview = session.previewSnippet.trim() || session.annotationDescription?.trim() || 'No preview available yet.'
+  const provenance = session.sourceKind === 'pi-cli'
+    ? compactPath(session.nodeId || session.piPath || '')
+    : session.nodeId || session.role || ''
+  const editableTags = session.tags.filter((tag) => tag !== 'pi-cli' && tag !== 'current-project')
+  const modelBadge = session.provider && session.modelId
+    ? `${session.provider}:${session.modelId}`
+    : session.provider || session.modelId || 'runtime'
 
   useEffect(() => {
     if (!isRenaming) {
@@ -81,8 +124,6 @@ export function SessionCard({
     selection?.addRange(range)
   }, [isRenaming])
 
-  const relativeTime = useMemo(() => formatRelativeTime(session.updatedAt), [session.updatedAt])
-
   const commitRename = () => {
     const nextName = draftName.trim()
     setIsRenaming(false)
@@ -93,6 +134,22 @@ export function SessionCard({
   const cancelRename = () => {
     setDraftName(title)
     setIsRenaming(false)
+  }
+
+  const describeAndTag = () => {
+    if (typeof window === 'undefined') return
+    const description = window.prompt('Session description', session.annotationDescription ?? '')
+    if (description === null) return
+    const tags = window.prompt('Tags (comma separated)', editableTags.join(', '))
+    if (tags === null) return
+
+    onEnrich({
+      description: description.trim() || undefined,
+      tags: tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    })
   }
 
   return (
@@ -108,232 +165,274 @@ export function SessionCard({
       }}
       role="button"
       tabIndex={0}
+      data-tmnl-session-source={session.sourceKind}
       style={{
         position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-        padding: 12,
-        borderRadius: 8,
-        background: 'oklch(0.07 0 0)',
-        border: `1.4px solid ${isHovered ? 'oklch(0.252 0 0)' : 'oklch(0.168 0 0)'}`,
-        borderLeft: isActive ? '4.2px solid oklch(0.7 0.15 195)' : `1.4px solid ${isHovered ? 'oklch(0.252 0 0)' : 'oklch(0.168 0 0)'}`,
-        boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.35)' : '0 2px 10px rgba(0, 0, 0, 0.2)',
+        display: 'grid',
+        gridTemplateColumns: '4px minmax(0, 1fr)',
+        columnGap: 8,
+        padding: '8px 10px 8px 0',
+        borderRadius: 6,
+        background: isActive ? 'oklch(0.075 0.018 195)' : isHovered ? 'oklch(0.064 0 0)' : 'oklch(0.052 0 0)',
+        border: `1px solid ${isActive ? 'oklch(0.18 0.05 195)' : isHovered ? 'oklch(0.15 0 0)' : 'oklch(0.105 0 0)'}`,
+        boxShadow: 'none',
         cursor: 'pointer',
-        transition: [
-          VANTA_ANIMATION.transition.colors,
-          VANTA_ANIMATION.transition.shadow,
-        ].join(', '),
+        transition: VANTA_ANIMATION.transition.colors,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0, marginRight: 84 }}>
-          {isRenaming ? (
-            <div
-              ref={renameRef}
-              contentEditable
-              suppressContentEditableWarning
-              onClick={(event) => event.stopPropagation()}
-              onInput={(event) => {
-                setDraftName((event.target as HTMLDivElement).textContent ?? '')
-              }}
-              onBlur={commitRename}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  commitRename()
-                }
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  cancelRename()
-                }
-              }}
-              style={{
-                fontFamily: MONO,
-                fontSize: 'var(--tmnl-text-sm, 14px)',
-                color: 'oklch(0.9 0 0)',
-                lineHeight: 1.35,
-                outline: 'none',
-                borderRadius: 4,
-                border: '1px solid oklch(0.2 0 0)',
-                background: 'oklch(0.08 0 0)',
-                padding: '2px 6px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {draftName}
-            </div>
-          ) : (
-            <div
-              onDoubleClick={(event) => {
+      <div
+        aria-hidden="true"
+        style={{
+          alignSelf: 'stretch',
+          borderRadius: '6px 0 0 6px',
+          background: isActive ? sourceColor : `color-mix(in oklch, ${sourceColor} 58%, transparent)`,
+          opacity: isActive ? 1 : 0.72,
+        }}
+      />
+
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8, alignItems: 'start' }}>
+          <div style={{ minWidth: 0 }}>
+            {isRenaming ? (
+              <div
+                ref={renameRef}
+                contentEditable
+                suppressContentEditableWarning
+                onClick={(event) => event.stopPropagation()}
+                onInput={(event) => {
+                  setDraftName((event.target as HTMLDivElement).textContent ?? '')
+                }}
+                onBlur={commitRename}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    commitRename()
+                  }
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    cancelRename()
+                  }
+                }}
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 'var(--tmnl-text-sm, 14px)',
+                  color: 'oklch(0.9 0 0)',
+                  lineHeight: 1.28,
+                  outline: 'none',
+                  borderRadius: 4,
+                  border: '1px solid oklch(0.2 0 0)',
+                  background: 'oklch(0.08 0 0)',
+                  padding: '2px 6px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {draftName}
+              </div>
+            ) : (
+              <div
+                onDoubleClick={(event) => {
+                  event.stopPropagation()
+                  setIsRenaming(true)
+                }}
+                title="Double-click to rename"
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 'var(--tmnl-text-sm, 14px)',
+                  color: 'oklch(0.88 0 0)',
+                  lineHeight: 1.28,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {title}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              aria-label={session.starred ? 'Unstar session' : 'Star session'}
+              title={session.starred ? 'Unstar session' : 'Star session'}
+              onClick={(event) => {
                 event.stopPropagation()
-                setIsRenaming(true)
+                onStar()
               }}
-              title="Double-click to rename"
               style={{
+                border: 'none',
+                background: 'transparent',
+                color: session.starred ? 'oklch(0.83 0.16 90)' : 'oklch(0.42 0 0)',
+                padding: 0,
+                display: 'flex',
+                cursor: 'pointer',
+              }}
+            >
+              <Star
+                size={13}
+                fill={session.starred ? 'oklch(0.83 0.16 90)' : 'transparent'}
+              />
+            </button>
+            <span
+              title={updatedTitle}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                color: 'oklch(0.52 0 0)',
                 fontFamily: MONO,
-                fontSize: 'var(--tmnl-text-sm, 14px)',
-                color: 'oklch(0.9 0 0)',
-                lineHeight: 1.35,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                fontSize: 'var(--tmnl-text-xs, 12px)',
                 whiteSpace: 'nowrap',
               }}
             >
-              {title}
-            </div>
-          )}
+              <Clock size={11} />
+              {relativeTime}
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-          <button
-            type="button"
-            aria-label={session.starred ? 'Unstar session' : 'Star session'}
-            onClick={(event) => {
-              event.stopPropagation()
-              onStar()
-            }}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto minmax(0, 1fr)',
+            alignItems: 'center',
+            gap: 6,
+            minWidth: 0,
+            color: 'oklch(0.54 0 0)',
+            fontFamily: MONO,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            lineHeight: 1.1,
+          }}
+        >
+          <span style={{ color: sourceColor }}>{SOURCE_LABEL[session.sourceKind]}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <MessageSquare size={11} />
+            {formatCount(session.messageCount)}
+          </span>
+          <span style={{ color: 'oklch(0.66 0.035 210)', whiteSpace: 'nowrap' }}>
+            {modelBadge}
+          </span>
+          <span
+            title={session.sourceKind === 'pi-cli' ? session.piPath ?? provenance : provenance}
             style={{
-              border: 'none',
-              background: 'transparent',
-              color: session.starred ? 'oklch(0.83 0.16 90)' : 'oklch(0.45 0 0)',
-              padding: 0,
-              display: 'flex',
-              cursor: 'pointer',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              color: 'oklch(0.45 0 0)',
             }}
           >
-            <Star
-              size={14}
-              fill={session.starred ? 'oklch(0.83 0.16 90)' : 'transparent'}
-            />
-          </button>
+            {provenance}
+          </span>
+        </div>
+
+        <p
+          style={{
+            margin: 0,
+            fontFamily: VANTA_TYPOGRAPHY.family.sans,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            color: session.previewSnippet.trim() ? 'oklch(0.64 0 0)' : 'oklch(0.42 0 0)',
+            lineHeight: 1.42,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical' as const,
+            overflow: 'hidden',
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {preview}
+        </p>
+
+        {(session.tags.length > 0 || session.annotationDescription) && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 4,
-              color: 'oklch(0.52 0 0)',
-              fontFamily: VANTA_TYPOGRAPHY.family.sans,
-              fontSize: 'var(--tmnl-text-xs, 12px)',
+              gap: 5,
+              flexWrap: 'wrap',
+              paddingRight: isHovered ? 94 : 0,
             }}
           >
-            <Clock size={12} />
-            <span>{relativeTime}</span>
+            {session.annotationDescription && (
+              <TinyBadge tone="annotated">note</TinyBadge>
+            )}
+            {session.tags.slice(0, 4).map((tag) => (
+              <TinyBadge key={tag}>{tag}</TinyBadge>
+            ))}
+            {session.tags.length > 4 && <TinyBadge>+{session.tags.length - 4}</TinyBadge>}
           </div>
-        </div>
-      </div>
-
-      <p
-        style={{
-          margin: 0,
-          fontFamily: VANTA_TYPOGRAPHY.family.sans,
-          fontSize: 'var(--tmnl-text-xs, 12px)',
-          color: 'oklch(0.62 0 0)',
-          lineHeight: 1.5,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical' as const,
-          overflow: 'hidden',
-        }}
-      >
-        {session.previewSnippet.trim() || 'No preview available yet.'}
-      </p>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          flexWrap: 'wrap',
-          paddingRight: 82,
-        }}
-      >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            borderRadius: 999,
-            border: '1px solid oklch(0.14 0 0)',
-            background: 'oklch(0.09 0 0)',
-            color: 'oklch(0.66 0 0)',
-            padding: '2px 8px',
-            fontFamily: MONO,
-            fontSize: 'var(--tmnl-text-xs, 12px)',
-          }}
-        >
-          <MessageSquare size={12} />
-          {session.messageCount}
-        </span>
-
-        <span
-          style={{
-            borderRadius: 999,
-            border: '1px solid oklch(0.14 0 0)',
-            background: 'oklch(0.09 0 0)',
-            color: 'oklch(0.73 0.03 210)',
-            padding: '2px 8px',
-            fontFamily: MONO,
-            fontSize: 'var(--tmnl-text-xs, 12px)',
-          }}
-        >
-          {session.provider}:{session.modelId}
-        </span>
-
-        {session.tags.slice(0, 3).map((tag) => (
-          <span
-            key={tag}
-            style={{
-              borderRadius: 999,
-              border: '1px solid oklch(0.14 0 0)',
-              background: 'oklch(0.08 0 0)',
-              color: 'oklch(0.56 0 0)',
-              padding: '2px 8px',
-              fontFamily: VANTA_TYPOGRAPHY.family.sans,
-              fontSize: 'var(--tmnl-text-xs, 12px)',
-            }}
-          >
-            {tag}
-          </span>
-        ))}
+        )}
       </div>
 
       {isHovered && !isRenaming && (
         <div
           style={{
             position: 'absolute',
-            right: 10,
-            bottom: 10,
+            right: 8,
+            bottom: 8,
             display: 'flex',
             gap: 4,
           }}
         >
           <ActionIconButton
-            icon={<Archive size={13} />}
-            label={session.status === 'archived' ? 'Unarchive session' : 'Archive session'}
-            onClick={onArchive}
+            icon={<Tags size={13} />}
+            label="Describe and tag session"
+            onClick={describeAndTag}
           />
-          <ActionIconButton
-            icon={<Trash2 size={13} />}
-            label="Delete session"
-            onClick={onDelete}
-            danger
-          />
+          {isHarnessSource && (
+            <>
+              <ActionIconButton
+                icon={<Archive size={13} />}
+                label={session.status === 'archived' ? 'Unarchive session' : 'Archive session'}
+                onClick={onArchive}
+              />
+              <ActionIconButton
+                icon={<Trash2 size={13} />}
+                label="Delete session"
+                onClick={onDelete}
+                danger
+              />
+              <ActionIconButton
+                icon={<GitFork size={13} />}
+                label="Fork session"
+                onClick={onFork}
+              />
+            </>
+          )}
           <ActionIconButton
             icon={<Download size={13} />}
-            label="Export session"
+            label="Export session metadata"
             onClick={onExport}
-          />
-          <ActionIconButton
-            icon={<GitFork size={13} />}
-            label="Fork session"
-            onClick={onFork}
           />
         </div>
       )}
     </div>
+  )
+}
+
+interface TinyBadgeProps {
+  readonly children: React.ReactNode
+  readonly tone?: 'default' | 'annotated'
+}
+
+function TinyBadge({ children, tone = 'default' }: TinyBadgeProps) {
+  return (
+    <span
+      style={{
+        borderRadius: 3,
+        border: '1px solid oklch(0.13 0 0)',
+        background: tone === 'annotated' ? 'oklch(0.09 0.025 195)' : 'oklch(0.07 0 0)',
+        color: tone === 'annotated' ? 'oklch(0.68 0.08 195)' : 'oklch(0.52 0 0)',
+        padding: '1px 5px',
+        fontFamily: MONO,
+        fontSize: 'var(--tmnl-text-xs, 12px)',
+        lineHeight: 1.15,
+      }}
+    >
+      {children}
+    </span>
   )
 }
 
@@ -356,11 +455,11 @@ function ActionIconButton({ icon, label, onClick, danger = false }: ActionIconBu
       }}
       style={{
         border: '1px solid oklch(0.16 0 0)',
-        background: 'oklch(0.09 0 0)',
+        background: 'oklch(0.075 0 0)',
         color: danger ? 'oklch(0.72 0.18 25)' : 'oklch(0.58 0 0)',
-        borderRadius: 6,
-        width: 24,
-        height: 24,
+        borderRadius: 5,
+        width: 23,
+        height: 23,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',

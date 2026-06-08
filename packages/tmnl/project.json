@@ -325,6 +325,20 @@
         "cwd": "packages/tmnl"
       }
     },
+    "smoke:session-drawer": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:session-drawer",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "smoke:session-drawer:pi-replay": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:session-drawer:pi-replay",
+        "cwd": "packages/tmnl"
+      }
+    },
     "geoint:migrate": {
       "executor": "nx:run-commands",
       "options": {

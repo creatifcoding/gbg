@@ -64,6 +64,8 @@
     "cursor:cluster": "bun run scripts/cursor-cluster-node.ts",
     "harness:remote-ws": "bash scripts/harness-remote-ws.sh",
     "harness:piai:smoke": "bun run scripts/harness-piai-smoke.ts",
+    "smoke:session-drawer": "bun run scripts/smokes/session-drawer-smoke.ts",
+    "smoke:session-drawer:pi-replay": "bun run scripts/smokes/session-drawer-pi-replay-smoke.ts",
     "interleaved:smoke": "bunx vitest run src/lib/genifer/__tests__/interleaved/no-refine-crash.contract.test.ts src/lib/genifer/__tests__/interleaved/first-patch-latency.contract.test.ts src/lib/genifer/__tests__/interleaved/patch-quarantine.contract.test.ts src/lib/genifer/__tests__/patch-harness-stream.e2e.test.ts src/lib/morphchat/adapters/__tests__/interleaved-branch-local-rerender.contract.test.ts src/lib/genifer/__tests__/bridge-progress.contract.test.ts src/lib/genifer/react/__tests__/incremental-tree-commit-probe.contract.test.ts src/lib/chat/msg/tool-block/renderers/__tests__/genifer-live-wire.contract.test.tsx src/lib/morphchat/adapters/__tests__/inline-ui-fence.contract.test.ts",
     "task-logs:emit": "bun run scripts/task-log-emitter-sidecar.ts",
     "telegram:agent": "bun run scripts/telegram-agent.ts",

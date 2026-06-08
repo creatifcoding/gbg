@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   AlertTriangle,
   Loader2,
@@ -22,6 +22,7 @@ export interface SessionDrawerProps {
   isOpen: boolean
   onClose: () => void
   onResumeSession: (sessionId: string) => void
+  onResumePiSession?: (path: string, sessionId?: string) => void
   onNewSession: () => void
   currentSessionId: string | null
   instanceId: string
@@ -31,6 +32,8 @@ export interface SessionDrawerProps {
 type SessionFilter = 'all' | 'starred' | 'archived'
 
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace'
+const DRAWER_EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
+const MICRO_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const FILTERS: ReadonlyArray<{ key: SessionFilter; label: string }> = [
   { key: 'all', label: 'All' },
@@ -51,6 +54,7 @@ export function SessionDrawer({
   isOpen,
   onClose,
   onResumeSession,
+  onResumePiSession,
   onNewSession,
   currentSessionId,
   instanceId,
@@ -65,16 +69,23 @@ export function SessionDrawer({
     operation,
     diagnostics,
     v2Diagnostics,
+    piSessionCount,
     query,
     setSearch,
     setFilter,
     rename,
     star,
+    enrich,
     archive,
     deleteSession,
     fork,
     refresh,
   } = useSessionManager(instanceId)
+
+  const prefersReducedMotion = useReducedMotion()
+  const debugForceSkeleton = typeof window !== 'undefined'
+    && import.meta.env.DEV
+    && new URLSearchParams(window.location.search).has('tmnl-session-skeleton')
 
   useEffect(() => {
     if (!isOpen) return
@@ -91,7 +102,7 @@ export function SessionDrawer({
   const hasFilter = query.filter !== 'all'
   const hasActiveQuery = hasSearch || hasFilter
 
-  const showInitialLoading = loading && totalSessions === 0
+  const showInitialLoading = debugForceSkeleton || (loading && totalSessions === 0)
   const showErrorState = !showInitialLoading && !!error && sessions.length === 0
   const showFilteredEmpty = !loading && !error && sessions.length === 0 && totalSessions > 0 && hasActiveQuery
   const showNoSessions = !loading && !error && sessions.length === 0 && totalSessions === 0
@@ -110,6 +121,12 @@ export function SessionDrawer({
   }
 
   const selectSession = (sessionId: string) => {
+    const target = sessions.find((session) => session.sessionId === sessionId)
+    if (target?.sourceKind === 'pi-cli' && target.piPath) {
+      onResumePiSession?.(target.piPath, target.sourceRef._tag === 'PiCliSessionRef' ? target.sourceRef.id : undefined)
+      return
+    }
+
     onResumeSession(sessionId)
   }
 
@@ -138,8 +155,11 @@ export function SessionDrawer({
       v2Diagnostics,
       totalSessions,
       visibleSessions,
+      piSessionCount,
       visibleSessionIds: sessions.map((session) => session.sessionId),
+      visibleSources: sessions.map((session) => session.sourceKind),
       diagnosticSampleSessionIds: diagnostics.sampleSessionIds,
+      diagnosticSamplePiSessionIds: diagnostics.samplePiSessionIds,
     })
   }
 
@@ -147,15 +167,17 @@ export function SessionDrawer({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
+          initial={prefersReducedMotion ? { width, opacity: 0 } : { width: 0, opacity: 0, x: 14 }}
+          animate={prefersReducedMotion ? { width, opacity: 1 } : { width, opacity: 1, x: 0 }}
+          exit={prefersReducedMotion ? { width, opacity: 0 } : { width: 0, opacity: 0, x: 10 }}
           transition={{
             type: 'tween',
-            duration: 0.14,
-            ease: [0.22, 0.0, 0.0, 1],
+            duration: prefersReducedMotion ? 0.12 : 0.18,
+            ease: DRAWER_EASE,
           }}
           className="h-full flex flex-col overflow-hidden flex-shrink-0"
+          data-tmnl-session-drawer="root"
+          data-tmnl-session-skeleton-forced={debugForceSkeleton ? 'true' : undefined}
           style={{
             background: 'oklch(0.04 0 0)',
             borderLeft: '1px solid oklch(0.12 0 0)',
@@ -222,7 +244,7 @@ export function SessionDrawer({
                   background: 'oklch(0.08 0 0)',
                   color: 'oklch(0.72 0.14 195)',
                   fontFamily: MONO,
-                  fontSize: 'var(--tmnl-text-xs, 10px)',
+                  fontSize: 'var(--tmnl-text-xs, 12px)',
                   padding: '5px 8px',
                   cursor: 'pointer',
                   transition: VANTA_ANIMATION.transition.colors,
@@ -292,7 +314,7 @@ export function SessionDrawer({
                   background: 'transparent',
                   color: 'oklch(0.88 0 0)',
                   fontFamily: VANTA_TYPOGRAPHY.family.sans,
-                  fontSize: 'var(--tmnl-text-xs, 10px)',
+                  fontSize: 'var(--tmnl-text-xs, 12px)',
                 }}
               />
             </div>
@@ -321,7 +343,7 @@ export function SessionDrawer({
                       background: active ? 'oklch(0.12 0 0)' : 'transparent',
                       color: active ? 'oklch(0.86 0 0)' : 'oklch(0.56 0 0)',
                       fontFamily: MONO,
-                      fontSize: 'var(--tmnl-text-xs, 10px)',
+                      fontSize: 'var(--tmnl-text-xs, 12px)',
                       padding: '4px 8px',
                       lineHeight: 1.1,
                       cursor: 'pointer',
@@ -346,12 +368,12 @@ export function SessionDrawer({
               background: 'oklch(0.05 0 0)',
               color: 'oklch(0.54 0 0)',
               fontFamily: MONO,
-              fontSize: 'var(--tmnl-text-xs, 10px)',
+              fontSize: 'var(--tmnl-text-xs, 12px)',
               lineHeight: 1.2,
             }}
           >
             <span>
-              server:{diagnostics.serverCount} · local:{v2Diagnostics.localSessionCount} · visible:{visibleSessions} · fetched:{diagnosticLabel}
+              server:{diagnostics.serverCount} · pi:{piSessionCount} · local:{v2Diagnostics.localSessionCount} · visible:{visibleSessions} · fetched:{diagnosticLabel}
             </span>
             <button
               type="button"
@@ -363,7 +385,7 @@ export function SessionDrawer({
                 color: 'oklch(0.68 0 0)',
                 cursor: 'pointer',
                 fontFamily: MONO,
-                fontSize: 'var(--tmnl-text-xs, 10px)',
+                fontSize: 'var(--tmnl-text-xs, 12px)',
                 padding: '2px 8px',
               }}
             >
@@ -393,7 +415,7 @@ export function SessionDrawer({
                       gap: 6,
                       color: 'oklch(0.66 0 0)',
                       fontFamily: MONO,
-                      fontSize: 'var(--tmnl-text-xs, 10px)',
+                      fontSize: 'var(--tmnl-text-xs, 12px)',
                     }}
                   >
                     <Loader2 size={12} className="animate-spin" />
@@ -405,7 +427,7 @@ export function SessionDrawer({
                     style={{
                       color: 'oklch(0.72 0.14 20)',
                       fontFamily: VANTA_TYPOGRAPHY.family.sans,
-                      fontSize: 'var(--tmnl-text-xs, 10px)',
+                      fontSize: 'var(--tmnl-text-xs, 12px)',
                       lineHeight: 1.35,
                     }}
                   >
@@ -416,12 +438,7 @@ export function SessionDrawer({
             )}
 
             {showInitialLoading ? (
-              <StateBlock
-                icon={<Loader2 size={18} className="animate-spin" />}
-                title="Loading sessions"
-                body="Operator guidance: waiting for authoritative session index from runtime."
-                action={{ label: 'Retry Fetch', onClick: refresh }}
-              />
+              <SessionSkeletonList operationLabel={operationLabel} forced={debugForceSkeleton} />
             ) : showErrorState ? (
               <StateBlock
                 icon={<AlertTriangle size={18} />}
@@ -445,26 +462,190 @@ export function SessionDrawer({
                 action={{ label: 'New Session', onClick: onNewSession }}
               />
             ) : (
-              sessions.map((session) => (
-                <div key={session.sessionId} style={{ marginBottom: 8 }}>
-                  <SessionCard
-                    session={session}
-                    isActive={currentSessionId === session.sessionId}
-                    onResume={() => selectSession(session.sessionId)}
-                    onRename={(name) => rename(session.sessionId, name)}
-                    onStar={() => star(session.sessionId)}
-                    onArchive={() => archive(session.sessionId)}
-                    onDelete={() => deleteSession(session.sessionId)}
-                    onExport={() => exportSession(session.sessionId)}
-                    onFork={() => fork(session.sessionId)}
-                  />
-                </div>
-              ))
+              <div data-tmnl-session-list="settled">
+                {sessions.map((session) => (
+                  <div key={session.sessionId} style={{ marginBottom: 8 }}>
+                    <SessionCard
+                      session={session}
+                      isActive={currentSessionId === session.sessionId || currentSessionId === session.sourceRef.id}
+                      onResume={() => selectSession(session.sessionId)}
+                      onRename={(name) => rename(session.sessionId, name)}
+                      onStar={() => star(session.sessionId)}
+                      onArchive={() => archive(session.sessionId)}
+                      onDelete={() => deleteSession(session.sessionId)}
+                      onExport={() => exportSession(session.sessionId)}
+                      onFork={() => fork(session.sessionId)}
+                      onEnrich={(patch) => enrich(session.sessionId, patch)}
+                    />
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+interface SessionSkeletonListProps {
+  readonly operationLabel: string | null
+  readonly forced: boolean
+}
+
+function SessionSkeletonList({ operationLabel, forced }: SessionSkeletonListProps) {
+  const prefersReducedMotion = useReducedMotion()
+
+  return (
+    <motion.div
+      aria-busy="true"
+      aria-label="Loading sessions"
+      data-tmnl-session-skeleton="true"
+      data-tmnl-session-skeleton-mode={forced ? 'forced-smoke' : 'live'}
+      initial={prefersReducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.16, ease: MICRO_EASE }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+    >
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 3 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: MICRO_EASE }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          borderRadius: 10,
+          border: '1px solid oklch(0.14 0 0)',
+          background: 'linear-gradient(135deg, oklch(0.065 0 0), oklch(0.045 0 0))',
+          padding: '9px 10px',
+          boxShadow: 'inset 0 1px 0 oklch(0.12 0 0)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+          <Loader2
+            size={13}
+            className={prefersReducedMotion ? undefined : 'animate-spin'}
+            style={{ color: 'oklch(0.62 0.08 195)' }}
+          />
+          <span
+            style={{
+              color: 'oklch(0.68 0 0)',
+              fontFamily: MONO,
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {operationLabel ?? '[session.fetch]'} indexing session ledger…
+          </span>
+        </div>
+        <span
+          style={{
+            color: 'oklch(0.42 0 0)',
+            fontFamily: MONO,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            lineHeight: 1,
+          }}
+        >
+          {forced ? 'smoke' : 'live'}
+        </span>
+      </motion.div>
+
+      {Array.from({ length: 6 }, (_, index) => (
+        <motion.div
+          key={index}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, delay: prefersReducedMotion ? 0 : index * 0.026, ease: MICRO_EASE }}
+        >
+          <SessionSkeletonCard index={index} prefersReducedMotion={prefersReducedMotion} />
+        </motion.div>
+      ))}
+    </motion.div>
+  )
+}
+
+interface SessionSkeletonCardProps {
+  readonly index: number
+  readonly prefersReducedMotion: boolean | null
+}
+
+function SessionSkeletonCard({ index, prefersReducedMotion }: SessionSkeletonCardProps) {
+  const titleWidth = 58 + ((index * 17) % 28)
+  const metaWidth = 36 + ((index * 13) % 24)
+  const previewWidth = 76 - ((index * 9) % 22)
+
+  return (
+    <div
+      style={{
+        borderRadius: 10,
+        border: '1px solid oklch(0.105 0 0)',
+        background: 'oklch(0.052 0 0)',
+        padding: 10,
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      <motion.div
+        aria-hidden="true"
+        animate={prefersReducedMotion
+          ? { opacity: [0.05, 0.12, 0.05] }
+          : { x: ['-120%', '120%'] }}
+        transition={prefersReducedMotion
+          ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' }
+          : { duration: 1.65, repeat: Infinity, repeatDelay: 0.32, ease: 'linear' }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(90deg, transparent, oklch(0.12 0.04 195 / 0.16), transparent)',
+          pointerEvents: 'none',
+          willChange: prefersReducedMotion ? 'opacity' : 'transform',
+        }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+        <SkeletonBar width={24} height={24} radius={6} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SkeletonBar width={`${titleWidth}%`} height={12} radius={999} />
+          <div style={{ height: 6 }} />
+          <SkeletonBar width={`${metaWidth}%`} height={10} radius={999} tone="muted" />
+        </div>
+      </div>
+      <SkeletonBar width={`${previewWidth}%`} height={10} radius={999} tone="muted" />
+      <div style={{ height: 7 }} />
+      <SkeletonBar width="42%" height={10} radius={999} tone="faint" />
+    </div>
+  )
+}
+
+interface SkeletonBarProps {
+  readonly width: number | string
+  readonly height: number
+  readonly radius: number
+  readonly tone?: 'default' | 'muted' | 'faint'
+}
+
+function SkeletonBar({ width, height, radius, tone = 'default' }: SkeletonBarProps) {
+  const background = tone === 'faint'
+    ? 'oklch(0.09 0 0)'
+    : tone === 'muted'
+      ? 'oklch(0.115 0 0)'
+      : 'oklch(0.14 0 0)'
+
+  return (
+    <div
+      style={{
+        width,
+        height,
+        borderRadius: radius,
+        background,
+        boxShadow: tone === 'default' ? 'inset 0 1px 0 oklch(0.18 0 0)' : undefined,
+      }}
+    />
   )
 }
 
@@ -521,7 +702,7 @@ function StateBlock({
       <span
         style={{
           fontFamily: VANTA_TYPOGRAPHY.family.sans,
-          fontSize: 'var(--tmnl-text-xs, 10px)',
+          fontSize: 'var(--tmnl-text-xs, 12px)',
           color: tone === 'error' ? 'oklch(0.66 0.08 20)' : 'oklch(0.5 0 0)',
           lineHeight: 1.45,
           whiteSpace: 'pre-line',
@@ -543,7 +724,7 @@ function StateBlock({
             background: 'oklch(0.08 0 0)',
             color: tone === 'error' ? 'oklch(0.76 0.08 20)' : 'oklch(0.72 0.14 195)',
             fontFamily: MONO,
-            fontSize: 'var(--tmnl-text-xs, 10px)',
+            fontSize: 'var(--tmnl-text-xs, 12px)',
             padding: '6px 10px',
             cursor: 'pointer',
             transition: VANTA_ANIMATION.transition.colors,
