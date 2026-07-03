@@ -114,16 +114,16 @@ pub fn compute_from_embeddings(
 /// Simple whitespace tokenization (production should use subword).
 fn tokenize_simple(text: &str) -> Vec<String> {
     text.split_whitespace()
-        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+        .map(|w| {
+            w.trim_matches(|c: char| !c.is_alphanumeric())
+                .to_lowercase()
+        })
         .filter(|w| !w.is_empty())
         .collect()
 }
 
 /// Encode each token string into an embedding vector.
-fn encode_tokens(
-    encoder: &BertEncoder,
-    tokens: &[String],
-) -> Result<Vec<Vec<f32>>, EncoderError> {
+fn encode_tokens(encoder: &BertEncoder, tokens: &[String]) -> Result<Vec<Vec<f32>>, EncoderError> {
     tokens
         .iter()
         .map(|t| encoder.encode(t).map(|e| e.values))
@@ -133,11 +133,7 @@ fn encode_tokens(
 /// Build cosine similarity matrix [rows x cols].
 fn build_similarity_matrix(rows: &[Vec<f32>], cols: &[Vec<f32>]) -> Vec<Vec<f32>> {
     rows.iter()
-        .map(|row| {
-            cols.iter()
-                .map(|col| cosine_sim(row, col))
-                .collect()
-        })
+        .map(|row| cols.iter().map(|col| cosine_sim(row, col)).collect())
         .collect()
 }
 
@@ -209,8 +205,16 @@ mod tests {
         let ref_emb = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
         let cand_emb = vec![vec![1.0, 0.0], vec![0.5, 0.5]]; // one match, one partial
         let score = compute_from_embeddings(&ref_emb, &cand_emb);
-        assert!(score.f1 > 0.5, "Partial overlap should give >0.5, got {}", score.f1);
-        assert!(score.f1 < 1.0, "Partial overlap should give <1.0, got {}", score.f1);
+        assert!(
+            score.f1 > 0.5,
+            "Partial overlap should give >0.5, got {}",
+            score.f1
+        );
+        assert!(
+            score.f1 < 1.0,
+            "Partial overlap should give <1.0, got {}",
+            score.f1
+        );
     }
 
     #[test]

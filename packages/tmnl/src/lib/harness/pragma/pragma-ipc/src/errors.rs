@@ -195,9 +195,18 @@ mod tests {
         assert_eq!(method_not_found("test").code, codes::METHOD_NOT_FOUND);
         assert_eq!(invalid_params("test").code, codes::INVALID_PARAMS);
         assert_eq!(internal_error("test").code, codes::INTERNAL_ERROR);
-        assert_eq!(model_unavailable("test").code, pragma_codes::MODEL_UNAVAILABLE);
-        assert_eq!(model_corrupt("test", "test").code, pragma_codes::MODEL_CORRUPT);
-        assert_eq!(payload_too_large(100, 50).code, pragma_codes::PAYLOAD_TOO_LARGE);
+        assert_eq!(
+            model_unavailable("test").code,
+            pragma_codes::MODEL_UNAVAILABLE
+        );
+        assert_eq!(
+            model_corrupt("test", "test").code,
+            pragma_codes::MODEL_CORRUPT
+        );
+        assert_eq!(
+            payload_too_large(100, 50).code,
+            pragma_codes::PAYLOAD_TOO_LARGE
+        );
     }
 
     #[test]

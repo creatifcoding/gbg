@@ -42,7 +42,12 @@ fn rapid_fire_50_requests_all_responded() {
     let responses = batch_requests(&requests);
 
     // Every request should get a response
-    assert_eq!(responses.len(), 50, "Expected 50 responses, got {}", responses.len());
+    assert_eq!(
+        responses.len(),
+        50,
+        "Expected 50 responses, got {}",
+        responses.len()
+    );
 
     // All IDs should match
     let response_ids: std::collections::HashSet<u64> = responses
@@ -73,11 +78,14 @@ fn rapid_fire_mixed_methods() {
 #[test]
 fn malformed_json_between_valid_requests() {
     let input = concat!(
-        r#"{"jsonrpc":"2.0","id":1,"method":"warmup"}"#, "\n",
+        r#"{"jsonrpc":"2.0","id":1,"method":"warmup"}"#,
+        "\n",
         "this is not json\n",
-        r#"{"jsonrpc":"2.0","id":2,"method":"annotate","params":{"prompt":"chart"}}"#, "\n",
+        r#"{"jsonrpc":"2.0","id":2,"method":"annotate","params":{"prompt":"chart"}}"#,
+        "\n",
         "{incomplete json\n",
-        r#"{"jsonrpc":"2.0","id":3,"method":"warmup"}"#, "\n",
+        r#"{"jsonrpc":"2.0","id":3,"method":"warmup"}"#,
+        "\n",
     );
 
     let output = Command::cargo_bin("pragma-sidecar")

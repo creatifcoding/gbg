@@ -5,8 +5,12 @@ use pragma_ipc::types::*;
 #[test]
 fn intent_type_all_six_variants_serialize() {
     let variants = [
-        IntentType::Data, IntentType::Form, IntentType::Layout,
-        IntentType::Feedback, IntentType::Mixed, IntentType::Idle,
+        IntentType::Data,
+        IntentType::Form,
+        IntentType::Layout,
+        IntentType::Feedback,
+        IntentType::Mixed,
+        IntentType::Idle,
     ];
     for v in &variants {
         let json = serde_json::to_string(v).unwrap();
@@ -39,7 +43,10 @@ fn annotate_response_full_shape_golden() {
             hint: "Use for categorical data".into(),
         }],
         disambiguation: vec![],
-        hints: GenerationHints { temperature: 0.3, note: "High confidence DATA intent".into() },
+        hints: GenerationHints {
+            temperature: 0.3,
+            note: "High confidence DATA intent".into(),
+        },
         prefix_block: "```generation-context\n{}\n```".into(),
         sideband: Sideband {
             models_used: vec![ModelTier::Minilm],
@@ -59,7 +66,11 @@ fn annotate_response_full_shape_golden() {
 #[test]
 fn score_response_golden_with_bleurt() {
     let resp = ScoreResponse {
-        bertscore: BertScoreResult { precision: 0.85, recall: 0.78, f1: 0.813 },
+        bertscore: BertScoreResult {
+            precision: 0.85,
+            recall: 0.78,
+            f1: 0.813,
+        },
         bleurt: Some(0.72),
         drift_delta: 0.03,
         sideband: Sideband {
@@ -78,10 +89,18 @@ fn score_response_golden_with_bleurt() {
 #[test]
 fn score_response_golden_without_bleurt() {
     let resp = ScoreResponse {
-        bertscore: BertScoreResult { precision: 0.5, recall: 0.5, f1: 0.5 },
+        bertscore: BertScoreResult {
+            precision: 0.5,
+            recall: 0.5,
+            f1: 0.5,
+        },
         bleurt: None,
         drift_delta: 0.5,
-        sideband: Sideband { models_used: vec![], latency_ms: 0.1, catalog_recomputed: false },
+        sideband: Sideband {
+            models_used: vec![],
+            latency_ms: 0.1,
+            catalog_recomputed: false,
+        },
     };
 
     let json = serde_json::to_value(&resp).unwrap();

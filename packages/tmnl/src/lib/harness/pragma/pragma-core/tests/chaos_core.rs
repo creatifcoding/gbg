@@ -1,29 +1,49 @@
 //! pragma-core: Chaos tests — edge inputs, zero vectors, dimension mismatches, boundaries.
 
 use pragma_core::bertscore;
+use pragma_core::catalog::{CatalogEmbeddings, CatalogEntry};
 use pragma_core::drift;
 use pragma_core::encoder::Embedding;
-use pragma_core::catalog::{CatalogEmbeddings, CatalogEntry};
 
 fn emb(values: Vec<f32>) -> Embedding {
     let dim = values.len();
-    Embedding { values, dim, inference_ms: 0.0 }
+    Embedding {
+        values,
+        dim,
+        inference_ms: 0.0,
+    }
 }
 
 fn entry(name: &str, v: Vec<f32>) -> CatalogEntry {
-    CatalogEntry { name: name.into(), description: format!("{name} desc"), embedding: emb(v) }
+    CatalogEntry {
+        name: name.into(),
+        description: format!("{name} desc"),
+        embedding: emb(v),
+    }
 }
 
 // ─── BERTScore chaos ────────────────────────────────────────────────
 
 #[test]
-fn bertscore_empty_ref() { assert_eq!(bertscore::compute_from_embeddings(&[], &[vec![1.0]]).f1, 0.0); }
+fn bertscore_empty_ref() {
+    assert_eq!(
+        bertscore::compute_from_embeddings(&[], &[vec![1.0]]).f1,
+        0.0
+    );
+}
 
 #[test]
-fn bertscore_empty_hyp() { assert_eq!(bertscore::compute_from_embeddings(&[vec![1.0]], &[]).f1, 0.0); }
+fn bertscore_empty_hyp() {
+    assert_eq!(
+        bertscore::compute_from_embeddings(&[vec![1.0]], &[]).f1,
+        0.0
+    );
+}
 
 #[test]
-fn bertscore_both_empty() { assert_eq!(bertscore::compute_from_embeddings(&[], &[]).f1, 0.0); }
+fn bertscore_both_empty() {
+    assert_eq!(bertscore::compute_from_embeddings(&[], &[]).f1, 0.0);
+}
 
 #[test]
 fn bertscore_single_identical() {
@@ -45,7 +65,13 @@ fn bertscore_large_dim() {
 
 #[test]
 fn bertscore_100_pairs() {
-    let refs: Vec<Vec<f32>> = (0..100).map(|i| { let mut v = vec![0.0f32; 16]; v[i % 16] = 1.0; v }).collect();
+    let refs: Vec<Vec<f32>> = (0..100)
+        .map(|i| {
+            let mut v = vec![0.0f32; 16];
+            v[i % 16] = 1.0;
+            v
+        })
+        .collect();
     let r = bertscore::compute_from_embeddings(&refs, &refs);
     assert!((r.f1 - 1.0).abs() < 1e-5);
 }
@@ -56,19 +82,29 @@ fn bertscore_100_pairs() {
 fn drift_mismatched_lengths() {
     let b = vec![emb(vec![1.0, 0.0]); 10];
     let c = vec![emb(vec![1.0, 0.0]); 3];
-    assert_eq!(drift::detect(&b, &c, &drift::DriftConfig::default()).sample_count, 3);
+    assert_eq!(
+        drift::detect(&b, &c, &drift::DriftConfig::default()).sample_count,
+        3
+    );
 }
 
 #[test]
 fn drift_single_pair() {
-    let r = drift::detect(&[emb(vec![1.0, 0.0])], &[emb(vec![1.0, 0.0])], &drift::DriftConfig::default());
+    let r = drift::detect(
+        &[emb(vec![1.0, 0.0])],
+        &[emb(vec![1.0, 0.0])],
+        &drift::DriftConfig::default(),
+    );
     assert_eq!(r.sample_count, 1);
     assert!(!r.drift_detected);
 }
 
 #[test]
 fn drift_impossible_threshold() {
-    let cfg = drift::DriftConfig { alert_threshold: 1.1, window_size: 50 };
+    let cfg = drift::DriftConfig {
+        alert_threshold: 1.1,
+        window_size: 50,
+    };
     let embs = vec![emb(vec![1.0, 0.0])];
     assert!(drift::detect(&embs, &embs, &cfg).drift_detected);
 }
@@ -77,7 +113,9 @@ fn drift_impossible_threshold() {
 
 #[test]
 fn catalog_empty_rank() {
-    assert!(CatalogEmbeddings::new().rank(&emb(vec![1.0, 0.0])).is_empty());
+    assert!(CatalogEmbeddings::new()
+        .rank(&emb(vec![1.0, 0.0]))
+        .is_empty());
 }
 
 #[test]

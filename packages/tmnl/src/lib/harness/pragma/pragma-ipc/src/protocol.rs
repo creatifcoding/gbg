@@ -248,7 +248,12 @@ mod tests {
 
     #[test]
     fn method_roundtrip_str() {
-        for m in [Method::Warmup, Method::Annotate, Method::Score, Method::Shutdown] {
+        for m in [
+            Method::Warmup,
+            Method::Annotate,
+            Method::Score,
+            Method::Shutdown,
+        ] {
             assert_eq!(Method::from_str(m.as_str()), Some(m));
         }
     }

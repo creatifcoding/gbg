@@ -6,6 +6,6 @@
 //! - Ambiguity detection and disambiguation
 //! - Annotation prefix block builder (JSON generation-context)
 
-pub mod fsm;
 pub mod ambiguity;
+pub mod fsm;
 pub mod prefix;

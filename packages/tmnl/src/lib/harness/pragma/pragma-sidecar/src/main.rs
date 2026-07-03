@@ -171,7 +171,9 @@ fn handle_annotate(id: u64, params: &Option<serde_json::Value>) -> JsonRpcRespon
                 jsonrpc: protocol::JSONRPC_VERSION.to_string(),
                 id,
                 result: None,
-                error: Some(errors::invalid_params(format!("invalid annotate params: {e}"))),
+                error: Some(errors::invalid_params(format!(
+                    "invalid annotate params: {e}"
+                ))),
             };
         }
     };
@@ -182,7 +184,10 @@ fn handle_annotate(id: u64, params: &Option<serde_json::Value>) -> JsonRpcRespon
             jsonrpc: protocol::JSONRPC_VERSION.to_string(),
             id,
             result: None,
-            error: Some(errors::payload_too_large(annotate_params.prompt.len(), 1_000_000)),
+            error: Some(errors::payload_too_large(
+                annotate_params.prompt.len(),
+                1_000_000,
+            )),
         };
     }
 
@@ -211,7 +216,13 @@ fn handle_annotate(id: u64, params: &Option<serde_json::Value>) -> JsonRpcRespon
     };
 
     let hints = GenerationHints {
-        temperature: if confidence > 0.8 { 0.3 } else if confidence > 0.5 { 0.5 } else { 0.7 },
+        temperature: if confidence > 0.8 {
+            0.3
+        } else if confidence > 0.5 {
+            0.5
+        } else {
+            0.7
+        },
         note: ambiguity.reason.clone(),
     };
 
@@ -300,7 +311,11 @@ fn handle_score(id: u64, params: &Option<serde_json::Value>) -> JsonRpcResponse 
         let overlap = ref_tokens.intersection(&hyp_tokens).count() as f32;
         let p = overlap / hyp_tokens.len() as f32;
         let r = overlap / ref_tokens.len() as f32;
-        let f = if p + r > 0.0 { 2.0 * p * r / (p + r) } else { 0.0 };
+        let f = if p + r > 0.0 {
+            2.0 * p * r / (p + r)
+        } else {
+            0.0
+        };
         (p, r, f)
     };
 

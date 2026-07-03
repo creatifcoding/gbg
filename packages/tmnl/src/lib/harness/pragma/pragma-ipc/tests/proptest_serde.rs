@@ -21,7 +21,7 @@ fn arb_method() -> impl Strategy<Value = String> {
         Just("annotate".to_string()),
         Just("score".to_string()),
         Just("shutdown".to_string()),
-        "[a-z_]{1,30}",  // random method strings for unknown dispatch
+        "[a-z_]{1,30}", // random method strings for unknown dispatch
     ]
 }
 
@@ -30,7 +30,9 @@ fn arb_params() -> impl Strategy<Value = Option<serde_json::Value>> {
         Just(None),
         Just(Some(serde_json::json!({}))),
         Just(Some(serde_json::json!({"prompt": "test"}))),
-        Just(Some(serde_json::json!({"reference": "a", "hypothesis": "b"}))),
+        Just(Some(
+            serde_json::json!({"reference": "a", "hypothesis": "b"})
+        )),
         any::<String>().prop_map(|s| Some(serde_json::json!({"prompt": s}))),
     ]
 }

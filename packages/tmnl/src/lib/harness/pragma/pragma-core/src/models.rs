@@ -187,9 +187,7 @@ pub fn drift_baseline_path() -> PathBuf {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 fn home_dir() -> Option<PathBuf> {
-    std::env::var("HOME")
-        .ok()
-        .map(PathBuf::from)
+    std::env::var("HOME").ok().map(PathBuf::from)
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────
@@ -233,7 +231,8 @@ mod tests {
         for id in ModelId::all() {
             assert!(
                 id.required_files().contains(&"model.onnx"),
-                "{:?} missing model.onnx", id
+                "{:?} missing model.onnx",
+                id
             );
         }
     }

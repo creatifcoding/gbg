@@ -19,17 +19,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "_tag")]
 pub enum DomainResult<T> {
-    Ok {
-        value: T,
-    },
-    Degraded {
-        value: T,
-        warnings: Vec<String>,
-    },
-    Error {
-        code: String,
-        detail: String,
-    },
+    Ok { value: T },
+    Degraded { value: T, warnings: Vec<String> },
+    Error { code: String, detail: String },
 }
 
 impl<T> DomainResult<T> {
@@ -120,15 +112,9 @@ pub struct Candidate {
 #[serde(untagged)]
 pub enum DisambiguationEntry {
     /// Two or more components clash on the same semantic role.
-    Clash {
-        clash: Vec<String>,
-        reason: String,
-    },
+    Clash { clash: Vec<String>, reason: String },
     /// A term in the prompt has multiple possible referents.
-    Ambiguity {
-        ambiguity: String,
-        note: String,
-    },
+    Ambiguity { ambiguity: String, note: String },
 }
 
 // ─── Generation Hints ───────────────────────────────────────────────
@@ -333,9 +319,7 @@ mod tests {
     fn domain_result_degraded_carries_warnings() {
         let result: DomainResult<u32> = DomainResult::Degraded {
             value: 42,
-            warnings: vec![
-                "bert-base unavailable, using MiniLM fallback".to_string(),
-            ],
+            warnings: vec!["bert-base unavailable, using MiniLM fallback".to_string()],
         };
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains(r#""_tag":"Degraded""#));
@@ -381,13 +365,24 @@ mod tests {
 
     #[test]
     fn model_tier_serde_snake_case() {
-        assert_eq!(serde_json::to_string(&ModelTier::Minilm).unwrap(), r#""minilm""#);
-        assert_eq!(serde_json::to_string(&ModelTier::BertBase).unwrap(), r#""bert_base""#);
+        assert_eq!(
+            serde_json::to_string(&ModelTier::Minilm).unwrap(),
+            r#""minilm""#
+        );
+        assert_eq!(
+            serde_json::to_string(&ModelTier::BertBase).unwrap(),
+            r#""bert_base""#
+        );
     }
 
     #[test]
     fn drift_status_all_variants() {
-        for variant in [DriftStatus::Ok, DriftStatus::Warning, DriftStatus::Alert, DriftStatus::NoBaseline] {
+        for variant in [
+            DriftStatus::Ok,
+            DriftStatus::Warning,
+            DriftStatus::Alert,
+            DriftStatus::NoBaseline,
+        ] {
             let json = serde_json::to_string(&variant).unwrap();
             let parsed: DriftStatus = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, parsed);
@@ -415,12 +410,10 @@ mod tests {
                     hint: "layout container".to_string(),
                 },
             ],
-            disambiguation: vec![
-                DisambiguationEntry::Clash {
-                    clash: vec!["Card".to_string(), "Alert".to_string()],
-                    reason: "'status' maps to both surface types".to_string(),
-                },
-            ],
+            disambiguation: vec![DisambiguationEntry::Clash {
+                clash: vec!["Card".to_string(), "Alert".to_string()],
+                reason: "'status' maps to both surface types".to_string(),
+            }],
             hints: GenerationHints {
                 temperature: 0.3,
                 note: "high-confidence intent — prefer deterministic output".to_string(),

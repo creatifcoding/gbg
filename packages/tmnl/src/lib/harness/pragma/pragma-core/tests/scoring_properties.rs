@@ -66,5 +66,9 @@ fn bertscore_orthogonal_is_zero() {
     let hyp_embs = vec![vec![0.0, 1.0]];
 
     let result = bertscore::compute_from_embeddings(&ref_embs, &hyp_embs);
-    assert!(result.f1 < 0.01, "Orthogonal F1 should be ~0, got {}", result.f1);
+    assert!(
+        result.f1 < 0.01,
+        "Orthogonal F1 should be ~0, got {}",
+        result.f1
+    );
 }

@@ -1,7 +1,7 @@
 //! T2: Model loading failure mode tests — never panics, always returns safely.
 
-use pragma_core::models::ModelId;
 use pragma_core::loader::ModelRegistry;
+use pragma_core::models::ModelId;
 
 #[test]
 #[serial_test::serial]

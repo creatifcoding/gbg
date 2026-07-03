@@ -1,13 +1,17 @@
 //! T4: Snapshot regression for annotation pipeline output.
 
-use pragma_automata::{fsm, ambiguity, prefix};
+use pragma_automata::{ambiguity, fsm, prefix};
 use pragma_ipc::types::*;
 
 /// Compute a pseudo-confidence from FSM scores for test purposes.
 fn fsm_confidence(result: &fsm::FsmResult) -> f32 {
     let max_score = result.scores.iter().map(|(_, s)| *s).max().unwrap_or(0);
     let total: u32 = result.scores.iter().map(|(_, s)| *s).sum();
-    if total == 0 { 0.0 } else { max_score as f32 / total as f32 }
+    if total == 0 {
+        0.0
+    } else {
+        max_score as f32 / total as f32
+    }
 }
 
 fn mock_annotate(prompt: &str) -> AnnotateResponse {

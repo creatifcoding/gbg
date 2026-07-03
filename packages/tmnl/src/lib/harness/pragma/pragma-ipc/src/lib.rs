@@ -8,10 +8,10 @@
 //!
 //! The sidecar is advisory — callers must handle all failure modes gracefully.
 
-pub mod protocol;
 pub mod errors;
+pub mod protocol;
 pub mod types;
 
-pub use protocol::*;
 pub use errors::*;
+pub use protocol::*;
 pub use types::*;

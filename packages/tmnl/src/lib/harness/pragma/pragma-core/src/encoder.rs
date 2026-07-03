@@ -54,7 +54,12 @@ impl Embedding {
     pub fn cosine_similarity(&self, other: &Embedding) -> f32 {
         assert_eq!(self.dim, other.dim, "Embedding dimensions must match");
 
-        let dot: f32 = self.values.iter().zip(&other.values).map(|(a, b)| a * b).sum();
+        let dot: f32 = self
+            .values
+            .iter()
+            .zip(&other.values)
+            .map(|(a, b)| a * b)
+            .sum();
         let norm_a: f32 = self.values.iter().map(|x| x * x).sum::<f32>().sqrt();
         let norm_b: f32 = other.values.iter().map(|x| x * x).sum::<f32>().sqrt();
 
@@ -100,18 +105,16 @@ impl BertEncoder {
 
         // Load config
         let config_path = dir.join("config.json");
-        let config_str = std::fs::read_to_string(&config_path).map_err(|e| {
-            EncoderError::ConfigLoadFailed {
+        let config_str =
+            std::fs::read_to_string(&config_path).map_err(|e| EncoderError::ConfigLoadFailed {
                 path: config_path.display().to_string(),
                 detail: e.to_string(),
-            }
-        })?;
-        let config: BertConfig = serde_json::from_str(&config_str).map_err(|e| {
-            EncoderError::ConfigLoadFailed {
+            })?;
+        let config: BertConfig =
+            serde_json::from_str(&config_str).map_err(|e| EncoderError::ConfigLoadFailed {
                 path: config_path.display().to_string(),
                 detail: e.to_string(),
-            }
-        })?;
+            })?;
 
         let embedding_dim = config.hidden_size;
 
@@ -136,11 +139,9 @@ impl BertEncoder {
             });
         };
 
-        let model = BertModel::load(vb, &config).map_err(|e| {
-            EncoderError::WeightsLoadFailed {
-                path: dir.display().to_string(),
-                detail: format!("BertModel::load failed: {e}"),
-            }
+        let model = BertModel::load(vb, &config).map_err(|e| EncoderError::WeightsLoadFailed {
+            path: dir.display().to_string(),
+            detail: format!("BertModel::load failed: {e}"),
         })?;
 
         // Load tokenizer
@@ -150,8 +151,7 @@ impl BertEncoder {
             .unwrap_or(512);
 
         let tokenizer_path = dir.join("tokenizer.json");
-        let tokenizer =
-            PragmaTokenizer::from_file_with_max_length(&tokenizer_path, max_length)?;
+        let tokenizer = PragmaTokenizer::from_file_with_max_length(&tokenizer_path, max_length)?;
 
         log::info!(
             "BertEncoder loaded: {:?} (dim={}, device={:?})",
@@ -245,10 +245,7 @@ impl BertEncoder {
 ///
 /// Input:  output [batch, seq_len, hidden_size], mask [batch, seq_len]
 /// Output: [batch, hidden_size]
-fn mean_pool(
-    output: &Tensor,
-    attention_mask: &Tensor,
-) -> Result<Tensor, candle_core::Error> {
+fn mean_pool(output: &Tensor, attention_mask: &Tensor) -> Result<Tensor, candle_core::Error> {
     // Expand mask to [batch, seq_len, 1] for broadcasting
     let mask_expanded = attention_mask.unsqueeze(2)?;
 
@@ -282,7 +279,10 @@ mod tests {
             inference_ms: 0.0,
         };
         let sim = a.cosine_similarity(&a);
-        assert!((sim - 1.0).abs() < 1e-6, "Self-similarity should be ~1.0, got {sim}");
+        assert!(
+            (sim - 1.0).abs() < 1e-6,
+            "Self-similarity should be ~1.0, got {sim}"
+        );
     }
 
     #[test]
@@ -298,7 +298,10 @@ mod tests {
             inference_ms: 0.0,
         };
         let sim = a.cosine_similarity(&b);
-        assert!(sim.abs() < 1e-6, "Orthogonal vectors should have similarity ~0, got {sim}");
+        assert!(
+            sim.abs() < 1e-6,
+            "Orthogonal vectors should have similarity ~0, got {sim}"
+        );
     }
 
     #[test]
@@ -314,7 +317,10 @@ mod tests {
             inference_ms: 0.0,
         };
         let sim = a.cosine_similarity(&b);
-        assert!((sim + 1.0).abs() < 1e-6, "Opposite vectors should have similarity ~-1, got {sim}");
+        assert!(
+            (sim + 1.0).abs() < 1e-6,
+            "Opposite vectors should have similarity ~-1, got {sim}"
+        );
     }
 
     #[test]
@@ -360,8 +366,16 @@ mod tests {
     #[test]
     #[should_panic(expected = "dimensions must match")]
     fn cosine_similarity_dimension_mismatch_panics() {
-        let a = Embedding { values: vec![1.0], dim: 1, inference_ms: 0.0 };
-        let b = Embedding { values: vec![1.0, 2.0], dim: 2, inference_ms: 0.0 };
+        let a = Embedding {
+            values: vec![1.0],
+            dim: 1,
+            inference_ms: 0.0,
+        };
+        let b = Embedding {
+            values: vec![1.0, 2.0],
+            dim: 2,
+            inference_ms: 0.0,
+        };
         a.cosine_similarity(&b);
     }
 
@@ -396,7 +410,10 @@ mod tests {
         let a = encoder.encode("show me a dashboard with metrics").unwrap();
         let b = encoder.encode("display a metrics dashboard").unwrap();
         let sim = a.cosine_similarity(&b);
-        assert!(sim > 0.7, "Similar texts should have high similarity, got {sim}");
+        assert!(
+            sim > 0.7,
+            "Similar texts should have high similarity, got {sim}"
+        );
     }
 
     #[test]
@@ -408,6 +425,9 @@ mod tests {
         let a = encoder.encode("show me a dashboard with metrics").unwrap();
         let b = encoder.encode("what is the weather in paris").unwrap();
         let sim = a.cosine_similarity(&b);
-        assert!(sim < 0.5, "Different texts should have lower similarity, got {sim}");
+        assert!(
+            sim < 0.5,
+            "Different texts should have lower similarity, got {sim}"
+        );
     }
 }

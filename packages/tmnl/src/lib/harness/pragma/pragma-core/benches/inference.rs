@@ -15,9 +15,7 @@ fn bench_fsm_classify(c: &mut Criterion) {
         b.iter(|| fsm::classify("what is the meaning of life?"))
     });
 
-    c.bench_function("fsm_classify_empty", |b| {
-        b.iter(|| fsm::classify(""))
-    });
+    c.bench_function("fsm_classify_empty", |b| b.iter(|| fsm::classify("")));
 }
 
 fn bench_bertscore_token_overlap(c: &mut Criterion) {

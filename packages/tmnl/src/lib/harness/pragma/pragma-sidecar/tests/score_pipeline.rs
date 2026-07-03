@@ -36,10 +36,16 @@ fn extract_value(resp: &Value) -> &Value {
 
 #[test]
 fn identical_text_high_f1() {
-    let resp = score("show me a dashboard with metrics", "show me a dashboard with metrics");
+    let resp = score(
+        "show me a dashboard with metrics",
+        "show me a dashboard with metrics",
+    );
     let v = extract_value(&resp);
     let f1 = v["bertscore"]["f1"].as_f64().unwrap();
-    assert!((f1 - 1.0).abs() < 1e-6, "Identical text should have F1=1.0, got {f1}");
+    assert!(
+        (f1 - 1.0).abs() < 1e-6,
+        "Identical text should have F1=1.0, got {f1}"
+    );
 }
 
 #[test]
@@ -81,7 +87,10 @@ fn drift_delta_zero_for_identical() {
     let resp = score("show metrics dashboard", "show metrics dashboard");
     let v = extract_value(&resp);
     let drift = v["drift_delta"].as_f64().unwrap();
-    assert!(drift.abs() < 1e-6, "Identical text should have drift ~0, got {drift}");
+    assert!(
+        drift.abs() < 1e-6,
+        "Identical text should have drift ~0, got {drift}"
+    );
 }
 
 #[test]
@@ -89,7 +98,10 @@ fn drift_delta_positive_for_different() {
     let resp = score("show metrics dashboard", "create login form");
     let v = extract_value(&resp);
     let drift = v["drift_delta"].as_f64().unwrap();
-    assert!(drift > 0.0, "Different text should have positive drift, got {drift}");
+    assert!(
+        drift > 0.0,
+        "Different text should have positive drift, got {drift}"
+    );
 }
 
 // ─── BLEURT ─────────────────────────────────────────────────────────
@@ -99,7 +111,10 @@ fn bleurt_null_when_not_provisioned() {
     let resp = score("hello", "world");
     let v = extract_value(&resp);
     // BLEURT is None/null until ort session is wired
-    assert!(v["bleurt"].is_null(), "BLEURT should be null when not provisioned");
+    assert!(
+        v["bleurt"].is_null(),
+        "BLEURT should be null when not provisioned"
+    );
 }
 
 // ─── Sideband ───────────────────────────────────────────────────────
@@ -110,7 +125,10 @@ fn sideband_latency_present() {
     let v = extract_value(&resp);
     let latency = v["sideband"]["latency_ms"].as_f64().unwrap();
     assert!(latency >= 0.0);
-    assert!(latency < 50.0, "Token-overlap scoring should be <50ms, got {latency}");
+    assert!(
+        latency < 50.0,
+        "Token-overlap scoring should be <50ms, got {latency}"
+    );
 }
 
 #[test]
@@ -149,10 +167,16 @@ fn empty_hypothesis_zero_scores() {
 
 #[test]
 fn partial_overlap_intermediate_f1() {
-    let resp = score("show me a dashboard with data charts", "show me a form with data fields");
+    let resp = score(
+        "show me a dashboard with data charts",
+        "show me a form with data fields",
+    );
     let v = extract_value(&resp);
     let f1 = v["bertscore"]["f1"].as_f64().unwrap();
-    assert!(f1 > 0.0 && f1 < 1.0, "Partial overlap should give 0 < F1 < 1, got {f1}");
+    assert!(
+        f1 > 0.0 && f1 < 1.0,
+        "Partial overlap should give 0 < F1 < 1, got {f1}"
+    );
 }
 
 #[test]

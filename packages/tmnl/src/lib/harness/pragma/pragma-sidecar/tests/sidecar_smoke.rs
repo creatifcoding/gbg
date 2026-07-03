@@ -140,15 +140,24 @@ fn blank_lines_ignored() {
     // Should produce exactly 2 responses (warmup + shutdown), not errors for blanks
     let stdout = String::from_utf8(output.get_output().stdout.clone()).unwrap();
     let lines: Vec<&str> = stdout.lines().collect();
-    assert_eq!(lines.len(), 2, "Expected 2 responses, got {}: {:?}", lines.len(), lines);
+    assert_eq!(
+        lines.len(),
+        2,
+        "Expected 2 responses, got {}: {:?}",
+        lines.len(),
+        lines
+    );
 }
 
 #[test]
 fn multiple_requests_sequential() {
     let input = concat!(
-        r#"{"jsonrpc":"2.0","id":1,"method":"warmup"}"#, "\n",
-        r#"{"jsonrpc":"2.0","id":2,"method":"annotate","params":{"prompt":"test"}}"#, "\n",
-        r#"{"jsonrpc":"2.0","id":3,"method":"score","params":{"reference":"a","hypothesis":"b"}}"#, "\n",
+        r#"{"jsonrpc":"2.0","id":1,"method":"warmup"}"#,
+        "\n",
+        r#"{"jsonrpc":"2.0","id":2,"method":"annotate","params":{"prompt":"test"}}"#,
+        "\n",
+        r#"{"jsonrpc":"2.0","id":3,"method":"score","params":{"reference":"a","hypothesis":"b"}}"#,
+        "\n",
         r#"{"jsonrpc":"2.0","id":99,"method":"shutdown"}"#,
     );
     let mut cmd = sidecar_cmd();
@@ -168,7 +177,8 @@ fn multiple_requests_sequential() {
 #[test]
 fn each_response_is_valid_json_and_newline_terminated() {
     let input = concat!(
-        r#"{"jsonrpc":"2.0","id":1,"method":"warmup"}"#, "\n",
+        r#"{"jsonrpc":"2.0","id":1,"method":"warmup"}"#,
+        "\n",
         r#"{"jsonrpc":"2.0","id":99,"method":"shutdown"}"#,
     );
     let mut cmd = sidecar_cmd();

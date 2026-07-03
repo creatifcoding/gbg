@@ -31,10 +31,7 @@ pub enum LoadError {
     },
 
     #[error("ONNX session creation failed for {model}: {detail}")]
-    OnnxFailed {
-        model: String,
-        detail: String,
-    },
+    OnnxFailed { model: String, detail: String },
 }
 
 /// A loaded model instance ready for inference.

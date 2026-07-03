@@ -41,7 +41,10 @@ fn warmup_response_shape_snapshot() {
 
 #[test]
 fn annotate_data_response_shape_snapshot() {
-    let resp = send("annotate", Some(serde_json::json!({"prompt": "show me a bar chart"})));
+    let resp = send(
+        "annotate",
+        Some(serde_json::json!({"prompt": "show me a bar chart"})),
+    );
     let mut result = resp["result"]["value"].clone();
     if let Some(obj) = result.as_object_mut() {
         if let Some(sb) = obj.get_mut("sideband") {
@@ -58,7 +61,10 @@ fn annotate_data_response_shape_snapshot() {
 
 #[test]
 fn annotate_idle_response_shape_snapshot() {
-    let resp = send("annotate", Some(serde_json::json!({"prompt": "what is 2+2?"})));
+    let resp = send(
+        "annotate",
+        Some(serde_json::json!({"prompt": "what is 2+2?"})),
+    );
     let result = resp["result"]["value"].clone();
     insta::assert_json_snapshot!("sidecar_annotate_idle_shape", {
         ".sideband.latency_ms" => "[latency]",
@@ -68,10 +74,13 @@ fn annotate_idle_response_shape_snapshot() {
 
 #[test]
 fn score_response_shape_snapshot() {
-    let resp = send("score", Some(serde_json::json!({
-        "reference": "show me a chart",
-        "hypothesis": "show me a chart"
-    })));
+    let resp = send(
+        "score",
+        Some(serde_json::json!({
+            "reference": "show me a chart",
+            "hypothesis": "show me a chart"
+        })),
+    );
     let result = resp["result"]["value"].clone();
     insta::assert_json_snapshot!("sidecar_score_identical_shape", {
         ".sideband.latency_ms" => "[latency]",

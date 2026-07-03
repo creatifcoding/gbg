@@ -5,7 +5,11 @@ use pragma_core::encoder::Embedding;
 
 fn make_emb(values: Vec<f32>) -> Embedding {
     let dim = values.len();
-    Embedding { values, dim, inference_ms: 0.0 }
+    Embedding {
+        values,
+        dim,
+        inference_ms: 0.0,
+    }
 }
 
 // ─── CSDD detector tests ────────────────────────────────────────────
@@ -63,7 +67,10 @@ fn mild_perturbation_low_severity() {
 
     let report = drift::detect(&baseline, &perturbed, &DriftConfig::default());
     assert!(!report.drift_detected);
-    assert!(matches!(report.severity, DriftSeverity::None | DriftSeverity::Low));
+    assert!(matches!(
+        report.severity,
+        DriftSeverity::None | DriftSeverity::Low
+    ));
 }
 
 // ─── Delta tracking ─────────────────────────────────────────────────
@@ -178,9 +185,7 @@ fn ci_gate_fails_on_degraded_model() {
 
 #[test]
 fn custom_threshold_and_window() {
-    let embs: Vec<Embedding> = (0..100)
-        .map(|_| make_emb(vec![1.0, 0.0]))
-        .collect();
+    let embs: Vec<Embedding> = (0..100).map(|_| make_emb(vec![1.0, 0.0])).collect();
 
     let config = DriftConfig {
         alert_threshold: 0.99,

@@ -92,7 +92,10 @@ fn mixed_produces_disambiguation_entries() {
     let resp = annotate("create a dashboard with a login form and data chart visualization");
     let v = extract_value(&resp);
     let disambiguation = v["disambiguation"].as_array().unwrap();
-    assert!(!disambiguation.is_empty(), "Mixed intent should produce disambiguation entries");
+    assert!(
+        !disambiguation.is_empty(),
+        "Mixed intent should produce disambiguation entries"
+    );
 }
 
 #[test]
@@ -111,7 +114,10 @@ fn prefix_block_is_fenced_json() {
     let resp = annotate("show me a table of metrics");
     let v = extract_value(&resp);
     let prefix = v["prefix_block"].as_str().unwrap();
-    assert!(prefix.starts_with("```generation-context\n"), "prefix should start with fence");
+    assert!(
+        prefix.starts_with("```generation-context\n"),
+        "prefix should start with fence"
+    );
     assert!(prefix.ends_with("\n```"), "prefix should end with fence");
 }
 
@@ -120,7 +126,10 @@ fn prefix_block_contains_intent() {
     let resp = annotate("show me a bar chart of data");
     let v = extract_value(&resp);
     let prefix = v["prefix_block"].as_str().unwrap();
-    assert!(prefix.contains("\"Data\""), "prefix should contain intent type");
+    assert!(
+        prefix.contains("\"Data\""),
+        "prefix should contain intent type"
+    );
 }
 
 #[test]
@@ -128,7 +137,10 @@ fn prefix_block_contains_confidence() {
     let resp = annotate("create a form with input fields");
     let v = extract_value(&resp);
     let prefix = v["prefix_block"].as_str().unwrap();
-    assert!(prefix.contains("confidence"), "prefix should contain confidence");
+    assert!(
+        prefix.contains("confidence"),
+        "prefix should contain confidence"
+    );
 }
 
 // ─── Hints ──────────────────────────────────────────────────────────
@@ -136,7 +148,8 @@ fn prefix_block_contains_confidence() {
 #[test]
 fn hints_temperature_varies_with_confidence() {
     // High confidence → lower temperature
-    let data_resp = annotate("show me a chart graph with data table and metrics visualization plot");
+    let data_resp =
+        annotate("show me a chart graph with data table and metrics visualization plot");
     let data_v = extract_value(&data_resp);
     let data_temp = data_v["hints"]["temperature"].as_f64().unwrap();
 
@@ -167,7 +180,10 @@ fn sideband_has_latency() {
     let v = extract_value(&resp);
     let latency = v["sideband"]["latency_ms"].as_f64().unwrap();
     assert!(latency >= 0.0, "latency should be non-negative");
-    assert!(latency < 100.0, "FSM-only latency should be <100ms, got {latency}");
+    assert!(
+        latency < 100.0,
+        "FSM-only latency should be <100ms, got {latency}"
+    );
 }
 
 #[test]
@@ -205,7 +221,10 @@ fn error_params_returns_json_rpc_error() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let resp: Value = serde_json::from_str(stdout.lines().next().unwrap()).unwrap();
-    assert!(resp["error"].is_object(), "should return JSON-RPC error for bad params");
+    assert!(
+        resp["error"].is_object(),
+        "should return JSON-RPC error for bad params"
+    );
     assert_eq!(resp["error"]["code"], -32602); // Invalid params
 }
 

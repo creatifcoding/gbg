@@ -59,7 +59,10 @@ fn classification_matrix_snapshot() {
     for (prompt, expected) in &cases {
         let result = fsm::classify(prompt);
         let actual = format!("{:?}", result.intent);
-        matrix.push_str(&format!("{:30} → {:10} (expected: {})\n", prompt, actual, expected));
+        matrix.push_str(&format!(
+            "{:30} → {:10} (expected: {})\n",
+            prompt, actual, expected
+        ));
     }
     insta::assert_snapshot!("fsm_classification_matrix", matrix);
 }
@@ -86,8 +89,12 @@ fn adversarial_injection_does_not_crash() {
         let result = fsm::classify(input);
         // Must not panic, must return valid enum
         match result.intent {
-            IntentType::Data | IntentType::Form | IntentType::Layout |
-            IntentType::Feedback | IntentType::Mixed | IntentType::Idle => {}
+            IntentType::Data
+            | IntentType::Form
+            | IntentType::Layout
+            | IntentType::Feedback
+            | IntentType::Mixed
+            | IntentType::Idle => {}
         }
     }
 }
@@ -95,12 +102,12 @@ fn adversarial_injection_does_not_crash() {
 #[test]
 fn adversarial_unicode_edge_cases() {
     let cases = vec![
-        "c̷h̵a̶r̷t̶",     // Zalgo
-        "ᴄʜᴀʀᴛ",          // Small caps
-        "ⓒⓗⓐⓡⓣ",          // Enclosed
-        "𝐜𝐡𝐚𝐫𝐭",     // Bold
-        "chart\u{200B}",  // Zero-width space
-        "chart\u{FEFF}",  // BOM
+        "c̷h̵a̶r̷t̶",         // Zalgo
+        "ᴄʜᴀʀᴛ",         // Small caps
+        "ⓒⓗⓐⓡⓣ",         // Enclosed
+        "𝐜𝐡𝐚𝐫𝐭",         // Bold
+        "chart\u{200B}", // Zero-width space
+        "chart\u{FEFF}", // BOM
     ];
 
     for input in cases {

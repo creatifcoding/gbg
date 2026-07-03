@@ -59,11 +59,7 @@ impl Default for DriftConfig {
 /// `current`: embeddings from the current model.
 ///
 /// Both must be paired (same input texts, same order).
-pub fn detect(
-    baseline: &[Embedding],
-    current: &[Embedding],
-    config: &DriftConfig,
-) -> DriftReport {
+pub fn detect(baseline: &[Embedding], current: &[Embedding], config: &DriftConfig) -> DriftReport {
     if baseline.is_empty() || current.is_empty() {
         return DriftReport {
             mean_similarity: 0.0,
@@ -83,10 +79,7 @@ pub fn detect(
         .collect();
 
     let mean_similarity = similarities.iter().sum::<f32>() / similarities.len() as f32;
-    let min_similarity = similarities
-        .iter()
-        .cloned()
-        .fold(f32::INFINITY, f32::min);
+    let min_similarity = similarities.iter().cloned().fold(f32::INFINITY, f32::min);
 
     let drift_detected = mean_similarity < config.alert_threshold;
 

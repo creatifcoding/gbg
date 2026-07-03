@@ -69,7 +69,11 @@ fn golden_corpus_intent_accuracy() {
         let expected = entry["expected_intent"].as_str().unwrap();
         let alternatives: Vec<String> = entry["alternatives"]
             .as_array()
-            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
 
         let (actual, confidence) = classify_via_sidecar(prompt);
@@ -92,7 +96,10 @@ fn golden_corpus_intent_accuracy() {
     eprintln!("\n=== Golden Corpus Eval ===");
     eprintln!("  Total entries: {total}");
     eprintln!("  Exact matches: {exact_matches} ({exact_pct:.1}%)");
-    eprintln!("  With alternatives: {} ({with_alts_pct:.1}%)", exact_matches + alt_matches);
+    eprintln!(
+        "  With alternatives: {} ({with_alts_pct:.1}%)",
+        exact_matches + alt_matches
+    );
     eprintln!("  Failures: {}", failures.len());
 
     if !failures.is_empty() {

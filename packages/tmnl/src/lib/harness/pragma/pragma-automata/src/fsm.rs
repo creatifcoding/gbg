@@ -26,50 +26,136 @@ const INTENT_LEXICON: &[IntentPatterns] = &[
     IntentPatterns {
         intent: IntentType::Data,
         primary: &[
-            "chart", "graph", "table", "metric", "metrics", "data", "dataset",
-            "visualization", "plot", "histogram", "bar chart", "line chart",
-            "pie chart", "scatter", "timeseries", "time series", "sparkline",
-            "kpi", "analytics",
+            "chart",
+            "graph",
+            "table",
+            "metric",
+            "metrics",
+            "data",
+            "dataset",
+            "visualization",
+            "plot",
+            "histogram",
+            "bar chart",
+            "line chart",
+            "pie chart",
+            "scatter",
+            "timeseries",
+            "time series",
+            "sparkline",
+            "kpi",
+            "analytics",
         ],
         secondary: &[
-            "show", "display", "render", "values", "numbers", "statistics",
-            "stats", "trend", "compare", "aggregate", "summary",
+            "show",
+            "display",
+            "render",
+            "values",
+            "numbers",
+            "statistics",
+            "stats",
+            "trend",
+            "compare",
+            "aggregate",
+            "summary",
         ],
     },
     IntentPatterns {
         intent: IntentType::Form,
         primary: &[
-            "form", "input", "field", "checkbox", "radio", "select", "dropdown",
-            "textarea", "submit", "validation", "login", "signup", "register",
-            "settings", "preferences", "profile", "editor",
+            "form",
+            "input",
+            "field",
+            "checkbox",
+            "radio",
+            "select",
+            "dropdown",
+            "textarea",
+            "submit",
+            "validation",
+            "login",
+            "signup",
+            "register",
+            "settings",
+            "preferences",
+            "profile",
+            "editor",
         ],
         secondary: &[
-            "enter", "fill", "type", "choose", "pick", "toggle",
-            "switch", "configure", "option", "save", "update",
+            "enter",
+            "fill",
+            "type",
+            "choose",
+            "pick",
+            "toggle",
+            "switch",
+            "configure",
+            "option",
+            "save",
+            "update",
         ],
     },
     IntentPatterns {
         intent: IntentType::Layout,
         primary: &[
-            "dashboard", "layout", "grid", "panel", "sidebar", "navigation",
-            "nav", "header", "footer", "toolbar", "tab", "tabs", "page",
-            "workspace", "canvas", "split", "columns", "rows",
+            "dashboard",
+            "layout",
+            "grid",
+            "panel",
+            "sidebar",
+            "navigation",
+            "nav",
+            "header",
+            "footer",
+            "toolbar",
+            "tab",
+            "tabs",
+            "page",
+            "workspace",
+            "canvas",
+            "split",
+            "columns",
+            "rows",
         ],
         secondary: &[
-            "arrange", "organize", "section", "area", "container", "view",
-            "screen", "compose", "structure", "place", "position",
+            "arrange",
+            "organize",
+            "section",
+            "area",
+            "container",
+            "view",
+            "screen",
+            "compose",
+            "structure",
+            "place",
+            "position",
         ],
     },
     IntentPatterns {
         intent: IntentType::Feedback,
         primary: &[
-            "alert", "notification", "toast", "error", "warning", "success",
-            "info", "banner", "badge", "status", "progress", "loading",
-            "spinner", "skeleton", "dialog", "modal", "confirm", "snackbar",
+            "alert",
+            "notification",
+            "toast",
+            "error",
+            "warning",
+            "success",
+            "info",
+            "banner",
+            "badge",
+            "status",
+            "progress",
+            "loading",
+            "spinner",
+            "skeleton",
+            "dialog",
+            "modal",
+            "confirm",
+            "snackbar",
         ],
         secondary: &[
-            "message", "tell", "inform", "indicate", "signal", "announce",
-            "feedback", "response", "result", "state",
+            "message", "tell", "inform", "indicate", "signal", "announce", "feedback", "response",
+            "result", "state",
         ],
     },
 ];
@@ -228,8 +314,16 @@ mod tests {
     fn scores_are_populated() {
         let r = classify("show a chart");
         assert_eq!(r.scores.len(), 4); // 4 intent categories
-        let data_score = r.scores.iter().find(|(i, _)| *i == IntentType::Data).unwrap().1;
-        assert!(data_score >= 2, "Data score should be >= 2 for 'chart', got {data_score}");
+        let data_score = r
+            .scores
+            .iter()
+            .find(|(i, _)| *i == IntentType::Data)
+            .unwrap()
+            .1;
+        assert!(
+            data_score >= 2,
+            "Data score should be >= 2 for 'chart', got {data_score}"
+        );
     }
 
     #[test]
@@ -250,7 +344,15 @@ mod tests {
     fn multi_word_phrase_matching() {
         let r = classify("show me a line chart of sales over time");
         assert_eq!(r.intent, IntentType::Data);
-        let data_score = r.scores.iter().find(|(i, _)| *i == IntentType::Data).unwrap().1;
-        assert!(data_score >= 4, "line chart + show should score high, got {data_score}");
+        let data_score = r
+            .scores
+            .iter()
+            .find(|(i, _)| *i == IntentType::Data)
+            .unwrap()
+            .1;
+        assert!(
+            data_score >= 4,
+            "line chart + show should score high, got {data_score}"
+        );
     }
 }

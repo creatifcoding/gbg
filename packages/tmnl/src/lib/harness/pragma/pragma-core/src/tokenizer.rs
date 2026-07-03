@@ -56,12 +56,11 @@ impl PragmaTokenizer {
         max_length: usize,
     ) -> Result<Self, TokenizerError> {
         let path_str = path.as_ref().to_string_lossy().to_string();
-        let mut tokenizer = Tokenizer::from_file(path.as_ref()).map_err(|e| {
-            TokenizerError::LoadFailed {
+        let mut tokenizer =
+            Tokenizer::from_file(path.as_ref()).map_err(|e| TokenizerError::LoadFailed {
                 path: path_str,
                 source: e.into(),
-            }
-        })?;
+            })?;
 
         // Configure truncation
         let _ = tokenizer.with_truncation(Some(tokenizers::TruncationParams {
@@ -110,11 +109,7 @@ impl PragmaTokenizer {
     /// Encode a pair of sequences (for scoring: reference [SEP] hypothesis).
     ///
     /// Returns [CLS] ref_tokens [SEP] hyp_tokens [SEP] with padding.
-    pub fn encode_pair(
-        &self,
-        text_a: &str,
-        text_b: &str,
-    ) -> Result<Encoded, TokenizerError> {
+    pub fn encode_pair(&self, text_a: &str, text_b: &str) -> Result<Encoded, TokenizerError> {
         let encoding = self
             .inner
             .encode((text_a, text_b), true)
@@ -194,7 +189,9 @@ mod tests {
     #[test]
     fn encode_pair_has_two_segments() {
         if let Some(tok) = get_test_tokenizer() {
-            let encoded = tok.encode_pair("reference text", "hypothesis text").unwrap();
+            let encoded = tok
+                .encode_pair("reference text", "hypothesis text")
+                .unwrap();
             assert_eq!(encoded.input_ids.len(), 128);
 
             // Should have both segment 0 and segment 1 in token_type_ids

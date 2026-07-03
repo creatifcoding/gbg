@@ -11,7 +11,13 @@ fn load_corpus() -> Vec<serde_json::Value> {
         .join("test-data/golden-corpus");
 
     let mut entries = Vec::new();
-    for name in &["core.json", "mixed.json", "edge.json", "adversarial.json", "out-of-scope.json"] {
+    for name in &[
+        "core.json",
+        "mixed.json",
+        "edge.json",
+        "adversarial.json",
+        "out-of-scope.json",
+    ] {
         let path = corpus_dir.join(name);
         if path.exists() {
             let data: Vec<serde_json::Value> =
@@ -25,7 +31,11 @@ fn load_corpus() -> Vec<serde_json::Value> {
 #[test]
 fn corpus_loads_all_entries() {
     let entries = load_corpus();
-    assert!(entries.len() >= 50, "Expected >= 50 corpus entries, got {}", entries.len());
+    assert!(
+        entries.len() >= 50,
+        "Expected >= 50 corpus entries, got {}",
+        entries.len()
+    );
 }
 
 #[test]
@@ -34,7 +44,11 @@ fn all_entries_have_required_fields() {
     for e in &entries {
         assert!(e["id"].is_string(), "Missing id: {:?}", e);
         assert!(e["prompt"].is_string(), "Missing prompt in {}", e["id"]);
-        assert!(e["expected_intent"].is_string(), "Missing expected_intent in {}", e["id"]);
+        assert!(
+            e["expected_intent"].is_string(),
+            "Missing expected_intent in {}",
+            e["id"]
+        );
         assert!(e["category"].is_string(), "Missing category in {}", e["id"]);
     }
 }
@@ -45,7 +59,12 @@ fn intent_values_are_valid() {
     let entries = load_corpus();
     for e in &entries {
         let intent = e["expected_intent"].as_str().unwrap();
-        assert!(valid.contains(&intent), "Invalid intent '{}' in {}", intent, e["id"]);
+        assert!(
+            valid.contains(&intent),
+            "Invalid intent '{}' in {}",
+            intent,
+            e["id"]
+        );
     }
 }
 

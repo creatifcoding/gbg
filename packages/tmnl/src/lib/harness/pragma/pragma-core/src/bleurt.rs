@@ -60,7 +60,10 @@ impl BleurtScorer {
         let tokenizer_path = dir.join("tokenizer.json");
 
         if !onnx_path.exists() {
-            log::warn!("BLEURT model not provisioned at {:?} — scorer unavailable", dir);
+            log::warn!(
+                "BLEURT model not provisioned at {:?} — scorer unavailable",
+                dir
+            );
             return Ok(Self {
                 tokenizer: None,
                 model_dir: dir.to_path_buf(),
@@ -69,7 +72,10 @@ impl BleurtScorer {
         }
 
         let tokenizer = if tokenizer_path.exists() {
-            Some(PragmaTokenizer::from_file_with_max_length(&tokenizer_path, 512)?)
+            Some(PragmaTokenizer::from_file_with_max_length(
+                &tokenizer_path,
+                512,
+            )?)
         } else {
             None
         };

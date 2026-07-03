@@ -95,7 +95,11 @@ impl CatalogEmbeddings {
             .collect();
 
         // Sort descending by similarity
-        scored.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| {
+            b.similarity
+                .partial_cmp(&a.similarity)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // Assign ranks
         for (i, m) in scored.iter_mut().enumerate() {
@@ -131,8 +135,7 @@ impl CatalogEmbeddings {
     /// Format: [u32 count] [entries...]
     /// Each entry: [u32 name_len] [name_bytes] [u32 desc_len] [desc_bytes] [u32 dim] [f32 * dim]
     pub fn save(&self, path: &Path) -> Result<(), CatalogError> {
-        let file = std::fs::File::create(path)
-            .map_err(|e| CatalogError::IoError(e.to_string()))?;
+        let file = std::fs::File::create(path).map_err(|e| CatalogError::IoError(e.to_string()))?;
         let mut w = BufWriter::new(file);
 
         // Header: count
@@ -163,22 +166,26 @@ impl CatalogEmbeddings {
             }
         }
 
-        w.flush().map_err(|e| CatalogError::IoError(e.to_string()))?;
-        log::info!("CatalogEmbeddings: saved {} entries to {:?}", self.entries.len(), path);
+        w.flush()
+            .map_err(|e| CatalogError::IoError(e.to_string()))?;
+        log::info!(
+            "CatalogEmbeddings: saved {} entries to {:?}",
+            self.entries.len(),
+            path
+        );
         Ok(())
     }
 
     /// Load embeddings from binary cache file.
     pub fn load(path: &Path) -> Result<Self, CatalogError> {
-        let file = std::fs::File::open(path)
-            .map_err(|e| CatalogError::IoError(e.to_string()))?;
+        let file = std::fs::File::open(path).map_err(|e| CatalogError::IoError(e.to_string()))?;
         let mut r = BufReader::new(file);
 
         let count = read_u32(&mut r)? as usize;
         if count > 100_000 {
-            return Err(CatalogError::CorruptCache(
-                format!("Entry count {count} exceeds 100k safety limit"),
-            ));
+            return Err(CatalogError::CorruptCache(format!(
+                "Entry count {count} exceeds 100k safety limit"
+            )));
         }
         let mut entries = Vec::with_capacity(count);
 
@@ -203,7 +210,11 @@ impl CatalogEmbeddings {
             });
         }
 
-        log::info!("CatalogEmbeddings: loaded {} entries from {:?}", entries.len(), path);
+        log::info!(
+            "CatalogEmbeddings: loaded {} entries from {:?}",
+            entries.len(),
+            path
+        );
         Ok(Self { entries })
     }
 
@@ -217,8 +228,7 @@ impl CatalogEmbeddings {
     pub fn save_default(&self) -> Result<(), CatalogError> {
         let path = models::catalog_embeddings_path();
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| CatalogError::IoError(e.to_string()))?;
+            std::fs::create_dir_all(parent).map_err(|e| CatalogError::IoError(e.to_string()))?;
         }
         self.save(&path)
     }
@@ -262,9 +272,9 @@ fn read_f32(r: &mut impl Read) -> Result<f32, CatalogError> {
 fn read_string(r: &mut impl Read) -> Result<String, CatalogError> {
     let len = read_u32(r)? as usize;
     if len > 1_000_000 {
-        return Err(CatalogError::CorruptCache(
-            format!("String length {len} exceeds 1MB safety limit"),
-        ));
+        return Err(CatalogError::CorruptCache(format!(
+            "String length {len} exceeds 1MB safety limit"
+        )));
     }
     let mut buf = vec![0u8; len];
     r.read_exact(&mut buf)
@@ -377,10 +387,7 @@ mod tests {
     #[test]
     fn embeddings_returns_all() {
         let catalog = CatalogEmbeddings {
-            entries: vec![
-                mock_entry("A", vec![1.0]),
-                mock_entry("B", vec![2.0]),
-            ],
+            entries: vec![mock_entry("A", vec![1.0]), mock_entry("B", vec![2.0])],
         };
         let embs = catalog.embeddings();
         assert_eq!(embs.len(), 2);

@@ -120,7 +120,10 @@ fn analyze_weak_single(fsm: &FsmResult) -> AmbiguityReport {
         should_escalate: winner.1 < 4,
         confidence: (winner.1 as f32 / 10.0).min(1.0),
         disambiguation: vec![],
-        reason: format!("Single active category {:?} with score {}", winner.0, winner.1),
+        reason: format!(
+            "Single active category {:?} with score {}",
+            winner.0, winner.1
+        ),
     }
 }
 
@@ -181,10 +184,14 @@ mod tests {
         let fsm_result =
             fsm::classify("create a dashboard with a form for data input and chart visualization");
         let report = analyze(&fsm_result);
-        let has_clash = report.disambiguation.iter().any(|d| {
-            matches!(d, DisambiguationEntry::Clash { .. })
-        });
-        assert!(has_clash, "Mixed result should produce a Clash disambiguation");
+        let has_clash = report
+            .disambiguation
+            .iter()
+            .any(|d| matches!(d, DisambiguationEntry::Clash { .. }));
+        assert!(
+            has_clash,
+            "Mixed result should produce a Clash disambiguation"
+        );
     }
 
     #[test]
