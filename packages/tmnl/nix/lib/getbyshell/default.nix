@@ -29,7 +29,7 @@
         bar = {
           enable = true;
           port = 1421;
-          layer = "top";
+          layer = "overlay";
           viteConfig = "vite.config.shell.ts";
           tauriDir = "src-shell-tauri";
           rustLog = "tmnl_shell=debug,tmnl_shared=debug";
