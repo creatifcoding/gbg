@@ -14,15 +14,19 @@
       "url": "https://mcp.context7.com/mcp"
     },
     "effect-docs": {
-      "type": "stdio", 
+      "type": "stdio",
       "command": "bunx",
-      "args": ["effect-mcp@latest"],
+      "args": [
+        "effect-mcp@latest"
+      ],
       "env": {}
     },
     "anime-js": {
       "type": "stdio",
       "command": "bunx",
-      "args": ["anime-js-mcp-server"],
+      "args": [
+        "anime-js-mcp-server"
+      ],
       "env": {}
     },
     "nia": {
@@ -35,7 +39,9 @@
     "firecrawl": {
       "type": "stdio",
       "command": "bunx",
-      "args": ["firecrawl-mcp"],
+      "args": [
+        "firecrawl-mcp"
+      ],
       "env": {
         "FIRECRAWL_API_KEY": "fc-a27a281ff25446b799fe521044eefe65"
       }
@@ -43,8 +49,15 @@
     "agentation": {
       "type": "stdio",
       "command": "bunx",
-      "args": ["agentation-mcp", "server"],
+      "args": [
+        "agentation-mcp",
+        "server"
+      ],
       "env": {}
+    },
+    "plan": {
+      "type": "http",
+      "url": "https://plan.agent-native.com/_agent-native/mcp"
     }
   }
 }
