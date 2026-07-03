@@ -64,3 +64,18 @@ auth.json
 .nix-mix/
 scripts/panel-regression/runs/*
 !scripts/panel-regression/runs/.gitkeep
+
+# pi CLI runtime state (ephemeral)
+.pi/workflows/
+.pi/extensions.log
+.pi/mcp-tools-cache.json
+.pi/mcp-tools-cache.json.bak-*
+.pi/messenger/feed.jsonl
+
+# Agent session ephemera
+.agents/sessions.log
+
+# tldr daemon runtime state
+.tldr/daemon.pid
+.tldr/stats/
+.tldr/status

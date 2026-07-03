@@ -116,3 +116,11 @@ packages/theia-ide/lib/
 # Repomix outputs
 .agents/context/repomix/
 packages/tmnl/agent-browser
+
+# pi CLI runtime state (root-level, ephemeral)
+.pi/workflows/
+.pi/extensions.log
+.pi/mcp-tools-cache.json
+.pi/mcp-tools-cache.json.bak-*
+.pi/messenger/feed.jsonl
+.pi/lotprophet-wireflow-research/sources/
