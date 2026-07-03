@@ -35,13 +35,16 @@ export const ChatMessageBodyContentRoot = forwardRef<HTMLDivElement, ChatMessage
         data-slot="tmnl-chat-message-body-content"
         data-streaming={streaming || undefined}
         className={cn(
-          'flex-1 min-w-0 font-chat text-neutral-200 leading-relaxed',
-          'break-words',
+          'flex-1 min-w-0 max-w-full font-chat text-neutral-200 leading-relaxed',
+          'break-words whitespace-normal',
           className,
         )}
         style={{
           fontSize: 'var(--tmnl-text-sm, 12px)',
+          minWidth: 0,
+          maxWidth: '100%',
           overflowWrap: 'anywhere',
+          wordBreak: 'normal',
         }}
         {...props}
       >

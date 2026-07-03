@@ -77,12 +77,12 @@ export const ChatMessageShellRoot = forwardRef<HTMLElement, ChatMessageShellRoot
           data-role={role}
           data-streaming={streaming || undefined}
           className={cn(
-            'relative flex gap-3 overflow-hidden',
+            'relative flex min-w-0 max-w-full gap-3 overflow-visible',
             role === 'user' ? 'flex-row-reverse' : 'flex-row',
             ROLE_PADDING[role],
             ROLE_ALIGNMENT[role],
             ROLE_MAX_WIDTH[role],
-            role === 'user' ? 'w-fit' : 'w-full',
+            'w-full',
             'group/message',
             // EPOCH-0005: Border dissolve on stream completion.
             // Always render the 2px border — toggle color from cyan to transparent.

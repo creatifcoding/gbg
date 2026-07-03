@@ -29,7 +29,11 @@ export interface ModelOption {
   readonly color?: string
   /** Whether this model supports reasoning/thinking controls */
   readonly reasoning?: boolean
+  /** False when the model is known but its provider is not authenticated. */
+  readonly available?: boolean
 }
+
+type ModelTab = 'available' | 'locked'
 
 interface ContextValue {
   open: boolean
@@ -38,6 +42,10 @@ interface ContextValue {
   models: ReadonlyArray<ModelOption>
   filtered: ReadonlyArray<ModelOption>
   selected: ModelOption | undefined
+  tab: ModelTab
+  setTab: (tab: ModelTab) => void
+  availableCount: number
+  lockedCount: number
   loading: boolean
   error: string | null
   justSelected: boolean
@@ -72,6 +80,22 @@ const PROVIDER_COLORS: Record<string, string> = {
 function accent(model: ModelOption | undefined, fallback = '#22d3ee'): string {
   if (!model) return fallback
   return model.color ?? PROVIDER_COLORS[model.provider.toLowerCase()] ?? PROVIDER_COLORS.default
+}
+
+function isModelAuthenticated(model: ModelOption): boolean {
+  return model.available !== false
+}
+
+function sortModelOptionsForDisplay(models: ReadonlyArray<ModelOption>): ReadonlyArray<ModelOption> {
+  return models
+    .map((model, index) => ({ model, index }))
+    .sort((a, b) => {
+      const authA = isModelAuthenticated(a.model) ? 0 : 1
+      const authB = isModelAuthenticated(b.model) ? 0 : 1
+      if (authA !== authB) return authA - authB
+      return a.index - b.index
+    })
+    .map(({ model }) => model)
 }
 
 /** Convert hex to rgba string */
@@ -113,22 +137,38 @@ function Root({
 }: ModelSelectorRootProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [tab, setTabState] = useState<ModelTab>('available')
   const [justSelected, setJustSelected] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const flashTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const selected = useMemo(() => models.find((m) => m.id === selectedId), [models, selectedId])
+  const displayModels = useMemo(() => sortModelOptionsForDisplay(models), [models])
+  const selected = useMemo(() => displayModels.find((m) => m.id === selectedId), [displayModels, selectedId])
+  const availableCount = useMemo(
+    () => displayModels.filter(isModelAuthenticated).length,
+    [displayModels],
+  )
+  const lockedCount = displayModels.length - availableCount
+  const tabModels = useMemo(
+    () => displayModels.filter((model) => tab === 'available' ? isModelAuthenticated(model) : !isModelAuthenticated(model)),
+    [displayModels, tab],
+  )
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return models
+    if (!search.trim()) return tabModels
     const q = search.toLowerCase()
-    return models.filter(
+    return tabModels.filter(
       (m) => m.id.toLowerCase().includes(q) || m.label.toLowerCase().includes(q) ||
              m.provider.toLowerCase().includes(q) || m.description?.toLowerCase().includes(q),
     )
-  }, [models, search])
+  }, [tabModels, search])
 
-  useEffect(() => { if (!open) setSearch('') }, [open])
+  useEffect(() => {
+    if (!open) {
+      setSearch('')
+      setTabState('available')
+    }
+  }, [open])
   useEffect(() => { if (open) requestAnimationFrame(() => searchRef.current?.focus()) }, [open])
   useEffect(() => () => { clearTimeout(flashTimerRef.current) }, [])
 
@@ -141,14 +181,19 @@ function Root({
   }, [onSelect])
 
   const clearSearch = useCallback(() => setSearch(''), [])
+  const setTab = useCallback((nextTab: ModelTab) => {
+    setTabState(nextTab)
+    setSearch('')
+  }, [])
 
   const ctx = useMemo<ContextValue>(
     () => ({
-      open, search, selectedId, models, filtered, selected, loading,
+      open, search, selectedId, models: displayModels, filtered, selected,
+      tab, setTab, availableCount, lockedCount, loading,
       error: errorProp, justSelected, select, setSearch, clearSearch,
       retry: onRetry, searchRef,
     }),
-    [open, search, selectedId, models, filtered, selected, loading, errorProp, justSelected, select, clearSearch, onRetry],
+    [open, search, selectedId, displayModels, filtered, selected, tab, setTab, availableCount, lockedCount, loading, errorProp, justSelected, select, clearSearch, onRetry],
   )
 
   return (
@@ -173,9 +218,10 @@ function Root({
 // =============================================================================
 
 function Trigger({ className }: { className?: string }) {
-  const { open, selected, selectedId, loading, error, justSelected, retry } = useCtx()
+  const { open, selected, selectedId, models, availableCount, lockedCount, loading, error, justSelected, retry } = useCtx()
   const color = accent(selected)
-  const name = selected?.label ?? selectedId ?? 'No model'
+  const emptyName = models.length === 0 ? 'No available model' : lockedCount > 0 && availableCount === 0 ? 'No authenticated model' : 'No model'
+  const name = selected?.label ?? selectedId ?? emptyName
 
   type TriggerState = 'idle' | 'loading' | 'selected' | 'error'
   const state: TriggerState =
@@ -349,7 +395,7 @@ function Trigger({ className }: { className?: string }) {
 // rounded-lg (8px), white/[0.06] border, deep shadow, inset white/[0.03] ring.
 // =============================================================================
 
-function Content({ children, className, width = 260 }: {
+function Content({ children, className, width = 320 }: {
   children: React.ReactNode; className?: string; width?: number
 }) {
   return (
@@ -387,11 +433,68 @@ function Content({ children, className, width = 260 }: {
 }
 
 // =============================================================================
+// Tabs — Authenticated First, Locked Catalog Second
+// =============================================================================
+
+function Tabs() {
+  const { tab, setTab, availableCount, lockedCount } = useCtx()
+
+  const renderTab = (value: ModelTab, label: string, count: number) => {
+    const active = tab === value
+    const disabled = value === 'locked' && count === 0
+    return (
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active}
+        disabled={disabled}
+        data-slot={`model-tab-${value}`}
+        onClick={() => setTab(value)}
+        className={cn(
+          'flex-1 rounded-[5px] px-2 py-1 font-mono outline-none transition-colors duration-150',
+          disabled ? 'cursor-not-allowed opacity-35' : 'cursor-pointer',
+        )}
+        style={{
+          fontSize: 'var(--tmnl-text-xs, 12px)',
+          color: active ? (value === 'available' ? '#bbf7d0' : '#fde68a') : '#737373',
+          background: active
+            ? value === 'available'
+              ? 'rgba(16, 185, 129, 0.12)'
+              : 'rgba(245, 158, 11, 0.11)'
+            : 'transparent',
+          border: `1px solid ${active
+            ? value === 'available'
+              ? 'rgba(16, 185, 129, 0.18)'
+              : 'rgba(245, 158, 11, 0.18)'
+            : 'transparent'}`,
+        }}
+      >
+        <span>{label}</span>
+        <span style={{ opacity: 0.55, marginLeft: 5 }}>{count}</span>
+      </button>
+    )
+  }
+
+  return (
+    <div
+      className="flex gap-1 border-b border-white/[0.03] p-1.5"
+      role="tablist"
+      aria-label="Model catalog filter"
+      data-slot="model-tabs"
+    >
+      {renderTab('available', 'Available', availableCount)}
+      {renderTab('locked', 'Locked', lockedCount)}
+    </div>
+  )
+}
+
+// =============================================================================
 // Search — Inline Ghost
 // =============================================================================
 
-function Search({ placeholder = 'Search models…' }: { placeholder?: string }) {
-  const { search, setSearch, clearSearch, searchRef } = useCtx()
+function Search({ placeholder }: { placeholder?: string }) {
+  const { search, tab, setSearch, clearSearch, searchRef } = useCtx()
+  const resolvedPlaceholder = placeholder ?? (tab === 'available' ? 'Search authenticated models…' : 'Search locked catalog…')
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-white/[0.03]">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -399,7 +502,7 @@ function Search({ placeholder = 'Search models…' }: { placeholder?: string }) 
         <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
       </svg>
       <input ref={searchRef} type="text" value={search}
-        onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
+        onChange={(e) => setSearch(e.target.value)} placeholder={resolvedPlaceholder}
         className="flex-1 bg-transparent border-none outline-none font-mono text-neutral-200 placeholder:text-neutral-700"
         style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }} data-slot="model-search" />
       {search && (
@@ -421,21 +524,25 @@ function Search({ placeholder = 'Search models…' }: { placeholder?: string }) 
 function Item({ model }: { model: ModelOption }) {
   const { selectedId, select } = useCtx()
   const isSelected = model.id === selectedId
-  const color = accent(model)
+  const baseColor = accent(model)
   const [hovered, setHovered] = useState(false)
+  const unavailable = model.available === false
+  const color = unavailable ? '#f59e0b' : baseColor
 
-  const showStripe = isSelected || hovered
-  const showGlow = isSelected || hovered
+  const showStripe = !unavailable && (isSelected || hovered)
+  const showGlow = !unavailable && (isSelected || hovered)
 
   return (
     <button
-      onClick={() => select(model.id)}
+      onClick={() => { if (!unavailable) select(model.id) }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      disabled={unavailable}
+      title={unavailable ? 'Provider is not authenticated in Pi yet' : undefined}
       className={cn(
         'w-full flex items-center gap-2 px-2.5 py-1.5 text-left',
-        'outline-none cursor-pointer',
-        'focus-visible:bg-white/[0.04]',
+        'outline-none',
+        unavailable ? 'cursor-not-allowed opacity-70' : 'cursor-pointer focus-visible:bg-white/[0.04]',
       )}
       style={{
         borderLeft: `2px solid ${showStripe ? color : 'transparent'}`,
@@ -454,7 +561,7 @@ function Item({ model }: { model: ModelOption }) {
         className="w-[5px] h-[5px] rounded-full shrink-0"
         style={{
           backgroundColor: color,
-          opacity: showGlow ? 1 : 0.5,
+          opacity: unavailable ? 0.45 : showGlow ? 1 : 0.5,
           boxShadow: showGlow ? `0 0 6px ${hexToRgba(color, 0.35)}` : 'none',
           transition: `all 100ms ${REVEAL_EASE}`,
         }}
@@ -466,23 +573,23 @@ function Item({ model }: { model: ModelOption }) {
           className="font-mono truncate"
           style={{
             fontSize: 'var(--tmnl-text-xs, 12px)',
-            color: showStripe ? '#d4d4d4' : '#737373',
+            color: unavailable ? '#a3a3a3' : showStripe ? '#d4d4d4' : '#737373',
             transition: `color 100ms ${REVEAL_EASE}`,
           }}
         >
           {model.label}
         </div>
         {model.description && (
-          <div className="text-neutral-700 truncate" style={{ fontSize: '10px' }}>{model.description}</div>
+          <div className="text-neutral-700 truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{model.description}</div>
         )}
       </div>
 
       {/* Provider tag */}
       <span
         className="shrink-0 font-mono uppercase tracking-wider"
-        style={{ fontSize: '9px', color, opacity: 0.4 }}
+        style={{ fontSize: '9px', color, opacity: unavailable ? 0.7 : 0.4 }}
       >
-        {model.provider}
+        {unavailable ? 'LOCKED' : model.provider}
       </span>
 
       {/* Checkmark in accent color */}
@@ -503,15 +610,22 @@ function Item({ model }: { model: ModelOption }) {
 // =============================================================================
 
 function List({ children }: { children?: React.ReactNode }) {
-  const { filtered, search } = useCtx()
+  const { filtered, search, tab, models, lockedCount } = useCtx()
+  const emptyMessage = search.trim()
+    ? <>No models match &ldquo;{search}&rdquo;</>
+    : tab === 'locked'
+      ? lockedCount === 0 ? 'No locked models. Every listed model is authenticated.' : 'No locked models found.'
+      : models.length === 0 ? 'No available models' : 'No authenticated models'
 
   return (
-    <div className="max-h-[220px] overflow-y-auto py-0.5 scrollbar-none" role="listbox" aria-label="Available models"
+    <div className="max-h-[260px] overflow-y-auto py-0.5 scrollbar-none" role="listbox" aria-label={tab === 'available' ? 'Authenticated models' : 'Locked models'}
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       {children ?? (
         <AnimatePresence mode="popLayout">
           {filtered.length === 0 ? (
-            <Empty key="empty">No models match &ldquo;{search}&rdquo;</Empty>
+            <Empty key="empty">
+              {emptyMessage}
+            </Empty>
           ) : (
             filtered.map((m) => <Item key={m.id} model={m} />)
           )}
@@ -540,13 +654,13 @@ function Empty({ children }: { children?: React.ReactNode }) {
 // =============================================================================
 
 function Footer({ hint = 'applies on next message' }: { hint?: string }) {
-  const { models } = useCtx()
+  const { availableCount, lockedCount } = useCtx()
   return (
     <div className="px-2.5 py-1 border-t border-white/[0.03] flex items-center justify-between">
-      <span className="font-mono text-neutral-800" style={{ fontSize: '10px' }}>
-        {models.length} model{models.length !== 1 ? 's' : ''}
+      <span className="font-mono text-neutral-800" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        {availableCount} ready · {lockedCount} locked
       </span>
-      <span className="font-mono text-neutral-800" style={{ fontSize: '10px' }}>{hint}</span>
+      <span className="font-mono text-neutral-800" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{hint}</span>
     </div>
   )
 }
@@ -559,6 +673,7 @@ export const ModelSelector = Object.assign(Root, {
   Root,
   Trigger,
   Content,
+  Tabs,
   Search,
   List,
   Item,
