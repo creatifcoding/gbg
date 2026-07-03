@@ -1,0 +1,20 @@
+dist/
+reports/
+node_modules/
+
+# Python local state
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.pyc
+
+# SDR scratch artifacts
+artifacts/
+data/raw/
+data/generated/
+*.iq
+*.cfile
+*.npy
+*.npz
