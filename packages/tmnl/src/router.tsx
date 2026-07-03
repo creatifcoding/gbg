@@ -480,6 +480,12 @@ const conductorTestbedRoute = createRoute({
   component: lazyRouteComponent(() => import('./components/testbed/ConductorTestbed'), 'ConductorTestbed'),
 });
 
+const siosPrimitivesTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/sios-primitives',
+  component: lazyRouteComponent(() => import('./lib/sios/components/SiosPrimitivesTestPage'), 'SiosPrimitivesTestPage'),
+});
+
 // ─────────────────────────────────────────────────────────────
 // Lazy Routes: Pages & Playground
 // ─────────────────────────────────────────────────────────────
@@ -625,6 +631,7 @@ const routeTree = rootRoute.addChildren([
   rvnChatIsolatedTestbedRoute,
   morphChatTestbedRoute,
   conductorTestbedRoute,
+  siosPrimitivesTestbedRoute,
   // Lazy (pages & playground)
   dispositionsRoute,
   streamsPlaygroundRoute,

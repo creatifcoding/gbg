@@ -551,6 +551,14 @@ const CARDS: readonly CardDef[] = [
     label: 'NEW',
     glow: 'cyan',
   },
+  {
+    title: 'SIOS PRIMITIVES',
+    body: '23 dark-first primitives for AMH installation ops. JCK brand-aligned — Krona One, Inter, JetBrains Mono. Gauges, countdowns, state badges.',
+    route: '/testbed/sios-primitives',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
 
 ];
 
