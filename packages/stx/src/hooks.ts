@@ -15,11 +15,13 @@
  */
 
 import * as React from "react"
-import { AtomRegistry as AR } from "effect-v4/unstable/reactivity"
-import type { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { AtomRegistry as AR } from "effect/unstable/reactivity"
+import type { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { StxInstance } from "./types.js"
 import type { StxAsync, StxPull } from "./internal/async.js"
 import type { StxFamily, StxFamilyMember } from "./internal/family.js"
+import type { StxMachineInstance } from "./machine.js"
+import type { AnyStateMachine, SnapshotFrom, EventFromLogic } from "xstate"
 
 // ─── Core: useSyncExternalStore bound to explicit registry ──────────────────
 
@@ -198,4 +200,114 @@ export function useFamilyFocus<K, V, A>(
     [family, key, lens],
   )
   return useAtomValue(family.registry, focusAtom)
+}
+
+// ─── useStxMachine: full machine-backed stx hook ────
+
+/**
+ * Subscribe to a machine-backed stx instance.
+ *
+ * Returns state value + machine snapshot + send + matches + all stx mutations.
+ *
+ * @example
+ * ```tsx
+ * const { value, snapshot, send, matches, setAt, lens } = useStxMachine(panelStore)
+ *
+ * if (matches('idle')) {
+ *   send({ type: 'OPEN_PANEL', panelId: 'settings' })
+ * }
+ *
+ * return <div>{value.activePanel}</div>
+ * ```
+ */
+export function useStxMachine<S, M extends AnyStateMachine>(
+  instance: StxMachineInstance<S, M>,
+) {
+  const value = useAtomValue(instance.registry, instance.atom)
+  const snapshot = useAtomValue(instance.registry, instance.snapshotAtom)
+
+  return {
+    /** Current state value */
+    value,
+    /** Current machine snapshot */
+    snapshot,
+    /** Lens tree for optic access */
+    lens: instance.lens,
+    /** Focus atom factory */
+    focus: instance.focus,
+    /** Send event to machine */
+    send: instance.send,
+    /** Check if machine matches state */
+    matches: instance.matches,
+    /** Surgical set at lens path */
+    setAt: instance.setAt,
+    /** Modify at lens path */
+    modify: instance.modify,
+    /** Full state replace */
+    set: instance.set,
+    /** Read at lens path */
+    getAt: instance.getAt,
+    /** Registry */
+    registry: instance.registry,
+  }
+}
+
+// ─── useStxSend: machine event dispatch only ────────
+
+/**
+ * Get a stable send function for a machine-backed stx instance.
+ * Minimal hook — no subscriptions, no re-renders.
+ *
+ * @example
+ * ```tsx
+ * const send = useStxSend(panelStore)
+ * send({ type: 'CLOSE_PANEL', panelId: 'settings' })
+ * ```
+ */
+export function useStxSend<S, M extends AnyStateMachine>(
+  instance: StxMachineInstance<S, M>,
+): (event: EventFromLogic<M>) => void {
+  return React.useCallback(
+    (event: EventFromLogic<M>) => instance.send(event),
+    [instance],
+  )
+}
+
+// ─── useStxMatches: reactive machine state match ────
+
+/**
+ * Reactively check if machine matches a state value.
+ * Only re-renders when the match result changes.
+ *
+ * @example
+ * ```tsx
+ * const isIdle = useStxMatches(panelStore, 'idle')
+ * const isDragging = useStxMatches(panelStore, 'dragging')
+ * ```
+ */
+export function useStxMatches<S, M extends AnyStateMachine>(
+  instance: StxMachineInstance<S, M>,
+  stateValue: string,
+): boolean {
+  const snapshot = useAtomValue(instance.registry, instance.snapshotAtom)
+  return (snapshot as any).matches(stateValue)
+}
+
+// ─── useStxSnapshot: reactive machine snapshot ──────
+
+/**
+ * Subscribe to the full machine snapshot.
+ * Useful for reading machine context or value.
+ *
+ * @example
+ * ```tsx
+ * const snapshot = useStxSnapshot(panelStore)
+ * console.log(snapshot.value) // 'idle'
+ * console.log(snapshot.context.targetPanel) // 'settings'
+ * ```
+ */
+export function useStxSnapshot<S, M extends AnyStateMachine>(
+  instance: StxMachineInstance<S, M>,
+): SnapshotFrom<M> {
+  return useAtomValue(instance.registry, instance.snapshotAtom)
 }

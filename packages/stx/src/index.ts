@@ -42,9 +42,16 @@ export type {
   StxSharedSubscription, StxStreamControl, StxStreamStats, StxFiberAtoms,
 } from "./streaming/index.js"
 
+// Machine integration (XState actor ↔ stx atom sync)
+export { stxMachine } from "./machine.js"
+export type { StxMachineInstance, StxMachineConfig } from "./machine.js"
+
 // React hooks — explicit registry, no RegistryContext dependency
 export { useStx, useFocus, useStxSet, useStxAsync, useFocusAsync, useStxPull, useFamily, useFamilyFocus } from "./hooks.js"
 export { useAtomValue } from "./hooks.js"
+
+// React hooks — machine-backed stx
+export { useStxMachine, useStxSend, useStxMatches, useStxSnapshot } from "./hooks.js"
 
 // React hooks — streaming materializers
 export { useStxReduce, useStxFeed, useStxLatest, useStxPullV2, useStxDuplex, useStxShared } from "./streaming/hooks.js"
@@ -76,5 +83,5 @@ export {
 } from "./internal/transaction.js"
 
 // Re-exports for convenience
-export { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-export { Optic } from "effect-v4"
+export { Atom, AtomRegistry } from "effect/unstable/reactivity"
+export { Optic } from "effect"
