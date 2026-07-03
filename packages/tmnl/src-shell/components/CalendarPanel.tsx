@@ -20,8 +20,8 @@ function VantablackDay({ meta }: { meta: DayMeta }) {
     <motion.div
       whileHover={meta.isCurrentMonth ? { background: V.raised } : undefined}
       style={{
-        width: 28,
-        height: 28,
+        width: 34,
+        height: 34,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -42,7 +42,7 @@ function VantablackDay({ meta }: { meta: DayMeta }) {
           : meta.isSelected
             ? V.phosphorGhost
             : 'transparent',
-        borderRadius: meta.isToday || meta.isSelected ? 6 : 4,
+        borderRadius: meta.isToday || meta.isSelected ? 8 : 6,
         cursor: meta.isCurrentMonth ? 'pointer' : 'default',
         transition: 'background 0.15s ease, color 0.15s ease',
         lineHeight: 1,
@@ -55,14 +55,14 @@ function VantablackDay({ meta }: { meta: DayMeta }) {
       {hasEvents && meta.isCurrentMonth && (
         <div style={{
           position: 'absolute',
-          bottom: 2,
+          bottom: 3,
           display: 'flex',
-          gap: 1.5,
+          gap: 2,
         }}>
           {meta.events.slice(0, 3).map((ev, i) => (
             <div key={i} style={{
-              width: 3,
-              height: 3,
+              width: 4,
+              height: 4,
               borderRadius: '50%',
               background: meta.isToday ? V.void : V.phosphorMid,
               opacity: 0.9,
@@ -93,7 +93,7 @@ function VantablackHeader() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
             style={{
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 700,
               color: V.phosphor,
               letterSpacing: '0.06em',
@@ -118,8 +118,8 @@ function VantablackFooter({ onOpenChronicle }: { onOpenChronicle?: () => void })
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingTop: 2,
-          padding: '2px 4px 0',
+          paddingTop: 4,
+          padding: '4px 6px 0',
         }}>
           {onOpenChronicle ? (
             <motion.button
@@ -129,16 +129,16 @@ function VantablackFooter({ onOpenChronicle }: { onOpenChronicle?: () => void })
               style={{
                 border: `1px solid ${V.border}`,
                 background: 'transparent',
-                fontSize: 8, fontWeight: 700, color: V.phosphorDim,
+                fontSize: V.xs, fontWeight: 700, color: V.phosphorDim,
                 letterSpacing: '0.14em', cursor: 'pointer',
                 fontFamily: "'JetBrains Mono', monospace",
-                padding: '3px 6px', borderRadius: 4,
+                padding: '6px 8px', borderRadius: 6,
                 transition: 'color 0.15s, background 0.15s',
               }}
             >CHRONICLE</motion.button>
           ) : eventCount > 0 ? (
             <span style={{
-              fontSize: 9, color: V.phosphorDim,
+              fontSize: V.xs, color: V.phosphorDim,
               letterSpacing: '0.06em', fontWeight: 500,
             }}>
               {eventCount} event{eventCount !== 1 ? 's' : ''}
@@ -149,10 +149,10 @@ function VantablackFooter({ onOpenChronicle }: { onOpenChronicle?: () => void })
             whileHover={{ color: V.phosphor }}
             style={{
               border: 'none', background: 'transparent',
-              fontSize: 9, fontWeight: 600, color: V.inkFaint,
+              fontSize: V.xs, fontWeight: 600, color: V.inkFaint,
               letterSpacing: '0.12em', cursor: 'pointer',
               fontFamily: "'JetBrains Mono', monospace",
-              padding: '3px 8px', borderRadius: 4,
+              padding: '6px 10px', borderRadius: 6,
             }}
           >TODAY</motion.button>
         </div>
@@ -166,13 +166,13 @@ function VantablackFooter({ onOpenChronicle }: { onOpenChronicle?: () => void })
 function VantablackEventRow({ event }: { event: CalendarEvent }) {
   return (
     <div style={{
-      fontSize: 10, padding: '3px 6px', borderRadius: 4,
-      display: 'flex', alignItems: 'center', gap: 5,
+      fontSize: V.xs, padding: '5px 8px', borderRadius: 6,
+      display: 'flex', alignItems: 'center', gap: 6,
       background: V.raised,
       opacity: event.completed ? 0.4 : 0.9,
     }}>
       <span style={{
-        width: 4, height: 4, borderRadius: '50%',
+        width: 5, height: 5, borderRadius: '50%',
         background: V.phosphorMid, flexShrink: 0,
       }} />
       <span style={{
@@ -218,13 +218,13 @@ export function CalendarPanel({ onDayClick, onDayDoubleClick, events }: Calendar
       width: '100%',
       height: '100%',
       background: V.surface,
-      borderRadius: 10,
+      borderRadius: 12,
       border: `1px solid ${V.border}`,
-      padding: '12px 12px 8px',
+      padding: '14px 14px 10px',
       fontFamily: "'JetBrains Mono', monospace",
       display: 'flex',
       flexDirection: 'column',
-      gap: 8,
+      gap: 10,
       boxShadow: `
         0 12px 40px rgba(0,0,0,0.9),
         0 0 0 1px ${V.phosphorDim}15,
@@ -266,8 +266,8 @@ function NavBtn({ onClick, children }: { onClick: () => void; children: React.Re
       whileTap={{ scale: 0.9 }}
       style={{
         border: 'none', background: 'transparent',
-        color: V.inkMid, fontSize: 14, cursor: 'pointer',
-        padding: '2px 6px', borderRadius: 4,
+        color: V.inkMid, fontSize: 18, cursor: 'pointer',
+        padding: '4px 8px', borderRadius: 6,
         fontFamily: "'JetBrains Mono', monospace",
         lineHeight: 1, display: 'flex', alignItems: 'center',
       }}

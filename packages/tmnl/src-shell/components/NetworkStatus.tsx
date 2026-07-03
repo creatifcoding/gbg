@@ -79,7 +79,7 @@ function AreaSparkline({ samples }: { samples: number[] }) {
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
-      style={{ overflow: 'visible' }}
+      style={{ overflow: 'hidden' }}
     >
       <defs>
         {/* Phosphor gradient fill — fades to void at bottom */}
@@ -136,7 +136,7 @@ function AreaSparkline({ samples }: { samples: number[] }) {
             {/* Pulse on the live point */}
             <animate
               attributeName="r"
-              values="1.5;2.5;1.5"
+              values={`${1.5};${2.5};${1.5}`}
               dur="1.5s"
               repeatCount="indefinite"
             />
@@ -210,7 +210,7 @@ export function NetworkStatus() {
       <AreaSparkline samples={samples} />
 
       <span style={{
-        fontSize: 8,
+        fontSize: V.xs,
         fontWeight: 600,
         color: V.inkFaint,
         letterSpacing: '0.15em',

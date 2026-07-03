@@ -1,4 +1,3 @@
-import React from 'react'
 import { Modal, useModal } from '@/lib/getbyshell/modal'
 import { usePanelOpen } from '@/lib/getbyshell'
 import { BarLayout } from './components/BarLayout'
@@ -8,6 +7,32 @@ import { TMNLStatus } from './components/TMNLStatus'
 import { NetworkStatus } from './components/NetworkStatus'
 import { PanelToggle } from './components/PanelToggle'
 
+function SlotMarker({ label, color }: { label: string; color: string }) {
+  return (
+    <div
+      data-slot-marker={label}
+      style={{
+        width: 24,
+        height: 24,
+        borderRadius: 4,
+        background: color,
+        color: '#000',
+        fontFamily: 'monospace',
+        fontSize: 12,
+        fontWeight: 900,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: 2,
+        boxShadow: `0 0 10px ${color}55`,
+        lineHeight: 1,
+      }}
+    >
+      {label}
+    </div>
+  )
+}
+
 export function App() {
   const panelOpen = usePanelOpen()
 
@@ -15,16 +40,19 @@ export function App() {
     <>
       <BarLayout>
         <BarLayout.Top>
+          <SlotMarker label="T" color="#ffcc00" />
           <WorkspaceIndicators />
         </BarLayout.Top>
 
         <BarLayout.Center>
+          <SlotMarker label="C" color="#00ccff" />
           <TMNLStatus />
           <PanelToggle active={panelOpen} />
           <NetworkStatus />
         </BarLayout.Center>
 
         <BarLayout.Bottom>
+          <SlotMarker label="B" color="#ff66cc" />
           <Clock />
         </BarLayout.Bottom>
       </BarLayout>

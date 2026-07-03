@@ -35,15 +35,15 @@ function DateView() {
       }}
     >
       <span style={{
-        fontSize: 20, color: V.phosphor,
+        fontSize: 16, color: V.phosphor,
         fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em',
       }}>{dayNum}</span>
       <span style={{
-        fontSize: 9, color: V.ink,
+        fontSize: V.xs, color: V.ink,
         fontWeight: 600, letterSpacing: '0.12em', lineHeight: 1,
       }}>{month}</span>
       <span style={{
-        fontSize: 8, color: V.inkFaint,
+        fontSize: V.xs, color: V.inkFaint,
         fontWeight: 500, letterSpacing: '0.08em', lineHeight: 1, marginTop: 1,
       }}>'{year} W{weekNum}</span>
     </motion.div>
@@ -69,23 +69,23 @@ function TimeView() {
       }}
     >
       <span style={{
-        fontSize: 15, color: V.ink,
+        fontSize: 16, color: V.ink,
         fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1,
       }}>{hours}</span>
 
       <motion.span
         animate={{ opacity: pulseSeparator ? 0.85 : 0.1 }}
         transition={{ duration: 0.45 }}
-        style={{ fontSize: 5, color: V.phosphor, lineHeight: '7px' }}
+        style={{ fontSize: 12, color: V.phosphor, lineHeight: 1, margin: '1px 0' }}
       >◆</motion.span>
 
       <span style={{
-        fontSize: 15, color: V.ink,
+        fontSize: 16, color: V.ink,
         fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1,
       }}>{minutes}</span>
 
       <span style={{
-        fontSize: 9, color: V.inkFaint,
+        fontSize: V.xs, color: V.inkFaint,
         marginTop: 3, letterSpacing: '0.14em', fontWeight: 600, lineHeight: 1,
       }}>{day}</span>
     </motion.div>
@@ -114,9 +114,9 @@ export function Clock() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: 60,
-            padding: '6px 4px',
-            borderRadius: 6,
+            minHeight: 76,
+            padding: '8px 6px',
+            borderRadius: 8,
             fontFamily: "'JetBrains Mono', monospace",
             cursor: 'pointer',
           }}
@@ -127,7 +127,7 @@ export function Clock() {
         </motion.div>
       </Popover.Trigger>
 
-      <Popover.Content width={232} height={300}>
+      <Popover.Content width={280} height={360}>
         <CalendarPanel />
       </Popover.Content>
     </Popover>
