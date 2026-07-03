@@ -1,0 +1,402 @@
+[
+  {
+    "page": 7,
+    "term": "Goal-Directed",
+    "snippet": "sign projects in consumer, business, scientific, and professional domains for both startups and Fortune 500 companies alike. One of the first designers at Cooper, Robert led the development and refinement of many of the Goal-Directed Design methods described in this book. In 2005, he became the founding president of IxDA, the Interaction Design Association ( www.ixda.org). He has led user experience teams at Cooper, Bose, frog, and Sonos, and is currently Principal Interaction Designer at PatientsLikeMe."
+  },
+  {
+    "page": 8,
+    "term": "Goal-Directed",
+    "snippet": "radiologists, field engineers, manufacturing planners, marketers, videographers, and people with chronic diseases. During his time at Cooper, he contributed substantially to the princi - ples, patterns, and practices of Goal-Directed Design. Christopher Noessel designs products, services, and strategy for health, financial, and consumer domains as Cooper\u2019s first Design Fellow. He has helped visualize the future of counterterrorism, built prototypes of new technologies for Microsoft, and designed tele- health devices to accommodate the"
+  },
+  {
+    "page": 12,
+    "term": "Goal-Directed",
+    "snippet": "antly to the development and expression of the concepts and methods described in Part I; Hugh Dubberly for his help in developing the principles described at the end of Chapter 7 and for his assistance in clarifying the Goal-Directed process with early versions of the diagrams found in Chapter 1; Gretchen Anderson and Elaine Montgomery for their contributions on user and market research in Chap - ter 2; Rick Bond for his many insights into usability testing featured in Chapter 5; Chris Weeldreyer for his insights into the design of em"
+  },
+  {
+    "page": 13,
+    "term": "Goal-Directed",
+    "snippet": ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . xv Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . xix PArT I: goal-Directed Design . . . . . . . . . . . . . . . . . . . . . . . . 1 Ch 1: A Design Process for Digital Products . . . . . . . . . . . . . . . . . . . . . . 3 The Consequences of Poor Product Behavior .................................................... 4 Why Digital Products Fail....................................."
+  },
+  {
+    "page": 14,
+    "term": "posture",
+    "snippet": ".................. 190 Designing Social Products . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 199 Ch 9: Platform and Posture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 205 Product Platforms..................................................................................... 205 Product Postures ...................................................................................... 206 Postures for the Desktop . . . "
+  },
+  {
+    "page": 15,
+    "term": "Goal-Directed",
+    "snippet": "........................ 266 The Ideal of Effortlessness .......................................................................... 269 Ch 12: reducing work and Eliminating Excise . . . . . . . . . . . . . . . . . . 271 Goal-Directed Tasks versus Excise Tasks...................................................... 272 Types of Excise ......................................................................................... 273 Excise Is Contextual .................................................................................. 285 Elim"
+  },
+  {
+    "page": 16,
+    "term": "idiom",
+    "snippet": "Designing for mobile and other Devices . . . . . . . . . . . . . . . . . 507 Anatomy of a Mobile App........................................................................... 508 Mobile Navigation, Content, and Control Idioms........................................... 518 Multi-Touch Gestures................................................................................ 550 Inter-App Integration ................................................................................ 553 Other Devices ........................................"
+  },
+  {
+    "page": 22,
+    "term": "Goal-Directed",
+    "snippet": " their own, appropriately responding not only at the levels of logic and data entry and presentation, but also at a more human level. In this book we describe a particular approach to interaction design that we call the Goal-Directed Design method. We\u2019ve found that when designers focus on people\u2019s goals\u2014the reasons why they use a product in the first place\u2014as well as their expecta - tions, attitudes, and aptitudes, they can devise solutions that people find both powerful and pleasurable to use. As even the most casual observer of deve"
+  },
+  {
+    "page": 23,
+    "term": "idiom",
+    "snippet": "rs in these disciplines. Mean - while, usability and human-factors practitioners also rose in stature and are now recog - nized as advocates for better-designed products. Although the web knocked back interaction design idioms by more than a decade, it inarguably placed user requirements on the radar of the corporate world permanently. After the second edition of About Face was published in 2003, the user experience of dig - ital products became front-page news in the likes of Time and BusinessWeek . And insti - tutions such as Harvar"
+  },
+  {
+    "page": 25,
+    "term": "idiom",
+    "snippet": "ols consist of principles , patterns, and processes . Design principles encompass broad ideas about the practice of design, as well as rules and hints about how to best use specific user interface and interaction design idioms. Design patterns describe sets "
+  },
+  {
+    "page": 26,
+    "term": "idiom",
+    "snippet": "xxiv Introduction to the Fourth Edition of interaction design idioms that are common ways to address specific user require - ments and design concerns. Design processes describe how to understand and define user requirements, how to then translate those requirements into the framework of a design, and finally how to best apply design principles and patterns to specific contexts. "
+  },
+  {
+    "page": 27,
+    "term": "Goal-Directed",
+    "snippet": "he Fourth Edition how This book Is structured This book is organized in a way that presents its ideas in an easy-to-use reference struc - ture. The book is divided into three parts: \u2022 Part I introduces and describes the Goal-Directed Design process in detail, as well as building design teams and integrating with project teams. \u2022 Part II deals with high-level interaction design principles that can be applied to any interaction design problem on almost any platform. \u2022 Part III covers lower-level and platform-specific interface design pr"
+  },
+  {
+    "page": 28,
+    "term": "idiom",
+    "snippet": "xxvi Introduction to the Fourth Edition Part III has been extensively rewritten, updated, and extended to reflect new mobile and touch-based platforms and interaction idioms. It also offers more detailed coverage of web interactions and interactions on other types of devices and systems. We hope you will find that these additions and changes make About Face a more relevant and useful reference than ever before. Examples used in This book This book is about designing all kinds of int"
+  },
+  {
+    "page": 31,
+    "term": "Goal-Directed",
+    "snippet": "I goal-Directed Design Ch 1 A Design Process for Digital Products Ch 2 u nderstanding the Problem: Design research Ch 3 m odeling users: Personas and goals Ch 4 s etting the Vision: scenarios and requirements Ch 5 Designing the Product: Framework and Design refinement Ch 6 Creative Teamwork"
+  },
+  {
+    "page": 34,
+    "term": "Goal-Directed",
+    "snippet": "4 Part I: Goal-Directed Design \u2022 Using this knowledge as a foundation for plans to create products whose form, content, and behavior are useful, usable, and desirable, as well as economically viable and technically feasible This definition is useful for many design disciplines, although the precise focus on form, content, and be"
+  },
+  {
+    "page": 36,
+    "term": "Goal-Directed",
+    "snippet": "6 Part I: Goal-Directed Design context menus, practically inviting people to lose the work they\u2019ve uploaded to the cloud for safekeeping. Furthermore, the appearance of software\u2014especially business and technical applica - tions\u2014can be complex and confusing, making navigation and comprehension unneces - sarily difficult. Digital "
+  },
+  {
+    "page": 38,
+    "term": "Goal-Directed",
+    "snippet": "8 Part I: Goal-Directed Design Initiate Design Build Test Ship Initiate Mandate Specs Feasibility, Feedback Code Product Bug ReportUsers User Input Build Test \u201cLook & Feel\u201d Ship Initiate Build/Test Ship Build/Test Ship Developers Managers Developers Managers Developers QA Designers Managers DesignersD evelopersQ A Figure 1-2: Th"
+  },
+  {
+    "page": 40,
+    "term": "Goal-Directed",
+    "snippet": "10 Part I: Goal-Directed Design that miners end up \u201cdesigning\u201d a landscape filled with cavernous pits and piles of rub - ble. In unenlightened development organizations, the digital product interaction design process alternates between the accidental and the nonexistent. Sometimes organizations do adopt a design process, but it i"
+  },
+  {
+    "page": 42,
+    "term": "Goal-Directed",
+    "snippet": "12 Part I: Goal-Directed Design Microsoft is one of the best run businesses ever, but it has not been able to create highly desirable products. This provides an opening for competition. Apple has emphasized desirability but has made many business blunders. Nevertheless, it is sustained by the loyalty created by its attention to u"
+  },
+  {
+    "page": 43,
+    "term": "Goal-Directed",
+    "snippet": "CH 1. A Design Process for Digital Products This book presents a set of methods to address this new kind of behavior-oriented design, providing a complete process for understanding users\u2019 goals , needs, and motivations: Goal-Directed Design . To understand the process of Goal-Directed Design, we first need to understand the nature of user goals, the mental models from which they arise, and how they are the key to designing appropriate interactive behavior. recognizing user goals So what are user goals? How can we identify them? How do"
+  },
+  {
+    "page": 44,
+    "term": "Goal-Directed",
+    "snippet": "14 Part I: Goal-Directed Design Most of the same software is equally poor at achieving its business purpose. Invoices don\u2019t get processed all that well. Customers don\u2019t get serviced on time. Decisions don\u2019t get properly supported. This is no coincidence. The companies that develop these products have the wrong priorities. Most fo"
+  },
+  {
+    "page": 46,
+    "term": "Goal-Directed",
+    "snippet": "16 Part I: Goal-Directed Design those calls can be completed. Ease of learning is also important, however, because it affects employees\u2019 happiness and, ultimately, turnover rate, so both ease and throughput should be considered in the design. But there is no doubt that throughput is the domi - nant demand placed on the system by "
+  },
+  {
+    "page": 47,
+    "term": "mental model",
+    "snippet": "ed alienates and confuses the user, rather like the ubiquitous external ductwork in the dystopian setting of Terry Gilliam\u2019s movie Brazil (which is full of won - derful tongue-in-cheek examples of miserable interfaces). mental models From the moviegoer\u2019s point of view, it is easy to forget the nuance of sprocket holes and light interrupters while watching an absorbing drama. Many moviegoers, in fact, have little idea how the projector works, or how this differs from the way a television works. The viewer imagines that the projector me"
+  },
+  {
+    "page": 48,
+    "term": "Goal-Directed",
+    "snippet": "18 Part I: Goal-Directed Design In the digital world, however, the differences between a user\u2019s mental model and the implementation model are often quite distinct. We tend to ignore the fact that our cell phone doesn\u2019t work like a landline phone; instead, it is actually a radio transceiver that might swap connections between a ha"
+  },
+  {
+    "page": 49,
+    "term": "mental model",
+    "snippet": "19CH 1. A Design Process for Digital Products worse better re/f_lects user\u2019s visionre/f_lects technology Represented ModelsImplementation Model Mental Model Figure 1-4: A comparison of the implementation model, mental model, and represented model. The way engineers must build software is often a given, dictated by various techni- cal and business constraints. The model for how the software actually works is called the implementation model. The way users percei"
+  },
+  {
+    "page": 50,
+    "term": "Goal-Directed",
+    "snippet": "20 Part I: Goal-Directed Design mental model, because the user\u2014likely an amateur photographer\u2014is thinking in terms of how his photo looks, not in terms of abstract numbers. Figure 1-5: Adobe Photoshop Express for iPad has a great example of software design to match user mental models. The interface shows a set of thumbnail images"
+  },
+  {
+    "page": 51,
+    "term": "Goal-Directed",
+    "snippet": "1CH 1. A Design Process for Digital Products tasks toward achieving their goals. But how do we actually do it? How do we know what our users\u2019 goals are and what mental models they have of their activities and tasks? The Goal-Directed Design process, which we describe in the remainder of this chapter and in the remainder of Part I, provides a structure for determining the answers to these questions\u2014a structure by which solutions based on this information can be systemati - cally achieved. An overview of goal-Directed Design Most techno"
+  },
+  {
+    "page": 52,
+    "term": "Goal-Directed",
+    "snippet": "22 Part I: Goal-Directed Design properly deployed (as in the fourth process diagram shown in Figure 1-2), both identi - fies user requirements and defines a detailed plan for the behavior and appearance of products. In other words, design provides true product definition , based on user goals, business needs, and technology const"
+  },
+  {
+    "page": 53,
+    "term": "Goal-Directed",
+    "snippet": "urces to train your designers fully in these techniques. If not, a cross-disciplinary team of designers and dedicated user researchers is appropriate. Although research practiced by designers takes us part of the way to Goal-Directed Design solutions, a translation gap still exists between research results and design details. The puzzle is missing several pieces, as we will discuss next. between research and blueprint: models, requirements, and frameworks Few design methods in common use today incorporate a means of effectively and sy"
+  },
+  {
+    "page": 54,
+    "term": "Goal-Directed",
+    "snippet": "24 Part I: Goal-Directed Design A process overview Goal-Directed Design combines techniques of ethnography, stakeholder interviews, market research, detailed user models, scenario-based design, and a core set of inter - action principles and patterns. It provides solutions that meet users\u2019 needs and goals while also addressing bu"
+  },
+  {
+    "page": 55,
+    "term": "Goal-Directed",
+    "snippet": "ign Support Initiate Build Test Ship Document User and Domain Analysis Document Statement of Work Presentation User and Domain Analysis Presentation Design Vision Document Form and Behavior Speci\ufb01cation ConcernsActivity Goal-Directed Design Deliverable Design Stakeholder Collaboration Figure 1-8: A more detailed look at the Goal-Directed Design process"
+  },
+  {
+    "page": 56,
+    "term": "Goal-Directed",
+    "snippet": "26 Part I: Goal-Directed Design modeling During the Modeling phase, behavior and work flow patterns discovered by analyzing the field research and interviews are synthesized into domain and user models. Domain models can include information flow and work flow diagrams. User models, or personas, are detailed, composite user archet"
+  },
+  {
+    "page": 57,
+    "term": "personas",
+    "snippet": "27CH 1. A Design Process for Digital Products touch points, and thereafter successively defining detail at ever-deepening levels. In addi- tion to these scenario-driven requirements, designers consider the personas\u2019 skills and physical capabilities as well as issues related to the usage environment. Business goals, desired brand attributes, and technical constraints are also considered and balanced with persona goals and needs. The output of this process is a requirements definition that balances user, business, and tech"
+  },
+  {
+    "page": 58,
+    "term": "Goal-Directed",
+    "snippet": "28 Part I: Goal-Directed Design critical at this early stage that industrial designers not create concepts independent of the product\u2019s behavior. When working to design a service, we will collaborate with service designers to draft a service map and a blueprint that coordinates touchpoints and experiences across chan - nels, both"
+  },
+  {
+    "page": 59,
+    "term": "Goal-Directed",
+    "snippet": "e product-development cycle. Although we discuss many other techniques and tools of interaction in this book, we always return to users\u2019 goals. They are the bedrock upon which interaction design should be practiced. The Goal-Directed process, with its clear rationale for design decisions, makes collab - oration with developers and businesspeople easier. It also ensures that the design in question isn\u2019t guesswork, the whim of a creative mind, or just a reflection of the team members\u2019 personal preferences. Interaction design is not gues"
+  },
+  {
+    "page": 60,
+    "term": "Goal-Directed",
+    "snippet": "30 Part I: Goal-Directed Design \u2022 How will my product help infrequent and inexperienced users understand how to accomplish their goals? \u2022 How can my product provide sufficient depth and power for expert users? The remainder of this book is dedicated to answering these questions. We share tools tested by years of experience with h"
+  },
+  {
+    "page": 62,
+    "term": "Goal-Directed",
+    "snippet": "32 Part I: Goal-Directed Design Qualitative versus Quantitative Data in Design research \u201cResearch\u201d is a term that most people associate with science and objectivity. This asso - ciation isn\u2019t incorrect, but it causes many people to believe that the only valid research is the kind that yields (supposedly) objective results: quanti"
+  },
+  {
+    "page": 64,
+    "term": "Goal-Directed",
+    "snippet": "34 Part I: Goal-Directed Design had successfully connected his video camera to his computer\u2014and he had asked the IT guy at work to do it. One of the necessary preconditions of the product\u2019s success was that people should be able to transfer videos to their computer for editing. But at the time the project was commissioned, it was"
+  },
+  {
+    "page": 65,
+    "term": "Goal-Directed",
+    "snippet": "es and the overall product experience. We\u2019ll discuss this kind of persona-based market sizing a bit more in Chapter 3. Figure 2-1 shows the relationship between various types of quantitative research and the qualitative Goal-Directed Design research techniques discussed in this chapter."
+  },
+  {
+    "page": 66,
+    "term": "Goal-Directed",
+    "snippet": "36 Part I: Goal-Directed Design Can inform Goal-Directed Design Research (Qualitative) Drives Behavioral Models (Personas) Can be used to generate Market Sizing Studies (Quantitative) Market Research (Quantitative) Analytics (Quantitative) Figure 2-1: The relationship between quantitative research and qualitative, Goal-Directed d"
+  },
+  {
+    "page": 67,
+    "term": "Goal-Directed",
+    "snippet": " activities. Kickoff Meeting Literature Review Stakeholder Interviews SME Interviews User and Customer Interviews / Observation Consumer Products Product / Prototype and Competitive Audits Figure 2-2: An overview of the Goal-Directed design research process kickoff meeting Although the project kickoff meeting isn\u2019t strictly a research activity, it contains an important component of research: It is an opportunity for designers to ask initial key questions of some of the most important stakeholders gathered at the meeting: \u2022 What is the"
+  },
+  {
+    "page": 68,
+    "term": "Goal-Directed",
+    "snippet": "38 Part I: Goal-Directed Design \u2022 What challenges do the design team and the business face moving forward? \u2022 Who do you see as your biggest competitors? Why? \u2022 What internal and external literature should we look at to familiarize ourselves with the product and/or business and technical domain? Although these questions may seem b"
+  },
+  {
+    "page": 70,
+    "term": "Goal-Directed",
+    "snippet": "40 Part I: Goal-Directed Design \u2022 Budget and schedule\u2014Discussions on this topic often provide a reality check on the scope of the design effort and give management a decision point if user research indicates that a greater (or lesser) scope is required. \u2022 Technical constraints and opportunities \u2014Another important determinant of d"
+  },
+  {
+    "page": 72,
+    "term": "Goal-Directed",
+    "snippet": "42 Part I: Goal-Directed Design Customer interviews It is easy to confuse users with customers. With consumer products, customers are often the same as users, but in corporate or technical domains, users and customers rarely describe the same sets of people. Although both groups should be interviewed, each has its own perspective"
+  },
+  {
+    "page": 73,
+    "term": "mental model",
+    "snippet": "ctive: What do users need to know to do their jobs? \u2022 Current tasks and activities: both those the current product is required to accomplish and those it doesn\u2019t support \u2022 Goals and motivations for using their product \u2022 Mental model: how users think about their jobs and activities, as well as what expectations users have about the product \u2022 Problems and frustrations with current products (or an analogous system if no current product exists) user observation Most people are incapable of accurately assessing their own behaviors, 2 espec"
+  },
+  {
+    "page": 74,
+    "term": "Goal-Directed",
+    "snippet": "44 Part I: Goal-Directed Design For consumer products, it can be hard to get a true picture of people\u2019s behaviors, espe - cially if they will be using the product outside or in public. For these kinds of projects, a man-on-the-street approach to user observation can be effective. Using this approach, the design team casually obse"
+  },
+  {
+    "page": 76,
+    "term": "Goal-Directed",
+    "snippet": "46 Part I: Goal-Directed Design this type of research and apply it on a micro level. Rather than trying to understand behaviors and social rituals of an entire culture, the goal is to understand the behaviors and rituals of people interacting with individual products. Identifying candidates Because the designers must capture an e"
+  },
+  {
+    "page": 78,
+    "term": "Goal-Directed",
+    "snippet": "48 Part I: Goal-Directed Design Given the difficulty in accurately anticipating behavioral variables before user data is gathered, another helpful approach in building a persona hypothesis is making use of demographic variables . When planning your interviews, you can use market research to identify ages, locations, gender, and i"
+  },
+  {
+    "page": 80,
+    "term": "Goal-Directed",
+    "snippet": "50 Part I: Goal-Directed Design If stakeholders can\u2019t help you get in touch with users, you can contact a market or usabil- ity research firm that specializes in finding people for surveys and focus groups. These firms are useful for reaching consumers with diverse demographics. The difficulty with this approach is that it can so"
+  },
+  {
+    "page": 82,
+    "term": "Goal-Directed",
+    "snippet": "52 Part I: Goal-Directed Design team access to the environment in which the interaction occurs. This can give you tre - mendous insight into product constraints and user needs and goals. Observe the environment closely: It is likely to be crawling with clues about tasks the interviewee might not have mentioned. Notice, for exampl"
+  },
+  {
+    "page": 84,
+    "term": "Goal-Directed",
+    "snippet": "54 Part I: Goal-Directed Design After an interviewee answers your closed-ended question, usually a natural pause in the conversation occurs. Then you can redirect the discussion to a new line of questioning using a new open-ended question. Focus on goals first and tasks second Unlike contextual inquiry and the majority of other q"
+  },
+  {
+    "page": 86,
+    "term": "Goal-Directed",
+    "snippet": "56 Part I: Goal-Directed Design After the interviews After each interview, teams compare notes and discuss any particularly interesting trends observed or specific points brought up in the most recent interview. If they have the time, they should also look back at old notes to see whether unanswered questions from other interview"
+  },
+  {
+    "page": 88,
+    "term": "Goal-Directed",
+    "snippet": "58 Part I: Goal-Directed Design studies. Perhaps the budget is limited in a way that allows usability testing only once in a product design initiative. If so, we find much more value in performing the tests after we have a candidate solution, as a means of testing the specific elements of the new design. Card sorting Popularized "
+  },
+  {
+    "page": 89,
+    "term": "Goal-Directed",
+    "snippet": "a solid design concept based on qualitative user research and the models that research feeds, your usability testing will become an even more efficient tool for judging the effectiveness of design choices you have made. Goal-Directed design research allows you to do the heavy lifting early in the process. Notes 1. Sch\u00f6n, D. and Bennett, J., 1996 2. Pinker, 1999"
+  },
+  {
+    "page": 91,
+    "term": "personas",
+    "snippet": "Ch 3 moDElIng usErs: PErsonAs AnD goAls Once you have spent some time out in the field investigating your users\u2019 lives, motiva - tions, and environs, the question naturally arises: How do you use all this great research data to forge a successful product design? You have notebooks full of conversations and observations, and it is very like"
+  },
+  {
+    "page": 92,
+    "term": "Goal-Directed",
+    "snippet": "62 Part I: Goal-Directed Design Thus, much as economists create models to describe the behavior of markets, and phys - icists create models to describe the behavior of subatomic particles, we have found that using our research to create descriptive models of users is a uniquely powerful tool for interaction design. We call these "
+  },
+  {
+    "page": 93,
+    "term": "personas",
+    "snippet": "63CH 3. Modeling Users: Personas and Goals Figure 3-1: If you try to design an automobile that pleases every possible driver, you end up with a car with every possible feature that pleases nobody. Software today is too often designed to please too many users, resulting in low user satisfaction. Figure 3-2 provides an alternative approach. Ale"
+  },
+  {
+    "page": 94,
+    "term": "Goal-Directed",
+    "snippet": "64 Part I: Goal-Directed Design The key to this approach is to first choose the right individuals to design for\u2014users whose needs best represent the needs of a larger set of key constituents (see Figure 3-2). Then you prioritize these individuals so that the needs of the most important users are met with - out compromising our ab"
+  },
+  {
+    "page": 95,
+    "term": "personas",
+    "snippet": "65CH 3. Modeling Users: Personas and Goals The elastic user Although satisfying the users of our products is our goal, the term user causes trouble when applied to specific design problems and contexts. Its imprecision makes it danger- ous as a design tool, because every person on a product team has his own conceptions of who the user is and "
+  },
+  {
+    "page": 96,
+    "term": "Goal-Directed",
+    "snippet": "66 Part I: Goal-Directed Design a reality check for the design. We can ask, \u201cWill Julie want to perform this operation very often? Will she ever?\u201d With this knowledge, we can prioritize functions with great clarity. why Personas Are Effective Personas are user models that are represented as specific, individual human beings. As w"
+  },
+  {
+    "page": 97,
+    "term": "personas",
+    "snippet": "67CH 3. Modeling Users: Personas and Goals \u2022 Market research data such as focus groups and surveys \u2022 Market-segmentation models \u2022 Data gathered from literature reviews and previous studies However, none of this supplemental data can take the place of direct user interviews and observation. Almost every aspect of a well-developed persona can b"
+  },
+  {
+    "page": 98,
+    "term": "Goal-Directed",
+    "snippet": "68 Part I: Goal-Directed Design Archetypes versus stereotypes Don\u2019t confuse persona archetypes with stereotypes . Stereotypes are, in most respects, the antithesis of well-developed personas. Stereotypes usually are the result of designer or product team biases and assumptions, rather than factual data. Personas developed by draw"
+  },
+  {
+    "page": 99,
+    "term": "personas",
+    "snippet": "69CH 3. Modeling Users: Personas and Goals gives designers great power to improve or even eliminate tasks yet still accomplish the same goals. We can\u2019t overemphasize how important goals are for personas. In fact, we would go so far as to say that if your user model doesn\u2019t have any goals, what you have is not a persona. Personas can represent"
+  },
+  {
+    "page": 100,
+    "term": "Goal-Directed",
+    "snippet": "70 Part I: Goal-Directed Design expectations, and patterns of behavior. 6 Agile development processes similarly reduce its users to their role. 7 As abstractions (generally taking the form of a list of attributes), they are not imagined as people and typically do not attempt to convey broader human motivations and contexts. Holtz"
+  },
+  {
+    "page": 101,
+    "term": "personas",
+    "snippet": "71CH 3. Modeling Users: Personas and Goals combination with these other modeling techniques. As we\u2019ll discuss at the end of the chapter, some other models make extremely useful complements to personas. Personas versus user profiles Many usability practitioners use the terms persona and user profile synonymously. There is no problem with this "
+  },
+  {
+    "page": 102,
+    "term": "Goal-Directed",
+    "snippet": "72 Part I: Goal-Directed Design Kate and Sara are in Segment 1 Segment 1 Segment 2 Segment 3 Bob overlaps Segments 2 and 3 Ann is in Segment 3 Market segments Pool of interviewees Personas derived from behavior patterns Figure 3-3: Personas versus market segments. Market segments can be used in the Research phase to limit the ran"
+  },
+  {
+    "page": 103,
+    "term": "personas",
+    "snippet": "73CH 3. Modeling Users: Personas and Goals other questions, nonverbal cues, and clues from the environment, such as the titles of books on shelves. One of the most critical tasks in the modeling of personas is identi - fying goals and expressing them succinctly: Each goal should be expressed as a simple sentence. user goals and cognitive proc"
+  },
+  {
+    "page": 104,
+    "term": "Goal-Directed",
+    "snippet": "74 Part I: Goal-Directed Design designing visual appearance and motion, although sound can also play a role\u2014think of the distinctive Mac power-up chord. People designing devices may design for tactile sensations as well. A misconception often arises when visceral-level design is discussed: that design - ing for visceral response "
+  },
+  {
+    "page": 105,
+    "term": "personas",
+    "snippet": "75CH 3. Modeling Users: Personas and Goals without a solid purpose and set of behaviors in place for the here and now. The user expe- rience of a product or artifact, therefore, should ideally harmonize elements of visceral design and reflective design with a focus on behavioral design . Designing for reflection Reflective processing\u2014and, par"
+  },
+  {
+    "page": 106,
+    "term": "Goal-Directed",
+    "snippet": "76 Part I: Goal-Directed Design in properly delineating and modeling three specific types of user goals as part of each persona\u2019s definition. 10 Three types of user goals correspond to Norman\u2019s visceral, behavioral, and reflective pro- cessing levels (see Figure 3-4): \u2022 Experience goals \u2022 End goals \u2022 Life goals How the user wants"
+  },
+  {
+    "page": 107,
+    "term": "personas",
+    "snippet": "77CH 3. Modeling Users: Personas and Goals When products make users feel stupid or uncomfortable, it\u2019s unpleasant, and their effec- tiveness and enjoyment plummets, regardless of their other goals. Their level of resent - ment also increases. If they experience enough of this type of treatment, users will be primed to subvert the system. Any "
+  },
+  {
+    "page": 108,
+    "term": "Goal-Directed",
+    "snippet": "78 Part I: Goal-Directed Design help explain why the user is trying to accomplish the end goals he seeks to accomplish. Life goals describe a persona\u2019s long-term desires, motivations, and self-image attributes, which cause the persona to connect with a product. These goals are the focus of a prod - uct\u2019s overall design, strategy,"
+  },
+  {
+    "page": 109,
+    "term": "personas",
+    "snippet": "79CH 3. Modeling Users: Personas and Goals nonuser goals User goals are not the only type of goals that designers need to take into account. Cus - tomer goals, business goals, and technical goals are all nonuser goals. Typically, these goals must be acknowledged and considered, but they do not form the basis of the design direction. Although "
+  },
+  {
+    "page": 110,
+    "term": "Goal-Directed",
+    "snippet": "80 Part I: Goal-Directed Design You may find yourself designing on behalf of an organization that is not necessarily a business, such as a museum, nonprofit, or school (although many such organizations are run as businesses these days). These organizations also have goals that must be consid - ered, such as the following: \u2022 Educa"
+  },
+  {
+    "page": 111,
+    "term": "personas",
+    "snippet": "81CH 3. Modeling Users: Personas and Goals interacts with your product. Therefore, you must regard her personal goals as more sig - nificant than those of the corporation that employs her, the IT manager who supports her, or the developer who builds for her. Your users will do their best to achieve their employer\u2019s business goals, while at th"
+  },
+  {
+    "page": 112,
+    "term": "Goal-Directed",
+    "snippet": "82 Part I: Goal-Directed Design construct personas. It also helps experienced designers to stay focused on actual behav - ior patterns, especially in consumer domains. Figure 3-5 shows the principle steps: 1 Group interview subjects by role. 2 Identify behavioral variables. 3 Map interview subjects to behavioral variables. 4 Iden"
+  },
+  {
+    "page": 113,
+    "term": "personas",
+    "snippet": "83CH 3. Modeling Users: Personas and Goals are easy to delineate, because they usually map to job roles or descriptions. Consumer products have more subtle role divisions, including family roles, attitudes or approaches to relevant activities, or interests and aptitudes regarding lifestyle choices. step 2: Identify behavioral variables Once y"
+  },
+  {
+    "page": 114,
+    "term": "Goal-Directed",
+    "snippet": "84 Part I: Goal-Directed Design such as confidence in using technology. Others will represent multiple discrete choices, such as using a digital camera versus using a film camera. Mapping the interviewee to a precise point in the range isn\u2019t as critical as identifying the placement of interviewees in relationship to each other. I"
+  },
+  {
+    "page": 115,
+    "term": "personas",
+    "snippet": "85CH 3. Modeling Users: Personas and Goals step 5: synthesize characteristics and define goals We derive a persona\u2019s goals and other attributes from their behaviors. These behaviors are synthesized from what was observed/identified in the research process as represent- ing meaningful, typical use of the product over a period of time that adeq"
+  },
+  {
+    "page": 116,
+    "term": "Goal-Directed",
+    "snippet": "86 Part I: Goal-Directed Design Defining goals Goals are the most critical detail to synthesize from your interviews and observations of behaviors. Goals are best derived by analyzing the behavior patterns comprising each persona. By identifying the logical connections between each cluster of interviewees\u2019 behaviors, you can begi"
+  }
+]
