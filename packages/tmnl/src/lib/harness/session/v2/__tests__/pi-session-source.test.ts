@@ -251,6 +251,84 @@ describe('PiSessionSource', () => {
     }
   })
 
+  it('projects pi toolResult messages as harness tool events', async () => {
+    const fixture = await makeFixture()
+    try {
+      await appendFile(
+        fixture.file,
+        line({
+          type: 'message',
+          id: 'tool-1',
+          timestamp: '2026-01-01T00:00:04.000Z',
+          message: {
+            role: 'toolResult',
+            toolCallId: 'call-tool-1',
+            toolName: 'skill-output',
+            content: [{ type: 'text', text: '#!/usr/bin/env python3\nprint("muse")' }],
+            timestamp: Date.parse('2026-01-01T00:00:04.000Z'),
+          },
+        }) + '\n',
+      )
+
+      const snapshot = PiSessionSourceTestApi.loadSnapshotFromPiFile(fixture.file)
+      const toolEvent = snapshot.events.find((event) => event._tag === 'chat:v2/tool_event')
+
+      expect(toolEvent).toMatchObject({
+        _tag: 'chat:v2/tool_event',
+        toolCallId: 'call-tool-1',
+        toolName: 'skill-output',
+        phase: 'end',
+        payload: {
+          result: [{ type: 'text', text: '#!/usr/bin/env python3\nprint("muse")' }],
+          isError: false,
+        },
+      })
+      expect(snapshot.events).not.toContainEqual(expect.objectContaining({
+        _tag: 'chat:v2/user_message',
+        text: expect.stringContaining('[toolResult]'),
+      }))
+    } finally {
+      await rm(fixture.dir, { recursive: true, force: true })
+    }
+  })
+
+  it('loads a bounded preview window with the latest summary and tail entries', async () => {
+    const fixture = await makeFixture()
+    try {
+      await appendFile(
+        fixture.file,
+        [
+          line({ type: 'compaction', id: 'c-1', timestamp: '2026-01-01T00:00:04.000Z', summary: 'Useful compacted context' }),
+          line({ type: 'message', id: 'u-2', timestamp: '2026-01-01T00:00:05.000Z', message: { role: 'user', content: 'Older user turn', timestamp: Date.parse('2026-01-01T00:00:05.000Z') } }),
+          line({ type: 'message', id: 'a-2', timestamp: '2026-01-01T00:00:06.000Z', message: { role: 'assistant', content: 'Older assistant turn', timestamp: Date.parse('2026-01-01T00:00:06.000Z') } }),
+          line({ type: 'message', id: 'u-3', timestamp: '2026-01-01T00:00:07.000Z', message: { role: 'user', content: 'Newest user turn', timestamp: Date.parse('2026-01-01T00:00:07.000Z') } }),
+          line({ type: 'message', id: 'a-3', timestamp: '2026-01-01T00:00:08.000Z', message: { role: 'assistant', content: 'Newest assistant turn', timestamp: Date.parse('2026-01-01T00:00:08.000Z') } }),
+        ].join('\n') + '\n',
+      )
+
+      const snapshot = await PiSessionSourceTestApi.loadPreviewSnapshotFromPiFile({
+        path: fixture.file,
+        maxEntries: 2,
+        tailBytes: 1024 * 1024,
+      })
+
+      expect(snapshot.sessionId).toBe('pi:sess-1')
+      expect(snapshot.events[0].seq).toBeGreaterThan(100_000_000)
+      expect(snapshot.events.map((event) => event._tag)).toEqual([
+        'chat:v2/session_opened',
+        'chat:v2/user_message',
+        'chat:v2/user_message',
+        'chat:v2/assistant_start',
+        'chat:v2/assistant_final',
+      ])
+      expect(snapshot.events[1]).toMatchObject({ text: '[compaction summary]\nUseful compacted context' })
+      expect(snapshot.events[2]).toMatchObject({ text: 'Newest user turn' })
+      expect(snapshot.events[4]).toMatchObject({ text: 'Newest assistant turn' })
+    } finally {
+      await rm(fixture.dir, { recursive: true, force: true })
+    }
+  })
+
   it('exercises the pi session list CLI benchmark against a fixture directory', async () => {
     const fixture = await makeFixture()
     try {

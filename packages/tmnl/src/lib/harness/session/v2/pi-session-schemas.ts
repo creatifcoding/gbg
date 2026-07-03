@@ -129,6 +129,33 @@ export const PiSessionListPayload = Schema.Struct({
 })
 export type PiSessionListPayload = typeof PiSessionListPayload.Type
 
+export const PiSessionPreviewOptions = Schema.Struct({
+  /** Absolute pi JSONL path. */
+  path: Schema.String.pipe(Schema.nonEmptyString()),
+  /** Optional harness-facing session id override. */
+  sessionId: Schema.optional(Schema.String),
+  /** Max renderable JSONL entries to keep in the hot preview window. */
+  maxEntries: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.positive())),
+  /** Tail bytes to inspect for the hot preview window. */
+  tailBytes: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.positive())),
+})
+export type PiSessionPreviewOptions = typeof PiSessionPreviewOptions.Type
+
+export const PiSessionReplayStage = Schema.Literal('preview', 'hydrating', 'complete', 'error')
+export type PiSessionReplayStage = typeof PiSessionReplayStage.Type
+
+export const PiSessionReplayDiagnostics = Schema.Struct({
+  stage: PiSessionReplayStage,
+  path: Schema.String,
+  elapsedMs: Schema.Number,
+  entriesRead: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  entriesSelected: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  eventsEmitted: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  truncated: Schema.Boolean,
+  tailBytes: Schema.Number.pipe(Schema.int(), Schema.positive()),
+})
+export type PiSessionReplayDiagnostics = typeof PiSessionReplayDiagnostics.Type
+
 // =============================================================================
 // Summaries, blessings, and groups
 // =============================================================================

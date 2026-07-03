@@ -23,6 +23,7 @@ import {
   HarnessSessionId,
   HarnessSessionOpenedEvent,
   HarnessSnapshot,
+  HarnessToolEvent,
   HarnessUserMessageEvent,
   type HarnessEvent,
 } from '../../schemas'
@@ -34,10 +35,15 @@ import {
   type PiSessionListItem,
   type PiSessionListScope,
   type PiSessionMetadataCacheEntry,
+  type PiSessionPreviewOptions,
 } from './pi-session-schemas'
 
 const FAST_LIST_BYTES = 256 * 1024
 const DEFAULT_LIMIT = 200
+const DEFAULT_PREVIEW_TAIL_BYTES = 512 * 1024
+const DEFAULT_PREVIEW_MAX_ENTRIES = 16
+const DEFAULT_PREVIEW_TEXT_CHARS = 600
+const PREVIEW_SEQ_BASE = 1_000_000_000
 const CACHE_SCHEMA_VERSION = 1
 const DEFAULT_CACHE_PATH = () => join(homedir(), '.tmnl', 'pi-session-metadata-cache.v1.json')
 
@@ -174,6 +180,9 @@ export interface PiSessionSourceShape {
   readonly loadSnapshot: (
     args: { readonly path: string; readonly sessionId?: string },
   ) => Effect.Effect<HarnessSnapshot, PiSessionSourceError>
+  readonly loadPreviewSnapshot: (
+    args: PiSessionPreviewOptions,
+  ) => Effect.Effect<HarnessSnapshot, PiSessionSourceError>
 }
 
 export const PiSessionSource = Context.GenericTag<PiSessionSourceShape>('tmnl/harness/PiSessionSource')
@@ -231,6 +240,23 @@ const readFirstChunk = async (path: string, bytes = FAST_LIST_BYTES): Promise<st
     const buffer = Buffer.alloc(bytes)
     const { bytesRead } = await handle.read(buffer, 0, bytes, 0)
     return buffer.toString('utf8', 0, bytesRead)
+  } finally {
+    await handle.close()
+  }
+}
+
+const readTailChunk = async (path: string, bytes = DEFAULT_PREVIEW_TAIL_BYTES): Promise<string> => {
+  const stats = await stat(path)
+  const start = Math.max(0, stats.size - bytes)
+  const length = Math.max(0, stats.size - start)
+  const handle = await openFile(path, 'r')
+  try {
+    const buffer = Buffer.alloc(length)
+    const { bytesRead } = await handle.read(buffer, 0, length, start)
+    const chunk = buffer.toString('utf8', 0, bytesRead)
+    if (start === 0) return chunk
+    const firstNewline = chunk.indexOf('\n')
+    return firstNewline >= 0 ? chunk.slice(firstNewline + 1) : ''
   } finally {
     await handle.close()
   }
@@ -647,16 +673,177 @@ const snapshotSessionId = (piId: string): HarnessSessionId => `pi:${piId}` as Ha
 const messageId = (prefix: string, id: unknown): HarnessMessageId => `${prefix}:${String(id)}` as HarnessMessageId
 const clientMessageId = (id: unknown): HarnessClientMessageId => `pi-client:${String(id)}` as HarnessClientMessageId
 
-const loadSnapshotFromPiFile = (path: string, sessionIdOverride?: string): HarnessSnapshot => {
-  const manager = SessionManager.open(path)
-  const header = manager.getHeader()
-  if (!header) {
-    throw new Error(`Invalid pi session header: ${path}`)
+const isRenderablePiEntry = (entry: JsonRecord): boolean =>
+  entry.type === 'message'
+  || entry.type === 'custom_message'
+  || entry.type === 'branch_summary'
+  || entry.type === 'compaction'
+
+const stableEntryKey = (entry: JsonRecord, index: number): string =>
+  typeof entry.id === 'string' ? `${String(entry.type)}:${entry.id}` : `${String(entry.type)}:${index}`
+
+const selectPreviewEntries = (
+  entries: ReadonlyArray<JsonRecord>,
+  maxEntries = DEFAULT_PREVIEW_MAX_ENTRIES,
+): JsonRecord[] => {
+  const renderable = entries.filter(isRenderablePiEntry)
+  const indexed = renderable.map((entry, index) => ({ entry, key: stableEntryKey(entry, index) }))
+  const tail = indexed.slice(-maxEntries)
+  const tailKeys = new Set(tail.map((item) => item.key))
+  const summary = [...indexed]
+    .reverse()
+    .find((item) =>
+      (item.entry.type === 'compaction' || item.entry.type === 'branch_summary')
+      && !tailKeys.has(item.key))
+
+  return summary ? [summary.entry, ...tail.map((item) => item.entry)] : tail.map((item) => item.entry)
+}
+
+const truncatePreviewText = (text: string, limit?: number): string => {
+  if (limit == null || text.length <= limit) return text
+  const omitted = text.length - limit
+  return `${text.slice(0, limit).trimEnd()}\n\n[preview truncated ${omitted.toLocaleString()} chars; full archive available via chunked hydration]`
+}
+
+const pushPiEntryEvents = (
+  events: HarnessEvent[],
+  rawEntry: JsonRecord,
+  args: {
+    readonly sessionId: HarnessSessionId
+    readonly at: number
+    readonly textLimit?: number
+    seq: number
+  },
+): number => {
+  const { sessionId, at, textLimit } = args
+  let seq = args.seq
+
+  if (rawEntry.type === 'message') {
+    const role = roleFromMessage(rawEntry.message)
+    const text = truncatePreviewText(textFromMessage(rawEntry.message), textLimit)
+    if (!text) return seq
+
+    if (role === 'user') {
+      events.push(HarnessUserMessageEvent.make({
+        sessionId,
+        seq: ++seq,
+        at,
+        messageId: messageId('pi-user', rawEntry.id),
+        clientMessageId: clientMessageId(rawEntry.id),
+        text,
+      }))
+      return seq
+    }
+
+    if (role === 'assistant') {
+      const mid = messageId('pi-assistant', rawEntry.id)
+      events.push(HarnessAssistantStartEvent.make({
+        sessionId,
+        seq: ++seq,
+        at,
+        messageId: mid,
+      }))
+      events.push(HarnessAssistantFinalEvent.make({
+        sessionId,
+        seq: ++seq,
+        at,
+        messageId: mid,
+        text,
+      }))
+      return seq
+    }
+
+    if (role === 'toolResult') {
+      const message = isRecord(rawEntry.message) ? rawEntry.message : {}
+      const toolCallId = typeof message.toolCallId === 'string'
+        ? message.toolCallId
+        : `pi-tool:${String(rawEntry.id)}`
+      const toolName = typeof message.toolName === 'string' && message.toolName.length > 0
+        ? message.toolName
+        : 'pi.toolResult'
+      events.push(HarnessToolEvent.make({
+        sessionId,
+        seq: ++seq,
+        at,
+        toolCallId,
+        toolName,
+        phase: 'end',
+        payload: {
+          result: [{ type: 'text', text }],
+          isError: Boolean(message.isError),
+        },
+      }))
+      return seq
+    }
+
+    // Tool/custom roles are still useful context in read-only replay.
+    events.push(HarnessUserMessageEvent.make({
+      sessionId,
+      seq: ++seq,
+      at,
+      messageId: messageId(`pi-${role}`, rawEntry.id),
+      clientMessageId: clientMessageId(rawEntry.id),
+      text: truncatePreviewText(`[${role}] ${text}`, textLimit),
+    }))
+    return seq
   }
 
-  const sessionId = (sessionIdOverride ?? snapshotSessionId(header.id)) as HarnessSessionId
+  if (rawEntry.type === 'custom_message') {
+    const text = truncatePreviewText(textFromContent(rawEntry.content), textLimit)
+    if (!text) return seq
+    events.push(HarnessUserMessageEvent.make({
+      sessionId,
+      seq: ++seq,
+      at,
+      messageId: messageId('pi-custom', rawEntry.id),
+      clientMessageId: clientMessageId(rawEntry.id),
+      text,
+    }))
+    return seq
+  }
+
+  if (rawEntry.type === 'branch_summary' && typeof rawEntry.summary === 'string') {
+    events.push(HarnessUserMessageEvent.make({
+      sessionId,
+      seq: ++seq,
+      at,
+      messageId: messageId('pi-branch-summary', rawEntry.id),
+      clientMessageId: clientMessageId(rawEntry.id),
+      text: truncatePreviewText(`[branch summary]\n${rawEntry.summary}`, textLimit),
+    }))
+    return seq
+  }
+
+  if (rawEntry.type === 'compaction' && typeof rawEntry.summary === 'string') {
+    events.push(HarnessUserMessageEvent.make({
+      sessionId,
+      seq: ++seq,
+      at,
+      messageId: messageId('pi-compaction', rawEntry.id),
+      clientMessageId: clientMessageId(rawEntry.id),
+      text: truncatePreviewText(`[compaction summary]\n${rawEntry.summary}`, textLimit),
+    }))
+  }
+
+  return seq
+}
+
+const snapshotFromPiEntries = (
+  header: JsonRecord,
+  entries: ReadonlyArray<JsonRecord>,
+  options?: {
+    readonly sessionIdOverride?: string
+    readonly seqBase?: number
+    readonly textLimit?: number
+  },
+): HarnessSnapshot => {
+  if (header.type !== 'session' || typeof header.id !== 'string') {
+    throw new Error('Invalid pi session header')
+  }
+
+  const sessionId = (options?.sessionIdOverride ?? snapshotSessionId(header.id)) as HarnessSessionId
   const events: HarnessEvent[] = []
-  let seq = 0
+  let seq = options?.seqBase ?? 0
   const createdAt = parseDateMs(header.timestamp, Date.now())
 
   events.push(HarnessSessionOpenedEvent.make({
@@ -668,98 +855,47 @@ const loadSnapshotFromPiFile = (path: string, sessionIdOverride?: string): Harne
     agentId: 'pi-cli',
   }))
 
-  for (const rawEntry of manager.getBranch() as unknown as JsonRecord[]) {
+  for (const rawEntry of entries) {
     const at = eventTime(rawEntry, createdAt)
-
-    if (rawEntry.type === 'message') {
-      const role = roleFromMessage(rawEntry.message)
-      const text = textFromMessage(rawEntry.message)
-      if (!text) continue
-
-      if (role === 'user') {
-        events.push(HarnessUserMessageEvent.make({
-          sessionId,
-          seq: ++seq,
-          at,
-          messageId: messageId('pi-user', rawEntry.id),
-          clientMessageId: clientMessageId(rawEntry.id),
-          text,
-        }))
-        continue
-      }
-
-      if (role === 'assistant') {
-        const mid = messageId('pi-assistant', rawEntry.id)
-        events.push(HarnessAssistantStartEvent.make({
-          sessionId,
-          seq: ++seq,
-          at,
-          messageId: mid,
-        }))
-        events.push(HarnessAssistantFinalEvent.make({
-          sessionId,
-          seq: ++seq,
-          at,
-          messageId: mid,
-          text,
-        }))
-        continue
-      }
-
-      // Tool/custom roles are still useful context in read-only replay.
-      events.push(HarnessUserMessageEvent.make({
-        sessionId,
-        seq: ++seq,
-        at,
-        messageId: messageId(`pi-${role}`, rawEntry.id),
-        clientMessageId: clientMessageId(rawEntry.id),
-        text: `[${role}] ${text}`,
-      }))
-      continue
-    }
-
-    if (rawEntry.type === 'custom_message') {
-      const text = textFromContent(rawEntry.content)
-      if (!text) continue
-      events.push(HarnessUserMessageEvent.make({
-        sessionId,
-        seq: ++seq,
-        at,
-        messageId: messageId('pi-custom', rawEntry.id),
-        clientMessageId: clientMessageId(rawEntry.id),
-        text,
-      }))
-      continue
-    }
-
-    if (rawEntry.type === 'branch_summary' && typeof rawEntry.summary === 'string') {
-      events.push(HarnessUserMessageEvent.make({
-        sessionId,
-        seq: ++seq,
-        at,
-        messageId: messageId('pi-branch-summary', rawEntry.id),
-        clientMessageId: clientMessageId(rawEntry.id),
-        text: `[branch summary]\n${rawEntry.summary}`,
-      }))
-      continue
-    }
-
-    if (rawEntry.type === 'compaction' && typeof rawEntry.summary === 'string') {
-      events.push(HarnessUserMessageEvent.make({
-        sessionId,
-        seq: ++seq,
-        at,
-        messageId: messageId('pi-compaction', rawEntry.id),
-        clientMessageId: clientMessageId(rawEntry.id),
-        text: `[compaction summary]\n${rawEntry.summary}`,
-      }))
-    }
+    seq = pushPiEntryEvents(events, rawEntry, { sessionId, at, seq, textLimit: options?.textLimit })
   }
 
   return new HarnessSnapshot({
     sessionId,
     headSeq: seq,
     events,
+  })
+}
+
+const loadSnapshotFromPiFile = (path: string, sessionIdOverride?: string): HarnessSnapshot => {
+  const manager = SessionManager.open(path)
+  const header = manager.getHeader()
+  if (!header) {
+    throw new Error(`Invalid pi session header: ${path}`)
+  }
+
+  return snapshotFromPiEntries(header as unknown as JsonRecord, manager.getBranch() as unknown as JsonRecord[], {
+    sessionIdOverride,
+  })
+}
+
+const loadPreviewSnapshotFromPiFile = async (args: PiSessionPreviewOptions): Promise<HarnessSnapshot> => {
+  const headerRecords = parseJsonLines(await readFirstChunk(args.path, FAST_LIST_BYTES))
+  const header = headerRecords[0]
+  if (!header || header.type !== 'session' || typeof header.id !== 'string') {
+    throw new Error(`Invalid pi session header: ${args.path}`)
+  }
+
+  const tailBytes = args.tailBytes ?? DEFAULT_PREVIEW_TAIL_BYTES
+  const maxEntries = args.maxEntries ?? DEFAULT_PREVIEW_MAX_ENTRIES
+  const tailRecords = parseJsonLines(await readTailChunk(args.path, tailBytes))
+  const sourceRecords = tailRecords.length > 0 ? tailRecords : headerRecords.slice(1)
+  const entries = selectPreviewEntries(sourceRecords, maxEntries)
+
+  return snapshotFromPiEntries(header, entries, {
+    sessionIdOverride: args.sessionId,
+    seqBase: PREVIEW_SEQ_BASE,
+    textLimit: DEFAULT_PREVIEW_TEXT_CHARS,
   })
 }
 
@@ -771,6 +907,12 @@ const makePiSessionSource = (): PiSessionSourceShape => ({
       try: () => loadSnapshotFromPiFile(path, sessionId),
       catch: toError('pi-session-load-failed', `Failed to load pi CLI session ${path}`),
     }).pipe(Effect.withSpan('tmnl.harness.pi-session-source.load-snapshot')),
+
+  loadPreviewSnapshot: (args) =>
+    Effect.tryPromise({
+      try: () => loadPreviewSnapshotFromPiFile(args),
+      catch: toError('pi-session-preview-failed', `Failed to load pi CLI session preview ${args.path}`),
+    }).pipe(Effect.withSpan('tmnl.harness.pi-session-source.load-preview-snapshot')),
 })
 
 export const PiSessionSourceLive = Layer.succeed(PiSessionSource, makePiSessionSource())
@@ -779,7 +921,9 @@ export const PiSessionSourceTestApi = {
   compactRankedDirs,
   getDefaultSessionDir,
   listFast,
+  loadPreviewSnapshotFromPiFile,
   loadSnapshotFromPiFile,
   resetMetadataEffectCache,
+  selectPreviewEntries,
   textFromContent,
 }
