@@ -163,3 +163,12 @@
 [submodule "submodules/synadia-agents"]
 	path = submodules/synadia-agents
 	url = https://github.com/synadia-ai/synadia-agents.git
+[submodule "submodules/ts-sdks"]
+	path = submodules/ts-sdks
+	url = https://github.com/MystenLabs/ts-sdks
+[submodule "submodules/sui"]
+	path = submodules/sui
+	url = https://github.com/MystenLabs/sui
+[submodule "submodules/openprose"]
+	path = submodules/openprose
+	url = https://github.com/openprose/prose
