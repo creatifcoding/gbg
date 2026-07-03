@@ -63,6 +63,20 @@ Bridge optionality is centralized at the Wire/Port boundary instead of being sca
 
 This keeps the CAS kernel focused on Durable Streams rules and keeps MSH as substrate plumbing only.
 
+## Bridge diagnostics
+
+The first diagnostics slice adds `MshBridgeDiagnostics` for read-only bridge health checks:
+
+- metadata bucket readability via MSH `NatsKVService`;
+- bridge data stream info/presence via MSH `NatsStreamService`;
+- generic `DiagnosticReport` output from `@tmnl/msh/diagnostics` with `layer: "lnk"`.
+
+Boundary rule: LNK diagnostics may report bridge substrate health and schema-id metadata presence, but it must not validate PCT registry semantics. MSH still owns only generic substrate checks; PCT owns cross-stack hardening closeout docs.
+
+Related closeout:
+
+- `packages/pct/docs/hardening/diagnostics-closeout.md`
+
 ## Default namespace proposal
 
 - JetStream subjects: `_tmnl.lnk.stream.<stream-id>`

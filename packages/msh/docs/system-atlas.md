@@ -143,12 +143,16 @@ These are feature suites, not one-off chores. Each suite should close with tests
 
 Purpose: make MSH easy to operate and diagnose when embedded under PCT/LNK.
 
-Candidate capabilities:
+Current first slice:
 
-- `MshHealthService` with connection, core flush, JetStream manager, stream, KV, and auth metadata checks.
+- `packages/msh/src/diagnostics` exports generic Schema-backed diagnostics vocabulary, redaction helpers, and `MshDiagnosticsService`.
+- Implemented read-only checks: core flush, JetStream manager access, stream info, KV bucket readability, and safe auth metadata.
+- Cross-stack closeout lives at `packages/pct/docs/hardening/diagnostics-closeout.md` because PCT owns the hardening portfolio index.
+
+Remaining candidate capabilities:
+
 - Permission dry-run helpers that report missing `$JS.API.>`, `_INBOX.>`, pub/sub grants, and stream subjects.
 - Trace/span inventory that validates every public method has a stable `MshSpan` constant.
-- Structured diagnostic report safe for logs: no seeds, no tokens, no creds bytes.
 - Optional CLI probe: `msh diagnostics`, `msh subjects`, `msh streams`, `msh auth inspect`.
 
 Acceptance shape:
