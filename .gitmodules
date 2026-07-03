@@ -172,3 +172,7 @@
 [submodule "submodules/openprose"]
 	path = submodules/openprose
 	url = https://github.com/openprose/prose
+[submodule "submodules/liveline"]
+	path = submodules/liveline
+	url = https://github.com/benjitaylor/liveline.git
+	ignore = untracked
