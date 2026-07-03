@@ -20,10 +20,11 @@ import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
 import { FloatingScrollPill } from './floating-scroll-pill'
 import { useMorphChatContext } from './surface-context'
 import { presentationStateFamily } from '../machines/surface-stx'
-import type { ChatMessage, ChatRole, ChatMessagePart, StreamingState } from '../schemas/message-types'
+import type { ChatMessage, ChatRole, ChatMessagePart, ConnectionState, StreamingState } from '../schemas/message-types'
 import { getMessageParts } from '../schemas/message-types'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import { getMessageAtom } from '../hooks/useHarnessAdapter'
+import { connection$ } from '../hooks/harness-adapter/atoms'
 import { streamingMetrics$, idleMetricsAtom } from '../atoms/streaming-metrics'
 import { StreamingMetricsProvider } from './streaming-metrics-provider'
 import { StreamEntryPlaceholder } from '@/lib/chat/msg/body-content/stream-entry-placeholder'
@@ -100,6 +101,8 @@ const MSG_GAP: Record<ChatWidthTier, string> = {
   full: 'mt-1',
 }
 
+const LARGE_REPLAY_MESSAGE_WINDOW = 400
+
 // =============================================================================
 // Role Mapping: MorphChat → chat/ library
 // =============================================================================
@@ -138,8 +141,38 @@ const NULL_MESSAGES_ATOM = Atom.make<ReadonlyArray<ChatMessage>>([])
 const NULL_STREAMING_ATOM = Atom.make<StreamingState>({
   phase: 'idle', buffer: '', tokensReceived: 0,
 })
+const NULL_CONNECTION_ATOM = Atom.make<ConnectionState>({ phase: 'disconnected' })
 const EMPTY_TASKS_MAP = Atom.make<ReadonlyMap<string, ReadonlyArray<unknown>>>(new Map())
 const legacyMessageAtomCache = new WeakMap<MorphChatAdapter, Map<string, Atom.Atom<ChatMessage | null>>>()
+
+function PiReplayLoadingFrame() {
+  const lines = [
+    'opening session spine…',
+    'locating the last useful compaction…',
+    'painting bounded preview, not the entire fossil record…',
+  ]
+
+  return (
+    <div className="flex flex-col items-start gap-2 rounded-xl border border-cyan-400/20 bg-neutral-950/80 px-4 py-3 shadow-[0_0_30px_rgba(34,211,238,0.06)] max-w-[420px]">
+      <div className="flex items-center gap-2 font-mono uppercase tracking-[0.18em] text-cyan-300" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-300" />
+        pi replay · read-only
+      </div>
+      <div className="space-y-1.5 font-mono text-neutral-300" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        {lines.map((line, index) => (
+          <motion.div
+            key={line}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.16, delay: index * 0.04, ease: [0.32, 0.72, 0, 1] }}
+          >
+            <span className="text-cyan-500/70">0{index + 1}</span> {line}
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 /**
  * Narrowed streaming$ projection: only isStreaming + messageId.
@@ -544,12 +577,12 @@ const AssistantMessage = memo(function AssistantMessage({
           {/* Metadata row — progressive disclosure by tier */}
           <div className={cn('flex items-center mt-1.5', compact ? 'gap-1' : 'gap-3')}>
             {/* Timestamp — always visible */}
-            <span className="font-mono text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
+            <span className="font-mono text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
               {formatTime(message.timestamp)}
             </span>
             {/* Model name — full tier only */}
             {widthTier === 'full' && message.model && (
-              <span className="font-mono text-neutral-700 truncate max-w-[120px]" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
+              <span className="font-mono text-neutral-700 truncate max-w-[120px]" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
                 {message.model}
               </span>
             )}
@@ -601,7 +634,7 @@ const CompactMessage = memo(function CompactMessage({ message }: { message: Chat
           'shrink-0',
           isUser ? 'text-cyan-500' : 'text-emerald-500',
         )}
-        style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
         {isUser ? (message.authorName ?? 'you') : (message.authorName ?? 'agent')}
       </span>
@@ -643,7 +676,7 @@ const LogMessage = memo(function LogMessage({ message }: { message: ChatMessage 
     'text-cyan-500'
 
   return (
-    <div className="flex items-center gap-2 px-3 py-0.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
+    <div className="flex items-center gap-2 px-3 py-0.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
       <span className="text-neutral-600 shrink-0">{ts}</span>
       <Icon size={12} strokeWidth={CHAT_ICON_STROKE_WIDTH} className={cn('shrink-0', roleColor)} />
       <span className={cn('shrink-0 w-8', roleColor)}>
@@ -667,13 +700,13 @@ const CardMessage = memo(function CardMessage({ message }: { message: ChatMessag
               ? 'bg-cyan-500/10 text-cyan-400'
               : 'bg-emerald-500/10 text-emerald-400',
           )}
-          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
           {message.authorName ?? (isUser ? 'You' : message.role)}
         </span>
         <span
           className="text-neutral-600"
-          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
           {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}
         </span>
@@ -805,6 +838,7 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
   // Legacy adapters still need full streaming$ for buffer overlay.
   const streamingSignal = useAtomValue(getStreamingSignalAtom(adapter))
   const legacyStreaming = useAtomValue(hasPerMessageAtoms ? NULL_STREAMING_ATOM : adapter.streaming$)
+  const harnessConnection = useAtomValue(harnessInstanceId ? connection$(harnessInstanceId) : NULL_CONNECTION_ATOM)
 
   // Synthetic streaming message — only for legacy adapters that don't put
   // the streaming message in messages$ (mock adapter, etc.)
@@ -848,11 +882,20 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
     return ids
   }, [hasPerMessageAtoms, perMessageIds, legacyMessages, syntheticStreamingId, streamingSignal.isStreaming, streamingSignal.messageId])
 
+  const hiddenReplayCount = spec.thread === 'stream-only'
+    ? 0
+    : Math.max(0, displayIds.length - LARGE_REPLAY_MESSAGE_WINDOW)
+
+  const windowedDisplayIds = useMemo(() => {
+    if (spec.thread === 'stream-only') return displayIds
+    return hiddenReplayCount > 0 ? displayIds.slice(-LARGE_REPLAY_MESSAGE_WINDOW) : displayIds
+  }, [spec.thread, displayIds, hiddenReplayCount])
+
   const resolvedIds = useMemo(() => {
-    if (spec.thread !== 'stream-only') return displayIds
-    const latest = displayIds[displayIds.length - 1]
+    if (spec.thread !== 'stream-only') return windowedDisplayIds
+    const latest = windowedDisplayIds[windowedDisplayIds.length - 1]
     return latest ? [latest] : []
-  }, [spec.thread, displayIds])
+  }, [spec.thread, windowedDisplayIds])
 
   // Map spec.scrollBehavior → ChatThreadBand autoScroll
   const autoScroll = resolveAutoScroll(spec.scrollBehavior)
@@ -879,6 +922,8 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
   }
 
   if (resolvedIds.length === 0) {
+    const loadingPiReplay = harnessConnection.phase === 'connecting' && harnessConnection.endpoint?.startsWith('pi-cli:')
+
     return (
       <div ref={threadRef} data-width-tier={widthTier} className="h-full">
         <ChatThreadBand
@@ -889,9 +934,13 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
             spec.thread === 'log' ? 'bg-neutral-950' : '',
           )}
         >
-          <span className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}>
-            No messages yet
-          </span>
+          {loadingPiReplay ? (
+            <PiReplayLoadingFrame />
+          ) : (
+            <span className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}>
+              No messages yet
+            </span>
+          )}
         </ChatThreadBand>
       </div>
     )
@@ -901,7 +950,7 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
     <div ref={threadRef} data-width-tier={widthTier} className="h-full">
       <ChatThreadBand
         autoScroll={autoScroll}
-        itemCount={resolvedIds.length}
+        itemCount={resolvedIds.length + (hiddenReplayCount > 0 ? 1 : 0)}
         bottomThreshold={24}
         renderFooterOverlay={footerOverlay}
         className={cn(
@@ -909,6 +958,11 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
           spec.thread === 'log' ? 'bg-neutral-950' : '',
         )}
       >
+        {hiddenReplayCount > 0 && (
+          <div className={cn('mx-4 my-3 rounded-lg border border-cyan-400/15 bg-cyan-950/10 px-3 py-2 font-mono text-cyan-200/80')} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            Preview window · showing latest {resolvedIds.length} messages · {hiddenReplayCount} older archive messages kept out of the DOM, because we are civilized.
+          </div>
+        )}
         {resolvedIds.map((id, index) => (
           <MessageRow
             key={id}

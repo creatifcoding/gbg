@@ -49,10 +49,12 @@ export function ModelSelectorView() {
     adapter.retryModelCatalog?.()
   }, [adapter])
 
-  if (availableModels.length === 0 && !modelLoading && !modelError) return null
-
   const models = availableModels as ModelOption[]
-  const currentModelId = selectedModelId ?? models[0]?.id ?? ''
+  const authenticatedModels = models.filter((model) => model.available !== false)
+  const selectedModelIsAuthenticated = selectedModelId
+    ? authenticatedModels.some((model) => model.id === selectedModelId)
+    : false
+  const currentModelId = selectedModelIsAuthenticated ? selectedModelId : authenticatedModels[0]?.id ?? null
 
   return (
     <ModelSelector.Root
@@ -65,6 +67,7 @@ export function ModelSelectorView() {
     >
       <ModelSelector.Trigger className="text-neutral-700 group-hover/right:text-neutral-500 [&_[data-name]]:text-neutral-700 [&_[data-name]]:group-hover/right:text-neutral-500" />
       <ModelSelector.Content>
+        <ModelSelector.Tabs />
         <ModelSelector.Search />
         <ModelSelector.List />
         <ModelSelector.Footer />

@@ -22,6 +22,7 @@ import { PanelEvent } from '@/lib/genifer/harness/panel-events'
 import {
   PiSessionListOptions,
   PiSessionListPayload,
+  PiSessionPreviewOptions,
 } from './session/v2/pi-session-schemas'
 
 // ── Model catalog schema ────────────────────────────────────────────────────
@@ -32,6 +33,9 @@ export const HarnessModelInfo = Schema.Struct({
   reasoning: Schema.Boolean,
   contextWindow: Schema.Number,
   maxTokens: Schema.Number,
+  // Back-compat: older servers only returned authenticated models, so missing
+  // `available` decodes as true.
+  available: Schema.optionalWith(Schema.Boolean, { default: () => true }),
 })
 export type HarnessModelInfo = typeof HarnessModelInfo.Type
 
@@ -152,6 +156,10 @@ export const HarnessRemoteLoadPiSessionSnapshotCommand = Schema.TaggedStruct('re
   sessionId: Schema.optional(Schema.String),
 })
 
+export const HarnessRemoteLoadPiSessionPreviewSnapshotCommand = Schema.TaggedStruct('remote:load_pi_session_preview_snapshot', {
+  args: PiSessionPreviewOptions,
+})
+
 export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteOpenSessionCommand,
   HarnessRemoteResumeSessionCommand,
@@ -166,6 +174,7 @@ export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteForkSessionCommand,
   HarnessRemoteListPiSessionsCommand,
   HarnessRemoteLoadPiSessionSnapshotCommand,
+  HarnessRemoteLoadPiSessionPreviewSnapshotCommand,
   // Interactive shell commands (client → server PTY control)
   ShellInputCommand,
   ShellResizeCommand,

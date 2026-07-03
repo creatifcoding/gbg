@@ -1,21 +1,48 @@
-/**
- * Panel Visitors — content providers for the panel system
- *
- * Call `registerAllVisitors()` once at app boot to populate
- * the panel registry with all available content types.
- *
- * @module floating/visitors
- */
+import { installPanelVisitorsFromLayer, makePanelVisitorCatalogLayer } from './catalog'
+import {
+  CorePanelVisitorCatalogLive,
+  corePanelVisitors,
+  registerCorePanelVisitors,
+} from './core'
+import {
+  geointPanelVisitors,
+  GeointPanelVisitorCatalogLive,
+  registerGeointVisitors,
+} from './geoint-visitor'
+import {
+  MorphChatPanelVisitorCatalogLive,
+  morphChatPanelVisitors,
+  registerMorphChatVisitors,
+} from './morphchat-visitor'
+import {
+  MuseLogPanelVisitorCatalogLive,
+  museLogPanelVisitors,
+  registerMuseLogVisitor,
+} from './muse-log-visitor'
 
-import { registerMorphChatVisitors } from './morphchat-visitor'
-import { registerGeointVisitors } from './geoint-visitor'
-import { registerMuseLogVisitor } from './muse-log-visitor'
+export {
+  CorePanelVisitorCatalogLive,
+  GeointPanelVisitorCatalogLive,
+  MorphChatPanelVisitorCatalogLive,
+  MuseLogPanelVisitorCatalogLive,
+  corePanelVisitors,
+  geointPanelVisitors,
+  morphChatPanelVisitors,
+  museLogPanelVisitors,
+  registerCorePanelVisitors,
+  registerMorphChatVisitors,
+  registerGeointVisitors,
+  registerMuseLogVisitor,
+}
 
-export { registerMorphChatVisitors, registerGeointVisitors, registerMuseLogVisitor }
+export const allPanelVisitors = [
+  ...corePanelVisitors,
+  ...geointPanelVisitors,
+] as const
 
-/** Register all built-in panel visitors */
+export const AllPanelVisitorCatalogLive = makePanelVisitorCatalogLayer(allPanelVisitors)
+
+/** Register all built-in panel visitors for full app/testbed hosts. */
 export function registerAllVisitors() {
-  registerMorphChatVisitors()
-  registerGeointVisitors()
-  registerMuseLogVisitor()
+  installPanelVisitorsFromLayer(AllPanelVisitorCatalogLive)
 }

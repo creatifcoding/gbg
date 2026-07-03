@@ -22,7 +22,7 @@
  * @module floating/overlay/PanelWorkspace
  */
 
-import { memo, useEffect, useCallback, useState, useRef, type ReactNode } from 'react'
+import { memo, useEffect, useCallback, useState, type ReactNode } from 'react'
 import { useSelector } from '@/lib/stx'
 import { batch } from '@legendapp/state'
 
@@ -34,7 +34,7 @@ import { ScrollStrip } from '../layout/ScrollStrip'
 import { TiledPanel } from '../layout/TiledPanel'
 import { getFloatingStx } from '../stx/instance'
 import { floatPanel, tilePanel, spawnPanel } from '../stx/actions'
-import { registerAllVisitors } from '../visitors'
+import { registerCorePanelVisitors } from '../visitors/core'
 import { PANEL } from '../tokens'
 import { WORKSPACE_SENTINEL, WORKSPACE_CHROME_Z_INDEX as CHROME_Z } from '../stx/constants'
 import { leaf, collectPanelIds } from '../layout/split-tree'
@@ -44,7 +44,7 @@ import { closePanelOverlay, togglePanelOverlay } from './index'
 // Register all visitors on module load
 // =============================================================================
 
-registerAllVisitors()
+registerCorePanelVisitors()
 
 // =============================================================================
 // Layout mode toggle — tree (SplitContainer) vs strip (ScrollStrip/Niri)
@@ -202,31 +202,35 @@ const WorkspaceStatusBar = memo(function WorkspaceStatusBar() {
 })
 
 function Sep() {
-  return <span style={{ color: PANEL.border, fontSize: 10 }}>│</span>
+  return <span style={{ color: PANEL.border, fontSize: 'var(--tmnl-text-xs, 12px)' }}>│</span>
 }
 
 // =============================================================================
 // Quick Action Bar — spawn + workspace controls
 // =============================================================================
 
-const WorkspaceActionBar = memo(function WorkspaceActionBar() {
+const WorkspaceActionBar = memo(function WorkspaceActionBar({
+  onRequestClose = closePanelOverlay,
+}: {
+  onRequestClose?: () => void | Promise<void>
+}) {
   const mode = useSelector(() => layoutMode$.get())
 
   const handleSpawnChat = useCallback(() => {
-    spawnPanel('morphchat:harness', { mode: 'tiled' })
+    spawnPanel('morphchat', { mode: 'tiled' })
   }, [])
 
   const handleSpawnHarness = useCallback(() => {
-    spawnPanel('morphchat:harness', { mode: 'floating' })
+    spawnPanel('morphchat:harness', { mode: 'tiled' })
   }, [])
 
-  const handleSpawnEmpty = useCallback(() => {
-    spawnPanel('empty', { mode: 'tiled' })
+  const handleSpawnMuse = useCallback(() => {
+    spawnPanel('muse:log', { mode: 'floating' })
   }, [])
 
   const handleClose = useCallback(() => {
-    closePanelOverlay()
-  }, [])
+    void onRequestClose()
+  }, [onRequestClose])
 
   const handleToggleMode = useCallback(() => {
     layoutMode$.set(mode === 'tree' ? 'strip' : 'tree')
@@ -263,9 +267,9 @@ const WorkspaceActionBar = memo(function WorkspaceActionBar() {
       <Sep />
 
       {/* Spawn actions */}
-      <QuickBtn label="+ Chat" onClick={handleSpawnChat} />
+      <QuickBtn label="+ Demo" onClick={handleSpawnChat} />
       <QuickBtn label="+ Live" onClick={handleSpawnHarness} accent />
-      <QuickBtn label="+ Empty" onClick={handleSpawnEmpty} />
+      <QuickBtn label="+ Muse" onClick={handleSpawnMuse} />
 
       <Sep />
 
@@ -351,15 +355,15 @@ function QuickBtn({ label, onClick, accent }: { label: string; onClick: () => vo
 // =============================================================================
 
 const EmptyState = memo(function EmptyState() {
-  const [clicked, setClicked] = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
+  const [launching, setLaunching] = useState<string | null>(null)
 
-  const handleSpawn = useCallback(() => {
-    setClicked(true)
-    // Let the exit animation play before spawning
+  const launch = useCallback((visitorId: string, mode: 'tiled' | 'floating' = 'tiled') => {
+    setLaunching(visitorId)
+    // Let the exit pulse register visually, then hand all state mutation to STX spawnPanel.
     setTimeout(() => {
-      spawnPanel('morphchat:harness', { mode: 'tiled' })
-    }, 280)
+      spawnPanel(visitorId, { mode })
+      setLaunching(null)
+    }, 180)
   }, [])
 
   return (
@@ -372,91 +376,142 @@ const EmptyState = memo(function EmptyState() {
         justifyContent: 'center',
         flex: 1,
         width: '100%',
-        gap: 16,
+        gap: 18,
+        padding: 24,
         background: PANEL.bg,
       }}
     >
       <style>{`
-        @keyframes empty-pulse {
+        @keyframes empty-card-pulse {
           0%, 100% { box-shadow: 0 0 0 0 ${PANEL.accentCyan}00; }
-          50% { box-shadow: 0 0 0 8px ${PANEL.accentCyan}08; }
+          50% { box-shadow: 0 0 0 6px ${PANEL.accentCyan}08; }
         }
-        @keyframes empty-spawn {
-          0% { transform: scale(1); opacity: 1; }
-          40% { transform: scale(0.92); opacity: 1; }
-          100% { transform: scale(1.15); opacity: 0; filter: blur(4px); }
-        }
-        @keyframes empty-text-fade {
-          0% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(8px); }
-        }
-        [data-empty-box]:hover {
+        [data-empty-launch-card]:hover {
           border-color: ${PANEL.accentCyan} !important;
-          background: oklch(0.18 0.01 200 / 0.9) !important;
+          background: oklch(0.18 0.01 200 / 0.92) !important;
           box-shadow: 0 0 20px ${PANEL.accentCyan}18, inset 0 0 12px ${PANEL.accentCyan}08 !important;
+          transform: translateY(-1px);
         }
-        [data-empty-box]:hover svg {
-          color: ${PANEL.accentCyan};
-        }
-        [data-empty-box]:active {
-          transform: scale(0.97) !important;
+        [data-empty-launch-card]:active {
+          transform: scale(0.98) !important;
           transition-duration: 100ms !important;
         }
       `}</style>
 
-      {/* "+" spawn box */}
-      <div
-        ref={boxRef}
-        data-empty-box
-        onClick={handleSpawn}
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 12,
-          backgroundColor: PANEL.headerBg,
-          border: `1px solid ${PANEL.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: PANEL.textMuted,
-          cursor: 'pointer',
-          transition: 'transform 200ms ease-out, border-color 200ms ease-out, background 200ms ease-out, box-shadow 200ms ease-out',
-          animation: clicked
-            ? 'empty-spawn 280ms ease-out forwards'
-            : 'empty-pulse 3s ease-in-out infinite',
-        }}
-      >
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          style={{ transition: 'color 200ms ease-out' }}>
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </div>
-
-      <div style={{
-        textAlign: 'center',
-        animation: clicked ? 'empty-text-fade 200ms ease-out forwards' : undefined,
-      }}>
+      <div style={{ textAlign: 'center', maxWidth: 720 }}>
         <div style={{
           fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
           fontSize: 'var(--tmnl-text-sm, 14px)',
-          color: PANEL.text,
-          marginBottom: 4,
+          color: PANEL.accentCyan,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom: 8,
         }}>
-          No Panels Open
+          TMNL Panel Workspace
         </div>
         <div style={{
           fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
           fontSize: 'var(--tmnl-text-xs, 12px)',
           color: PANEL.textMuted,
+          lineHeight: 1.6,
         }}>
-          Click to spawn an autonomous panel
+          The workspace sentinel is ready. Launch a canonical visitor to replace it — STX owns the layout, strip, focus, and panel lifecycle.
         </div>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, minmax(180px, 1fr))',
+        gap: 10,
+        width: 'min(760px, 100%)',
+      }}>
+        <LaunchCard
+          title="Live Conductor"
+          eyebrow="Harness"
+          description="Open the panel-scoped MorphChat harness session and session drawer."
+          accent
+          launching={launching === 'morphchat:harness'}
+          onClick={() => launch('morphchat:harness')}
+        />
+        <LaunchCard
+          title="Demo Conductor"
+          eyebrow="Mock"
+          description="Seed a fully local MorphChat conductor with sample messages and tasks."
+          launching={launching === 'morphchat'}
+          onClick={() => launch('morphchat')}
+        />
+        <LaunchCard
+          title="Muse Log"
+          eyebrow="Stream"
+          description="Open the raw/log capture panel as a floating live stream surface."
+          launching={launching === 'muse:log'}
+          onClick={() => launch('muse:log', 'floating')}
+        />
       </div>
     </div>
   )
 })
+
+function LaunchCard({
+  title,
+  eyebrow,
+  description,
+  launching,
+  accent,
+  onClick,
+}: {
+  title: string
+  eyebrow: string
+  description: string
+  launching: boolean
+  accent?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      data-empty-launch-card
+      onClick={onClick}
+      style={{
+        minHeight: 132,
+        padding: 14,
+        border: `1px solid ${accent ? PANEL.accentCyan + '55' : PANEL.border}`,
+        borderRadius: 10,
+        background: accent ? PANEL.accentCyan + '0a' : PANEL.headerBg,
+        color: PANEL.text,
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+        transition: 'transform 180ms ease-out, border-color 180ms ease-out, background 180ms ease-out, box-shadow 180ms ease-out',
+        animation: launching ? 'empty-card-pulse 360ms ease-out infinite' : undefined,
+      }}
+    >
+      <div style={{
+        fontSize: 'var(--tmnl-text-xs, 12px)',
+        color: accent ? PANEL.accentCyan : PANEL.textMuted,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        marginBottom: 10,
+      }}>
+        {eyebrow}
+      </div>
+      <div style={{
+        fontSize: 'var(--tmnl-text-sm, 14px)',
+        color: PANEL.textStrong,
+        marginBottom: 8,
+      }}>
+        {title}
+      </div>
+      <div style={{
+        fontSize: 'var(--tmnl-text-xs, 12px)',
+        color: PANEL.textMuted,
+        lineHeight: 1.5,
+      }}>
+        {description}
+      </div>
+    </button>
+  )
+}
 
 // =============================================================================
 // Workspace Content — tiled + floating surfaces
@@ -526,12 +581,19 @@ const WorkspaceContent = memo(function WorkspaceContent() {
  * </PanelWorkspaceOverlay>
  * ```
  */
-export const PanelWorkspace = memo(function PanelWorkspace() {
+export interface PanelWorkspaceProps {
+  /** Called by the action-bar close control. Defaults to closing the React overlay atom. */
+  onRequestClose?: () => void | Promise<void>
+}
+
+export const PanelWorkspace = memo(function PanelWorkspace({
+  onRequestClose,
+}: PanelWorkspaceProps) {
   useInitializeWorkspace()
 
   return (
-    <FloatingPanelProvider>
-      <WorkspaceActionBar />
+    <FloatingPanelProvider onRequestOverlayToggle={onRequestClose}>
+      <WorkspaceActionBar onRequestClose={onRequestClose} />
       <WorkspaceContent />
       <FloatingDragOverlay style="ghost" />
       <WorkspaceStatusBar />

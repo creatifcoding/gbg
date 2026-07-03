@@ -278,6 +278,7 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
     // Fast path: same key + type covers 95% of inequality cases
     if (this.key !== that.key || this.type !== that.type) return false
     if (this.parentKey !== that.parentKey) return false
+    if (this.content !== that.content) return false
     // Children: length + element-wise
     if (this.children.length !== that.children.length) return false
     for (let i = 0; i < this.children.length; i++) {

@@ -102,6 +102,16 @@ const EXPECTED_PROPS: Record<string, string[]> = {
   AspectRatio: ["ratio", "className"],
 
   Wrap: ["gap", "alignItems", "justifyContent", "className"],
+
+  // ==========================================================================
+  // Content Components
+  // ============================================================================
+
+  Text: ["text", "content", "preset", "className"],
+
+  Heading: ["text", "content", "level", "className"],
+
+  Code: ["code", "content", "language", "inline", "className"],
 }
 
 describe("Expected Props Contract", () => {

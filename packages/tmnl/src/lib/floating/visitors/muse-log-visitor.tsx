@@ -7,7 +7,12 @@ import {
   type MuseEvent,
 } from '@/lib/muse'
 import { PANEL } from '../tokens'
-import { panelRegistry, type PanelContentProps } from '../panel-registry'
+import type { PanelContentProps } from '../panel-registry'
+import {
+  definePanelVisitor,
+  installPanelVisitorsFromLayer,
+  makePanelVisitorCatalogLayer,
+} from './catalog'
 
 const DEFAULT_URL = 'ws://127.0.0.1:8765'
 const CADENCES: MuseCadence[] = ['raw', 'sample', 'frame', 'summary']
@@ -312,8 +317,9 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
   )
 }
 
-export function registerMuseLogVisitor() {
-  panelRegistry.register('muse:log', {
+export const museLogPanelVisitors = [
+  definePanelVisitor({
+    id: 'muse:log',
     label: 'Muse Log Capture',
     icon: '🧠',
     description: 'Raw/log capture panel for Muse BLE NDJSON/WebSocket events',
@@ -326,5 +332,11 @@ export function registerMuseLogVisitor() {
       mode: 'floating',
       accent: 'rgba(8, 145, 178, 0.5)',
     },
-  })
+  }),
+] as const
+
+export const MuseLogPanelVisitorCatalogLive = makePanelVisitorCatalogLayer(museLogPanelVisitors)
+
+export function registerMuseLogVisitor() {
+  installPanelVisitorsFromLayer(MuseLogPanelVisitorCatalogLive)
 }

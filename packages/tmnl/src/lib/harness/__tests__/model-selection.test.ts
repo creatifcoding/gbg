@@ -5,7 +5,7 @@
  *
  * Covers:
  * 1. Schema round-trip: HarnessModelInfo, HarnessModelOverride, new commands
- * 2. Engine: getAvailableModels() returns real SDK models via ModelRegistry
+ * 2. Engine: getAvailableModels() returns the real SDK model catalog via ModelRegistry
  * 3. Engine: send() with modelOverride resolves and applies per-message model
  * 4. Engine: send() with invalid modelOverride falls back gracefully
  * 5. WS envelope: get_available_models command encodes/decodes in union
@@ -15,7 +15,7 @@
  *    (guarded by RUN_LIVE_MODEL_TESTS=1)
  */
 
-import { describe, expect, it } from '@effect/vitest'
+import { describe, expect, it } from 'bun:test'
 import type {
   AssistantMessage,
   AssistantMessageEvent,
@@ -45,6 +45,11 @@ import {
 import { PiAiPolicy, PiAiPolicyConfig } from '../PiAiPolicy'
 import { PiAiStreamClient } from '../PiAiStreamClient'
 import { PiAiToolRuntime } from '../PiAiToolRuntime'
+
+const itEffect = (name: string, effect: () => Effect.Effect<unknown, unknown, never>) =>
+  it(name, async () => {
+    await Effect.runPromise(effect())
+  })
 
 // =============================================================================
 // Test Helpers (reused from integration test)
@@ -111,6 +116,8 @@ const makeTrackingEngine = (modelCaptures: Array<{ provider: string; id: string 
         id: 'gpt-4o-mini',
         provider: 'openai',
         api: 'openai-responses',
+        contextWindow: 128000,
+        maxTokens: 16384,
       } as PiAiModel<any>),
       makeStreamOptions: ({ sessionId, signal }) =>
         Effect.succeed({ sessionId, signal, cacheRetention: 'short' }),
@@ -153,28 +160,36 @@ const makeTrackingEngine = (modelCaptures: Array<{ provider: string; id: string 
   )
 }
 
-const waitForFinal = (
+const waitForFinalCount = (
   engine: typeof PiAiHarnessEngine.Type,
   sessionId: any,
+  count: number,
   attempts = 400,
 ): Effect.Effect<ReadonlyArray<any>, PiAiHarnessEngineError> =>
   engine.getSnapshot(sessionId, Option.none()).pipe(
     Effect.flatMap((snapshot) =>
-      snapshot.events.some((e: any) => e._tag === 'chat:v2/assistant_final')
+      snapshot.events.filter((e: any) => e._tag === 'chat:v2/assistant_final').length >= count
         ? Effect.succeed(snapshot.events)
         : attempts <= 0
           ? Effect.fail(
               new PiAiHarnessEngineError({
                 code: 'timeout',
-                message: 'Timed out waiting for assistant_final',
+                message: `Timed out waiting for ${count} assistant_final event(s)`,
                 cause: Option.none(),
               }),
             )
           : Effect.yieldNow().pipe(
-              Effect.zipRight(waitForFinal(engine, sessionId, attempts - 1)),
+              Effect.zipRight(waitForFinalCount(engine, sessionId, count, attempts - 1)),
             ),
     ),
   )
+
+const waitForFinal = (
+  engine: typeof PiAiHarnessEngine.Type,
+  sessionId: any,
+  attempts = 400,
+): Effect.Effect<ReadonlyArray<any>, PiAiHarnessEngineError> =>
+  waitForFinalCount(engine, sessionId, 1, attempts)
 
 // =============================================================================
 // 1. Schema Round-Trip Tests
@@ -189,6 +204,7 @@ describe('Model Selection Schemas', () => {
       reasoning: true,
       contextWindow: 200000,
       maxTokens: 16384,
+      available: true,
     }
 
     const encoded = Schema.encodeSync(HarnessModelInfo)(info)
@@ -207,8 +223,8 @@ describe('Model Selection Schemas', () => {
   it('HarnessRemoteModelListPayload encodes/decodes a model array', () => {
     const payload = {
       models: [
-        { id: 'gpt-5', name: 'GPT-5', provider: 'openai', reasoning: true, contextWindow: 128000, maxTokens: 32000 },
-        { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'anthropic', reasoning: true, contextWindow: 200000, maxTokens: 16384 },
+        { id: 'gpt-5', name: 'GPT-5', provider: 'openai', reasoning: true, contextWindow: 128000, maxTokens: 32000, available: true },
+        { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'anthropic', reasoning: true, contextWindow: 200000, maxTokens: 16384, available: false },
       ],
     }
     const rt = Schema.decodeSync(HarnessRemoteModelListPayload)(
@@ -299,7 +315,7 @@ describe('Model Selection Schemas', () => {
 // =============================================================================
 
 describe('PiAiHarnessEngine — getAvailableModels', () => {
-  it.effect('returns models from ModelRegistry.getAvailable()', () =>
+  itEffect('returns models from ModelRegistry.getAvailable()', () =>
     Effect.gen(function* () {
       const modelCaptures: Array<{ provider: string; id: string }> = []
       const layer = makeTrackingEngine(modelCaptures)
@@ -307,8 +323,10 @@ describe('PiAiHarnessEngine — getAvailableModels', () => {
 
       const models = yield* engine.getAvailableModels()
 
-      // Should return at least some models (depends on host auth, but SDK includes built-ins)
+      // Should return the full Pi SDK catalog (built-ins + custom models), not
+      // only authenticated providers.
       expect(Array.isArray(models)).toBe(true)
+      expect(models.length).toBeGreaterThan(100)
       // Every model has the required shape
       for (const m of models) {
         expect(typeof m.id).toBe('string')
@@ -317,6 +335,7 @@ describe('PiAiHarnessEngine — getAvailableModels', () => {
         expect(typeof m.reasoning).toBe('boolean')
         expect(typeof m.contextWindow).toBe('number')
         expect(typeof m.maxTokens).toBe('number')
+        expect(typeof m.available).toBe('boolean')
       }
       // No duplicates by (provider, id)
       const keys = models.map((m) => `${m.provider}/${m.id}`)
@@ -324,7 +343,7 @@ describe('PiAiHarnessEngine — getAvailableModels', () => {
     }),
   )
 
-  it.effect('models have positive contextWindow and maxTokens', () =>
+  itEffect('models have positive contextWindow and maxTokens', () =>
     Effect.gen(function* () {
       const layer = makeTrackingEngine([])
       const engine = yield* PiAiHarnessEngine.pipe(Effect.provide(layer))
@@ -343,7 +362,7 @@ describe('PiAiHarnessEngine — getAvailableModels', () => {
 // =============================================================================
 
 describe('PiAiHarnessEngine — model override on send', () => {
-  it.effect('send without modelOverride uses default session model', () =>
+  itEffect('send without modelOverride uses default session model', () =>
     Effect.gen(function* () {
       const modelCaptures: Array<{ provider: string; id: string }> = []
       const layer = makeTrackingEngine(modelCaptures)
@@ -360,7 +379,7 @@ describe('PiAiHarnessEngine — model override on send', () => {
     }),
   )
 
-  it.effect('send with valid modelOverride switches session model', () =>
+  itEffect('send with valid modelOverride switches session model', () =>
     Effect.gen(function* () {
       const modelCaptures: Array<{ provider: string; id: string }> = []
       const layer = makeTrackingEngine(modelCaptures)
@@ -396,7 +415,7 @@ describe('PiAiHarnessEngine — model override on send', () => {
     }),
   )
 
-  it.effect('send with invalid modelOverride falls back to session default', () =>
+  itEffect('send with invalid modelOverride falls back to session default', () =>
     Effect.gen(function* () {
       const modelCaptures: Array<{ provider: string; id: string }> = []
       const layer = makeTrackingEngine(modelCaptures)
@@ -420,7 +439,7 @@ describe('PiAiHarnessEngine — model override on send', () => {
     }),
   )
 
-  it.effect('model override persists for subsequent messages on same session', () =>
+  itEffect('model override persists for subsequent messages on same session', () =>
     Effect.gen(function* () {
       const modelCaptures: Array<{ provider: string; id: string }> = []
       const layer = makeTrackingEngine(modelCaptures)
@@ -443,15 +462,7 @@ describe('PiAiHarnessEngine — model override on send', () => {
 
         // Second message: no override — should still use the switched model
         yield* engine.send(session.sessionId, 'cm-p2' as any, 'continue', Option.none())
-        // Wait for second final
-        yield* engine.getSnapshot(session.sessionId, Option.none()).pipe(
-          Effect.flatMap((snap) => {
-            const finals = snap.events.filter((e: any) => e._tag === 'chat:v2/assistant_final')
-            return finals.length >= 2
-              ? Effect.succeed(snap.events)
-              : Effect.yieldNow().pipe(Effect.zipRight(waitForFinal(engine, session.sessionId)))
-          }),
-        )
+        yield* waitForFinalCount(engine, session.sessionId, 2)
 
         // Both calls should have used the alternate model
         expect(modelCaptures.length).toBeGreaterThanOrEqual(2)
@@ -466,7 +477,7 @@ describe('PiAiHarnessEngine — model override on send', () => {
 // =============================================================================
 
 describe('PiAiHarnessEngine — cross-provider override key resolution', () => {
-  it.effect('makeStreamOptions receives providerOverride matching overridden model provider', () =>
+  itEffect('makeStreamOptions receives providerOverride matching overridden model provider', () =>
     Effect.gen(function* () {
       const providerOverrides: Array<string | undefined> = []
       const modelCaptures: Array<{ provider: string; id: string }> = []
@@ -499,6 +510,8 @@ describe('PiAiHarnessEngine — cross-provider override key resolution', () => {
             id: 'gpt-4o-mini',
             provider: 'openai',
             api: 'openai-responses',
+            contextWindow: 128000,
+            maxTokens: 16384,
           } as PiAiModel<any>),
           // Track providerOverride calls
           makeStreamOptions: ({ sessionId, signal, providerOverride }) => {
@@ -577,15 +590,7 @@ describe('PiAiHarnessEngine — cross-provider override key resolution', () => {
           Option.none(),
           { provider: 'anthropic', modelId: anthropicModel.id },
         )
-        // Wait for second assistant_final
-        yield* engine.getSnapshot(session.sessionId, Option.none()).pipe(
-          Effect.flatMap((snap) => {
-            const finals = snap.events.filter((e: any) => e._tag === 'chat:v2/assistant_final')
-            return finals.length >= 2
-              ? Effect.succeed(snap.events)
-              : Effect.yieldNow().pipe(Effect.zipRight(waitForFinal(engine, session.sessionId)))
-          }),
-        )
+        yield* waitForFinalCount(engine, session.sessionId, 2)
 
         // providerOverride for second call should be 'anthropic'
         expect(providerOverrides[providerOverrides.length - 1]).toBe('anthropic')
@@ -605,8 +610,8 @@ describe('PiAiHarnessEngine — cross-provider override key resolution', () => {
 describe('ModelRegistry — API key resolution per provider', () => {
   it('resolves an API key for the cheapest model of each available provider', async () => {
     const { AuthStorage, ModelRegistry } = await import('@mariozechner/pi-coding-agent')
-    const auth = new AuthStorage()
-    const registry = new ModelRegistry(auth)
+    const auth = AuthStorage.create()
+    const registry = ModelRegistry.create(auth)
     const available = registry.getAvailable()
 
     // Deduplicate to one model per provider (cheapest by input cost)
@@ -618,10 +623,12 @@ describe('ModelRegistry — API key resolution per provider', () => {
         .filter((m) => m.provider === provider)
         .sort((a, b) => a.cost.input - b.cost.input)[0]
 
-      const apiKey = await registry.getApiKey(cheapest)
-      expect(apiKey, `API key missing for ${provider}/${cheapest.id}`).toBeDefined()
-      expect(typeof apiKey).toBe('string')
-      expect(apiKey!.length, `API key for ${provider}/${cheapest.id} is empty`).toBeGreaterThan(0)
+      const authResult = await registry.getApiKeyAndHeaders(cheapest)
+      expect(authResult.ok, `API key missing for ${provider}/${cheapest.id}`).toBe(true)
+      if (!authResult.ok) continue
+      expect(authResult.apiKey, `API key missing for ${provider}/${cheapest.id}`).toBeDefined()
+      expect(typeof authResult.apiKey).toBe('string')
+      expect(authResult.apiKey!.length, `API key for ${provider}/${cheapest.id} is empty`).toBeGreaterThan(0)
     }
   })
 })
@@ -648,8 +655,8 @@ describe.skipIf(!LIVE)('Live Model Smoke Test (RUN_LIVE_MODEL_TESTS=1)', () => {
     const { AuthStorage, ModelRegistry } = await import('@mariozechner/pi-coding-agent')
     const { streamSimple } = await import('@mariozechner/pi-ai')
 
-    const auth = new AuthStorage()
-    const registry = new ModelRegistry(auth)
+    const auth = AuthStorage.create()
+    const registry = ModelRegistry.create(auth)
     const available = registry.getAvailable()
 
     const providers = [...new Set(available.map((m) => m.provider))]
@@ -686,7 +693,10 @@ describe.skipIf(!LIVE)('Live Model Smoke Test (RUN_LIVE_MODEL_TESTS=1)', () => {
 
       for (const candidate of candidates) {
         // Use the OAuth-refreshed key if available, otherwise fall back to registry
-        const apiKey = resolvedApiKey ?? await registry.getApiKey(candidate)
+        const authResult = resolvedApiKey
+          ? { ok: true as const, apiKey: resolvedApiKey }
+          : await registry.getApiKeyAndHeaders(candidate)
+        const apiKey = authResult.ok ? authResult.apiKey : undefined
         if (!apiKey) continue
 
         console.log(`[smoke] Pinging ${provider}/${candidate.id} (${candidate.name})...`)

@@ -11,21 +11,17 @@
  */
 
 import * as React from 'react'
-import { panelRegistry, type PanelContentProps } from '../panel-registry'
+import { GeointMap } from '@/lib/geoint/components/GeointMap'
+import type { PanelContentProps } from '../panel-registry'
+import {
+  definePanelVisitor,
+  installPanelVisitorsFromLayer,
+  makePanelVisitorCatalogLayer,
+} from './catalog'
 
 // =============================================================================
-// Lazy-loaded GEOINT Map Panel
+// GEOINT Map Panel
 // =============================================================================
-
-/**
- * Lazy-load GeointMap to avoid pulling deck.gl + Mapbox into the main bundle.
- * Falls back to a loading state while the chunk downloads.
- */
-const LazyGeointMap = React.lazy(() =>
-  import('@/lib/geoint/components/GeointMap').then((mod) => ({
-    default: mod.GeointMap,
-  }))
-)
 
 /**
  * GeointMapPanel — panel-embedded GEOINT map with full deck.gl rendering.
@@ -69,35 +65,15 @@ function GeointMapPanel({ panelId, data }: PanelContentProps) {
         background: '#0a0a0a',
       }}
     >
-      <React.Suspense
-        fallback={
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-              fontSize: 'var(--tmnl-text-xs, 12px)',
-              color: '#737373',
-              letterSpacing: '0.04em',
-            }}
-          >
-            LOADING GEOINT MAP…
-          </div>
-        }
-      >
-        <LazyGeointMap
-          instanceId={`panel-${panelId}`}
-          height={dimensions.height}
-          interactive
-          debug={config.debug ?? false}
-          initialViewState={config.initialViewState}
-          mapStyle={config.mapStyle}
-          flyToTarget={config.flyToTarget ?? null}
-        />
-      </React.Suspense>
+      <GeointMap
+        instanceId={`panel-${panelId}`}
+        height={dimensions.height}
+        interactive
+        debug={config.debug ?? false}
+        initialViewState={config.initialViewState}
+        mapStyle={config.mapStyle}
+        flyToTarget={config.flyToTarget ?? null}
+      />
     </div>
   )
 }
@@ -137,8 +113,9 @@ interface GeointPanelData {
 // Registration
 // =============================================================================
 
-export function registerGeointVisitors() {
-  panelRegistry.register('geoint:map', {
+export const geointPanelVisitors = [
+  definePanelVisitor({
+    id: 'geoint:map',
     label: 'GEOINT Map',
     icon: '🌍',
     description: 'Interactive GEOINT map with deck.gl + Mapbox — tracks, flights, POIs, weather, imagery',
@@ -151,5 +128,11 @@ export function registerGeointVisitors() {
       mode: 'tiled',
       accent: 'rgba(6, 182, 212, 0.5)', // cyan-500
     },
-  })
+  }),
+] as const
+
+export const GeointPanelVisitorCatalogLive = makePanelVisitorCatalogLayer(geointPanelVisitors)
+
+export function registerGeointVisitors() {
+  installPanelVisitorsFromLayer(GeointPanelVisitorCatalogLive)
 }

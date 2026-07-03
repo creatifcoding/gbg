@@ -21,6 +21,7 @@ interface UIElementJSON {
   props: Record<string, unknown>
   children: string[]
   parentKey: string | null
+  content?: string
   visible?: unknown
   entrance?: unknown
 }

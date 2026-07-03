@@ -126,10 +126,11 @@ export const TextRenderer: React.FC<ComponentRenderProps> = ({ element, children
 
   // Render tag
   const Tag = (p.as as keyof React.JSX.IntrinsicElements) ?? 'div'
+  const content = element.content ?? p.content ?? p.text ?? children
 
   return (
     <Tag style={style} className={filtered || undefined}>
-      {element.content ?? children}
+      {content as React.ReactNode}
     </Tag>
   )
 }
@@ -160,10 +161,11 @@ export const HeadingRenderer: React.FC<ComponentRenderProps> = ({ element, child
 
   // Map level to semantic heading tag
   const Tag = `h${level}` as keyof React.JSX.IntrinsicElements
+  const content = element.content ?? element.props?.content ?? element.props?.text ?? children
 
   return (
     <Tag style={style} className={filtered || undefined}>
-      {element.content ?? children}
+      {content as React.ReactNode}
     </Tag>
   )
 }
@@ -185,13 +187,15 @@ export const CodeRenderer: React.FC<ComponentRenderProps> = ({ element, children
     fontSize: DENSITY_CODE_SIZE[density],
   }
 
+  const content = element.content ?? element.props?.content ?? element.props?.code ?? children
+
   if (inline) {
-    return <code style={style}>{element.content ?? children}</code>
+    return <code style={style}>{content as React.ReactNode}</code>
   }
 
   return (
     <pre style={{ ...CODE_BLOCK, fontSize: DENSITY_CODE_SIZE[density] }}>
-      <code>{element.content ?? children}</code>
+      <code>{content as React.ReactNode}</code>
     </pre>
   )
 }

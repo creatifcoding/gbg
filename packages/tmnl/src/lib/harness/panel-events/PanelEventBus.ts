@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Stream } from 'effect'
+import { Context, Effect, Layer, PubSub, Stream } from 'effect'
 import type { PanelEvent } from '@/lib/genifer/harness/panel-events'
 
 export interface PanelEventBusShape {
@@ -14,25 +14,10 @@ export class PanelEventBus extends Context.Tag('tmnl/harness/PanelEventBus')<
 export const PanelEventBusLive = Layer.effect(
   PanelEventBus,
   Effect.gen(function* () {
-    type EmitFn = { single: (event: PanelEvent) => void }
-    let globalEmit: EmitFn | null = null
+    const pubsub = yield* PubSub.unbounded<PanelEvent>()
 
-    const events = Stream.asyncPush<PanelEvent>((emit) =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          globalEmit = { single: emit.single }
-          return globalEmit
-        }),
-        () => Effect.sync(() => {
-          globalEmit = null
-        }),
-      ),
-    )
-
-    const emit = (event: PanelEvent) =>
-      Effect.sync(() => {
-        globalEmit?.single(event)
-      })
+    const events = Stream.fromPubSub(pubsub)
+    const emit = (event: PanelEvent) => PubSub.publish(pubsub, event).pipe(Effect.asVoid)
 
     return PanelEventBus.of({ events, emit })
   }),

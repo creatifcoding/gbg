@@ -54,6 +54,8 @@ export interface FloatingPanelProviderProps {
   onSortableDragStart?: (event: DragStartEvent) => void
   /** Callback when a non-panel drag ends (for sortables) */
   onSortableDragEnd?: (event: DragEndEvent) => void
+  /** Host-specific overlay toggle/close request for keyboard dispatch. */
+  onRequestOverlayToggle?: () => void | Promise<void>
 }
 
 // =============================================================================
@@ -65,6 +67,7 @@ export function FloatingPanelProvider({
   disablePersistence = false,
   onSortableDragStart,
   onSortableDragEnd,
+  onRequestOverlayToggle,
 }: FloatingPanelProviderProps) {
   // ─── Shared ref ────────────────────────────────────────────────
   const dragSnapRef = useRef<DragSnapState>({
@@ -80,7 +83,7 @@ export function FloatingPanelProvider({
   const { previewRef: dockPreviewRef, labelRef: dockPreviewLabelRef, hideDockPreview, paintDockPreview } = useDockPreview()
 
   usePanelPersistence({ disabled: disablePersistence })
-  useKeyboardDispatch({ getLocalViewport })
+  useKeyboardDispatch({ getLocalViewport, onRequestOverlayToggle })
 
   const modifiers = useFloatingModifiers({
     workspaceRectRef,

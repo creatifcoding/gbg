@@ -203,7 +203,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     selectModel: (modelId: string) => {
       const models = morphChatRegistry.get(availableModels$(instanceId))
       const target = models.find((m) => m.id === modelId)
-      if (!target) return
+      if (!target || target.available === false) return
       const rawModelId = target.modelId ?? (target.id.includes(':') ? target.id.slice(target.id.indexOf(':') + 1) : target.id)
       morphChatRegistry.set(selectedModel$(instanceId), modelId)
       morphChatRegistry.set(modelOverride$(instanceId), { provider: target.provider, modelId: rawModelId })
@@ -213,6 +213,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     cancelledAt$: cancelledAt$(instanceId),
     modelsLoading$: modelsLoading$(instanceId),
     modelsError$: modelsError$(instanceId),
+    retryModelCatalog: () => { doFetchModels(undefined as void) },
     sessionId$: sessionId$(instanceId),
     send: (params: SendParams) => { sendRef.current({ content: params.content, thinkingLevel: params.thinkingLevel }); return Effect.void },
     cancel: () => { cancelRef.current(undefined as void); return Effect.void },

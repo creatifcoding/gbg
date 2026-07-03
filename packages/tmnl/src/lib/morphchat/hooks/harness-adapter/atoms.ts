@@ -93,6 +93,9 @@ export const eventFiber$ = Atom.family((_id: string) =>
 export const shellEventFiber$ = Atom.family((_id: string) =>
   Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null),
 )
+export const piHydrationFiber$ = Atom.family((_id: string) =>
+  Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null),
+)
 export const metrics$ = Atom.family((_id: string) =>
   Atom.make<ReadonlyArray<MetricEntry>>([]),
 )

@@ -133,6 +133,8 @@ export const CORE_ENTRIES: CatalogEntry[] = [
     description: 'Rich text with typographic hierarchy. Use preset for fast defaults, override individual props for custom composition.',
     defaultEntrance: ENTRANCE.fade,
     schema: Schema.Struct({
+      text: OptStr,
+      content: OptStr,
       preset: Schema.optional(Schema.Literal('body', 'label', 'caption', 'value', 'micro', 'title', 'subtitle')),
       color: Schema.optional(Schema.Literal('primary', 'secondary', 'tertiary', 'muted')),
       accent: Schema.optional(Schema.Literal('cyan', 'emerald', 'amber', 'rose', 'violet')),
@@ -149,6 +151,8 @@ export const CORE_ENTRIES: CatalogEntry[] = [
       className: CN,
     }),
     propsSchema: {
+      text: { type: 'string', description: 'Visible text content' },
+      content: { type: 'string', description: 'Visible text content (alias for text)' },
       preset: { type: 'enum', values: ['body', 'label', 'caption', 'value', 'micro', 'title', 'subtitle'], default: 'body', description: 'Typographic preset' },
       color: { type: 'enum', values: ['primary', 'secondary', 'tertiary', 'muted'], description: 'Text color from hierarchy' },
       accent: { type: 'enum', values: ['cyan', 'emerald', 'amber', 'rose', 'violet'], description: 'Accent color override' },
@@ -175,10 +179,14 @@ export const CORE_ENTRIES: CatalogEntry[] = [
     description: 'Section heading. Level 1: large grotesk. Level 2: medium grotesk. Level 3: mono label uppercase.',
     defaultEntrance: ENTRANCE.fade,
     schema: Schema.Struct({
+      text: OptStr,
+      content: OptStr,
       level: Schema.optional(Schema.Literal(1, 2, 3)),
       className: CN,
     }),
     propsSchema: {
+      text: { type: 'string', description: 'Visible heading text' },
+      content: { type: 'string', description: 'Visible heading text (alias for text)' },
       level: { type: 'enum', values: ['1', '2', '3'], default: '1', description: 'Heading level (1–3)' },
     },
     renderer: HeadingRenderer,
@@ -193,11 +201,15 @@ export const CORE_ENTRIES: CatalogEntry[] = [
     description: 'Code block or inline code. Set inline=true for inline.',
     defaultEntrance: ENTRANCE.fade,
     schema: Schema.Struct({
+      code: OptStr,
+      content: OptStr,
       language: OptStr,
       inline: OptBool,
       className: CN,
     }),
     propsSchema: {
+      code: { type: 'string', description: 'Visible code text' },
+      content: { type: 'string', description: 'Visible code text (alias for code)' },
       language: { type: 'string', description: 'Programming language' },
       inline: { type: 'boolean', default: false, description: 'Inline vs block' },
     },

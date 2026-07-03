@@ -25,6 +25,8 @@ export interface HarnessModelOption {
   readonly description?: string
   readonly color?: string
   readonly reasoning?: boolean
+  /** False when Pi knows the model but this provider is not authenticated. */
+  readonly available?: boolean
 }
 
 export interface HarnessStatusRow {

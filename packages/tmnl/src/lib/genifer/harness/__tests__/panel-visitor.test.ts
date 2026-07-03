@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'bun:test'
 import { Registry } from '@effect-atom/atom-react'
-import { geniferPanelSurfaces, setGeniferPanelRegistry, setGeniferPanelSurface } from '../panel-visitor'
+import {
+  geniferPanelSurfaces,
+  getGeniferPanelRegistry,
+  setGeniferPanelRegistry,
+  setGeniferPanelSurface,
+} from '../panel-visitor'
 import { applyReplaySafeRemotePanelEvent } from '../../../morphchat/hooks/useHarnessAdapter'
 
 describe('panel-visitor atoms', () => {
@@ -27,6 +32,19 @@ describe('panel-visitor atoms', () => {
     const updated = registry.get(atom)
     expect(updated).not.toBe(null)
     expect((updated as any).id).toBe('surf-3')
+  })
+
+  it('exposes the active registry used by surface writes', () => {
+    const registry = Registry.make()
+    const unrelatedRegistry = Registry.make()
+    setGeniferPanelRegistry(registry)
+
+    const atom = geniferPanelSurfaces('surf-registry-alignment')
+    setGeniferPanelSurface('surf-registry-alignment', { id: 'surf-registry-alignment' } as any)
+
+    expect(getGeniferPanelRegistry()).toBe(registry)
+    expect((registry.get(atom) as any)?.id).toBe('surf-registry-alignment')
+    expect(unrelatedRegistry.get(atom)).toBe(null)
   })
 })
 

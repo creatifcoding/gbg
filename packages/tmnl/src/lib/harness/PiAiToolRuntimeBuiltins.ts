@@ -53,7 +53,7 @@ import { setGeniferPanelSurface, registerGeniferPanelVisitor } from '@/lib/genif
 import { spawnPanel as spawnFloatingPanel, closePanel as closeFloatingPanel } from '@/lib/floating'
 
 // LanguageModel layer for genifer generation (uses Pi OAuth auth)
-import { makeAnthropicLayer } from '@/lib/agents/providers/anthropic'
+import { makeOpenAiCodexLayer } from '@/lib/agents/providers/openai'
 import { PiAuthBridgeLive } from '@/lib/agents/auth/PiAuthBridge'
 
 // GEOINT harness integration
@@ -77,6 +77,29 @@ function createSdkTools(config: AgentHarnessConfig) {
     createFindTool(cwd),
     createLsTool(cwd),
   ]
+}
+
+const summarizeSpawnPanelSurface = (surface: unknown) => {
+  const value = surface as {
+    status?: unknown
+    patchSeq?: unknown
+    treeSnapshot?: unknown
+    treePatch?: unknown
+    quality?: { elementCount?: unknown }
+  } | null | undefined
+
+  return {
+    surfaceIncluded: value != null,
+    surfaceStatus: value?.status,
+    patchSeq: value?.patchSeq,
+    hasTreeSnapshot: value?.treeSnapshot != null,
+    hasTreePatch: value?.treePatch != null,
+    elementCount: value?.quality?.elementCount,
+  }
+}
+
+const logSpawnPanelDebug = (stage: string, payload: Record<string, unknown>) => {
+  console.info(`[spawn_panel] ${stage}`, payload)
 }
 
 // =============================================================================
@@ -310,9 +333,9 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           ),
         )
 
-        // Wire LanguageModel layer for genifer generation via Pi OAuth
-        // makeAnthropicLayer requires PiAuthBridge → uses Pi's OAuth token
-        const geniferModelLayer = makeAnthropicLayer('claude-sonnet-4-20250514')
+        // Wire LanguageModel layer for genifer generation via Pi OAuth.
+        // Use Codex OAuth by default; Anthropic OAuth is forbidden for this org.
+        const geniferModelLayer = makeOpenAiCodexLayer('gpt-5.5')
           .pipe(Layer.provide(PiAuthBridgeLive))
         service.setModelLayer(geniferModelLayer)
 
@@ -368,7 +391,7 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
             Effect.provide(GeniferDevDbLayer),
           ),
         )
-        const geniferModelLayer = makeAnthropicLayer('claude-sonnet-4-20250514')
+        const geniferModelLayer = makeOpenAiCodexLayer('gpt-5.5')
           .pipe(Layer.provide(PiAuthBridgeLive))
         service.setModelLayer(geniferModelLayer)
         return Option.some(service)
@@ -404,6 +427,12 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
             ...(threadId ? { threadId: threadId as unknown as import('@/lib/genifer/identifiers').ThreadId } : {}),
           })
 
+          logSpawnPanelDebug('allocated-streaming-surface', {
+            surfaceId,
+            sessionId,
+            threadId: resolvedThreadId,
+          })
+
           // Detached fiber: generation runs in background
           Effect.runFork(
             geniferSvc.generateInBackground({
@@ -413,6 +442,10 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
               threadId: resolvedThreadId,
               persist: true,
               onSurfaceUpdate: (sid, surface) => {
+                logSpawnPanelDebug('surface-update', {
+                  surfaceId: sid,
+                  ...summarizeSpawnPanelSurface(surface),
+                })
                 // Direct atom write — instant panel reactivity, no indirection
                 setGeniferPanelSurface(sid, surface)
                 // Event bus relay — observability + remote sync
@@ -496,6 +529,13 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           })
 
           // ── Event bus relay (for remote/WS consumers + observability) ──
+          logSpawnPanelDebug('emit-panel-spawned', {
+            surfaceId,
+            panelId: remotePanelId,
+            localPanelId,
+            mode: opts.mode,
+            ...summarizeSpawnPanelSurface(surface),
+          })
           Effect.runFork(
             panelBus.emit({
               _tag: 'panel:spawned',

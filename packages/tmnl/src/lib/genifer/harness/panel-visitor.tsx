@@ -14,7 +14,7 @@
  */
 
 import { type FC, useMemo } from 'react'
-import { useAtomValue, Atom, Registry } from '@effect-atom/atom-react'
+import { useAtomValue, Atom, Registry, RegistryContext } from '@effect-atom/atom-react'
 import type { PanelContentProps } from '@/lib/floating/panel-registry'
 import { panelRegistry } from '@/lib/floating/panel-registry'
 import type { GeniferSurface } from './surface'
@@ -43,16 +43,28 @@ export const geniferPanelSurfaces = Atom.family(
   (_surfaceId: string) => Atom.make<GeniferSurface | null>(null),
 )
 
-var _registry: Registry.Registry | null = null
+/**
+ * Dedicated default registry for Genifer panel surfaces.
+ *
+ * Floating panels are often rendered under the panel overlay registry, while
+ * MorphChat harness code mutates MorphChat's registry directly. The panel
+ * visitor therefore must not rely on the nearest React RegistryContext; it
+ * explicitly reads from the same registry that `setGeniferPanelSurface` writes.
+ */
+export const geniferPanelRegistry = Registry.make()
+
+var _registry: Registry.Registry = geniferPanelRegistry
 
 export function setGeniferPanelRegistry(registry: Registry.Registry): void {
   _registry = registry
 }
 
+export function getGeniferPanelRegistry(): Registry.Registry {
+  return _registry
+}
+
 export function setGeniferPanelSurface(surfaceId: string, surface: GeniferSurface): void {
-  const registry = _registry
-  if (!registry) return
-  registry.set(geniferPanelSurfaces(surfaceId), surface)
+  getGeniferPanelRegistry().set(geniferPanelSurfaces(surfaceId), surface)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,7 +83,11 @@ export const GeniferPanelVisitor: FC<PanelContentProps> = ({ panelId, data }) =>
     )
   }
 
-  return <GeniferPanelContent surfaceId={panelData.surfaceId} prompt={panelData.prompt} />
+  return (
+    <RegistryContext.Provider value={getGeniferPanelRegistry()}>
+      <GeniferPanelContent surfaceId={panelData.surfaceId} prompt={panelData.prompt} />
+    </RegistryContext.Provider>
+  )
 }
 
 GeniferPanelVisitor.displayName = 'GeniferPanelVisitor'

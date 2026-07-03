@@ -14,13 +14,18 @@
 import * as React from 'react'
 import { useState } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { MorphChat, MorphChatRegistryProvider } from '@/lib/morphchat'
+import { MorphChatSurface } from '@/lib/morphchat/components/surface-root'
+import { MorphChatRegistryProvider } from '@/lib/morphchat/atoms/registry'
 import { createMockChatAdapter } from '@/lib/morphchat/adapters/mock-adapter'
 import { Conductor } from '@/lib/morphchat/specs/conductor'
-import { useHarnessAdapter } from '@/lib/morphchat/hooks'
-import { sessionId$ } from '@/lib/morphchat/hooks/useHarnessAdapter'
-import { SessionDrawer } from '@/lib/morphchat/components/session-drawer'
-import { panelRegistry, type PanelContentProps } from '../panel-registry'
+import { useHarnessAdapter, sessionId$ } from '@/lib/morphchat/hooks/useHarnessAdapter'
+import { SessionDrawer } from '@/lib/morphchat/components/session-drawer/SessionDrawer'
+import type { PanelContentProps } from '../panel-registry'
+import {
+  definePanelVisitor,
+  installPanelVisitorsFromLayer,
+  makePanelVisitorCatalogLayer,
+} from './catalog'
 
 // =============================================================================
 // Mock Conductor Panel
@@ -44,7 +49,7 @@ function MorphChatMockPanel({ panelId }: PanelContentProps) {
   )
 
   return (
-    <MorphChat.Surface
+    <MorphChatSurface
       spec={Conductor}
       adapter={adapter}
       surfaceId={`panel-${panelId}`}
@@ -73,6 +78,8 @@ function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
   const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false)
 
   const currentSessionId = useAtomValue(sessionId$(panelId))
+  const canStartSession = status === 'connected'
+  const canReconnect = status !== 'connecting'
 
   const handleResumeSession = React.useCallback((sid: string) => {
     resumeSession(sid)
@@ -128,28 +135,26 @@ function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
           SID:{currentSessionId ?? 'none'}
         </span>
 
-        {/* Sessions toggle — like AI Assistant button in AutonomousEditorPanel */}
-        {status === 'connected' && (
-          <button
-            onClick={() => setIsSessionDrawerOpen(!isSessionDrawerOpen)}
-            style={{
-              background: isSessionDrawerOpen ? 'rgba(34,211,238,0.12)' : 'rgba(120,113,108,0.06)',
-              border: `1px solid ${isSessionDrawerOpen ? 'rgba(34,211,238,0.25)' : 'rgba(120,113,108,0.15)'}`,
-              color: isSessionDrawerOpen ? '#67e8f9' : '#a8a29e',
-              borderRadius: 4,
-              padding: '1px 8px',
-              cursor: 'pointer',
-              fontSize: 'var(--tmnl-text-xs, 12px)',
-              fontFamily: 'inherit',
-              letterSpacing: '0.04em',
-              transition: 'all 0.15s ease',
-            }}
-            title={isSessionDrawerOpen ? 'Close sessions drawer' : 'Browse sessions'}
-          >
-            SESSIONS
-          </button>
-        )}
-        {status === 'connected' && (
+        {/* Sessions toggle — keep diagnostics reachable even when the harness is idle/erroring. */}
+        <button
+          onClick={() => setIsSessionDrawerOpen(!isSessionDrawerOpen)}
+          style={{
+            background: isSessionDrawerOpen ? 'rgba(34,211,238,0.12)' : 'rgba(120,113,108,0.06)',
+            border: `1px solid ${isSessionDrawerOpen ? 'rgba(34,211,238,0.25)' : 'rgba(120,113,108,0.15)'}`,
+            color: isSessionDrawerOpen ? '#67e8f9' : '#a8a29e',
+            borderRadius: 4,
+            padding: '1px 8px',
+            cursor: 'pointer',
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontFamily: 'inherit',
+            letterSpacing: '0.04em',
+            transition: 'all 0.15s ease',
+          }}
+          title={isSessionDrawerOpen ? 'Close sessions drawer' : 'Browse sessions and harness diagnostics'}
+        >
+          SESSIONS
+        </button>
+        {canStartSession && (
           <button
             onClick={newSession}
             style={{
@@ -168,7 +173,7 @@ function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
             NEW
           </button>
         )}
-        {(status === 'error' || status === 'connected') && (
+        {canReconnect && (
           <button
             onClick={hardReconnect}
             style={{
@@ -193,7 +198,7 @@ function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
         {/* Main chat area */}
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-          <MorphChat.Surface
+          <MorphChatSurface
             spec={Conductor}
             adapter={adapter}
             surfaceId={`harness-panel-${panelId}`}
@@ -229,8 +234,9 @@ function MorphChatHarnessPanel(props: PanelContentProps) {
 // Registration
 // =============================================================================
 
-export function registerMorphChatVisitors() {
-  panelRegistry.register('morphchat', {
+export const morphChatPanelVisitors = [
+  definePanelVisitor({
+    id: 'morphchat',
     label: 'Conductor (Mock)',
     icon: '💬',
     description: 'Full MorphChat conductor with mock data, seeded agents & tasks',
@@ -241,9 +247,9 @@ export function registerMorphChatVisitors() {
       height: 600,
       accent: 'rgba(8, 145, 178, 0.5)',
     },
-  })
-
-  panelRegistry.register('morphchat:harness', {
+  }),
+  definePanelVisitor({
+    id: 'morphchat:harness',
     label: 'Conductor (Live)',
     icon: '🔌',
     description: 'Live MorphChat conductor connected to pi-ai harness runtime',
@@ -255,5 +261,11 @@ export function registerMorphChatVisitors() {
       height: 600,
       accent: 'rgba(52, 211, 153, 0.5)',
     },
-  })
+  }),
+] as const
+
+export const MorphChatPanelVisitorCatalogLive = makePanelVisitorCatalogLayer(morphChatPanelVisitors)
+
+export function registerMorphChatVisitors() {
+  installPanelVisitorsFromLayer(MorphChatPanelVisitorCatalogLive)
 }

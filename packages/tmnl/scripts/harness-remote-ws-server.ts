@@ -1,13 +1,39 @@
 #!/usr/bin/env bun
 
 import { BunRuntime } from '@effect/platform-bun'
-import { Effect, Option, Schema } from 'effect'
+import { Cause, Effect, Schema } from 'effect'
+
+const unknownToDiagnosticString = (cause: unknown): string => {
+  if (typeof cause === 'string') return cause
+  if (cause == null) return 'unknown'
+
+  if (cause instanceof Error) {
+    return cause.message || cause.name || String(cause)
+  }
+
+  try {
+    const json = JSON.stringify(cause)
+    if (json && json !== '{}') return json
+  } catch {
+    // fall through to String(cause)
+  }
+
+  return String(cause)
+}
+
+const unknownToStack = (cause: unknown): string | undefined =>
+  cause instanceof Error && cause.stack ? cause.stack : undefined
+
+const unknownToName = (cause: unknown): string | undefined =>
+  cause instanceof Error && cause.name ? cause.name : undefined
 
 class HarnessRemoteWsBootstrapError extends Schema.TaggedError<HarnessRemoteWsBootstrapError>()(
   'HarnessRemoteWsBootstrapError',
   {
     message: Schema.String,
-    cause: Schema.optionalWith(Schema.Unknown, { as: 'Option' }),
+    causeMessage: Schema.String,
+    causeName: Schema.optional(Schema.String),
+    causeStack: Schema.optional(Schema.String),
   },
 ) {}
 
@@ -21,7 +47,9 @@ const main = Effect.gen(function* () {
     catch: (cause) =>
       new HarnessRemoteWsBootstrapError({
         message: 'Failed to import HarnessRemoteWsServer module',
-        cause: Option.some(cause),
+        causeMessage: unknownToDiagnosticString(cause),
+        causeName: unknownToName(cause),
+        causeStack: unknownToStack(cause),
       }),
   })
 
@@ -37,9 +65,24 @@ const main = Effect.gen(function* () {
   Effect.withSpan('harness.bootstrap.main'),
   Effect.catchTags({
     HarnessRemoteWsBootstrapError: (error) =>
-      Effect.logError(`[boot] harness bootstrap failed: ${error.message}`).pipe(
-        Effect.zipRight(Effect.fail(error)),
-      ),
+      Effect.gen(function* () {
+        const prefix = error.causeName ? `${error.causeName}: ` : ''
+        yield* Effect.logError(`[boot] harness bootstrap failed: ${error.message}`)
+        yield* Effect.logError(`[boot] import cause: ${prefix}${error.causeMessage}`)
+        if (error.causeStack) {
+          yield* Effect.logError(`[boot] import stack:\n${error.causeStack}`)
+        }
+        return yield* Effect.fail(error)
+      }),
+  }),
+  Effect.catchAllCause((cause) => {
+    if (Cause.isInterruptedOnly(cause)) {
+      return Effect.failCause(cause)
+    }
+
+    return Effect.logError(`[boot] fatal harness remote ws cause:\n${Cause.pretty(cause)}`).pipe(
+      Effect.zipRight(Effect.failCause(cause)),
+    )
   }),
 )
 

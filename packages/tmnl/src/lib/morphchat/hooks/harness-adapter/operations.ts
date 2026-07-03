@@ -16,10 +16,11 @@ import {
   HarnessRuntime,
   HarnessRuntimeError,
 } from '@/lib/harness'
-import type {
-  HarnessRole,
-  HarnessSessionId,
-  HarnessClientMessageId,
+import {
+  HarnessSnapshot,
+  type HarnessRole,
+  type HarnessSessionId,
+  type HarnessClientMessageId,
 } from '@/lib/harness/schemas'
 import type { ChatMessage, ConnectionState, StreamingState } from '../../schemas/message-types'
 import { STREAMING_IDLE, finalizeAllStreamingParts, flattenPartsToText } from '../../schemas/message-types'
@@ -28,9 +29,10 @@ import { morphChatRegistry } from '../../atoms/registry'
 
 import {
   harnessRuntimeAtom, messages$, messageIds$, connection$, streaming$,
-  agents$, sessionId$, eventFiber$, shellEventFiber$, statusRows$,
+  agents$, sessionId$, eventFiber$, shellEventFiber$, piHydrationFiber$, statusRows$,
   availableModels$, selectedModel$, modelOverride$, cancelledAt$,
-  getMessageAtom, setInstanceConfig, getInstanceConfig, setSessionId, getSessionId,
+  modelsLoading$, modelsError$,
+  getMessageAtom, clearMessageAtoms, setInstanceConfig, getInstanceConfig, setSessionId, getSessionId,
 } from './atoms'
 import {
   pushStatusRow, formatUnknownErrorPayload, runtimeErrorToStatus,
@@ -46,6 +48,82 @@ import {
   getProcessor,
 } from './lifecycle'
 import { appendToSessionV2, unwireSessionV2 } from '@/lib/harness/session/v2/facade'
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const browserHarnessWsUrl = (): string => {
+  const globalOverride = (globalThis as { __TMNL_HARNESS_WS_URL?: string }).__TMNL_HARNESS_WS_URL
+  if (typeof globalOverride === 'string' && globalOverride.length > 0) return globalOverride
+
+  const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+  const viteOverride = viteEnv?.VITE_HARNESS_WS_URL
+  if (typeof viteOverride === 'string' && viteOverride.length > 0) return viteOverride
+
+  if (typeof window !== 'undefined' && window.location) {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${wsProtocol}//${window.location.host}/api/harness/ws`
+  }
+
+  return 'ws://127.0.0.1:8787/api/harness/ws'
+}
+
+const shouldAutoHydratePiReplay = (): boolean =>
+  (globalThis as { __TMNL_PI_REPLAY_AUTO_HYDRATE?: boolean }).__TMNL_PI_REPLAY_AUTO_HYDRATE === true
+
+const loadPiSessionPreviewSnapshotHot = (
+  args: { readonly path: string; readonly sessionId?: string },
+): Effect.Effect<HarnessSnapshot, HarnessRuntimeError> =>
+  Effect.tryPromise({
+    try: () => new Promise<HarnessSnapshot>((resolve, reject) => {
+      const requestId = `pi-preview-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const socket = new WebSocket(browserHarnessWsUrl())
+      let settled = false
+      const settle = (fn: () => void) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        try { socket.close() } catch {}
+        fn()
+      }
+      const timer = setTimeout(() => settle(() => reject(new Error('Timed out waiting for pi preview websocket response'))), 1_800)
+
+      socket.onerror = () => settle(() => reject(new Error('Pi preview websocket failed')))
+      socket.onopen = () => {
+        socket.send(JSON.stringify({
+          _tag: 'remote:ws_request',
+          requestId,
+          command: {
+            _tag: 'remote:load_pi_session_preview_snapshot',
+            args,
+          },
+        }))
+      }
+      socket.onmessage = (event) => {
+        try {
+          const envelope = JSON.parse(String(event.data)) as unknown
+          if (!isRecord(envelope) || envelope._tag !== 'remote:ws_response') return
+          if (envelope.requestId !== requestId) return
+          const response = envelope.response
+          if (!isRecord(response) || response.ok !== true || !('data' in response)) {
+            const message = isRecord(response) && typeof response.message === 'string'
+              ? response.message
+              : 'Preview response was not successful'
+            settle(() => reject(new Error(message)))
+            return
+          }
+          settle(() => resolve(new HarnessSnapshot(response.data as typeof HarnessSnapshot.Encoded)))
+        } catch (error) {
+          settle(() => reject(error))
+        }
+      }
+    }),
+    catch: (cause) => new HarnessRuntimeError({
+      code: 'load-pi-session-preview-hot-failed',
+      message: cause instanceof Error ? cause.message : 'Failed to request pi CLI session preview snapshot',
+      cause: Option.some(cause),
+    }),
+  }).pipe(Effect.withSpan('tmnl.morphchat.resume-pi-session.preview-hot'))
 
 // ─── Connect ──────────────────────────────────────────────────────────────────
 
@@ -116,28 +194,45 @@ export const connectOp$ = Atom.family((id: string) =>
 export const fetchModelsOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
+      morphChatRegistry.set(modelsLoading$(id), true)
+      morphChatRegistry.set(modelsError$(id), null)
+
       const runtime = yield* HarnessRuntime
       const models = yield* runtime.getAvailableModels()
 
       const idCounts = new Map<string, number>()
       for (const m of models) idCounts.set(m.id, (idCounts.get(m.id) ?? 0) + 1)
 
+      const preferredRank = (model: { provider: string; id: string }) => {
+        if (model.provider === 'openai-codex' && model.id === 'gpt-5.5') return -2
+        if (model.provider === 'openai-codex') return -1
+        return 0
+      }
+
       const sorted = [...models].sort((a, b) => {
-        const pa = a.provider === 'openai-codex' ? -1 : 0
-        const pb = b.provider === 'openai-codex' ? -1 : 0
-        if (pa !== pb) return pa - pb
+        const aa = a.available === false ? 1 : 0
+        const ab = b.available === false ? 1 : 0
+        if (aa !== ab) return aa - ab
+        const preferred = preferredRank(a) - preferredRank(b)
+        if (preferred !== 0) return preferred
+        const byProvider = a.provider.localeCompare(b.provider)
+        if (byProvider !== 0) return byProvider
         return a.name.localeCompare(b.name)
       })
 
       morphChatRegistry.set(availableModels$(id), sorted.map((m) => {
         const dup = (idCounts.get(m.id) ?? 0) > 1
+        const authLabel = m.available === false ? 'auth needed' : 'auth OK'
         return {
           id: `${m.provider}:${m.id}`, modelId: m.id,
           label: dup ? `${m.name} (${m.provider})` : m.name,
-          provider: m.provider, description: `${m.provider} · ${m.contextWindow.toLocaleString()} ctx`,
+          provider: m.provider,
+          description: `${m.provider} · ${m.contextWindow.toLocaleString()} ctx · ${authLabel}`,
           reasoning: m.reasoning,
+          available: m.available,
         }
       }))
+      morphChatRegistry.set(modelsLoading$(id), false)
     }).pipe(
       Effect.catchAllCause((cause) =>
         Effect.gen(function* () {
@@ -146,8 +241,10 @@ export const fetchModelsOp$ = Atom.family((id: string) =>
             return
           }
 
+          morphChatRegistry.set(modelsLoading$(id), false)
           yield* morphchatLogWarningCause(id, 'fetch-models-failed', cause)
           const parsed = formatUnknownErrorPayload(yield* morphchatCauseToMessage(cause))
+          morphChatRegistry.set(modelsError$(id), parsed.message)
           pushStatusRow(id, { id: `status-${Date.now()}-models`, tone: 'warn', text: `[models] ${parsed.message}`, source: 'harness' })
         }),
       ),
@@ -537,7 +634,33 @@ export const resumeSessionOp$ = Atom.family((id: string) =>
   ),
 )
 
-// ─── Resume Pi CLI Session (read-only replay) ────────────────────────────────
+// ─── Resume Pi CLI Session (read-only progressive replay) ────────────────────
+
+const applyPiHydrationSnapshotInBatches = (
+  id: string,
+  snapshot: { readonly sessionId: HarnessSessionId; readonly events: ReadonlyArray<any> },
+  batchSize = 75,
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const wired = activeWiring.get(id)
+    if (!wired || wired.sessionId !== snapshot.sessionId || getSessionId(id) !== snapshot.sessionId) return
+
+    morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
+    clearMessageAtoms(id)
+    morphChatRegistry.set(messageIds$(id), [])
+
+    for (let index = 0; index < snapshot.events.length; index += batchSize) {
+      if (getSessionId(id) !== snapshot.sessionId) return
+      const currentWiring = activeWiring.get(id)
+      if (!currentWiring || currentWiring.sessionId !== snapshot.sessionId) return
+
+      for (const event of snapshot.events.slice(index, index + batchSize)) {
+        if (currentWiring.shouldProcess(event as any)) currentWiring.processor.processEvent(event)
+      }
+
+      yield* Effect.yieldNow()
+    }
+  })
 
 export const resumePiSessionOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ path: string; sessionId?: string }>()(
@@ -557,17 +680,49 @@ export const resumePiSessionOp$ = Atom.family((id: string) =>
         resetContent(id)
 
         morphChatRegistry.set(connection$(id), { phase: 'connecting', endpoint: `pi-cli:${path}` } as ConnectionState)
+        pushStatusRow(id, {
+          id: `status-${Date.now()}-pi-opening`,
+          tone: 'info',
+          text: '[pi.open] opening session spine… locating last useful compaction…',
+          source: 'harness',
+        })
 
-        const snapshot = yield* runtime.loadPiSessionSnapshot({ path, sessionId }).pipe(
+        const previewStartedAt = Date.now()
+        const previewAttempt = yield* loadPiSessionPreviewSnapshotHot({ path, sessionId }).pipe(
           Effect.timeoutFail({
-            duration: '12 seconds',
+            duration: '2 seconds',
             onTimeout: () => new HarnessRuntimeError({
-              code: 'resume-pi-session-timeout',
-              message: `Timed out loading pi session ${path}`,
+              code: 'resume-pi-session-preview-timeout',
+              message: `Timed out loading pi session preview ${path}`,
               cause: Option.none(),
             }),
           }),
+          Effect.either,
         )
+        const previewMs = Date.now() - previewStartedAt
+        const usedPreview = previewAttempt._tag === 'Right'
+        const snapshot = usedPreview
+          ? previewAttempt.right
+          : yield* Effect.gen(function* () {
+              yield* morphchatLogWarningCause(id, 'resume-pi-session-preview-unavailable', previewAttempt.left, { path })
+              pushStatusRow(id, {
+                id: `status-${Date.now()}-pi-preview-fallback`,
+                tone: 'warn',
+                text: '[pi.preview] preview RPC unavailable or slow; falling back to legacy full replay so connection still works.',
+                source: 'harness',
+                details: { path },
+              })
+              return yield* runtime.loadPiSessionSnapshot({ path, sessionId }).pipe(
+                Effect.timeoutFail({
+                  duration: '12 seconds',
+                  onTimeout: () => new HarnessRuntimeError({
+                    code: 'resume-pi-session-fallback-timeout',
+                    message: `Timed out loading legacy pi session snapshot ${path}`,
+                    cause: Option.none(),
+                  }),
+                }),
+              )
+            })
 
         yield* activateSessionWiring(
           id,
@@ -581,11 +736,84 @@ export const resumePiSessionOp$ = Atom.family((id: string) =>
         )
 
         pushStatusRow(id, {
-          id: `status-${Date.now()}-resume-pi-session`,
-          tone: 'warn',
-          text: `[pi-session] loaded read-only replay ${snapshot.sessionId}. Live continuation will be wired in the next slice.`,
+          id: `status-${Date.now()}-resume-pi-session-preview`,
+          tone: usedPreview ? 'info' : 'warn',
+          text: usedPreview
+            ? `[pi.preview] preview painted in ${previewMs}ms (${snapshot.events.length} events). Full archive deferred until chunked hydration is requested.`
+            : `[pi.preview] legacy full replay loaded (${snapshot.events.length} events). Fast preview was unavailable or exceeded the fallback budget.`,
           source: 'harness',
+          details: { path, previewMs, events: snapshot.events.length, usedPreview },
         })
+
+        if (!usedPreview) return snapshot.sessionId
+
+        if (!shouldAutoHydratePiReplay()) {
+          pushStatusRow(id, {
+            id: `status-${Date.now()}-pi-hydration-deferred`,
+            tone: 'info',
+            text: '[pi.hydrate] deferred — full replay requires explicit chunked hydration, not a browser-freezing dump truck.',
+            source: 'harness',
+            details: { path },
+          })
+          return snapshot.sessionId
+        }
+
+        const hydrationSessionId = snapshot.sessionId as HarnessSessionId
+        const hydration = Effect.gen(function* () {
+          const fullStartedAt = Date.now()
+          const fullSnapshot = yield* runtime.loadPiSessionSnapshot({ path, sessionId: hydrationSessionId as string }).pipe(
+            Effect.timeoutFail({
+              duration: '60 seconds',
+              onTimeout: () => new HarnessRuntimeError({
+                code: 'resume-pi-session-hydration-timeout',
+                message: `Timed out hydrating pi session ${path}`,
+                cause: Option.none(),
+              }),
+            }),
+          )
+
+          if (getSessionId(id) !== hydrationSessionId) return
+          pushStatusRow(id, {
+            id: `status-${Date.now()}-pi-hydrating`,
+            tone: 'info',
+            text: `[pi.hydrate] archive ready from disk; painting ${fullSnapshot.events.length} events without blocking the helm…`,
+            source: 'harness',
+            details: { path, events: fullSnapshot.events.length },
+          })
+
+          yield* applyPiHydrationSnapshotInBatches(id, fullSnapshot, 75)
+
+          if (getSessionId(id) !== hydrationSessionId) return
+          pushStatusRow(id, {
+            id: `status-${Date.now()}-pi-hydrated`,
+            tone: 'info',
+            text: `[pi.hydrate] archive ready — ${fullSnapshot.events.length} events in ${Date.now() - fullStartedAt}ms`,
+            source: 'harness',
+            details: { path, events: fullSnapshot.events.length, elapsedMs: Date.now() - fullStartedAt },
+          })
+        }).pipe(
+          Effect.catchAllCause((cause) =>
+            Effect.gen(function* () {
+              if (isInterruptedCause(cause)) return
+              yield* morphchatLogWarningCause(id, 'resume-pi-session-hydration-failed', cause, { path })
+              const parsed = formatUnknownErrorPayload(yield* morphchatCauseToMessage(cause))
+              pushStatusRow(id, {
+                id: `status-${Date.now()}-pi-hydration-failed`,
+                tone: 'warn',
+                text: `[pi.hydrate] partial archive loaded; ${parsed.message}`,
+                source: 'harness',
+              })
+            }),
+          ),
+          Effect.ensuring(Effect.sync(() => {
+            if (getSessionId(id) === hydrationSessionId) {
+              morphChatRegistry.set(piHydrationFiber$(id), null)
+            }
+          })),
+        )
+
+        const hydrationFiber = yield* Effect.forkDaemon(hydration)
+        morphChatRegistry.set(piHydrationFiber$(id), hydrationFiber)
 
         return snapshot.sessionId
       }).pipe(

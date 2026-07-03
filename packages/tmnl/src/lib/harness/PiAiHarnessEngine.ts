@@ -98,6 +98,8 @@ export interface AvailableModelInfo {
   readonly reasoning: boolean
   readonly contextWindow: number
   readonly maxTokens: number
+  /** Whether Pi currently has auth configured for this provider. */
+  readonly available: boolean
 }
 
 export interface PiAiHarnessEngineShape {
@@ -242,9 +244,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
       ),
     )
 
-    // ── ModelRegistry for available models + per-message override ──
-    const authStorage = new AuthStorage()
-    const modelRegistry = new ModelRegistry(authStorage)
+    // ── ModelRegistry for full Pi model catalog + per-message override ──
+    const authStorage = AuthStorage.create()
+    const modelRegistry = ModelRegistry.create(authStorage)
 
     const sessionsRef = yield* Ref.make<HashMap.HashMap<string, SessionRecord>>(HashMap.empty())
     const nodeToSessionRef = yield* Ref.make<HashMap.HashMap<string, string>>(HashMap.empty())
@@ -2134,13 +2136,18 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
       Effect.try({
         try: () => {
           modelRegistry.refresh()
-          return modelRegistry.getAvailable().map((m) => ({
+          const availableKeys = new Set(
+            modelRegistry.getAvailable().map((model) => `${model.provider}:${model.id}`),
+          )
+
+          return modelRegistry.getAll().map((m) => ({
             id: m.id,
             name: m.name,
             provider: m.provider,
             reasoning: m.reasoning,
             contextWindow: m.contextWindow,
             maxTokens: m.maxTokens,
+            available: availableKeys.has(`${m.provider}:${m.id}`),
           }))
         },
         catch: (cause) =>

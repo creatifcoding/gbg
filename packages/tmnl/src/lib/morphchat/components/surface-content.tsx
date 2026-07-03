@@ -16,7 +16,7 @@
  * @module morphchat/components/surface-content
  */
 
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
 import {
   AnimatePresence,

@@ -19,6 +19,14 @@
 import { Schema, Effect, Option, HashMap } from "effect"
 import { UIElement, UITree } from "./schemas"
 
+const getTextLikeContent = (
+  source: Record<string, unknown>,
+  props?: Record<string, unknown>,
+): string | undefined => {
+  const content = source.content ?? source.text ?? props?.content ?? props?.text ?? props?.code
+  return typeof content === "string" ? content : undefined
+}
+
 // =============================================================================
 // Cluster 1: Response Extraction
 // =============================================================================
@@ -363,7 +371,7 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
       }
 
       // Extract props: everything except meta-fields
-      const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "entrance", "ref", "behavior", "bindings"])
+      const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "content", "text", "code", "entrance", "ref", "behavior", "bindings"])
       const rawProps = typeof node.props === "object" && node.props !== null
         ? (node.props as Record<string, unknown>)
         : {}
@@ -400,12 +408,15 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
       if (rawProps.behavior !== undefined) delete (props as Record<string, unknown>).behavior
       if (rawProps.bindings !== undefined) delete (props as Record<string, unknown>).bindings
 
+      const content = getTextLikeContent(node, rawProps)
+
       elements[key] = new UIElement({
         key,
         type: (node.type as string) ?? "Unknown",
         props,
         children: childKeys.length > 0 ? childKeys : [],
         parentKey,
+        ...(content !== undefined ? { content } : {}),
         ...(className ? { className } : {}),
         ...(ref !== undefined ? { ref } : {}),
         ...(behavior !== undefined ? { behavior } : {}),
@@ -465,12 +476,15 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
       if ((rawProps as any).behavior !== undefined) delete (rawProps as any).behavior
       if ((rawProps as any).bindings !== undefined) delete (rawProps as any).bindings
 
+      const content = getTextLikeContent(val, rawProps)
+
       elements[key] = new UIElement({
         key,
         type: (val.type as string) ?? "Unknown",
         props: rawProps,
         children: childArr,
         parentKey: null,
+        ...(content !== undefined ? { content } : {}),
         ...(className ? { className } : {}),
         ...(ref !== undefined ? { ref } : {}),
         ...(behavior !== undefined ? { behavior } : {}),
@@ -510,18 +524,23 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
 export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, NormalizeError> {
   return Effect.sync(() => {
     const rootKey = (obj.key as string) ?? "root"
-    const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "ref", "behavior", "bindings"])
+    const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "content", "text", "code", "ref", "behavior", "bindings"])
 
     // Collect all element definitions
     const flatElements: Record<string, Record<string, unknown>> = {}
 
     function collect(node: Record<string, unknown>, key: string) {
+      const nodeProps = typeof node.props === "object" && node.props !== null
+        ? node.props as Record<string, unknown>
+        : undefined
+
       flatElements[key] = {
         type: node.type,
         props: node.props ?? {},
         children: Array.isArray(node.children)
           ? (node.children as unknown[]).filter((c): c is string => typeof c === "string")
           : [],
+        content: getTextLikeContent(node, nodeProps),
         className: node.className,
         ref: node.ref,
         behavior: node.behavior,
@@ -582,12 +601,15 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
       if ((rawProps as any).behavior !== undefined) delete (rawProps as any).behavior
       if ((rawProps as any).bindings !== undefined) delete (rawProps as any).bindings
 
+      const content = getTextLikeContent(val, rawProps)
+
       elements[key] = new UIElement({
         key,
         type: (val.type as string) ?? "Unknown",
         props: rawProps,
         children: childArr,
         parentKey: null,
+        ...(content !== undefined ? { content } : {}),
         ...(className ? { className } : {}),
         ...(ref !== undefined ? { ref } : {}),
         ...(behavior !== undefined ? { behavior } : {}),

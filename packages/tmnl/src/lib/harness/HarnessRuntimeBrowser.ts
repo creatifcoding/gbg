@@ -414,6 +414,21 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         Effect.withSpan('tmnl.harness.runtime.browser.load-pi-session-snapshot'),
       )
 
+    const loadPiSessionPreviewSnapshot: HarnessRuntimeShape['loadPiSessionPreviewSnapshot'] = (args) =>
+      requestData(
+        transport,
+        {
+          _tag: 'remote:load_pi_session_preview_snapshot' as const,
+          args,
+        },
+        HarnessRemoteSnapshotPayload,
+      ).pipe(
+        Effect.map((snapshot) => new HarnessSnapshot(snapshot)),
+        traceRuntimeFailure('load-pi-session-preview-snapshot', 'remote:load_pi_session_preview_snapshot'),
+        Effect.mapError(toRuntimeError('load-pi-session-preview-failed', 'Failed to load pi CLI session preview snapshot')),
+        Effect.withSpan('tmnl.harness.runtime.browser.load-pi-session-preview-snapshot'),
+      )
+
     const events = transport.events.pipe(
       Stream.flatMap((raw) =>
         Stream.fromEffect(
@@ -454,6 +469,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
       forkSession,
       listPiSessions,
       loadPiSessionSnapshot,
+      loadPiSessionPreviewSnapshot,
       events,
     } satisfies HarnessRuntimeShape)
   }),

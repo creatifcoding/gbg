@@ -103,6 +103,45 @@ const logDebug = Effect.fn('harness.ws.log.debug')(function* (
   yield* Effect.logDebug(message).pipe(Effect.annotateLogs(annotations))
 })
 
+const logInfo = Effect.fn('harness.ws.log.info')(function* (
+  wsId: string,
+  message: string,
+  payload?: Record<string, unknown>,
+) {
+  const annotations = payload === undefined ? { wsId } : { wsId, ...payload }
+  yield* Effect.logInfo(message).pipe(Effect.annotateLogs(annotations))
+})
+
+const summarizePanelEvent = (event: unknown): Record<string, unknown> => {
+  const value = event as {
+    _tag?: unknown
+    surfaceId?: unknown
+    panelId?: unknown
+    mode?: unknown
+    surface?: {
+      status?: unknown
+      patchSeq?: unknown
+      treeSnapshot?: unknown
+      treePatch?: unknown
+      quality?: { elementCount?: unknown }
+    }
+  }
+
+  const surface = value.surface
+  return {
+    eventTag: typeof value._tag === 'string' ? value._tag : 'unknown',
+    surfaceId: typeof value.surfaceId === 'string' ? value.surfaceId : undefined,
+    panelId: typeof value.panelId === 'string' ? value.panelId : undefined,
+    mode: typeof value.mode === 'string' ? value.mode : undefined,
+    surfaceIncluded: surface != null,
+    surfaceStatus: surface?.status,
+    patchSeq: surface?.patchSeq,
+    hasTreeSnapshot: surface?.treeSnapshot != null,
+    hasTreePatch: surface?.treePatch != null,
+    elementCount: surface?.quality?.elementCount,
+  }
+}
+
 const causeToMessage = Effect.fn('harness.ws.cause-to-message')(function* (cause: unknown) {
   if (Cause.isCause(cause)) {
     return Cause.pretty(cause)
@@ -300,13 +339,18 @@ const handleRemoteWs = Effect.gen(function* () {
   )
 
   const emitPanelEvent = (event: unknown) =>
-    safeSend(makePanelEventEnvelope(event), 'panel:event').pipe(
+    Effect.gen(function* () {
+      const summary = summarizePanelEvent(event)
+      yield* logInfo(wsId, 'panel-event-relay', summary)
+      yield* safeSend(makePanelEventEnvelope(event as PanelEvent), 'panel:event')
+    }).pipe(
       Effect.withSpan('harness.ws.panel-events-send'),
       Effect.catchAllCause((cause) =>
         logWarningCause(
           wsId,
           'panel-event-relay-failed',
           cause,
+          summarizePanelEvent(event),
         ).pipe(Effect.asVoid),
       ),
     )
@@ -443,6 +487,9 @@ const handleRemoteWs = Effect.gen(function* () {
             path: command.path,
             sessionId: command.sessionId,
           })
+        }
+        case 'remote:load_pi_session_preview_snapshot': {
+          return yield* runtime.loadPiSessionPreviewSnapshot(command.args)
         }
 
         // ── Interactive shell commands ──────────────────────────────────

@@ -17,6 +17,24 @@ const EMPTY_ROWS = Atom.make<ReadonlyArray<StatusRowLike>>([])
 const EMPTY_LAST_ERROR = Atom.make<{ code: string; message: string; at: number; details?: unknown } | null>(null)
 const EMPTY_CANCELLED_AT = Atom.make<number | null>(null)
 
+const normalizeStatusRow = (row: StatusRowLike, index: number): StatusRowLike | null => {
+  const value = row as StatusRowLike & { readonly message?: unknown }
+  const text = typeof value.text === 'string'
+    ? value.text
+    : typeof value.message === 'string'
+      ? value.message
+      : null
+
+  if (!text) return null
+
+  return {
+    ...value,
+    id: typeof value.id === 'string' ? value.id : `status-row-${index}`,
+    tone: value.tone ?? 'info',
+    text,
+  }
+}
+
 export interface StatusRowsResult {
   rows: ReadonlyArray<StatusRowLike>
   toastRows: ReadonlyArray<StatusRowLike>
@@ -32,7 +50,11 @@ export function useStatusRows(adapter: MorphChatAdapter): StatusRowsResult {
   const cancelledAt = useAtomValue(adapter.cancelledAt$ ?? EMPTY_CANCELLED_AT)
 
   const rows = useMemo<ReadonlyArray<StatusRowLike>>(() => {
-    if (adapterRows.length > 0) return adapterRows
+    const normalizedAdapterRows = adapterRows
+      .map(normalizeStatusRow)
+      .filter((row): row is StatusRowLike => row != null)
+    if (normalizedAdapterRows.length > 0) return normalizedAdapterRows
+
     const out: StatusRowLike[] = []
     if (lastError && isBannerVisible(lastError.code)) {
       out.push({

@@ -123,6 +123,12 @@ export const HarnessRuntimeLive = Layer.effect(
           Effect.withSpan('tmnl.harness.runtime.load-pi-session-snapshot'),
         ),
 
+      loadPiSessionPreviewSnapshot: (args) =>
+        piSessions.loadPreviewSnapshot(args).pipe(
+          Effect.mapError(toRuntimeError('load-pi-session-preview-failed', 'Failed to load pi CLI session preview snapshot')),
+          Effect.withSpan('tmnl.harness.runtime.load-pi-session-preview-snapshot'),
+        ),
+
       getAvailableModels: () =>
         engine.getAvailableModels().pipe(
           Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models')),

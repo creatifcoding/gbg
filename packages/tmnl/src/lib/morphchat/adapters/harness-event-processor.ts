@@ -558,14 +558,31 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/user_message': {
-        const userMsg: ChatMessage = {
-          id: event.messageId as string,
-          role: 'operator',
-          content: event.text,
-          timestamp: new Date(event.at).toISOString(),
-          status: 'sent',
-          parts: [{ _tag: 'text' as const, content: event.text }],
-        }
+        const toolResultMatch = event.text.match(/^\[toolResult\]\s*([\s\S]*)$/)
+        const userMsg: ChatMessage = toolResultMatch
+          ? {
+              id: event.messageId as string,
+              role: 'tool',
+              authorName: 'tool result',
+              content: toolResultMatch[1] ?? '',
+              timestamp: new Date(event.at).toISOString(),
+              status: 'complete',
+              parts: [{
+                _tag: 'tool-invocation' as const,
+                toolCallId: event.messageId as string,
+                toolName: 'pi.toolResult',
+                state: 'completed' as const,
+                output: toolResultMatch[1] ?? '',
+              }],
+            }
+          : {
+              id: event.messageId as string,
+              role: 'operator',
+              content: event.text,
+              timestamp: new Date(event.at).toISOString(),
+              status: 'sent',
+              parts: [{ _tag: 'text' as const, content: event.text }],
+            }
         registryUpdate(atoms.messages$, (prev) =>
           prev.some((msg) => msg.id === userMsg.id) ? prev : [...prev, userMsg],
         )

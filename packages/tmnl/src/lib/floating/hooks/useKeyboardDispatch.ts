@@ -140,9 +140,11 @@ function useShiftedAltPunctuationHotkey(
 
 export interface UseKeyboardDispatchOptions {
   getLocalViewport: () => Viewport
+  /** Host-specific overlay toggle/close request. Standalone Tauri uses this to close the native panel surface. */
+  onRequestOverlayToggle?: () => void | Promise<void>
 }
 
-export function useKeyboardDispatch({ getLocalViewport }: UseKeyboardDispatchOptions): void {
+export function useKeyboardDispatch({ getLocalViewport, onRequestOverlayToggle }: UseKeyboardDispatchOptions): void {
   const modalOpen = useKeyboardModalOpen()
 
   const activePanelId = useSelector(() => getFloatingStx().data.activePanel.get())
@@ -171,7 +173,11 @@ export function useKeyboardDispatch({ getLocalViewport }: UseKeyboardDispatchOpt
 
   // ── Overlay / Escape ────────────────────────────────────────────
   useHotkey('Alt+P', () => {
-    togglePanelOverlay()
+    if (onRequestOverlayToggle) {
+      void onRequestOverlayToggle()
+    } else {
+      togglePanelOverlay()
+    }
   }, {
     ...hotkeyCommon,
     requireReset: true,

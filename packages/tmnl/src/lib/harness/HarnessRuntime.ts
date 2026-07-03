@@ -14,6 +14,7 @@ import {
 import type {
   PiSessionListOptions,
   PiSessionListPayload,
+  PiSessionPreviewOptions,
 } from './session/v2/pi-session-schemas'
 
 // Re-export these types so consumers that only need the shape
@@ -25,6 +26,8 @@ export interface AvailableModelInfo {
   readonly reasoning: boolean
   readonly contextWindow: number
   readonly maxTokens: number
+  /** Whether Pi currently has auth configured for this provider. */
+  readonly available: boolean
 }
 
 export interface ModelOverride {
@@ -110,6 +113,9 @@ export interface HarnessRuntimeShape {
   ) => Effect.Effect<PiSessionListPayload, HarnessRuntimeError>
   readonly loadPiSessionSnapshot: (
     args: { readonly path: string; readonly sessionId?: string },
+  ) => Effect.Effect<HarnessSnapshot, HarnessRuntimeError>
+  readonly loadPiSessionPreviewSnapshot: (
+    args: PiSessionPreviewOptions,
   ) => Effect.Effect<HarnessSnapshot, HarnessRuntimeError>
   readonly events: Stream.Stream<HarnessEvent, HarnessRuntimeError>
 }

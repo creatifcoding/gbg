@@ -1,10 +1,12 @@
 import {
   getModel,
-  getOAuthApiKey,
   type Model as PiAiModel,
-  type OAuthCredentials,
   type SimpleStreamOptions,
 } from '@mariozechner/pi-ai'
+import {
+  getOAuthApiKey,
+  type OAuthCredentials,
+} from '@mariozechner/pi-ai/oauth'
 import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { Config, Context, Effect, Layer, Option, Schema } from 'effect'
 
@@ -85,7 +87,7 @@ const nonNegativeIntegerConfig = (name: string, defaultValue: number) =>
 
 const PiAiPolicyConfigSource = Config.all({
   provider: Config.string('PI_HARNESS_PIAI_PROVIDER').pipe(Config.withDefault('openai-codex')),
-  model: Config.string('PI_HARNESS_PIAI_MODEL').pipe(Config.withDefault('gpt-5.3-codex')),
+  model: Config.string('PI_HARNESS_PIAI_MODEL').pipe(Config.withDefault('gpt-5.5')),
   systemPrompt: Config.string('PI_HARNESS_PIAI_SYSTEM_PROMPT').pipe(
     Config.withDefault('You are TMNL Harness, a concise and reliable coding assistant.'),
   ),
@@ -207,7 +209,7 @@ export const PiAiPolicyLive = Layer.effect(
     }).pipe(Effect.withSpan('tmnl.harness.policy.resolve-model'))
 
     // ── Unified auth: AuthStorage handles all OAuth refresh + static keys ──
-    const authStorage = new AuthStorage()
+    const authStorage = AuthStorage.create()
     const modelRegistry = new ModelRegistry(authStorage)
 
     const resolveApiKeyForProvider = (provider: string): Effect.Effect<Option.Option<string>> =>

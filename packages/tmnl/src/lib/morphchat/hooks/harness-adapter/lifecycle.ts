@@ -25,7 +25,7 @@ import {
 } from '@/lib/harness/interactive-shell/shell-session-atoms'
 import { registerGeniferPanelVisitor, setGeniferPanelSurface } from '@/lib/genifer/harness/panel-visitor'
 import type { GeniferSurface } from '@/lib/genifer/harness/surface'
-import { spawnPanel, closePanel, getPanel } from '@/lib/floating'
+import { spawnPanel, closePanel, getPanel } from '@/lib/floating/stx/actions'
 import { morphChatRegistry } from '../../atoms/registry'
 import { createEventProcessor } from '../../adapters/harness-event-processor'
 import { createExtensionToolBridge } from '@/lib/chat/msg/tool-block/renderers/extension-tool-bridge'
@@ -36,7 +36,7 @@ import { wireSessionV2, unwireSessionV2, disposeSessionV2 } from '@/lib/harness/
 
 import {
   messages$, messageIds$, connection$, streaming$, agents$,
-  sessionId$, eventFiber$, shellEventFiber$, metrics$, provider$,
+  sessionId$, eventFiber$, shellEventFiber$, piHydrationFiber$, metrics$, provider$,
   contextUsage$, statusRows$, getMessageAtom, clearMessageAtoms,
   setSessionId, getSessionId,
 } from './atoms'
@@ -313,6 +313,12 @@ export function interruptInstanceFibers(id: string): Effect.Effect<void> {
     if (oldShellFiber) {
       yield* Fiber.interrupt(oldShellFiber)
       morphChatRegistry.set(shellEventFiber$(id), null)
+    }
+
+    const oldPiHydrationFiber = morphChatRegistry.get(piHydrationFiber$(id))
+    if (oldPiHydrationFiber) {
+      yield* Fiber.interrupt(oldPiHydrationFiber)
+      morphChatRegistry.set(piHydrationFiber$(id), null)
     }
 
     activeWiring.delete(id)

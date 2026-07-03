@@ -62,6 +62,14 @@ export interface DecodeErrorOptions {
 // Patch Application (using UITree class methods)
 // =============================================================================
 
+const textLikeContent = (value: Record<string, unknown>): string | undefined => {
+  const props = value['props'] && typeof value['props'] === 'object' && !Array.isArray(value['props'])
+    ? value['props'] as Record<string, unknown>
+    : {}
+  const content = value['content'] ?? props['content'] ?? props['text'] ?? props['code']
+  return typeof content === 'string' ? content : undefined
+}
+
 const normalizeElement = (
   value: Record<string, unknown>,
   fallbackKey?: string,
@@ -71,6 +79,7 @@ const normalizeElement = (
   props: (value['props'] as Record<string, unknown>) ?? {},
   children: (value['children'] as string[]) ?? [],
   parentKey: (value['parentKey'] as string | null) ?? null,
+  content: textLikeContent(value),
   visible: value['visible'] as unknown,
   entrance: value['entrance'] as unknown,
   className: value['className'] as unknown,
@@ -90,6 +99,7 @@ const elementToRecord = (element: UIElement): Record<string, unknown> => ({
   ...(element as unknown as Record<string, unknown>),
   props: { ...(element.props as Record<string, unknown>) },
   children: Array.isArray(element.children) ? [...element.children] : [],
+  content: element.content,
 })
 
 const touchAncestorRefs = (tree: UITree, startKey: string): UITree => {

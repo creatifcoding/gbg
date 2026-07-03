@@ -22,6 +22,7 @@ interface UIElementJSON {
   props: Record<string, unknown>
   children: string[]
   parentKey: string | null
+  content?: string
   visible?: unknown
   entrance?: unknown
 }
@@ -49,6 +50,7 @@ const treeToJSON = (tree: UITree): UITreeJSON => {
       props: el.props as Record<string, unknown>,
       children: [...el.children],
       parentKey: el.parentKey,
+      ...(el.content !== undefined ? { content: el.content } : {}),
       visible: el.visible,
       entrance: el.entrance,
     }
@@ -68,6 +70,7 @@ const treeFromJSON = (json: UITreeJSON): UITree =>
           props: el.props,
           children: el.children,
           parentKey: el.parentKey,
+          ...(el.content !== undefined ? { content: el.content } : {}),
           visible: el.visible as UIElement["visible"],
           entrance: el.entrance as UIElement["entrance"],
         }),
