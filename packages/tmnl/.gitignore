@@ -79,3 +79,6 @@ scripts/panel-regression/runs/*
 .tldr/daemon.pid
 .tldr/stats/
 .tldr/status
+
+# Ad-hoc scratch template (empty by default, not real project state)
+progress.md
