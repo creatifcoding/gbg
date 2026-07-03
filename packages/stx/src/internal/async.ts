@@ -18,12 +18,12 @@
  * @internal
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as AsyncResult from "effect-v4/unstable/reactivity/AsyncResult"
-import * as Option from "effect-v4/Option"
-import * as Cause from "effect-v4/Cause"
-import type * as Effect from "effect-v4/Effect"
-import type * as Stream from "effect-v4/Stream"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Option from "effect/Option"
+import * as Cause from "effect/Cause"
+import type * as Effect from "effect/Effect"
+import type * as Stream from "effect/Stream"
 import { autoLens, type AutoLens } from "./auto-lens.js"
 import { createFocusAtom } from "./focus.js"
 
@@ -148,7 +148,7 @@ function unwrapError<A, E>(result: AsyncResult.AsyncResult<A, E>): E | undefined
  * ```
  */
 export function fromEffect<A, E>(
-  effect: Effect.Effect<A, E, any> | ((get: Atom.Context) => Effect.Effect<A, E, any>),
+  effect: Effect.Effect<A, E, any> | ((get: Atom.FnContext) => Effect.Effect<A, E, any>),
   registry: AtomRegistry.AtomRegistry,
   options?: { readonly initialValue?: A },
 ): StxAsync<A, E> {
@@ -172,7 +172,7 @@ export function fromEffect<A, E>(
  * ```
  */
 export function fromStream<A, E>(
-  stream: Stream.Stream<A, E, any> | ((get: Atom.Context) => Stream.Stream<A, E, any>),
+  stream: Stream.Stream<A, E, any> | ((get: Atom.FnContext) => Stream.Stream<A, E, any>),
   registry: AtomRegistry.AtomRegistry,
   options?: { readonly initialValue?: A },
 ): StxAsync<A, E> {
@@ -196,7 +196,7 @@ export function fromStream<A, E>(
  * ```
  */
 export function fromPull<A, E>(
-  stream: Stream.Stream<A, E, any> | ((get: Atom.Context) => Stream.Stream<A, E, any>),
+  stream: Stream.Stream<A, E, any> | ((get: Atom.FnContext) => Stream.Stream<A, E, any>),
   registry: AtomRegistry.AtomRegistry,
   options?: { readonly disableAccumulation?: boolean },
 ): StxPull<A, E> {
@@ -206,22 +206,22 @@ export function fromPull<A, E>(
   // PullResult<A, E> = AsyncResult<{ done: boolean; items: [A, ...A[]] }, E>
   type PullPayload = { readonly done: boolean; readonly items: ReadonlyArray<A> }
 
-  const pullValue = (get: Atom.Context): PullPayload | undefined =>
+  const pullValue = (get: Atom.FnContext): PullPayload | undefined =>
     Option.getOrUndefined(AsyncResult.value(get(atom) as AsyncResult.AsyncResult<PullPayload, E>))
 
-  const items = Atom.make((get: Atom.Context): ReadonlyArray<A> =>
+  const items = Atom.make((get: Atom.FnContext): ReadonlyArray<A> =>
     pullValue(get)?.items ?? []
   )
 
-  const done = Atom.make((get: Atom.Context): boolean =>
+  const done = Atom.make((get: Atom.FnContext): boolean =>
     pullValue(get)?.done ?? false
   )
 
-  const loading = Atom.make((get: Atom.Context): boolean =>
+  const loading = Atom.make((get: Atom.FnContext): boolean =>
     unwrapWaiting(get(atom) as AsyncResult.AsyncResult<PullPayload, E>)
   )
 
-  const error = Atom.make((get: Atom.Context): E | undefined =>
+  const error = Atom.make((get: Atom.FnContext): E | undefined =>
     unwrapError(get(atom) as AsyncResult.AsyncResult<PullPayload, E>)
   )
 
@@ -252,9 +252,9 @@ function makeStxAsync<A, E>(
   const lens = autoLens<A>()
 
   // Derived atoms — canonical v4 AsyncResult accessors
-  const value = Atom.make((get: Atom.Context): A | undefined => unwrapValue(get(atom)))
-  const loading = Atom.make((get: Atom.Context): boolean => unwrapWaiting(get(atom)))
-  const error = Atom.make((get: Atom.Context): E | undefined => unwrapError(get(atom)))
+  const value = Atom.make((get: Atom.FnContext): A | undefined => unwrapValue(get(atom)))
+  const loading = Atom.make((get: Atom.FnContext): boolean => unwrapWaiting(get(atom)))
+  const error = Atom.make((get: Atom.FnContext): E | undefined => unwrapError(get(atom)))
 
   registry.mount(value)
   registry.mount(loading)

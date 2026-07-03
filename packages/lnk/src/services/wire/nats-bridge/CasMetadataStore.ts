@@ -7,9 +7,9 @@
  * raw NATS/KV. Val approves of exactly one throat to choke.
  */
 
-import * as Context from "effect-v4/Context"
-import type * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
+import * as Context from "effect/Context"
+import type * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
 
 import { StreamId } from "../../../contracts/StreamId.js"
 import { FetchError } from "../../../contracts/errors.js"
@@ -21,7 +21,7 @@ export class MetadataCasConflictError extends Schema.TaggedErrorClass<MetadataCa
   streamId: StreamId,
   expectedRevision: Schema.Number,
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect),
+  cause: Schema.optional(Schema.Defect()),
 }) {}
 
 export type MetadataStoreError = FetchError | MetadataCasConflictError

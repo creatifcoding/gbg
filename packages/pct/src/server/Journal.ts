@@ -8,11 +8,11 @@
  * assembly code.
  */
 
-import * as Layer from "effect-v4/Layer"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
-import * as SqlEventJournal from "effect-v4/unstable/eventlog/SqlEventJournal"
-import * as SqlClient from "effect-v4/unstable/sql/SqlClient"
-import * as SqlError from "effect-v4/unstable/sql/SqlError"
+import * as Layer from "effect/Layer"
+import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as SqlEventJournal from "effect/unstable/eventlog/SqlEventJournal"
+import * as SqlClient from "effect/unstable/sql/SqlClient"
+import * as SqlError from "effect/unstable/sql/SqlError"
 
 import type { PactConfigValue } from "../config/PactConfig.js"
 

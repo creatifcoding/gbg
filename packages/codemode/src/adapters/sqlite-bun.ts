@@ -6,17 +6,17 @@
  *
  * Used by: bun test runner (which can't access node:sqlite)
  */
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
-import * as Scope from "effect-v4/Scope"
-import * as Semaphore from "effect-v4/Semaphore"
-import * as Stream from "effect-v4/Stream"
-import * as Fiber from "effect-v4/Fiber"
-import { SqlClient, make as makeSqlClient } from "effect-v4/unstable/sql/SqlClient"
-import { SqlError } from "effect-v4/unstable/sql/SqlError"
-import * as Statement from "effect-v4/unstable/sql/Statement"
-import { Reactivity } from "effect-v4/unstable/reactivity/Reactivity"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+import * as Scope from "effect/Scope"
+import * as Semaphore from "effect/Semaphore"
+import * as Stream from "effect/Stream"
+import * as Fiber from "effect/Fiber"
+import { SqlClient, make as makeSqlClient } from "effect/unstable/sql/SqlClient"
+import { SqlError, classifySqliteError } from "effect/unstable/sql/SqlError"
+import * as Statement from "effect/unstable/sql/Statement"
+import { Reactivity } from "effect/unstable/reactivity/Reactivity"
 import { Database } from "bun:sqlite"
 
 // ── Connection type ──────────────────────────────────────────────
@@ -83,7 +83,8 @@ export const layer = (config: SqliteBunConfig): Layer.Layer<SqlClient> => {
             return []
           }
         },
-        catch: (cause: unknown) => new SqlError({ cause, message: "Failed to execute statement" }),
+        catch: (cause: unknown) =>
+          new SqlError({ reason: classifySqliteError(cause, { message: "Failed to execute statement" }) }),
       })
 
     const connection: Connection = {

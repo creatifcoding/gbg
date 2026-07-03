@@ -12,14 +12,14 @@
  * @module @tmnl/msh/auth/service
  */
 
-import * as Config from 'effect-v4/Config';
-import * as ConfigProvider from 'effect-v4/ConfigProvider';
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Option from 'effect-v4/Option';
-import * as Ref from 'effect-v4/Ref';
-import * as Redacted from 'effect-v4/Redacted';
+import * as Config from 'effect/Config';
+import * as ConfigProvider from 'effect/ConfigProvider';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Option from 'effect/Option';
+import * as Ref from 'effect/Ref';
+import * as Redacted from 'effect/Redacted';
 import {
   jwtAuthenticator,
   nkeyAuthenticator,

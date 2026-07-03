@@ -16,7 +16,7 @@
  *
  * `TypedLnk<A>` HAS-A `Lnk`. It does not extend it. Reasons:
  *
- *   - The raw `Lnk` is an `Effect.YieldableClass` with carefully
+ *   - The raw `Lnk` is `Effect`-shaped (see `Lnk.ts`) with carefully
  *     designed evict-on-scope-close semantics. Subclassing risks
  *     breaking those guarantees.
  *   - Schema-driven encoding is an orthogonal concern from the
@@ -39,10 +39,10 @@
  * @module @tmnl/lnk/services/lnks/TypedLnk
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
-import * as Schema from "effect-v4/Schema"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 
 import * as ContentType from "../../contracts/ContentType.js"
 import type { Offset } from "../../contracts/Offset.js"

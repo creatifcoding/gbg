@@ -11,11 +11,11 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as ConfigProvider from "effect-v4/ConfigProvider"
-import * as Effect from "effect-v4/Effect"
-import * as FileSystem from "effect-v4/FileSystem"
-import * as Layer from "effect-v4/Layer"
-import * as Path from "effect-v4/Path"
+import * as ConfigProvider from "effect/ConfigProvider"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Layer from "effect/Layer"
+import * as Path from "effect/Path"
 
 import * as Config from "../src/config/PactConfig.js"
 import * as Sources from "../src/config/Sources.js"
@@ -58,7 +58,7 @@ const PlatformLayer = (files: ReadonlyMap<string, string>, dirs?: ReadonlySet<st
 describe("Config — Sources stacking", () => {
   it("defaults: when no source supplies anything, returns built-in defaults", async () => {
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layerFromProvider(ConfigProvider.fromUnknown({})),
         ),
@@ -101,7 +101,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({ cwd: "/workspace/nested/deeper", env: new Map() }),
         ),
@@ -129,7 +129,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({ cwd: "/workspace/nested/deeper", env: new Map() }),
         ),
@@ -156,7 +156,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/work/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/work/nested",
@@ -184,7 +184,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/work/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/work/nested",
@@ -217,7 +217,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -242,7 +242,7 @@ describe("Config — Sources stacking", () => {
 
   it("eventlog remote federation config reads env peer arrays", async () => {
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -278,7 +278,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -319,7 +319,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -350,7 +350,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set<string>()
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/work",
@@ -385,7 +385,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -421,7 +421,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -459,7 +459,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -506,7 +506,7 @@ describe("Config — Sources stacking", () => {
     const dirs = new Set(["/workspace/.git"])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -534,7 +534,7 @@ describe("Config — Sources stacking", () => {
 
   it("lnk backend config still accepts nats-bridge as legacy alias", async () => {
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/workspace/nested",
@@ -551,7 +551,7 @@ describe("Config — Sources stacking", () => {
   it("missing file is not fatal: falls through to defaults", async () => {
     // No project, user, or system config files exist
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({ cwd: "/work", env: new Map() }),
         ),
@@ -566,7 +566,7 @@ describe("Config — Sources stacking", () => {
     const files = new Map([["/tmp/broken.json", "{ this is not json"]])
 
     const result = await Effect.runPromise(
-      Config.PactConfig.asEffect().pipe(
+      Effect.service(Config.PactConfig).pipe(
         Effect.provide(
           Config.layer({
             cwd: "/work",

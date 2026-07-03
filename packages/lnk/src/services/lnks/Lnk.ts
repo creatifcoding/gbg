@@ -16,8 +16,9 @@
  *
  * `Lnk` solves these:
  *
- *   - It's a yieldable handle (`Effect.YieldableClass`) — `yield* lnk` in
- *     an `Effect.gen` block returns the latest message (or `None`).
+ *   - It's a yieldable handle (`Effect`-shaped via `Effectable.Prototype`) —
+ *     `yield* lnk` in an `Effect.gen` block returns the latest message
+ *     (or `None`).
  *   - It owns a driver fiber that continuously polls the wire (long-poll
  *     mode) and pushes messages into a `PubSub`.
  *   - It exposes `subscribe()` for live `Stream<Message>` access (PubSub-
@@ -45,12 +46,13 @@
  * @module @tmnl/lnk/services/lnks/Lnk
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
-import * as PubSub from "effect-v4/PubSub"
-import * as Ref from "effect-v4/Ref"
-import * as Scope from "effect-v4/Scope"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Effectable from "effect/Effectable"
+import * as Option from "effect/Option"
+import * as PubSub from "effect/PubSub"
+import * as Ref from "effect/Ref"
+import * as Scope from "effect/Scope"
+import * as Stream from "effect/Stream"
 
 import { framingMode } from "../../contracts/ContentType.js"
 import type { ContentType } from "../../contracts/ContentType.js"
@@ -120,12 +122,19 @@ export interface LnkAppendOptions {
  * Use `Lnk.make(streamId, contentType)` (in a `Scope` context) to construct.
  * `yield* lnk` in an `Effect.gen` block returns the latest received message
  * as `Option<Message>` (None until the driver receives its first batch).
+ *
+ * # Yieldable wiring (beta.93)
+ *
+ * `Effect.Yieldable`/`Effect.YieldableClass` were removed upstream
+ * (effect-smol#2163) — there is no longer a base class whose `evaluate`
+ * hook can be overridden by subclassing. The replacement pattern (mirrors
+ * `Context.ServiceProto` in `effect/Context`) is: declare `Lnk` as a plain
+ * class, merge a fully-wired `Effectable.Prototype` object onto
+ * `Lnk.prototype` (below), and use a same-named `interface Lnk extends
+ * Effect.Effect<...>` declaration merge so TypeScript sees instances as
+ * `Effect`-shaped without repeating `[TypeId]`/`pipe`/`Symbol.iterator`.
  */
-export class Lnk extends Effect.YieldableClass<
-  Option.Option<Message>,
-  never,
-  never
-> {
+export class Lnk {
   /** Stream identifier (immutable). */
   readonly streamId: StreamId
 
@@ -147,7 +156,6 @@ export class Lnk extends Effect.YieldableClass<
     latestRef: Ref.Ref<Option.Option<Message>>,
     pubsub: PubSub.PubSub<Message>,
   ) {
-    super()
     this.streamId = streamId
     this.contentType = contentType
     this._wire = wire
@@ -345,6 +353,26 @@ export class Lnk extends Effect.YieldableClass<
       return new Lnk(streamId, contentType, wire, latestRef, pubsub)
     })
 }
+
+// Declaration merge: lets TypeScript see `Lnk` instances as `Effect`-shaped
+// (`[TypeId]`, `pipe`, `Symbol.iterator`) without redeclaring those members
+// on the class itself — the runtime implementation is wired in below via
+// `Effectable.Prototype`.
+export interface Lnk extends Effect.Effect<Option.Option<Message>, never, never> {}
+
+// Merge a fully-formed Effect prototype (TypeId + pipe + Symbol.iterator +
+// evaluate) onto `Lnk.prototype`. `evaluate` delegates to `asEffect()`,
+// matching the beta.59 `Effectable.Class` default (`evaluate(_) { return
+// this.asEffect() }`) that beta.93 dropped in favor of composition.
+Object.assign(
+  Lnk.prototype,
+  Effectable.Prototype<Lnk>({
+    label: "Lnk",
+    evaluate(_fiber) {
+      return this.asEffect()
+    },
+  }),
+)
 
 // ─── Driver-loop helpers (internal) ─────────────────────────────────────────
 

@@ -14,7 +14,7 @@
  * @module @tmnl/lnk/contracts/errors
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 // ─── Validation errors (Phase 0 contracts) ──────────────────────────────────
 
@@ -194,9 +194,10 @@ export class FetchError extends Schema.TaggedErrorClass<FetchError>(
 )("FetchError", {
   status: Schema.optional(Schema.Number),
   message: Schema.String,
-  // Untyped cause is allowed via Schema.Defect (matches the pattern in
-  // effect-v4 unstable/sql/SqlError).
-  cause: Schema.optional(Schema.Defect),
+  // Untyped cause is allowed via Schema.Defect() (matches the pattern in
+  // effect unstable/sql/SqlError). beta.93: Defect is now a caching factory
+  // function, not a plain schema value — must be invoked.
+  cause: Schema.optional(Schema.Defect()),
 }) {}
 
 /**

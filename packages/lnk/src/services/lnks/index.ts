@@ -2,8 +2,8 @@
  * @tmnl/lnk/services/lnks — Lnk handle layer (Phase 2).
  *
  * Public surface:
- *   - `Lnk`     — yieldable handle to a single stream (extends
- *                 `Effect.YieldableClass<Option<Message>, never, never>`)
+ *   - `Lnk`     — yieldable handle to a single stream (`Effect`-shaped via
+ *                 `Effectable.Prototype`, `Effect<Option<Message>, never, never>`)
  *   - `Message` — per-message envelope (offset + payload bytes)
  *
  * The handle layer lives ABOVE the wire layer:

@@ -7,7 +7,7 @@
  * This spike proves a dramatically better approach using Effect v4:
  *
  * 1. **TxRef transactional state** — Stack, registers, trail are TxRef<VMState>.
- *    Each eval step is an Effect.transaction(). Multi-cell ops are atomic.
+ *    Each eval step is an Effect.tx(). Multi-cell ops are atomic.
  * 2. **Schema-validated opcodes** — Opcodes are Schema.TaggedStruct unions
  *    with runtime validation. Malformed instructions rejected at decode time.
  * 3. **Match-based dispatch** — Exhaustive pattern matching on opcode _tag.
@@ -30,32 +30,32 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
-import * as TxRef from "effect-v4/TxRef"
-import * as Match from "effect-v4/Match"
-import * as JsonPatch from "effect-v4/JsonPatch"
-import * as PubSub from "effect-v4/PubSub"
-import * as Stream from "effect-v4/Stream"
-import * as Fiber from "effect-v4/Fiber"
-import * as Optic from "effect-v4/Optic"
-import * as Result from "effect-v4/Result"
-import * as Graph from "effect-v4/Graph"
-import * as Cache from "effect-v4/Cache"
-import * as Duration from "effect-v4/Duration"
-import * as ServiceMap from "effect-v4/ServiceMap"
-import * as Layer from "effect-v4/Layer"
-import * as Metric from "effect-v4/Metric"
-import * as Scope from "effect-v4/Scope"
-import * as Exit from "effect-v4/Exit"
-import * as Cause from "effect-v4/Cause"
-import * as Semaphore from "effect-v4/Semaphore"
-import * as Schedule from "effect-v4/Schedule"
-import * as Pool from "effect-v4/Pool"
-import * as TxQueue from "effect-v4/TxQueue"
-import * as TxHashMap from "effect-v4/TxHashMap"
-import * as Option from "effect-v4/Option"
-import { pipe } from "effect-v4/Function"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as TxRef from "effect/TxRef"
+import * as Match from "effect/Match"
+import * as JsonPatch from "effect/JsonPatch"
+import * as PubSub from "effect/PubSub"
+import * as Stream from "effect/Stream"
+import * as Fiber from "effect/Fiber"
+import * as Optic from "effect/Optic"
+import * as Result from "effect/Result"
+import * as Graph from "effect/Graph"
+import * as Cache from "effect/Cache"
+import * as Duration from "effect/Duration"
+import * as Context from "effect/Context"
+import * as Layer from "effect/Layer"
+import * as Metric from "effect/Metric"
+import * as Scope from "effect/Scope"
+import * as Exit from "effect/Exit"
+import * as Cause from "effect/Cause"
+import * as Semaphore from "effect/Semaphore"
+import * as Schedule from "effect/Schedule"
+import * as Pool from "effect/Pool"
+import * as TxQueue from "effect/TxQueue"
+import * as TxHashMap from "effect/TxHashMap"
+import * as Option from "effect/Option"
+import { pipe } from "effect/Function"
 
 // ═══════════════════════════════════════════════════════
 // SCHEMA-VALIDATED TYPES
@@ -374,7 +374,7 @@ const dualEval = (
 // ─── Convenience: create VM + run + return result ───
 
 const evalProgram = (ir: StackIR): Effect.Effect<VMState> =>
-  Effect.transaction(
+  Effect.tx(
     Effect.gen(function*() {
       const ref = yield* TxRef.make(emptyState())
       return yield* runIR(ref, ir)
@@ -382,7 +382,7 @@ const evalProgram = (ir: StackIR): Effect.Effect<VMState> =>
   )
 
 const evalDual = (input: EvalInput): Effect.Effect<VMState> =>
-  Effect.transaction(
+  Effect.tx(
     Effect.gen(function*() {
       const ref = yield* TxRef.make(emptyState())
       return yield* dualEval(ref, input)
@@ -581,7 +581,7 @@ describe("F1b: Effect-Native Stack VM", () => {
     it("Effect program can compose with prior stack state", () => {
       // Push 100 via IR, then add 50 via Effect program
       // Entire sequence runs in one transaction so TxRef.make has context
-      const result = Effect.runSync(Effect.transaction(Effect.gen(function*() {
+      const result = Effect.runSync(Effect.tx(Effect.gen(function*() {
         const ref = yield* TxRef.make(emptyState())
 
         // Phase 1: IR pushes 100
@@ -642,7 +642,7 @@ describe("F1b: Effect-Native Stack VM", () => {
   describe("H6: Concurrent VMs with shared TxRef", () => {
     it("two sequential phases on same ref compose", () => {
       // Both phases run in a single transaction to share the TxRef
-      const result = Effect.runSync(Effect.transaction(Effect.gen(function*() {
+      const result = Effect.runSync(Effect.tx(Effect.gen(function*() {
         const ref = yield* TxRef.make(emptyState())
 
         // Phase 1: push 10
@@ -661,7 +661,7 @@ describe("F1b: Effect-Native Stack VM", () => {
     })
 
     it("isolated refs don't interfere", () => {
-      const result = Effect.runSync(Effect.transaction(Effect.gen(function*() {
+      const result = Effect.runSync(Effect.tx(Effect.gen(function*() {
         const ref1 = yield* TxRef.make(emptyState())
         const ref2 = yield* TxRef.make(emptyState())
 
@@ -893,7 +893,7 @@ describe("F1b: Effect-Native Stack VM", () => {
         yield* Effect.yieldNow
 
         // Run VM and publish trail entries
-        const vmResult = yield* Effect.transaction(Effect.gen(function*() {
+        const vmResult = yield* Effect.tx(Effect.gen(function*() {
           const ref = yield* TxRef.make(emptyState())
           const ir: StackIR = [
             { _tag: "PUSH_NUM", value: 5 },
@@ -1088,7 +1088,7 @@ describe("F1b: Effect-Native Stack VM", () => {
     })
 
     it("optic composes with TxRef for transactional lens updates", () => {
-      const result = Effect.runSync(Effect.transaction(Effect.gen(function*() {
+      const result = Effect.runSync(Effect.tx(Effect.gen(function*() {
         const ref = yield* TxRef.make<VMState>({
           ...emptyState(),
           stack: [num(1), num(2), num(3)],
@@ -1287,15 +1287,15 @@ describe("F1b: Effect-Native Stack VM", () => {
     })
   })
 
-  // ─── H14: ServiceMap.Service for VM engine ────────
+  // ─── H14: Context.Service for VM engine ────────
   //
-  // StackVM as a proper Effect service via ServiceMap.Service.
+  // StackVM as a proper Effect service via Context.Service.
   // Layer provides the implementation; yield* to consume.
   // This is the capstone: proves the VM can be DI'd.
 
-  describe("H14: ServiceMap.Service for StackVM", () => {
+  describe("H14: Context.Service for StackVM", () => {
     // Define the StackVM service interface
-    class StackVM extends ServiceMap.Service<StackVM, {
+    class StackVM extends Context.Service<StackVM, {
       readonly eval: (ir: StackIR) => Effect.Effect<VMState>
       readonly evalExpr: (expr: string) => Effect.Effect<VMState>
     }>()("tmnl/datagrid/StackVM") {}
@@ -1334,7 +1334,7 @@ describe("F1b: Effect-Native Stack VM", () => {
 
     it("Layer.mergeAll composes multiple services", async () => {
       // Demonstrate composability with a second service
-      class Logger extends ServiceMap.Service<Logger, {
+      class Logger extends Context.Service<Logger, {
         readonly log: (msg: string) => Effect.Effect<void>
       }>()("tmnl/datagrid/Logger") {}
 
@@ -1737,7 +1737,7 @@ describe("F1b: Effect-Native Stack VM", () => {
 
   describe("H20: TxQueue for append-only trail", () => {
     it("offer entries inside transaction, takeAll to drain", async () => {
-      const result = await Effect.runPromise(Effect.transaction(
+      const result = await Effect.runPromise(Effect.tx(
         Effect.gen(function*() {
           const trail = yield* TxQueue.unbounded<{ step: number; op: string }>()
 
@@ -1758,7 +1758,7 @@ describe("F1b: Effect-Native Stack VM", () => {
     })
 
     it("TxQueue + TxRef in same transaction — atomic state+trail", async () => {
-      const result = await Effect.runPromise(Effect.transaction(
+      const result = await Effect.runPromise(Effect.tx(
         Effect.gen(function*() {
           const stack = yield* TxRef.make<number[]>([])
           const trail = yield* TxQueue.unbounded<string>()
@@ -1795,7 +1795,7 @@ describe("F1b: Effect-Native Stack VM", () => {
   // Realistic formula recalculation combining:
   // - Graph (H12) for dependency topo order
   // - Semaphore (H18) for concurrent eval throttling
-  // - ServiceMap.Service (H14) for the VM service
+  // - Context.Service (H14) for the VM service
   // - Cache (H13) for memoization
   // - Metric (H15) for observability
   // Proves the full pipeline works end-to-end.
@@ -1921,7 +1921,7 @@ describe("F1b: Effect-Native Stack VM", () => {
 
   describe("H23: TxHashMap for multi-cell transactional state", () => {
     it("multi-cell read/write in single transaction", async () => {
-      const result = await Effect.runPromise(Effect.transaction(
+      const result = await Effect.runPromise(Effect.tx(
         Effect.gen(function*() {
           const cells = yield* TxHashMap.make<string, number>(
             ["A1", 10],
@@ -1952,7 +1952,7 @@ describe("F1b: Effect-Native Stack VM", () => {
 
     it("TxHashMap + TxRef + TxQueue in same transaction", async () => {
       // The holy trinity: cells + vm state + audit trail — all atomic
-      const result = await Effect.runPromise(Effect.transaction(
+      const result = await Effect.runPromise(Effect.tx(
         Effect.gen(function*() {
           const cells = yield* TxHashMap.make<string, number>(["A1", 5])
           const vmStack = yield* TxRef.make<number[]>([])
@@ -2001,7 +2001,7 @@ describe("F1b: Effect-Native Stack VM", () => {
 
   describe("H24: Full VM service with all modules", () => {
     // Define service with full pipeline
-    class FormulaEngine extends ServiceMap.Service<FormulaEngine, {
+    class FormulaEngine extends Context.Service<FormulaEngine, {
       readonly eval: (expr: string) => Effect.Effect<VMState>
     }>()("tmnl/datagrid/FormulaEngine") {}
 

@@ -6,9 +6,9 @@
  * substrate mechanics out of the CAS planner.
  */
 
-import * as Context from "effect-v4/Context"
-import type * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
+import * as Context from "effect/Context"
+import type * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
 
 import { StreamId } from "../../../contracts/StreamId.js"
 import { FetchError } from "../../../contracts/errors.js"
@@ -20,7 +20,7 @@ export class PublishExpectationConflictError extends Schema.TaggedErrorClass<Pub
   streamId: StreamId,
   expectedLastSubjectSequence: Schema.Number,
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect),
+  cause: Schema.optional(Schema.Defect()),
 }) {}
 
 export interface PublishBatchInput {

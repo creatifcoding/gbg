@@ -6,7 +6,7 @@
  * All operations are Effect programs — no try/catch, no throw, no `as any`.
  *
  * Architecture: TxRef<S> as transactional truth, Atom<S> as reactive
- * projection. On Effect.transaction() commit → Atom.batch() syncs all
+ * projection. On Effect.tx() commit → Atom.batch() syncs all
  * changed values to the Atom layer in a single notification pass.
  *
  * Error handling: consumers use Effect.catchTag / Effect.catchTags directly.
@@ -16,11 +16,11 @@
  * @internal
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
-import * as Result from "effect-v4/Result"
-import * as TxRef from "effect-v4/TxRef"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as Result from "effect/Result"
+import * as TxRef from "effect/TxRef"
 import type { EntityMeta } from "../types.js"
 
 // ─── Field Kind (Schema.Literals) ───────────────────
@@ -216,9 +216,9 @@ export interface TxStoreDescriptor<S> {
  */
 export const storeTransaction = <S, A, E>(
   store: TxStoreDescriptor<S>,
-  body: (ref: TxRef.TxRef<S>) => Effect.Effect<A, E, Effect.Transaction>,
+  body: (ref: TxRef.TxRef<S>) => Effect.Effect<A, E>,
 ): Effect.Effect<A, E | StxTxValidationError> =>
-  Effect.transaction(
+  Effect.tx(
     Effect.gen(function*() {
       const result = yield* body(store.txRef)
       const committed = yield* TxRef.get(store.txRef)
@@ -260,13 +260,13 @@ export const multiStoreTransaction = <A, E>(
   stores: ReadonlyArray<TxStoreDescriptor<unknown>>,
   body: (
     refs: ReadonlyMap<string, TxRef.TxRef<unknown>>,
-  ) => Effect.Effect<A, E, Effect.Transaction>,
+  ) => Effect.Effect<A, E>,
 ): Effect.Effect<A, E | StxTxValidationError> => {
   const refMap: ReadonlyMap<string, TxRef.TxRef<unknown>> = new Map(
     stores.map((s) => [s.id, s.txRef]),
   )
 
-  return Effect.transaction(
+  return Effect.tx(
     Effect.gen(function*() {
       const result = yield* body(refMap)
       for (const store of stores) {
@@ -301,7 +301,7 @@ export const txSetAt = <S, A>(
   entityMeta: EntityMeta | undefined,
   lens: { replace: (value: A, state: S) => S },
   value: A,
-): Effect.Effect<void, StxTxConstraintError, Effect.Transaction> =>
+): Effect.Effect<void, StxTxConstraintError> =>
   Effect.gen(function*() {
     yield* checkConstraint(lens, entityMeta)
     const current = yield* TxRef.get(ref)
@@ -316,7 +316,7 @@ export const txModify = <S, A>(
   entityMeta: EntityMeta | undefined,
   lens: { modify: (fn: (a: A) => A) => (state: S) => S },
   fn: (a: A) => A,
-): Effect.Effect<void, StxTxConstraintError, Effect.Transaction> =>
+): Effect.Effect<void, StxTxConstraintError> =>
   Effect.gen(function*() {
     yield* checkConstraint(lens, entityMeta)
     const current = yield* TxRef.get(ref)
@@ -330,7 +330,7 @@ export const txSet = <S>(
   ref: TxRef.TxRef<S>,
   entityMeta: EntityMeta | undefined,
   value: S,
-): Effect.Effect<void, StxTxValidationError, Effect.Transaction> =>
+): Effect.Effect<void, StxTxValidationError> =>
   Effect.gen(function*() {
     yield* validateEntity(value, entityMeta)
     yield* TxRef.set(ref, value)
@@ -341,7 +341,7 @@ export const txSet = <S>(
  */
 export const txGet = <S>(
   ref: TxRef.TxRef<S>,
-): Effect.Effect<S, never, Effect.Transaction> =>
+): Effect.Effect<S, never> =>
   TxRef.get(ref)
 
 /**
@@ -350,7 +350,7 @@ export const txGet = <S>(
 export const txGetAt = <S, A>(
   ref: TxRef.TxRef<S>,
   lens: { get: (s: S) => A },
-): Effect.Effect<A, never, Effect.Transaction> =>
+): Effect.Effect<A, never> =>
   Effect.map(TxRef.get(ref), (s) => lens.get(s))
 
 // ─── Conflict Detection ─────────────────────────────
@@ -377,7 +377,7 @@ export const snapshotVersions = (
  * Check if any TxRef versions diverged beyond what our own
  * transaction would cause.
  *
- * After a successful `Effect.transaction()` commit, each written
+ * After a successful `Effect.tx()` commit, each written
  * TxRef's version increments by 1. So the expected post-commit
  * version is `snapshot + 1`. If the version jumped by more than 1,
  * an external write occurred concurrently.
@@ -448,7 +448,7 @@ export const conflictAwareTransaction = <A, E>(
   stores: ReadonlyArray<TxStoreDescriptor<unknown>>,
   body: (
     refs: ReadonlyMap<string, TxRef.TxRef<unknown>>,
-  ) => Effect.Effect<A, E, Effect.Transaction>,
+  ) => Effect.Effect<A, E>,
   policy?: ConflictPolicy,
 ): Effect.Effect<A, E | StxTxValidationError | StxTxConflictError> => {
   const maxRetries = policy?.maxRetries ?? 3
@@ -497,7 +497,7 @@ export const conflictAwareTransaction = <A, E>(
  */
 export const conflictAwareStoreTransaction = <S, A, E>(
   store: TxStoreDescriptor<S>,
-  body: (ref: TxRef.TxRef<S>) => Effect.Effect<A, E, Effect.Transaction>,
+  body: (ref: TxRef.TxRef<S>) => Effect.Effect<A, E>,
   policy?: ConflictPolicy,
 ): Effect.Effect<A, E | StxTxValidationError | StxTxConflictError> =>
   conflictAwareTransaction(

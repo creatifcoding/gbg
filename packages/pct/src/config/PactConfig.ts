@@ -29,14 +29,14 @@
  * @module @tmnl/pct/config/PactConfig
  */
 
-import * as Config from "effect-v4/Config"
-import * as ConfigProvider from "effect-v4/ConfigProvider"
-import * as Context from "effect-v4/Context"
-import * as Effect from "effect-v4/Effect"
-import * as FileSystem from "effect-v4/FileSystem"
-import * as Layer from "effect-v4/Layer"
-import * as Path from "effect-v4/Path"
-import * as Schema from "effect-v4/Schema"
+import * as Config from "effect/Config"
+import * as ConfigProvider from "effect/ConfigProvider"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Layer from "effect/Layer"
+import * as Path from "effect/Path"
+import * as Schema from "effect/Schema"
 
 import * as Sources from "./Sources.js"
 

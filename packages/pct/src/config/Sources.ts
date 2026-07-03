@@ -37,12 +37,12 @@
  * @module @tmnl/pct/config/Sources
  */
 
-import * as ConfigProvider from "effect-v4/ConfigProvider"
-import * as Effect from "effect-v4/Effect"
-import * as FileSystem from "effect-v4/FileSystem"
-import * as Option from "effect-v4/Option"
-import * as Path from "effect-v4/Path"
-import * as Str from "effect-v4/String"
+import * as ConfigProvider from "effect/ConfigProvider"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Option from "effect/Option"
+import * as Path from "effect/Path"
+import * as Str from "effect/String"
 
 // ─── Path transformation ───────────────────────────────────────────────────
 
@@ -51,10 +51,9 @@ import * as Str from "effect-v4/String"
  *   1. prepend "PCT"
  *   2. uppercase each string segment, replacing non-alphanumeric with `_`
  *
- * Done inline (rather than via ConfigProvider.constantCase + nested)
- * because `ConfigProvider.orElse` uses `self.get` (raw) and bypasses
- * `mapInput`/`prefix`. Baking the transformation into a custom
- * provider's `get` function is the only way to survive `orElse`.
+ * Done inline (rather than via `ConfigProvider.constantCase` + `nested`)
+ * to keep the PCT-prefix + CONSTANT_CASE transform colocated with the
+ * custom `make` lookup in `stack` below.
  */
 const envPathFor = (path: ConfigProvider.Path): ConfigProvider.Path => [
   "PCT",
@@ -334,12 +333,14 @@ export const stack = (
     // with `orElse(next)` calls — env at the head means env wins.
     //
     // The env provider's path transformation (PCT prefix + CONSTANT_CASE)
-    // is baked into a custom `make` because ConfigProvider.orElse uses
-    // self.get (raw) and bypasses pipe-applied mapInput/prefix.
+    // is baked into a custom `make` calling `.load` (the only public raw
+    // lookup left on `ConfigProvider` since beta.93 folded `get`/`mapInput`/
+    // `prefix` into an internal `state` — `orElse` now composes via `.load`
+    // on both sides, so this bypass is just for the custom path transform).
     const rawEnv = ConfigProvider.fromEnv({ env: Object.fromEntries(env) })
     const envProvider = envArrayOverlay(env).pipe(
       ConfigProvider.orElse(
-        ConfigProvider.make((path) => rawEnv.get(envPathFor(path))),
+        ConfigProvider.make((path) => rawEnv.load(envPathFor(path))),
       ),
     )
 
