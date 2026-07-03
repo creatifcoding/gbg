@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
 
 import {
   FrameProjectionSpec,
@@ -66,6 +66,17 @@ const makeSpec = (streamId?: string) => FrameProjectionSpec.make({
   },
 })
 
+// Anchored to "now" (bucket-aligned) rather than a hardcoded historical
+// timestamp: the runtime's timeout sweep compares frame deadlines against
+// the real `Date.now()`, so a fixed past date eventually falls outside
+// `allowedLatenessMs` (24h) as real time marches on, tripping an
+// unintended early partial-emission in the idempotency test below.
+const BUCKET_MS = 5_000
+const BUCKET_START_MS = Math.floor((Date.now() - 60_000) / BUCKET_MS) * BUCKET_MS
+const OBSERVED_AT = new Date(BUCKET_START_MS + 4_250).toISOString()
+const RECEIVED_AT_MS = BUCKET_START_MS + 4_300
+const EXPECTED_FRAME_TIME = new Date(BUCKET_START_MS).toISOString()
+
 const message = (
   spec: ReturnType<typeof makeSpec>,
   partKey: "heartRate" | "spo2" | "temperature",
@@ -76,10 +87,10 @@ const message = (
   offset,
   schemaId: partKey === "heartRate" ? "vitals.heart_rate@1.0.0" : partKey === "spo2" ? "vitals.spo2@1.0.0" : "vitals.temperature@1.0.0",
   partKey,
-  observedAt: "2026-05-24T12:00:04.250Z",
+  observedAt: OBSERVED_AT,
   entityKey: { patientId: "patient-7" },
   payload: { value: partKey },
-  receivedAt: Date.parse("2026-05-24T12:00:04.300Z"),
+  receivedAt: RECEIVED_AT_MS,
 })
 
 const makeConfig = (spec: ReturnType<typeof makeSpec>, maxMessagesPerTick = 10) => ProjectionWorkerConfig.make({
@@ -125,7 +136,7 @@ describe("Projection runtime vertical slice", () => {
     expect(frames.written[0]).toMatchObject({
       projectionId: spec.id,
       outputSchemaId: "frames.vitals.snapshot@1.0.0",
-      frameTime: "2026-05-24T12:00:00.000Z",
+      frameTime: EXPECTED_FRAME_TIME,
       complete: true,
       missingParts: [],
     })

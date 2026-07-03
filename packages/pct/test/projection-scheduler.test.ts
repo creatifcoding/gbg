@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest"
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
 
 import {
   FrameProjectionSpec,
   ProjectionAdmissionController,
+  ProjectionLease,
+  ProjectionLeaseStore,
   ProjectionRegistry,
   ProjectionWorkerAlreadyRunning,
   ProjectionWorkerConfig,
@@ -19,7 +21,9 @@ import {
   projectionAdmissionControllerLayerMemory,
   projectionRegistryLayerMemory,
   projectionSchedulerTuningLayer,
+  projectionSchedulingMemoryLayer,
   projectionWorkerSchedulerLayer,
+  projectionWorkerSchedulerLayerWithDurableLeases,
 } from "../src/frames/index.js"
 
 const vitalsSpec = FrameProjectionSpec.make({
@@ -201,6 +205,101 @@ describe("ProjectionWorkerScheduler", () => {
       expect(result.failure).toBeInstanceOf(ProjectionWorkerAlreadyRunning)
       expect(result.failure.workerId).toBe("worker-a")
     }
+  })
+
+  it("acquires and releases durable leases around admitted runOnce work", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const acquiredRef = yield* Ref.make<ReadonlyArray<string>>([])
+        const releasedRef = yield* Ref.make<ReadonlyArray<string>>([])
+        const leaseLayer = Layer.succeed(
+          ProjectionLeaseStore,
+          ProjectionLeaseStore.of({
+            acquire: (input) =>
+              Effect.gen(function* () {
+                yield* Ref.update(acquiredRef, (items) => [...items, `${input.workerId}:${input.lane}:${input.targetKey}`])
+                return ProjectionLease.make({
+                  leaseId: `${input.projectionId}:${input.lane}:${input.targetKey}`,
+                  projectionId: input.projectionId,
+                  workerId: input.workerId,
+                  lane: input.lane,
+                  targetKey: input.targetKey,
+                  fenceToken: `${input.workerId}:fence`,
+                  leasedAt: 100,
+                  expiresAt: 1_100,
+                })
+              }),
+            renew: (input) =>
+              Effect.succeed(ProjectionLease.make({
+                leaseId: input.leaseId,
+                projectionId: vitalsSpec.id,
+                workerId: input.workerId,
+                lane: "replay",
+                targetKey: vitalsSpec.id,
+                fenceToken: input.fenceToken,
+                leasedAt: 100,
+                expiresAt: 1_100,
+              })),
+            release: (input) => Ref.update(releasedRef, (items) => [...items, `${input.workerId}:${input.fenceToken}`]),
+          }),
+        )
+        const runnerLayer = Layer.succeed(
+          ProjectionWorkerRunner,
+          ProjectionWorkerRunner.of({
+            runOnce: (config) => {
+              const at = Date.now()
+              return Effect.succeed(ProjectionWorkerRunSummary.make({
+                workerId: config.workerId,
+                projectionId: config.spec.id,
+                status: "stopped",
+                ticks: [],
+                processedMessages: 1,
+                emittedFrames: 0,
+                duplicateParts: 0,
+                failedFrames: 0,
+                startedAt: at,
+                finishedAt: at,
+              }))
+            },
+            tail: (config) =>
+              Effect.succeed(ProjectionWorkerSnapshot.make({
+                workerId: config.workerId,
+                projectionId: config.spec.id,
+                status: "running",
+                mode: "tail",
+                startedAt: Date.now(),
+                stoppedAt: null,
+                lastTickAt: null,
+                processedMessages: 0,
+                emittedFrames: 0,
+                duplicateParts: 0,
+                failedFrames: 0,
+                lastError: null,
+              })),
+          }),
+        )
+
+        return yield* Effect.gen(function* () {
+          const registry = yield* ProjectionRegistry
+          yield* registry.register(vitalsSpec, { status: "active", now: 100 })
+          const scheduler = yield* ProjectionWorkerScheduler
+          const run = yield* scheduler.runOnce({ projectionId: vitalsSpec.id, workerId: "worker-a", maxMessages: 1 })
+          const acquired = yield* Ref.get(acquiredRef)
+          const released = yield* Ref.get(releasedRef)
+          return { run, acquired, released }
+        }).pipe(
+          Effect.provide(projectionWorkerSchedulerLayerWithDurableLeases),
+          Effect.provide(projectionSchedulingMemoryLayer),
+          Effect.provide(leaseLayer),
+          Effect.provide(runnerLayer),
+          Effect.provide(projectionRegistryLayerMemory),
+        )
+      }),
+    )
+
+    expect(result.run.summary.processedMessages).toBe(1)
+    expect(result.acquired).toEqual([`worker-a:replay:${vitalsSpec.id}`])
+    expect(result.released).toEqual(["worker-a:worker-a:fence"])
   })
 
   it("exposes duplicate in-flight admission pressure for overlapping projection workers", async () => {

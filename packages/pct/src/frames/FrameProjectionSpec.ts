@@ -8,7 +8,7 @@
  * @module @tmnl/pct/frames/FrameProjectionSpec
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 // ─── SQL / Timescale target vocabulary ─────────────────────────────────────
 
@@ -96,6 +96,14 @@ export const FrameTimescaleSpec = Schema.Struct({
   stateTable: Schema.optional(Schema.String),
   /** Shared idempotency/provenance ledger table. */
   ledgerTable: Schema.optional(Schema.String),
+  /** Durable worker lease/fence table. */
+  leaseTable: Schema.optional(Schema.String),
+  /** Source binding checkpoint/cursor table. */
+  checkpointTable: Schema.optional(Schema.String),
+  /** Output outbox table for LNK frame stream publishing. */
+  outboxTable: Schema.optional(Schema.String),
+  /** Frame emission/revision tracking table. */
+  emissionTable: Schema.optional(Schema.String),
   /** Compression policy for the materialized frame table, e.g. `7 days`. */
   compressAfter: Schema.optional(Schema.String),
   /** Retention policy for the materialized frame table, e.g. `180 days`. */
@@ -145,6 +153,10 @@ export const ProjectionPlan = Schema.Struct({
   sourceFactTable: Schema.String,
   stateTable: Schema.String,
   ledgerTable: Schema.String,
+  leaseTable: Schema.String,
+  checkpointTable: Schema.String,
+  outboxTable: Schema.String,
+  emissionTable: Schema.String,
   statements: Schema.Array(ProjectionDdlStatement),
 })
 export type ProjectionPlan = typeof ProjectionPlan.Type

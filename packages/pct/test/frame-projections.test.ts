@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
+import * as Effect from "effect/Effect"
 
 import {
   FrameProjectionCompileError,
@@ -87,6 +87,10 @@ describe("Frame projections — Timescale compiler", () => {
     expect(plan.sourceFactTable).toBe("metric_observations")
     expect(plan.stateTable).toBe("frame_projection_state")
     expect(plan.ledgerTable).toBe("frame_part_ledger")
+    expect(plan.leaseTable).toBe("projection_worker_leases")
+    expect(plan.checkpointTable).toBe("projection_source_checkpoints")
+    expect(plan.outboxTable).toBe("projection_output_outbox")
+    expect(plan.emissionTable).toBe("projection_frame_emissions")
     expect(plan.statements.map((statement) => statement.label)).toEqual([
       "create-source-fact-table",
       "hypertable-source-facts",
@@ -96,6 +100,12 @@ describe("Frame projections — Timescale compiler", () => {
       "index-frame-state-deadline",
       "create-frame-ledger-table",
       "index-frame-ledger-frame",
+      "create-worker-lease-table",
+      "index-worker-leases-expiry",
+      "create-source-checkpoint-table",
+      "create-output-outbox-table",
+      "index-output-outbox-pending",
+      "create-frame-emission-table",
       "create-frame-table",
       "hypertable-frame-table",
       "index-frame-key-patient_id",
@@ -112,6 +122,10 @@ describe("Frame projections — Timescale compiler", () => {
     expect(createFrame?.sql).toContain("\"heart_rate_bpm\" double precision")
     expect(createFrame?.sql).toContain("\"payload\" JSONB NOT NULL")
     expect(createFrame?.sql).toContain("\"provenance\" JSONB NOT NULL")
+
+    const outbox = plan.statements.find((statement) => statement.label === "create-output-outbox-table")
+    expect(outbox?.sql).toContain("\"producer_id\" TEXT NOT NULL")
+    expect(outbox?.sql).toContain("\"idempotency_key\" TEXT NOT NULL UNIQUE")
 
     const compression = plan.statements.find((statement) => statement.label === "configure-frame-compression")
     expect(compression?.sql).toContain("timescaledb.compress_segmentby = 'patient_id, projection_id'")

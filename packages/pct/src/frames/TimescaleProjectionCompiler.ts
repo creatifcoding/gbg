@@ -8,8 +8,8 @@
  * @module @tmnl/pct/frames/TimescaleProjectionCompiler
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
 
 import {
   ProjectionPlan,
@@ -33,6 +33,10 @@ export class FrameProjectionCompileError extends Schema.TaggedErrorClass<FramePr
 const DEFAULT_SOURCE_FACT_TABLE = "metric_observations"
 const DEFAULT_STATE_TABLE = "frame_projection_state"
 const DEFAULT_LEDGER_TABLE = "frame_part_ledger"
+const DEFAULT_LEASE_TABLE = "projection_worker_leases"
+const DEFAULT_CHECKPOINT_TABLE = "projection_source_checkpoints"
+const DEFAULT_OUTBOX_TABLE = "projection_output_outbox"
+const DEFAULT_EMISSION_TABLE = "projection_frame_emissions"
 
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/
 
@@ -98,6 +102,10 @@ const supportTables = (
   sourceFactTable: string,
   stateTable: string,
   ledgerTable: string,
+  leaseTable: string,
+  checkpointTable: string,
+  outboxTable: string,
+  emissionTable: string,
 ): ReadonlyArray<ProjectionDdlStatement> => [
   {
     label: "create-source-fact-table",
@@ -130,6 +138,30 @@ const supportTables = (
   {
     label: "index-frame-ledger-frame",
     sql: `CREATE INDEX IF NOT EXISTS ${q(`${ledgerTable}_frame_idx`)} ON ${q(ledgerTable)} ("projection_id", "frame_id");`,
+  },
+  {
+    label: "create-worker-lease-table",
+    sql: `CREATE TABLE IF NOT EXISTS ${q(leaseTable)} (\n  "projection_id" TEXT NOT NULL,\n  "lane" TEXT NOT NULL,\n  "target_key" TEXT NOT NULL,\n  "lease_id" TEXT NOT NULL,\n  "worker_id" TEXT NOT NULL,\n  "fence_token" TEXT NOT NULL,\n  "leased_at" TIMESTAMPTZ NOT NULL DEFAULT now(),\n  "expires_at" TIMESTAMPTZ NOT NULL,\n  PRIMARY KEY ("projection_id", "lane", "target_key")\n);`,
+  },
+  {
+    label: "index-worker-leases-expiry",
+    sql: `CREATE INDEX IF NOT EXISTS ${q(`${leaseTable}_expires_idx`)} ON ${q(leaseTable)} ("expires_at");`,
+  },
+  {
+    label: "create-source-checkpoint-table",
+    sql: `CREATE TABLE IF NOT EXISTS ${q(checkpointTable)} (\n  "projection_id" TEXT NOT NULL,\n  "source_stream_id" TEXT NOT NULL,\n  "part_key" TEXT NOT NULL,\n  "offset" TEXT NOT NULL,\n  "fence_token" TEXT NOT NULL,\n  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY ("projection_id", "source_stream_id", "part_key")\n);`,
+  },
+  {
+    label: "create-output-outbox-table",
+    sql: `CREATE TABLE IF NOT EXISTS ${q(outboxTable)} (\n  "outbox_id" TEXT PRIMARY KEY,\n  "projection_id" TEXT NOT NULL,\n  "frame_id" TEXT NOT NULL,\n  "frame_revision" INTEGER NOT NULL,\n  "kind" TEXT NOT NULL,\n  "target" TEXT NOT NULL,\n  "idempotency_key" TEXT NOT NULL UNIQUE,\n  "producer_id" TEXT NOT NULL,\n  "producer_epoch" INTEGER NOT NULL,\n  "producer_seq" BIGINT NOT NULL,\n  "frame" JSONB NOT NULL,\n  "status" TEXT NOT NULL,\n  "attempt" INTEGER NOT NULL DEFAULT 0,\n  "available_at" TIMESTAMPTZ NOT NULL DEFAULT now(),\n  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),\n  "published_at" TIMESTAMPTZ,\n  "last_error" TEXT\n);`,
+  },
+  {
+    label: "index-output-outbox-pending",
+    sql: `CREATE INDEX IF NOT EXISTS ${q(`${outboxTable}_pending_idx`)} ON ${q(outboxTable)} ("projection_id", "available_at") WHERE "status" IN ('pending', 'failed');`,
+  },
+  {
+    label: "create-frame-emission-table",
+    sql: `CREATE TABLE IF NOT EXISTS ${q(emissionTable)} (\n  "projection_id" TEXT NOT NULL,\n  "frame_id" TEXT NOT NULL,\n  "latest_revision" INTEGER NOT NULL,\n  "latest_complete" BOOLEAN NOT NULL,\n  "emitted_partial" BOOLEAN NOT NULL DEFAULT false,\n  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY ("projection_id", "frame_id")\n);`,
   },
 ]
 
@@ -220,6 +252,26 @@ export const compileTimescaleProjection = (
       spec.timescale?.ledgerTable ?? DEFAULT_LEDGER_TABLE,
       "timescale.ledgerTable",
     )
+    const leaseTable = yield* assertIdentifier(
+      spec.id,
+      spec.timescale?.leaseTable ?? DEFAULT_LEASE_TABLE,
+      "timescale.leaseTable",
+    )
+    const checkpointTable = yield* assertIdentifier(
+      spec.id,
+      spec.timescale?.checkpointTable ?? DEFAULT_CHECKPOINT_TABLE,
+      "timescale.checkpointTable",
+    )
+    const outboxTable = yield* assertIdentifier(
+      spec.id,
+      spec.timescale?.outboxTable ?? DEFAULT_OUTBOX_TABLE,
+      "timescale.outboxTable",
+    )
+    const emissionTable = yield* assertIdentifier(
+      spec.id,
+      spec.timescale?.emissionTable ?? DEFAULT_EMISSION_TABLE,
+      "timescale.emissionTable",
+    )
 
     yield* uniqueOrFail(spec.id, spec.sources.map((source) => source.as), "sources.as")
     yield* uniqueOrFail(spec.id, spec.output.columns.map((column) => column.column), "output.columns")
@@ -236,7 +288,7 @@ export const compileTimescaleProjection = (
 
     const includeSupportTables = spec.timescale?.includeSupportTables ?? true
     const statements: ProjectionDdlStatement[] = [
-      ...(includeSupportTables ? supportTables(sourceFactTable, stateTable, ledgerTable) : []),
+      ...(includeSupportTables ? supportTables(sourceFactTable, stateTable, ledgerTable, leaseTable, checkpointTable, outboxTable, emissionTable) : []),
       frameTable(spec, frameTableName),
       {
         label: "hypertable-frame-table",
@@ -252,6 +304,10 @@ export const compileTimescaleProjection = (
       sourceFactTable,
       stateTable,
       ledgerTable,
+      leaseTable,
+      checkpointTable,
+      outboxTable,
+      emissionTable,
       statements,
     })
   })

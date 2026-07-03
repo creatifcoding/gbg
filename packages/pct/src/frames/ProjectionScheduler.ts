@@ -14,17 +14,21 @@
  * @module @tmnl/pct/frames/ProjectionScheduler
  */
 
-import * as Context from "effect-v4/Context"
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Fiber from "effect-v4/Fiber"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
-import * as Schedule from "effect-v4/Schedule"
-import * as Schema from "effect-v4/Schema"
-import * as Scope from "effect-v4/Scope"
-import * as Semaphore from "effect-v4/Semaphore"
+import * as Context from "effect/Context"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
+import * as Schedule from "effect/Schedule"
+import * as Schema from "effect/Schema"
+import * as Scope from "effect/Scope"
+import * as Semaphore from "effect/Semaphore"
 
+import {
+  ProjectionLeaseStore,
+  type ProjectionLeaseStoreShape,
+} from "./ProjectionDurableRuntime.js"
 import {
   ProjectionRunMode,
   ProjectionWorkerConfig,
@@ -249,6 +253,7 @@ const makeImpl = (
   workersRef: Ref.Ref<ReadonlyMap<string, WorkerRecord>>,
   lifecycle: Semaphore.Semaphore,
   serviceScope: Scope.Scope,
+  durableLeases?: ProjectionLeaseStoreShape,
 ): ProjectionWorkerSchedulerShape => {
   const setSnapshot = (
     workerId: string,
@@ -277,6 +282,29 @@ const makeImpl = (
       return ready[0] ?? makeProjectionWorkItem(config)
     })
 
+  const runWithDurableLease = (
+    work: ReturnType<typeof makeProjectionWorkItem>,
+    effect: Effect.Effect<ProjectionWorkerRunSummaryType, unknown>,
+  ): Effect.Effect<ProjectionWorkerRunSummaryType, unknown> => {
+    if (durableLeases === undefined) return effect
+    return Effect.gen(function* () {
+      const lease = yield* durableLeases.acquire({
+        projectionId: work.projectionId,
+        workerId: work.workerId,
+        lane: work.lane,
+        targetKey: work.targetKey,
+        ttlMs: Math.max(work.idlePollMs * 4, 1_000),
+      })
+      return yield* effect.pipe(
+        Effect.ensuring(durableLeases.release({
+          leaseId: lease.leaseId,
+          workerId: lease.workerId,
+          fenceToken: lease.fenceToken,
+        }).pipe(Effect.ignore)),
+      )
+    })
+  }
+
   const runScheduledOnce = (
     config: ProjectionWorkerConfig,
   ): Effect.Effect<ProjectionWorkerRunSummaryType | undefined, unknown> =>
@@ -284,7 +312,7 @@ const makeImpl = (
       const work = yield* nextWork(config)
       const effectiveConfig = configForWork(config, work)
       yield* ledger.recordEnqueued(work)
-      const outcome = yield* admission.runAdmitted(work, runner.runOnce(effectiveConfig)).pipe(
+      const outcome = yield* admission.runAdmitted(work, runWithDurableLease(work, runner.runOnce(effectiveConfig))).pipe(
         Effect.tapCause((cause) => ledger.recordFailed(work, causeMessage(cause))),
       )
       yield* ledger.recordDecision(outcome.decision)
@@ -505,6 +533,28 @@ export const projectionWorkerSchedulerLayerWithPorts: Layer.Layer<
     const workersRef = yield* Ref.make<ReadonlyMap<string, WorkerRecord>>(new Map())
     const lifecycle = yield* Semaphore.make(1)
     const impl = makeImpl(registry, runner, ledger, admission, workersRef, lifecycle, serviceScope)
+    return Layer.mergeAll(
+      Layer.succeed(ProjectionWorkerScheduler, ProjectionWorkerScheduler.of(impl)),
+      Layer.succeed(ProjectionWorkerControl, ProjectionWorkerControl.of(impl)),
+    )
+  }),
+)
+
+export const projectionWorkerSchedulerLayerWithDurableLeases: Layer.Layer<
+  ProjectionWorkerScheduler | ProjectionWorkerControl,
+  never,
+  ProjectionRegistry | ProjectionWorkerRunner | ProjectionWorkLedger | ProjectionAdmissionController | ProjectionLeaseStore
+> = Layer.unwrap(
+  Effect.gen(function* () {
+    const registry = yield* ProjectionRegistry
+    const runner = yield* ProjectionWorkerRunner
+    const ledger = yield* ProjectionWorkLedger
+    const admission = yield* ProjectionAdmissionController
+    const leases = yield* ProjectionLeaseStore
+    const serviceScope = yield* Scope.Scope
+    const workersRef = yield* Ref.make<ReadonlyMap<string, WorkerRecord>>(new Map())
+    const lifecycle = yield* Semaphore.make(1)
+    const impl = makeImpl(registry, runner, ledger, admission, workersRef, lifecycle, serviceScope, leases)
     return Layer.mergeAll(
       Layer.succeed(ProjectionWorkerScheduler, ProjectionWorkerScheduler.of(impl)),
       Layer.succeed(ProjectionWorkerControl, ProjectionWorkerControl.of(impl)),
