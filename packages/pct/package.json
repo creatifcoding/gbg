@@ -53,7 +53,7 @@
     "README.md",
     "PCT.md"
   ],
-  "description": "Pact Protocol — schema-first wire protocol with event-sourced federated registry. The reference implementation in TypeScript on Effect v4.",
+  "description": "Pact Protocol \u2014 schema-first wire protocol with event-sourced federated registry. The reference implementation in TypeScript on Effect v4.",
   "keywords": [
     "effect-ts",
     "effect-v4",
@@ -85,8 +85,8 @@
   "dependencies": {
     "@tmnl/lnk": "workspace:*",
     "@tmnl/msh": "workspace:*",
-    "effect-v4": "npm:effect@4.0.0-beta.59",
-    "nats.ws": "^1.30.0"
+    "nats.ws": "^1.30.0",
+    "effect": "4.0.0-beta.93"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

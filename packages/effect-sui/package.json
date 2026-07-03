@@ -1,7 +1,7 @@
 {
   "name": "@tmnl/effect-sui",
   "version": "0.0.1",
-  "description": "Effect-smol-first executable Sui SDK layer — Schema domains, Effectable PTBs/queries/flows, STM reservations, and Mysten SDK adapters",
+  "description": "Effect-smol-first executable Sui SDK layer \u2014 Schema domains, Effectable PTBs/queries/flows, STM reservations, and Mysten SDK adapters",
   "type": "module",
   "sideEffects": false,
   "author": "GBG",
@@ -88,16 +88,16 @@
   "dependencies": {
     "@mysten/bcs": "^2.0.5",
     "@mysten/sui": "^2.16.3",
-    "effect-v4": "npm:effect@4.0.0-beta.59"
+    "effect": "4.0.0-beta.93"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^11.11.0",
     "@types/node": "^25.0.8",
-    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59",
     "fast-check": "^4.6.0",
     "testcontainers": "^11.11.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "@effect/vitest": "4.0.0-beta.93"
   },
   "publishConfig": {
     "access": "public"

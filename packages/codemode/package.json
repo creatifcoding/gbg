@@ -96,7 +96,7 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
-    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.66"
+    "@effect/vitest": "4.0.0-beta.93"
   },
   "publishConfig": {
     "access": "public"
@@ -109,6 +109,6 @@
     "codemode"
   ],
   "peerDependencies": {
-    "effect-v4": "npm:effect@4.0.0-beta.66"
+    "effect": "4.0.0-beta.93"
   }
 }

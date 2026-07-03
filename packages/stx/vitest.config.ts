@@ -1,39 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import path from 'path'
-import type { Plugin } from 'vite'
 
-// effect-atom-react-v4 (npm:@effect/atom-react@4.0.0-beta.23) internally
-// imports from "effect/..." which resolves to effect v3 at test time.
-// This plugin rewrites those imports to effect-v4's dist ONLY when the
-// importer is @effect/atom-react.
-function effectV4AliasForAtomReact(): Plugin {
-  const effectV4Dist = path.resolve(
-    __dirname, '../../node_modules/.bun/effect@4.0.0-beta.23/node_modules/effect/dist'
-  )
-  return {
-    name: 'effect-v4-alias-for-atom-react',
-    enforce: 'pre',
-    resolveId(source, importer) {
-      if (!importer) return null
-      // Only intercept when importer is @effect/atom-react or the submodule source
-      const isAtomReact = importer.includes('@effect/atom-react')
-        || importer.includes('@effect+atom-react')
-        || importer.includes('effect-smol/packages/atom/')
-      if (!isAtomReact) return null
-      // Don't intercept effect-v4's own internal imports
-      if (importer.includes('effect@4.0.0-beta')) return null
-      // Rewrite "effect/Foo" → absolute path to effect v4 dist
-      if (source.startsWith('effect/')) {
-        const subpath = source.slice('effect/'.length)
-        return path.join(effectV4Dist, subpath + '.js')
-      }
-      return null
-    }
-  }
-}
+// Canonical `effect` resolves to v4 monorepo-wide (canonical-path inversion,
+// 2026-07-03). @effect/atom-react's internal "effect/..." imports now resolve
+// correctly without interception — the effectV4AliasForAtomReact plugin that
+// previously rewrote them is retired.
 
 export default defineConfig({
-  plugins: [effectV4AliasForAtomReact()],
   resolve: {
     alias: {
       '@tmnl/entity': path.resolve(__dirname, '../entity/src/index.ts'),

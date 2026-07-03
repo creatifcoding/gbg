@@ -77,21 +77,21 @@
   },
   "dependencies": {
     "@tmnl/msh": "workspace:*",
-    "effect-v4": "npm:effect@4.0.0-beta.59"
+    "effect": "4.0.0-beta.93"
   },
   "peerDependencies": {
     "@tmnl/stx": "workspace:*",
-    "effect-atom-react-v4": "npm:@effect/atom-react@4.0.0-beta.59",
-    "react": ">=18.0.0"
+    "react": ">=18.0.0",
+    "@effect/atom-react": "4.0.0-beta.93"
   },
   "peerDependenciesMeta": {
     "@tmnl/stx": {
       "optional": true
     },
-    "effect-atom-react-v4": {
+    "react": {
       "optional": true
     },
-    "react": {
+    "@effect/atom-react": {
       "optional": true
     }
   },
@@ -99,10 +99,10 @@
     "@durable-streams/client": "0.2.3",
     "@durable-streams/server-conformance-tests": "0.3.0",
     "@tmnl/stx": "workspace:*",
-    "effect-atom-react-v4": "npm:@effect/atom-react@4.0.0-beta.59",
-    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59",
     "fast-check": "^4.5.3",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "@effect/vitest": "4.0.0-beta.93",
+    "@effect/atom-react": "4.0.0-beta.93"
   }
 }

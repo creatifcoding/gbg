@@ -15,7 +15,7 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "description": "Reactive spreadsheet abstraction — agentic state primitive with AG-Grid rendering, Effect formulas, CRDT collaboration",
+  "description": "Reactive spreadsheet abstraction \u2014 agentic state primitive with AG-Grid rendering, Effect formulas, CRDT collaboration",
   "files": [
     "dist",
     "README.md"
@@ -43,9 +43,9 @@
     "@tmnl/stx": "workspace:*",
     "ag-grid-community": "^34.0.0",
     "ag-grid-react": "^34.0.0",
-    "effect-v4": "npm:effect@4.0.0-beta.23",
     "hyperformula": "^3.2.0",
-    "quickjs-emscripten": "^0.32.0"
+    "quickjs-emscripten": "^0.32.0",
+    "effect": "4.0.0-beta.93"
   },
   "devDependencies": {
     "vitest": "^4.0.0",

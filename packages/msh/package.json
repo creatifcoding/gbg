@@ -1,7 +1,7 @@
 {
   "name": "@tmnl/msh",
   "version": "0.0.1",
-  "description": "MSH — NATS Effect services for TMNL (Effect v4)",
+  "description": "MSH \u2014 NATS Effect services for TMNL (Effect v4)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -60,13 +60,13 @@
   "dependencies": {
     "@nats-io/jwt": "^0.0.10-5",
     "@nats-io/nkeys": "^2.0.3",
-    "effect-v4": "npm:effect@4.0.0-beta.59",
-    "nats.ws": "^1.30.0"
+    "nats.ws": "^1.30.0",
+    "effect": "4.0.0-beta.93"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
-    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.59"
+    "@effect/vitest": "4.0.0-beta.93"
   },
   "publishConfig": {
     "access": "public"
