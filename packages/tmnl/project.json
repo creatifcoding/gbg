@@ -339,6 +339,41 @@
         "cwd": "packages/tmnl"
       }
     },
+    "smoke:session-drawer:live-pi-replay": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:session-drawer:live-pi-replay",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "smoke:getbyshell:driftwm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:getbyshell:driftwm",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "smoke:getbyshell:driftwm:generation": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:getbyshell:driftwm:generation",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "smoke:getbyshell:driftwm:preactivation": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:getbyshell:driftwm:preactivation",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "smoke:getbyshell:gtk-skin": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke:getbyshell:gtk-skin",
+        "cwd": "packages/tmnl"
+      }
+    },
     "geoint:migrate": {
       "executor": "nx:run-commands",
       "options": {
@@ -385,6 +420,13 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run spike:pi-session:list",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "spike:pi-session:replay": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:pi-session:replay",
         "cwd": "packages/tmnl"
       }
     },
