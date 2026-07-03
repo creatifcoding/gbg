@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ToolManifest } from '../../../../.pi/extensions/metaskill/manifest.ts'
 import { ALL_SECTIONS } from '../../../../.pi/extensions/metaskill/manifest-sections.ts'
@@ -46,22 +46,26 @@ function extractMsReferences(text: string): Set<string> {
 function readSandboxWiring(): Set<string> {
   const extRoot = join(__dirname, '..', '..', '..', '..', '.pi', 'extensions', 'metaskill')
   const indexSrc = readFileSync(join(extRoot, 'index.ts'), 'utf-8')
+  const evalChildPath = join(extRoot, 'eval-child.ts')
+  const evalChildSrc = existsSync(evalChildPath) ? readFileSync(evalChildPath, 'utf-8') : ''
+  const sandboxSrc = `${indexSrc}\n${evalChildSrc}`
 
   // Find the ms object literal: `const ms = { ... }`
-  // Extract property names (keys before colons)
-  const msStart = indexSrc.indexOf('const ms = {')
-  if (msStart === -1) throw new Error('Could not find `const ms = {` in index.ts')
+  // Extract property names (keys before colons). The sandbox may live in
+  // index.ts or in eval-child.ts when evaluation is isolated off the pi host.
+  const msStart = sandboxSrc.indexOf('const ms = {')
+  if (msStart === -1) throw new Error('Could not find `const ms = {` in metaskill sandbox sources')
 
   // Find matching closing brace
   let depth = 0
-  let i = indexSrc.indexOf('{', msStart)
+  let i = sandboxSrc.indexOf('{', msStart)
   const start = i
-  for (; i < indexSrc.length; i++) {
-    if (indexSrc[i] === '{') depth++
-    if (indexSrc[i] === '}') depth--
+  for (; i < sandboxSrc.length; i++) {
+    if (sandboxSrc[i] === '{') depth++
+    if (sandboxSrc[i] === '}') depth--
     if (depth === 0) break
   }
-  const block = indexSrc.slice(start, i + 1)
+  const block = sandboxSrc.slice(start, i + 1)
 
   // Extract top-level property names
   const wired = new Set<string>()
