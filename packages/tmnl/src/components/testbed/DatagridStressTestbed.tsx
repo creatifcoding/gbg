@@ -38,6 +38,9 @@ import {
   // Undo
   UndoStack, UndoStackConfig, UndoStackLive,
   type UndoStackShape,
+  // Bridge — STX → AG-Grid transaction pipeline
+  GridBridge,
+  type GridTransaction, type TransactionStats,
 } from "@tmnl/datagrid"
 
 ModuleRegistry.registerModules([AllCommunityModule])
@@ -209,9 +212,11 @@ export function DatagridStressTestbed() {
   const [tier, setTier] = useState<Tier>("100")
   const [perf, setPerf] = useState<PerfStats>(initialPerfStats)
   const [undoCount, setUndoCount] = useState(0)
+  const [gridApi, setGridApi] = useState<GridApi | null>(null)
   const gridApiRef = useRef<GridApi | null>(null)
   const datagridRef = useRef<DatagridShape | null>(null)
   const undoStackRef = useRef<{ entries: Array<{ addr: ColRow; before: CellValue; after: CellValue }> }>({ entries: [] })
+  const bridgeRef = useRef<GridBridge | null>(null)
 
   const { cols, rows } = TIER_CONFIG[tier]
   const theme = useMemo(() => createDirectTheme(), [])
@@ -235,6 +240,74 @@ export function DatagridStressTestbed() {
     setUndoCount(0)
     return dg
   }, [tier, cols, rows])
+
+  // ── Bridge: STX atoms → TransactionCollector → AG-Grid applyTransaction ──
+
+  const bridge = useMemo(() => {
+    // Cleanup previous bridge subscriptions
+    bridgeRef.current?.destroy()
+
+    const b = new GridBridge({
+      datagrid,
+      applyTransaction: (tx: GridTransaction) => {
+        const api = gridApiRef.current
+        if (!api) return
+
+        const agTx: { update?: any[]; add?: any[]; remove?: any[] } = {}
+
+        if (tx.update) {
+          agTx.update = tx.update.map((u) => {
+            const [, rowStr] = u.id.split(":")
+            const rowIndex = parseInt(rowStr!)
+            // Merge partial updates into existing row data
+            const existingNode = api.getRowNode(String(rowIndex))
+            const existing = existingNode?.data ?? { _rowIndex: rowIndex }
+            const updates: Record<string, unknown> = {}
+            for (const [colStr, val] of Object.entries(u.data)) {
+              updates[`col_${colStr}`] = val
+            }
+            return { ...existing, ...updates }
+          })
+        }
+
+        if (tx.add) {
+          agTx.add = tx.add.map((u) => {
+            const [, rowStr] = u.id.split(":")
+            return {
+              _rowIndex: parseInt(rowStr!),
+              ...Object.fromEntries(
+                Object.entries(u.data).map(([col, val]) => [`col_${col}`, val])
+              ),
+            }
+          })
+        }
+
+        if (tx.remove) {
+          agTx.remove = tx.remove.map((r) => {
+            const [, rowStr] = r.id.split(":")
+            return { _rowIndex: parseInt(rowStr!) }
+          })
+        }
+
+        api.applyTransaction(agTx)
+      },
+      // rAF batching: coalesces all atom writes within a frame
+      scheduleFlush: (cb) => requestAnimationFrame(cb),
+    })
+
+    bridgeRef.current = b
+    return b
+  }, [datagrid])
+
+  // Subscribe bridge to all cell atoms after grid is ready
+  useEffect(() => {
+    if (!gridApi || !bridge) return
+
+    const colIndices = Array.from({ length: cols }, (_, i) => i)
+    bridge.subscribeRange(0, rows - 1, colIndices)
+
+    return () => bridge.destroy()
+  }, [bridge, gridApi, cols, rows])
 
   // Generate column defs
   const columnDefs = useMemo<ColDef[]>(() => {
@@ -335,15 +408,8 @@ export function DatagridStressTestbed() {
       avgEditMs: Math.round(((p.avgEditMs * p.totalEdits + elapsed) / (p.totalEdits + 1)) * 100) / 100,
     }))
 
-    // Refresh the edited row
-    if (gridApiRef.current) {
-      const rowNode = gridApiRef.current.getDisplayedRowAtIndex(rowIdx)
-      if (rowNode) {
-        const newRowData = { ...rowNode.data }
-        newRowData[`col_${colIdx}`] = extractDisplay(cellValue)
-        rowNode.setData(newRowData)
-      }
-    }
+    // Grid update: handled by bridge subscription → TransactionCollector → applyTransaction
+    // No manual rowNode.setData() needed.
   }, [datagrid, cols])
 
   // Undo
@@ -355,15 +421,7 @@ export function DatagridStressTestbed() {
     const key = cellKey("stress", entry.addr)
     datagrid.family.set(key, entry.before)
 
-    // Refresh grid
-    if (gridApiRef.current) {
-      const rowNode = gridApiRef.current.getDisplayedRowAtIndex(entry.addr.row)
-      if (rowNode) {
-        const newRowData = { ...rowNode.data }
-        newRowData[`col_${entry.addr.col}`] = extractDisplay(entry.before)
-        rowNode.setData(newRowData)
-      }
-    }
+    // Grid update: bridge subscription → TransactionCollector → applyTransaction
   }, [datagrid])
 
   // Bulk fill
@@ -381,9 +439,12 @@ export function DatagridStressTestbed() {
       lastRecalcMs: Math.round(elapsed * 100) / 100,
       totalRecalcs: p.totalRecalcs + 1,
     }))
-    // Force full grid refresh
-    gridApiRef.current?.refreshCells({ force: true })
-  }, [datagrid, cols, rows])
+
+    // TransactionCollector coalesces all atom writes within this frame
+    // and flushes via a single applyTransaction call on next rAF.
+    // Force immediate flush for responsiveness:
+    bridge.flush()
+  }, [datagrid, bridge, cols, rows])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -401,6 +462,7 @@ export function DatagridStressTestbed() {
 
   const onGridReady = useCallback((e: GridReadyEvent) => {
     gridApiRef.current = e.api
+    setGridApi(e.api)
   }, [])
 
   // ─── Styles ─────────────────────────────────────
@@ -522,6 +584,28 @@ export function DatagridStressTestbed() {
               <div>
                 <div className="text-xs text-neutral-600">Total Fills</div>
                 <div className="text-lg text-green-400 font-mono">{perf.totalRecalcs}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={panelStyle}>
+            <div className="text-xs uppercase text-neutral-500 mb-2 tracking-wider">Bridge</div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-neutral-600">Transactions</div>
+                <div className="text-lg text-purple-400 font-mono">{bridge.collector.stats.totalTransactions}</div>
+              </div>
+              <div>
+                <div className="text-xs text-neutral-600">Row Updates</div>
+                <div className="text-lg text-purple-400 font-mono">{bridge.collector.stats.totalRowUpdates}</div>
+              </div>
+              <div>
+                <div className="text-xs text-neutral-600">Coalesced</div>
+                <div className="text-lg text-green-400 font-mono">{bridge.collector.stats.totalCoalesced}</div>
+              </div>
+              <div>
+                <div className="text-xs text-neutral-600">Pending</div>
+                <div className="text-lg text-yellow-400 font-mono">{bridge.collector.pendingCount}</div>
               </div>
             </div>
           </div>

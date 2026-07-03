@@ -1541,6 +1541,7 @@ const RgbShuffleDemo = ({
   );
 };
 
+// TODO: Hm. The animation logic is better served colocated per the component. Memoized, likely outside of the block scope of the component, so it's not.
 const AnimeLayoutLab = ({
   disableAnimations,
 }: {
