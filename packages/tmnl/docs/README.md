@@ -142,6 +142,10 @@ Covers: Schemas, Entities, State Services, RPC Groups, HTTP Layer, Realtime, Inf
 | [CLI Reference](tooling/cli-reference.md) | Generator CLIs — entity, model, migration, validate |
 | [Spike Methodology](tooling/spike-methodology.md) | H1-H4 progressive hypothesis testing workflow |
 | [Pi Hypothesis Lab](tooling/pi-hypothesis-lab.md) | Pi's multi-agent hypothesis lab (6 specialized agents) |
+| [Extract Latent System Metaprompt](metaprompts/extract-latent-system.metaprompt.md) | Fable 5 metaprompt — audit-driven extraction of src/lib subsystems into Effect v4 sibling packages (STX template) |
+| [Latent Systems Map](architecture/latent-systems-map.md) | Full-codebase evidence census (2026-07-02/03, 3 waves) — 17 feature umbrellas, dead list, refuted priors, adversarially-verified synthesis |
+| [TLA Package Suites RFC](architecture/tla-package-suites-rfc.md) | Canonical layer-compositional package register (stx/msh/pct/lnk/dmn convention) — 21 TLAs across 5 cluster suites, conventions ratification, sequencing |
+| [Effect v4 Layer Doctrine](architecture/effect-v4-layer-doctrine.md) | Verified v4 (beta.59) Layer/Context.Service doctrine from effect-smol source — no Layer.scoped, MemoMap identity semantics, multi-level graphs |
 
 ---
 
