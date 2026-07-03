@@ -21,13 +21,25 @@ use theia_server::{
     TheiaServerManager,
 };
 use window_manager::{
-    close_window, create_testbed_window, emit_to_all_windows, emit_to_window, focus_window,
-    get_or_focus_testbed_window, list_windows,
+    close_window,
+    create_testbed_window,
+    emit_to_all_windows,
+    emit_to_window,
+    focus_window,
+    get_or_focus_testbed_window,
+    get_pool_status,
+    get_window_state,
     // Window pool commands (for sub-second window opening)
-    init_window_pool, get_pool_status, open_testbed_window_fast,
+    init_window_pool,
+    list_windows,
+    maximize_window,
     // Window control commands
-    minimize_window, unminimize_window, maximize_window, unmaximize_window,
-    set_fullscreen, toggle_fullscreen, get_window_state,
+    minimize_window,
+    open_testbed_window_fast,
+    set_fullscreen,
+    toggle_fullscreen,
+    unmaximize_window,
+    unminimize_window,
 };
 
 // =============================================================================
@@ -116,15 +128,28 @@ pub fn run() {
                     const INIT_POOL_SIZE: usize = 5; // Match POOL_SIZE in window_manager.rs
                     for i in 0..INIT_POOL_SIZE {
                         match window_manager::create_pool_window_from_setup(&handle) {
-                            Ok(label) => log::info!("Created pool window {}/{}: {}", i + 1, INIT_POOL_SIZE, label),
-                            Err(e) => log::warn!("Failed to create pool window {}/{}: {:?}", i + 1, INIT_POOL_SIZE, e),
+                            Ok(label) => log::info!(
+                                "Created pool window {}/{}: {}",
+                                i + 1,
+                                INIT_POOL_SIZE,
+                                label
+                            ),
+                            Err(e) => log::warn!(
+                                "Failed to create pool window {}/{}: {:?}",
+                                i + 1,
+                                INIT_POOL_SIZE,
+                                e
+                            ),
                         }
                         // Small delay between creations to avoid overwhelming WebView2
                         if i < INIT_POOL_SIZE - 1 {
                             std::thread::sleep(std::time::Duration::from_millis(100));
                         }
                     }
-                    log::info!("Window pool initialization complete ({} windows)", INIT_POOL_SIZE);
+                    log::info!(
+                        "Window pool initialization complete ({} windows)",
+                        INIT_POOL_SIZE
+                    );
                 });
             }
 

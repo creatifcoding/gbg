@@ -4,7 +4,7 @@
 //!   - GTK ApplicationWindow on Layer::Overlay
 //!   - KeyboardMode::OnDemand (grabs keyboard when focused, not exclusive)
 //!   - All 4 edges anchored (fullscreen), CSS positions content
-//!   - Toggle via Super+P (niri → pkill -USR1 → this handler)
+//!   - Toggle via compositor keybind → pkill -USR1 → this handler
 //!   - Toggle via bar IPC (future: Tauri deep link)
 //!   - Starts hidden, channel controls visibility
 
@@ -128,6 +128,7 @@ pub fn run() {
                 .transparent(true)
                 .resizable(false)
                 .skip_taskbar(true)
+                .zoom_hotkeys_enabled(false)
                 .inner_size(800.0, 600.0) // Tauri requires a size; layer-shell overrides
                 .build()?;
 
@@ -206,7 +207,7 @@ pub fn run() {
             log::info!("Layer shell DISABLED via TMNL_PANEL_NO_LAYER_SHELL");
         }
 
-        // ── SIGUSR1 handler: Super+P via niri keybind ────────────────
+        // ── SIGUSR1 handler: compositor keybind toggles the panel ────────
         {
             static SIGUSR1_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -215,7 +216,7 @@ pub fn run() {
                     extern "C" fn handler(_: libc::c_int) {
                         SIGUSR1_FLAG.store(true, SeqCst);
                     }
-                    handler as libc::sighandler_t
+                    handler as *const () as libc::sighandler_t
                 });
             }
 

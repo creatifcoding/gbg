@@ -6106,8 +6106,6 @@ dependencies = [
 [[package]]
 name = "tao"
 version = "0.34.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3a753bdc39c07b192151523a3f77cd0394aa75413802c883a0f6f6a0e5ee2e7"
 dependencies = [
  "bitflags 2.11.0",
  "block2",
@@ -6458,10 +6456,9 @@ dependencies = [
 [[package]]
 name = "tauri-runtime-wry"
 version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5204682391625e867d16584fedc83fc292fb998814c9f7918605c789cd876314"
 dependencies = [
  "gtk",
+ "gtk-layer-shell",
  "http 1.4.0",
  "jni",
  "log",
@@ -6737,6 +6734,7 @@ version = "0.1.0"
 dependencies = [
  "cairo-rs",
  "gdk",
+ "gio",
  "glib",
  "gtk",
  "gtk-layer-shell",
@@ -6751,6 +6749,7 @@ dependencies = [
  "tauri-plugin-log",
  "tmnl-shared",
  "tokio",
+ "webkit2gtk",
 ]
 
 [[package]]
@@ -8353,8 +8352,6 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 [[package]]
 name = "wry"
 version = "0.54.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb26159b420aa77684589a744ae9a9461a95395b848764ad12290a14d960a11a"
 dependencies = [
  "base64 0.22.1",
  "block2",

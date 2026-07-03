@@ -125,7 +125,10 @@ impl TheiaServerManager {
                     let theia_path = packages_dir.join("theia-ide");
                     let package_json = theia_path.join("package.json");
                     if package_json.exists() {
-                        log::debug!("Using CARGO_MANIFEST_DIR grandparent sibling: {:?}", theia_path);
+                        log::debug!(
+                            "Using CARGO_MANIFEST_DIR grandparent sibling: {:?}",
+                            theia_path
+                        );
                         return theia_path;
                     }
                 }
@@ -208,7 +211,9 @@ impl TheiaServerManager {
             .stderr(Stdio::piped());
 
         // Spawn the process
-        let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn Theia server: {}", e))?;
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("Failed to spawn Theia server: {}", e))?;
 
         let pid = child.id();
 

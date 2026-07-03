@@ -85,6 +85,8 @@ export default defineConfig(() => ({
       // Workspace packages — resolve to source for dev (no dist build required)
       '@tmnl/datagrid': path.resolve(__dirname, '../datagrid/src/index.ts'),
       '@tmnl/stx': path.resolve(__dirname, '../stx/src/index.ts'),
+      '@tmnl/mathkernel/wasm': path.resolve(__dirname, '../mathkernel/dist/mathkernel.js'),
+      '@tmnl/mathkernel': path.resolve(__dirname, '../mathkernel/dist/index.js'),
       // Node.js builtins shimmed for browser/Tauri builds.
       // Transitive deps (nats.ws, escalade, yargs, pg, @osdk/maker) import
       // these — shims provide browser-compatible stubs or Web API proxies.
@@ -114,6 +116,10 @@ export default defineConfig(() => ({
     dedupe: ['yjs', '@tiptap/pm', 'vscode'], // Ensure single instances for collaboration + Monaco vscode shim
   },
   optimizeDeps: {
+    // Vite defaults to crawling every HTML file under root; this repo contains
+    // generated Rust/Elixir docs with thousands of HTML files. Keep dep scan
+    // scoped to the actual app entry so tauri-dev doesn't burn the house down.
+    entries: ['index.html'],
     include: ['mermaid', 'yjs'],
     // Exclude packages that need special runtime loading
     exclude: [

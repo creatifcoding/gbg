@@ -182,8 +182,14 @@ pub async fn create_testbed_window(
     #[allow(unused_mut)]
     let mut builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(url.into()))
         .title(&title)
-        .inner_size(config.width.unwrap_or(1200.0), config.height.unwrap_or(800.0))
-        .min_inner_size(config.min_width.unwrap_or(400.0), config.min_height.unwrap_or(300.0))
+        .inner_size(
+            config.width.unwrap_or(1200.0),
+            config.height.unwrap_or(800.0),
+        )
+        .min_inner_size(
+            config.min_width.unwrap_or(400.0),
+            config.min_height.unwrap_or(300.0),
+        )
         .decorations(false) // Borderless like main window
         .resizable(true)
         .visible(true);
@@ -194,11 +200,10 @@ pub async fn create_testbed_window(
         builder = builder.transparent(true);
     }
 
-    let window = builder.build()
-        .map_err(|e| WindowError {
-            code: "CREATE_FAILED".to_string(),
-            message: format!("Failed to create window: {}", e),
-        })?;
+    let window = builder.build().map_err(|e| WindowError {
+        code: "CREATE_FAILED".to_string(),
+        message: format!("Failed to create window: {}", e),
+    })?;
 
     // Focus the new window
     window.set_focus().ok();
@@ -263,7 +268,8 @@ pub async fn close_window(app: AppHandle, label: String) -> Result<(), WindowErr
     // Remove from testbed windows map (find by window label value)
     if let Ok(mut map) = TESTBED_WINDOWS.lock() {
         // Find the testbed_id that maps to this label and remove it
-        let testbed_id = map.iter()
+        let testbed_id = map
+            .iter()
             .find(|(_, win_label)| *win_label == &label)
             .map(|(tid, _)| tid.clone());
         if let Some(tid) = testbed_id {
@@ -349,7 +355,11 @@ pub async fn unmaximize_window(app: AppHandle, label: String) -> Result<(), Wind
 
 /// Set fullscreen state of a window
 #[tauri::command]
-pub async fn set_fullscreen(app: AppHandle, label: String, fullscreen: bool) -> Result<(), WindowError> {
+pub async fn set_fullscreen(
+    app: AppHandle,
+    label: String,
+    fullscreen: bool,
+) -> Result<(), WindowError> {
     let window = app.get_webview_window(&label).ok_or_else(|| WindowError {
         code: "NOT_FOUND".to_string(),
         message: format!("Window not found: {}", label),
@@ -480,13 +490,14 @@ fn create_pool_window(app: &AppHandle) -> Result<String, WindowError> {
     // Create hidden window with minimal blank page to save memory
     // We'll navigate to the actual testbed URL when the window is claimed
     #[allow(unused_mut)]
-    let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("/pool-placeholder".into()))
-        .title("TMNL")
-        .inner_size(1200.0, 800.0)
-        .min_inner_size(400.0, 300.0)
-        .decorations(false)
-        .resizable(true)
-        .visible(false); // Hidden until needed
+    let mut builder =
+        WebviewWindowBuilder::new(app, &label, WebviewUrl::App("/pool-placeholder".into()))
+            .title("TMNL")
+            .inner_size(1200.0, 800.0)
+            .min_inner_size(400.0, 300.0)
+            .decorations(false)
+            .resizable(true)
+            .visible(false); // Hidden until needed
 
     // Transparent windows only work reliably on macOS
     #[cfg(target_os = "macos")]
@@ -494,11 +505,10 @@ fn create_pool_window(app: &AppHandle) -> Result<String, WindowError> {
         builder = builder.transparent(true);
     }
 
-    let _window = builder.build()
-        .map_err(|e| WindowError {
-            code: "POOL_CREATE_FAILED".to_string(),
-            message: format!("Failed to create pool window: {}", e),
-        })?;
+    let _window = builder.build().map_err(|e| WindowError {
+        code: "POOL_CREATE_FAILED".to_string(),
+        message: format!("Failed to create pool window: {}", e),
+    })?;
 
     log::debug!("Created pool window: {}", label);
     Ok(label)
@@ -537,7 +547,12 @@ pub async fn init_window_pool(app: AppHandle) -> Result<usize, WindowError> {
                     }
                 }
                 Err(e) => {
-                    log::warn!("Failed to create pool window {}/{}: {:?}", i + 1, POOL_SIZE, e);
+                    log::warn!(
+                        "Failed to create pool window {}/{}: {:?}",
+                        i + 1,
+                        POOL_SIZE,
+                        e
+                    );
                 }
             }
             // Delay between window creations to avoid overwhelming WebView2
@@ -587,8 +602,11 @@ pub async fn open_testbed_window_fast(
         let pool = WINDOW_POOL.lock().unwrap_or_else(|e| e.into_inner());
         pool.len()
     };
-    log::info!("open_testbed_window_fast called for testbed: {} (pool has {} windows available)",
-        testbed_id, pool_size);
+    log::info!(
+        "open_testbed_window_fast called for testbed: {} (pool has {} windows available)",
+        testbed_id,
+        pool_size
+    );
 
     let config = config.unwrap_or_default();
 
@@ -610,7 +628,11 @@ pub async fn open_testbed_window_fast(
                 message: format!("Failed to focus existing window: {}", e),
             })?;
             app.emit("window:focused", &label).ok();
-            log::info!("Focused existing testbed window: {} (label: {})", testbed_id, label);
+            log::info!(
+                "Focused existing testbed window: {} (label: {})",
+                testbed_id,
+                label
+            );
             return Ok(label);
         } else {
             // Window was in map but no longer exists, remove stale entry
@@ -639,7 +661,9 @@ pub async fn open_testbed_window_fast(
             })?;
 
             // Set title
-            let title = config.title.unwrap_or_else(|| format!("TMNL - {}", testbed_id));
+            let title = config
+                .title
+                .unwrap_or_else(|| format!("TMNL - {}", testbed_id));
             window.set_title(&title).ok();
 
             // Navigate via JavaScript - works in both dev (localhost:1420) and prod (tauri://)
@@ -664,8 +688,12 @@ pub async fn open_testbed_window_fast(
             app.emit("window:created", &label).ok();
             app.emit("window:list-changed", get_all_windows(&app)).ok();
 
-            log::info!("Opened testbed {} using pooled window {} (fast path, {}ms)",
-                testbed_id, label, start.elapsed().as_millis());
+            log::info!(
+                "Opened testbed {} using pooled window {} (fast path, {}ms)",
+                testbed_id,
+                label,
+                start.elapsed().as_millis()
+            );
 
             // Replenish pool in background (don't await)
             let app_clone = app.clone();
@@ -679,9 +707,14 @@ pub async fn open_testbed_window_fast(
         }
         None => {
             // Slow path: pool empty, create new window
-            log::warn!("Window pool empty, falling back to slow path (pool status: check get_pool_status)");
+            log::warn!(
+                "Window pool empty, falling back to slow path (pool status: check get_pool_status)"
+            );
             let result = create_testbed_window(app, testbed_id, Some(config)).await;
-            log::info!("Slow path window creation took {}ms", start.elapsed().as_millis());
+            log::info!(
+                "Slow path window creation took {}ms",
+                start.elapsed().as_millis()
+            );
             result
         }
     }
@@ -719,7 +752,12 @@ async fn replenish_pool(app: AppHandle) -> Result<(), WindowError> {
                     }
                 }
                 Err(e) => {
-                    log::warn!("Failed to replenish pool window {}/{}: {:?}", i + 1, needed, e);
+                    log::warn!(
+                        "Failed to replenish pool window {}/{}: {:?}",
+                        i + 1,
+                        needed,
+                        e
+                    );
                 }
             }
             // Minimal delay between creations (reduced for faster replenishment)
@@ -755,7 +793,11 @@ mod tests {
     fn test_pool_label_format() {
         // Pool labels follow "pool-N" format
         let label = next_pool_label();
-        assert!(label.starts_with("pool-"), "Label should start with 'pool-': {}", label);
+        assert!(
+            label.starts_with("pool-"),
+            "Label should start with 'pool-': {}",
+            label
+        );
     }
 
     #[test]
@@ -790,7 +832,10 @@ mod tests {
     #[test]
     fn test_pool_size_is_five() {
         // Pool should hold 5 windows for snappy multi-window workflows
-        assert_eq!(POOL_SIZE, 5, "Pool size should be 5 for rapid window opening");
+        assert_eq!(
+            POOL_SIZE, 5,
+            "Pool size should be 5 for rapid window opening"
+        );
     }
 
     // =========================================================================
@@ -806,7 +851,10 @@ mod tests {
 
         // Path should be relative (starts with /)
         assert!(path.starts_with("/"), "Path should be relative");
-        assert!(path.contains("testbed="), "Path should contain testbed param");
+        assert!(
+            path.contains("testbed="),
+            "Path should contain testbed param"
+        );
         assert!(path.contains(testbed_id), "Path should contain testbed ID");
     }
 
@@ -833,9 +881,18 @@ mod tests {
             let js = format!("window.location.href = '{}';", path);
 
             // Valid JS: exactly 2 single quotes (opening and closing the string)
-            assert_eq!(js.matches('\'').count(), 2, "JS should have exactly 2 quotes for '{}'", testbed_id);
+            assert_eq!(
+                js.matches('\'').count(),
+                2,
+                "JS should have exactly 2 quotes for '{}'",
+                testbed_id
+            );
             // Path should be present in the JS
-            assert!(js.contains(&path), "JS should contain the path for '{}'", testbed_id);
+            assert!(
+                js.contains(&path),
+                "JS should contain the path for '{}'",
+                testbed_id
+            );
         }
     }
 

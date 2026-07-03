@@ -14,6 +14,13 @@ LOG_PATH="${LOG_DIR}/build-windows.log"
 
 mkdir -p "$LOG_DIR"
 
+# ── Gate: skip unless MinGW windres is available ──────────────────────────────
+if ! command -v x86_64-w64-mingw32-windres >/dev/null 2>&1; then
+  echo "[tmnl-windows] SKIPPED — x86_64-w64-mingw32-windres not on PATH"
+  echo "[tmnl-windows] Install mingw-w64 or enter the tmnl-tauri nix shell for cross-compile support"
+  exit 0
+fi
+
 echo "[tmnl-windows] Starting Windows cross-compile..."
 echo "[tmnl-windows] Log: $LOG_PATH"
 

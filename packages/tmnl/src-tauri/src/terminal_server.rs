@@ -197,7 +197,9 @@ impl TerminalServerManager {
         }
 
         // Spawn the process
-        let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn server: {}", e))?;
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("Failed to spawn server: {}", e))?;
 
         let pid = child.id();
 
@@ -359,4 +361,3 @@ pub fn terminal_server_restart<R: Runtime>(
     manager.stop()?;
     manager.start(target_backend)
 }
-

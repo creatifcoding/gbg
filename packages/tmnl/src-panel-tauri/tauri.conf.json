@@ -11,17 +11,7 @@
   },
   "app": {
     "withGlobalTauri": false,
-    "windows": [
-      {
-        "label": "panel",
-        "title": "TMNL Panel",
-        "width": 800,
-        "height": 600,
-        "decorations": false,
-        "transparent": true,
-        "resizable": false
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }
@@ -36,10 +26,5 @@
       "../src-tauri/icons/icon.icns",
       "../src-tauri/icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "log": {
-      "level": "info"
-    }
   }
 }

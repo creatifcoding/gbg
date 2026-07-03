@@ -22,3 +22,8 @@ log = "0.4"
 tokio = { version = "1", features = ["full"] }
 niri-ipc = "=25.11.0"
 thiserror = "2"
+
+[patch.crates-io]
+wry = { path = "patches/wry-0.54.2" }
+tao = { path = "patches/tao-0.34.5" }
+tauri-runtime-wry = { path = "patches/tauri-runtime-wry-2.10.0" }

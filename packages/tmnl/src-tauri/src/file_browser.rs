@@ -251,18 +251,9 @@ fn create_file_entry(path: &Path, meta: &Metadata) -> FileEntry {
         readable,
         writable,
         executable,
-        created_at: meta
-            .created()
-            .map(system_time_to_millis)
-            .unwrap_or(0),
-        modified_at: meta
-            .modified()
-            .map(system_time_to_millis)
-            .unwrap_or(0),
-        accessed_at: meta
-            .accessed()
-            .map(system_time_to_millis)
-            .unwrap_or(0),
+        created_at: meta.created().map(system_time_to_millis).unwrap_or(0),
+        modified_at: meta.modified().map(system_time_to_millis).unwrap_or(0),
+        accessed_at: meta.accessed().map(system_time_to_millis).unwrap_or(0),
     }
 }
 
@@ -298,13 +289,11 @@ pub fn fs_list_directory(path: &str) -> Result<Vec<FileEntry>, String> {
     }
 
     // Sort: directories first, then by name
-    entries.sort_by(|a, b| {
-        match (&a.entry_type, &b.entry_type) {
-            (FileType::Directory, FileType::Directory) => a.name.cmp(&b.name),
-            (FileType::Directory, _) => std::cmp::Ordering::Less,
-            (_, FileType::Directory) => std::cmp::Ordering::Greater,
-            _ => a.name.cmp(&b.name),
-        }
+    entries.sort_by(|a, b| match (&a.entry_type, &b.entry_type) {
+        (FileType::Directory, FileType::Directory) => a.name.cmp(&b.name),
+        (FileType::Directory, _) => std::cmp::Ordering::Less,
+        (_, FileType::Directory) => std::cmp::Ordering::Greater,
+        _ => a.name.cmp(&b.name),
     });
 
     Ok(entries)
@@ -337,16 +326,16 @@ pub fn fs_scan_directory(
 
     // Build the walker with ignore patterns
     let mut builder = WalkBuilder::new(root);
-    
+
     // Configure walker
     builder
-        .hidden(false)           // Don't skip hidden files (let patterns decide)
-        .git_ignore(true)        // Respect .gitignore
-        .git_global(true)        // Respect global gitignore
-        .git_exclude(true)       // Respect .git/info/exclude
-        .ignore(true)            // Respect .ignore files
-        .parents(true)           // Check parent directories for ignore files
-        .follow_links(false);    // Don't follow symlinks (avoid cycles)
+        .hidden(false) // Don't skip hidden files (let patterns decide)
+        .git_ignore(true) // Respect .gitignore
+        .git_global(true) // Respect global gitignore
+        .git_exclude(true) // Respect .git/info/exclude
+        .ignore(true) // Respect .ignore files
+        .parents(true) // Check parent directories for ignore files
+        .follow_links(false); // Don't follow symlinks (avoid cycles)
 
     // Set max depth if provided
     if let Some(depth) = max_depth {
@@ -368,7 +357,7 @@ pub fn fs_scan_directory(
             continue;
         }
     }
-    
+
     if let Ok(built_overrides) = overrides.build() {
         builder.overrides(built_overrides);
     }
@@ -398,13 +387,11 @@ pub fn fs_scan_directory(
     }
 
     // Sort: directories first, then by path
-    entries.sort_by(|a, b| {
-        match (&a.entry_type, &b.entry_type) {
-            (FileType::Directory, FileType::Directory) => a.path.cmp(&b.path),
-            (FileType::Directory, _) => std::cmp::Ordering::Less,
-            (_, FileType::Directory) => std::cmp::Ordering::Greater,
-            _ => a.path.cmp(&b.path),
-        }
+    entries.sort_by(|a, b| match (&a.entry_type, &b.entry_type) {
+        (FileType::Directory, FileType::Directory) => a.path.cmp(&b.path),
+        (FileType::Directory, _) => std::cmp::Ordering::Less,
+        (_, FileType::Directory) => std::cmp::Ordering::Greater,
+        _ => a.path.cmp(&b.path),
     });
 
     Ok(entries)
@@ -578,10 +565,7 @@ pub fn fs_file_metadata(path: &str) -> Result<FileMetadata, String> {
         FileType::File
     };
 
-    let name = path
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or("");
+    let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
 
     let extension = if entry_type == FileType::File {
         get_extension(name)
@@ -593,7 +577,11 @@ pub fn fs_file_metadata(path: &str) -> Result<FileMetadata, String> {
     #[cfg(unix)]
     let perms = meta.permissions().mode();
     #[cfg(not(unix))]
-    let perms: u32 = if meta.permissions().readonly() { 0o444 } else { 0o644 };
+    let perms: u32 = if meta.permissions().readonly() {
+        0o444
+    } else {
+        0o644
+    };
 
     // Unix-specific metadata
     #[cfg(unix)]
@@ -654,7 +642,10 @@ pub fn fs_compute_hash(path: &str, algorithm: &str) -> Result<String, String> {
             let hash = md5::compute(&buffer);
             Ok(format!("{:x}", hash))
         }
-        _ => Err(format!("Unsupported algorithm: {}. Use 'sha256' or 'md5'.", algorithm)),
+        _ => Err(format!(
+            "Unsupported algorithm: {}. Use 'sha256' or 'md5'.",
+            algorithm
+        )),
     }
 }
 
