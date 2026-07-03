@@ -1,0 +1,53 @@
+# =============================================================================
+# Prospect Pipeline — PostgreSQL + Infrastructure
+#
+# Vanilla PostgreSQL 16 for:
+#   - Prospect pipeline data (companies, DMs, signals, proposals, outreach)
+#   - Field-level provenance (current state + changelog)
+#   - Effect Cluster persistence (workflow journal, entity state, activity results)
+#
+# Usage:
+#   docker compose -f src/lib/prospects/docker/docker-compose.yml up -d
+#   docker compose -f src/lib/prospects/docker/docker-compose.yml logs -f
+#   docker compose -f src/lib/prospects/docker/docker-compose.yml down
+#   docker compose -f src/lib/prospects/docker/docker-compose.yml down -v  # + remove data
+#
+# Connection:
+#   psql postgres://prospects:prospects_dev@localhost:5434/prospects
+#   Or: docker exec -it tmnl_prospects_db psql -U prospects -d prospects
+#
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Prospects Database — Vanilla PostgreSQL 16
+  # ===========================================================================
+  prospects-db:
+    image: postgres:16-alpine
+    container_name: tmnl_prospects_db
+    ports:
+      - '5434:5432'    # 5434 to avoid collisions with main PG (5432) and IIoT (5433)
+    volumes:
+      - prospects-db-data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d   # init scripts run on first start
+    environment:
+      POSTGRES_USER: prospects
+      POSTGRES_PASSWORD: prospects_dev
+      POSTGRES_DB: prospects
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U prospects -d prospects']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - prospects
+
+networks:
+  prospects:
+    driver: bridge
+
+volumes:
+  prospects-db-data:
+    driver: local
