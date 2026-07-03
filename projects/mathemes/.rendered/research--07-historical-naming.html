@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historical Analysis of Mathematical Naming — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / research / 07-historical-naming</div>
+  <h1>Historical Analysis of Mathematical Naming</h1>
+<p><strong>Status</strong>: Draft — traces how mathematical eponymy arose, calcified, and where it has been resisted.</p>
+<hr>
+<h2>Thesis</h2>
+<p>Mathematical eponymy is not a natural law. It is a cultural practice with a traceable origin, specific propagation mechanisms, and historical contingency. Understanding how it arose reveals the pressure points where reform is possible.</p>
+<hr>
+<h2>1. The Priority Wars (17th–19th Century)</h2>
+<h3>1.1 The Newton-Leibniz Dispute</h3>
+<p>The archetype of mathematical priority conflict. Newton and Leibniz independently developed calculus in the late 17th century. The ensuing dispute — which consumed decades, split European mathematics along national lines, and involved accusations of plagiarism — established a template: <strong>mathematical reputation depends on being recognized as the first discoverer</strong>.</p>
+<p>The naming consequences were immediate. British mathematics used Newtonian notation (dots, fluxions) while Continental mathematics used Leibnizian notation (dy/dx, integrals). The notation carried the credit. British mathematics stagnated for a century partly because loyalty to Newton&#39;s notation impeded adoption of the more powerful Leibnizian framework.</p>
+<p>Lesson: <strong>naming as credit-locking has direct intellectual costs</strong>. When names carry factional allegiance, they impede the free flow of ideas.</p>
+<h3>1.2 The Bernoulli Dynasty</h3>
+<p>The Bernoulli family (Jakob, Johann, Daniel, and others) produced at least eight mathematicians across three generations. The internal competition was fierce. Johann Bernoulli attempted to publish his son Daniel&#39;s work under his own name. Jakob and Johann engaged in public disputes over the brachistochrone problem.</p>
+<p>The proliferation of &quot;Bernoulli&quot; in mathematical terminology (Bernoulli numbers, Bernoulli distribution, Bernoulli equation, Bernoulli process, Bernoulli trial, Bernoulli&#39;s principle) makes the eponym practically useless as a reference — which Bernoulli? Which result? The name disambiguates nothing. It&#39;s pure credit-stamping.</p>
+<h3>1.3 Gauss and the Suppression Strategy</h3>
+<p>Gauss famously withheld results for years, then claimed priority when others published. His strategy was the opposite of hasty naming: he suppressed publication until the result was polished to his satisfaction, then relied on his towering reputation to ensure credit. The result: &quot;Gaussian&quot; is attached to an extraordinary range of concepts (Gaussian elimination, Gaussian integers, Gaussian curvature, Gaussian distribution, Gaussian quadrature), many of which were known before Gauss or independently discovered by others.</p>
+<p>The &quot;Gaussian distribution&quot; is the most famous case — de Moivre described it first, but Gauss&#39;s prestige overwhelmed de Moivre&#39;s priority. This is Stigler&#39;s Law made concrete: the name follows fame, not discovery.</p>
+<h2>2. The Textbook Calcification Mechanism</h2>
+<h3>2.1 How Names Stick</h3>
+<p>Mathematical names calcify through a specific mechanism:</p>
+<ol>
+<li><strong>Originator or contemporary uses eponym in a paper</strong>: &quot;I extend Hilbert&#39;s method...&quot;</li>
+<li><strong>Graduate students learn the name from their advisor</strong>: oral tradition transmits name→concept mappings</li>
+<li><strong>Textbook authors inherit the name</strong>: they cite prior textbooks, perpetuating the term</li>
+<li><strong>Each new textbook reinforces the name</strong>: switching costs increase with each generation</li>
+<li><strong>The name becomes &quot;standard&quot;</strong>: any deviation is marked as non-standard, eccentric, or confusing</li>
+</ol>
+<p>This is Kripke&#39;s causal chain in action: the name propagates through a chain of speakers, each inheriting it from the previous. Breaking the chain requires not just a better name but a coordinated switch across multiple textbooks simultaneously.</p>
+<h3>2.2 The Switching Cost Problem</h3>
+<p>By the time a name is entrenched:</p>
+<ul>
+<li>Every existing textbook uses it</li>
+<li>Every existing paper references it</li>
+<li>Every search index catalogs it</li>
+<li>Every mathematician&#39;s memory stores it</li>
+</ul>
+<p>The cost of switching is borne collectively (everyone must learn the new name), while the benefit accrues individually (each new learner saves time). This is a classic collective action problem — rational for no individual to switch, despite being rational for the community as a whole.</p>
+<p>IUPAC solved this problem through institutional mandate (the Union sets the standard) and dual naming (old names persist as acceptable alternatives). Mathematics lacks the institutional mechanism.</p>
+<h2>3. Where Descriptive Naming Won</h2>
+<p>Despite the general dominance of eponymy, there are domains where descriptive naming prevailed. Understanding WHY they succeeded is critical for Mathemes.</p>
+<h3>3.1 Basic Topology</h3>
+<p>The foundational vocabulary of topology is overwhelmingly descriptive:</p>
+<ul>
+<li><strong>Open set</strong>, <strong>closed set</strong> — describe the defining property</li>
+<li><strong>Compact</strong> — suggests compression, finite covering</li>
+<li><strong>Connected</strong> — describes path-connectivity</li>
+<li><strong>Continuous</strong> — describes absence of breaks</li>
+<li><strong>Dense</strong> — describes filling a space</li>
+<li><strong>Bounded</strong> — describes containment within limits</li>
+</ul>
+<p>These terms predate the formalization of topology as a discipline. They were drawn from the vernacular by mathematicians who were building the language of a new field and had no established eponyms to inherit. <strong>Descriptive naming is the default when a field is young enough that no one has staked credit claims yet.</strong></p>
+<p>The contrast with the later vocabulary (Hausdorff, Tychonoff, Urysohn, Lindelöf) is instructive: as topology matured and became a prestige field, eponyms proliferated. The young field named descriptively; the mature field named possessively.</p>
+<h3>3.2 Category Theory (The Central Example)</h3>
+<p>As argued in <code>01-category-theory-paradox.md</code>, category theory&#39;s descriptive vocabulary was forced by its abstraction. But there&#39;s also a historical factor: Eilenberg and Mac Lane were <strong>deliberately designing a language</strong>. Their 1945 founding paper is explicitly concerned with building vocabulary that enables thought, not with staking credit.</p>
+<p>Mac Lane later wrote that they were &quot;purloining words from the philosophers&quot; — Category from Aristotle/Kant, Functor from Carnap, &quot;natural transformation&quot; from informal mathematical parlance. They chose terms for their conceptual resonance, not for credit.</p>
+<p>This was possible because category theory emerged as a <strong>service discipline</strong> — a language for expressing relationships between other mathematical structures. Its practitioners were building infrastructure, not claiming territory.</p>
+<h3>3.3 Bourbaki&#39;s Selective Contribution</h3>
+<p>The Bourbaki group (1930s–1970s) introduced several descriptive terms that stuck:</p>
+<ul>
+<li><strong>Injective</strong>: &quot;in-throwing&quot; — maps that throw distinct elements to distinct targets</li>
+<li><strong>Surjective</strong>: &quot;over-throwing&quot; — maps that cover the entire target</li>
+<li><strong>Bijective</strong>: &quot;double-throwing&quot; — both injective and surjective</li>
+</ul>
+<p>These terms are morphologically transparent (Latin roots decompose into meaningful prefixes), compose naturally (an &quot;injective surjective&quot; map is bijective), and are now universal. They demonstrate that descriptive neologisms CAN replace prior terminology — Bourbaki&#39;s terms displaced various older names (one-to-one, onto, one-to-one correspondence).</p>
+<p>But Bourbaki also introduced opaque terms (&quot;Noetherian&quot;) and failed to systematize their naming approach. Their contribution was incidental, not principled.</p>
+<h3>3.4 Computer Science and Programming</h3>
+<p>The field that most directly builds things chose descriptive names almost exclusively:</p>
+<ul>
+<li><strong>Array</strong>, <strong>hash map</strong>, <strong>tree</strong>, <strong>stack</strong>, <strong>queue</strong> — not &quot;Turing sequence&quot; or &quot;Knuth table&quot;</li>
+<li><strong>Algorithm</strong> (from al-Khwarizmi) is the notable exception, and it&#39;s so old it functions as a vernacular word</li>
+</ul>
+<p>Computer science&#39;s descriptive naming culture likely stems from engineering pragmatism: ambiguity has a compile-time cost. If you call a data structure by a name that doesn&#39;t describe it, you write bugs. Mathematics lacks this feedback loop — incorrect naming doesn&#39;t produce runtime errors, it produces confused students, and confused students are silent.</p>
+<h2>4. The Guild Function of Opaque Naming</h2>
+<h3>4.1 Terminology as Gatekeeping</h3>
+<p>Opaque terminology functions as a <strong>guild barrier</strong>. To participate in mathematical discourse, you must first memorize a large vocabulary of arbitrary name→concept mappings. This filters for:</p>
+<ul>
+<li>Access to elite education (where the oral tradition lives)</li>
+<li>Persistence through memorization-heavy coursework</li>
+<li>Social belonging in the mathematical community (using the &quot;right&quot; names signals membership)</li>
+</ul>
+<p>This filtering has nothing to do with mathematical ability. It selects for cultural capital, not intellectual capacity.</p>
+<h3>4.2 The Status Signaling Function</h3>
+<p>Using eponymous terms signals expertise — &quot;I know what Hausdorff means&quot; is a status claim. Descriptive terms don&#39;t carry the same signal — &quot;point-separated space&quot; is comprehensible to anyone who knows the constituent words, which defeats the signaling purpose.</p>
+<p>This is not conspiracy — it&#39;s emergent. No individual mathematician decided to gatekeep through naming. But the system&#39;s incentive structure rewards those who master the arbitrary vocabulary and disadvantages those who haven&#39;t been acculturated.</p>
+<h3>4.3 The &quot;Tradition&quot; Defense</h3>
+<p>The most common defense of eponymous naming is &quot;tradition&quot; — &quot;that&#39;s what it&#39;s always been called.&quot; This is a pure appeal to the causal chain (Kripke) without any consideration of whether the chain carries useful semantic content. Chemistry had tradition too. Biology had tradition too. Both reformed their nomenclature despite tradition, because the cost of opacity exceeded the cost of change.</p>
+<p>Mathematics has never crossed that threshold — not because the cost is lower, but because the cost is invisible (borne by students who leave the field, not by experts who stay).</p>
+<h2>5. Timeline of Key Events</h2>
+<table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Event</th>
+<th>Significance</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1735</td>
+<td>Linnaeus publishes <em>Systema Naturae</em></td>
+<td>Proves systematic naming works for science</td>
+</tr>
+<tr>
+<td>1780s</td>
+<td>Lavoisier reforms chemical nomenclature</td>
+<td>First systematic reform of scientific naming</td>
+</tr>
+<tr>
+<td>1892</td>
+<td>Geneva Nomenclature Congress</td>
+<td>Chemistry tries rigid systematic naming — too cumbersome</td>
+</tr>
+<tr>
+<td>1919</td>
+<td>IUPAC founded</td>
+<td>Institutional body for nomenclature</td>
+</tr>
+<tr>
+<td>1930</td>
+<td>Liège Nomenclature</td>
+<td>Chemistry gets &quot;systematic flexibility&quot; — the winning formula</td>
+</tr>
+<tr>
+<td>1935</td>
+<td>Bourbaki founded</td>
+<td>Introduces injective/surjective/bijective — incidental naming reform</td>
+</tr>
+<tr>
+<td>1945</td>
+<td>Eilenberg &amp; Mac Lane publish</td>
+<td>Category theory&#39;s deliberately descriptive vocabulary</td>
+</tr>
+<tr>
+<td>1980</td>
+<td>Henwood &amp; Rival publish</td>
+<td>First mathematical anti-eponymy manifesto</td>
+</tr>
+<tr>
+<td>1980</td>
+<td>Stigler&#39;s Law published</td>
+<td>&quot;No discovery is named after its discoverer&quot;</td>
+</tr>
+<tr>
+<td>2019</td>
+<td>Beretta&#39;s <em>Names as Rewards</em></td>
+<td>Historical sociology of scientific eponymy</td>
+</tr>
+<tr>
+<td>2019+</td>
+<td>White&#39;s <em>Better Terms</em></td>
+<td>Most extensive ad hoc rename catalog</td>
+</tr>
+<tr>
+<td>2025</td>
+<td><strong>Mathemes initiated</strong></td>
+<td>First compositional naming system for mathematics</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Implications for Mathemes</h2>
+<ol>
+<li><p><strong>Young fields name descriptively; mature fields name possessively.</strong> Mathemes can succeed if it positions itself as infrastructure for cross-domain communication, not as a challenge to any field&#39;s internal conventions.</p>
+</li>
+<li><p><strong>Institutional adoption matters more than intellectual merit.</strong> The arguments have been sound since 1980. What&#39;s been missing is institutional backing. Target textbook authors, encyclopedia editors, and mathematical societies.</p>
+</li>
+<li><p><strong>Dual naming reduces switching costs to zero.</strong> Nobody has to stop using &quot;Hilbert space.&quot; They just also see &quot;(complete inner-product space)&quot; in the margin. Over a generation, the descriptive name becomes familiar.</p>
+</li>
+<li><p><strong>Computer science proves the case by existence.</strong> The most practically consequential mathematical discipline chose descriptive naming because ambiguity has a cost. Mathematics should learn from its own applied offspring.</p>
+</li>
+</ol>
+<hr>
+<p><em>This document traces the historical mechanisms that produced and sustain mathematical eponymy, identifying the pressure points where the Mathemes system can intervene.</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

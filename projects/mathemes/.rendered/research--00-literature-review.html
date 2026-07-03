@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Literature Review: Mathematical Eponymy and Nomenclature Reform — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / research / 00-literature-review</div>
+  <h1>Literature Review: Mathematical Eponymy and Nomenclature Reform</h1>
+<p><strong>Status</strong>: Enriched review — focused on eponymy, systematic nomenclature, cognitive effects of naming, and philosophical reference.</p>
+<hr>
+<h2>0. Thesis for Mathemes</h2>
+<p>Mathemes is not merely a campaign against surnames in mathematics. It is a proposal for a <strong>compositional naming system</strong>: names should expose the structural ingredients of a concept whenever doing so helps recognition, learning, search, and cross-domain transfer. The literature supports three linked claims:</p>
+<ol>
+<li><strong>Eponymy is historically a reward institution, not a semantic technology.</strong> It commemorates, competes, and sometimes flatters; it rarely describes.</li>
+<li><strong>Eponyms are unreliable even as credit.</strong> Stigler&#39;s evidence shows that the name attached to a result often marks reception history rather than discovery history.</li>
+<li><strong>Descriptive names can alter cognition.</strong> Cognitive science does not support crude linguistic determinism, but it strongly supports weaker mechanisms: labels highlight distinctions, recruit category templates, augment reasoning, and make some features easier to attend to.</li>
+</ol>
+<p>The design problem for Mathemes is therefore the same one chemistry faced: not “rigor or convenience,” but <strong>systematic flexibility</strong> — a grammar strict enough to make structure visible, flexible enough to survive actual expert use.</p>
+<hr>
+<h2>1. The Case Against Eponymy</h2>
+<h3>1.1 Henwood &amp; Rival (1980): the mathematical manifesto</h3>
+<p>Henwood and Rival&#39;s short <em>Mathematical Intelligencer</em> essay remains the founding polemic against mathematical eponymy. Its opening parody — “A Boleslawskian Criterion for the Hughes-Williams Evaluation of non-Walquistness” — is funny because it is barely parody at all. In eighty-five words, their fictional abstract uses six invented eponyms twelve times; its rhythm is recognizable mathematical prose.</p>
+<p>Their central distinction comes from Darwin: <strong>naming is not describing</strong>. Darwin complained to Hugh Strickland that appending the first describer&#39;s name to a species was “the greatest curse to Natural History,” both because it was “a direct premium to hasty work” and because it encouraged “naming instead of describing.” Henwood and Rival transfer the charge to mathematics:</p>
+<blockquote>
+<p>“Eponyms are in themselves meaningless, for they possess no descriptive content. They never describe; they often obscure.”</p>
+</blockquote>
+<p>Their examples are deliberately pedagogical: “Kolmogorov variable,” “Guthrie-de Morgan conjecture,” and “Dirichlet principle” tell the reader far less than “random variable,” “four-colour conjecture,” and “pigeonhole principle.” The latter terms do cognitive work: they are suggestive, mnemonic, and structurally informative.</p>
+<p>They also identify two social harms. First, eponym strings can “mask shallow or trivial mathematical work,” giving an illusion of depth. Second, names inflate weak concepts: “Walquist polynomials bask in the glory of Hilbert spaces.” This anticipates Beretta&#39;s sociological point: eponyms act as prestige tokens. Their remedy is practical but incomplete: use descriptive names when available, avoid naming transient lemmas, and mine the vernacular for suggestive terms. What they do <strong>not</strong> provide is a grammar: no morphology, no precedence rules, no conflict-resolution mechanism. Mathemes begins where Henwood and Rival stop.</p>
+<h3>1.2 Beretta (2019): names as rewards, from Hellenistic science to Merton</h3>
+<p>Marco Beretta&#39;s <em>Names as Rewards</em> is essential because it explains why eponymy persists even when its semantic defects are obvious. Eponyms are not just lazy labels; they are “one of the most effective reward systems in Western science.” They bridge the contradiction between the declared objectivity of scientific discourse and the desire for individual vindication.</p>
+<p>Beretta traces scientific eponymy to classical antiquity, especially the Hellenistic period, when specialized disciplines began mapping their own histories through founders and first inventors. The ancient evidence matters because it shows eponymy functioning not as neutral nomenclature but as <strong>disciplinary historiography</strong>.</p>
+<h4>Pliny: eponymy as immortality and ambition</h4>
+<p>Pliny&#39;s botanical examples make the reward logic explicit. In <em>Natural History</em> 25.1 he writes:</p>
+<blockquote>
+<p>“By Hercules! A single invention before now has elevated men to the rank of gods; and how many an individual has had his name immortalized by being bestowed upon some plant which he was the first to discover, thanks to the gratitude which prompted a succeeding age to make some adequate return.”</p>
+</blockquote>
+<p>Here eponymy is repayment across generations: a succeeding age returns gratitude by making the discoverer&#39;s name durable. But Pliny also sees the darker motive. In <em>Natural History</em> 25.7:</p>
+<blockquote>
+<p>“In former times, there was a sort of ambition, as it were, of adopting plants by bestowing upon them one&#39;s name... so desirable a thing did it appear to have made the discovery of some plant, and thus to have contributed greatly to the benefit of mankind.”</p>
+</blockquote>
+<p>The phrase “adopting plants” is revealing. Eponymy does not merely record discovery; it asserts a possessive relation to nature. Pliny&#39;s euphorbia example reinforces this: Juba II named the plant after his physician Euphorbos, and in a dedicated volume “sings the praises of its milky juice,” claiming it aided sight and countered poison. The eponym fuses discovery, courtly patronage, pharmacological authority, and personal commemoration.</p>
+<h4>Eratosthenes: mathematical eponymy as historical breadcrumb</h4>
+<p>Beretta&#39;s mathematical example is especially relevant to Mathemes. In an epigram cited by Proclus on Euclid, Eratosthenes refers to conic sections as the “triad of Menaechmus”:</p>
+<blockquote>
+<p>“Don&#39;t produce the conic section with the triads of Menaechmus.”</p>
+</blockquote>
+<p>Beretta notes that nearly all we know of Menaechmus&#39;s conic work derives from this short epigram. That is both the power and danger of eponymy: a name can preserve a historical association while saying almost nothing about the structure. “Triad of Menaechmus” is a disciplinary fossil; “ellipse, parabola, hyperbola” are the actual conceptual tools.</p>
+<h4>Diodorus Siculus: astronomical and engineering eponyms</h4>
+<p>Diodorus&#39;s account of Meton shows eponymy attaching to a mathematical-astronomical model. He writes that in Athens:</p>
+<blockquote>
+<p>“Meton, the son of Pausanias, who had won fame for his study of the stars, revealed to the public his nineteen-year cycle... In this number of years the stars accomplish their return to the same place in the heavens... consequently it is called by some the Year of Meton.”</p>
+</blockquote>
+<p>This is not merely homage; it marks a calculational standard used “even down to our own day.” Diodorus also records the engineer Phaeax, whose underground conduits at Agrigento were so notable that “because of the fame of the construction, the underground conduits received the name ‘Phaeaces’ from him.” In both cases, the eponym maps an achievement into disciplinary memory.</p>
+<h4>Renaissance proliferation: America, Galileo, Riccioli, Linnaeus</h4>
+<p>The Renaissance intensified this ancient pattern. Beretta&#39;s example of America is the perfect misattribution case. In 1507 Waldseemüller justified naming the new fourth part of the world after Amerigo Vespucci:</p>
+<blockquote>
+<p>“I do not see why anyone should justifiably forbid it to be called Amerige, as in ‘Americus’ Land,’ or America, from its discoverer Americus, a man of perceptive character.”</p>
+</blockquote>
+<p>The attribution is historically wrong if “discoverer” means first European discoverer, but Beretta argues the choice also honored Vespucci&#39;s scientific persona: in the accompanying map, Vespucci faces Ptolemy holding a compass. The eponym becomes a claim about scientific navigation, cosmopolitan progress, and Florentine prestige.</p>
+<p>Astronomy then turned the heavens into a commemorative atlas. Galileo named Jupiter&#39;s moons <em>Medicea Sidera</em> after his patrons; Riccioli&#39;s lunar map filled craters and regions with ancient and modern astronomers — Archimedes, Aristarchus, Eratosthenes, Copernicus, Galileo, Kepler, Tycho, and many more — as well as instrument makers. The moon became a visible reward ledger.</p>
+<p>Linnaeus made the reward principle programmatic in botany. In 1737 he asked:</p>
+<blockquote>
+<p>“When men have devoted a happy life to study... and have accomplished something noteworthy, their names are customarily attached to their accomplishment... Why then should we deny to Botanists all reward, all honour, all commemoration?”</p>
+</blockquote>
+<p>And more directly:</p>
+<blockquote>
+<p>“Alas that such labour should go unrewarded! Would you not like, dear Botanists, to have some reward within your reach which you can obtain by merit, and with which you might rouse the ambition of distinguished men?”</p>
+</blockquote>
+<p>This is Merton before Merton: eponymy as incentive. But Beretta also notes Linnaeus&#39;s abuse of this power: <em>Bufonia</em>, an unimpressive and foul-smelling plant, was named after Buffon, his critic. Eponymy rewards; it can also punish.</p>
+<h4>Merton, Stigler, and the priority race</h4>
+<p>Beretta&#39;s sociological frame is Mertonian. Science prizes originality; priority races arise; eponymy becomes “the most enduring and perhaps most prestigious kind of recognition institutionalized in science.” Stigler challenges the historical accuracy of this reward system, but Beretta&#39;s reply is subtle: misattribution does not exhaust the meaning of eponyms. They function even when inaccurate because their social role is not only to credit first discovery; it is to organize prestige, memory, and disciplinary geography.</p>
+<p>For Mathemes, this is the key warning. A better naming system cannot win by semantic superiority alone. It must offer a substitute for the reward function: attribution footnotes, historical notes, lineage metadata, and citation pathways. Otherwise the old eponymic economy will reassert itself, because it satisfies social needs that descriptive naming alone does not address.</p>
+<h3>1.3 Stigler (1980): eponyms as remote, prestigious, and wrong</h3>
+<p>Stephen Stigler&#39;s “Stigler&#39;s Law of Eponymy” states, self-referentially, that “no scientific discovery is named after its original discoverer.” His point is not that eponyms are randomly assigned. Rather, accepted eponyms are usually awarded by a community remote in time or place from the recipient. That distance gives the award the appearance of impartiality and thus prestige — but it also makes historical error likely.</p>
+<p>Stigler&#39;s methodology is sociological and quantitative. After listing examples, he studies the naming of the normal distribution in 80 statistics textbooks from 1816 to 1976. The distribution was described by de Moivre in 1733, touched by Laplace in 1774, and associated by Gauss with least squares in 1809. Yet “Gaussian distribution” spreads only slowly: the first sampled textbook eponym is Helmert in Germany in 1872, 61 years after Gauss&#39;s relevant publication and 17 years after Gauss&#39;s death. Bertrand&#39;s “loi de Gauss” in 1889 helps international acceptance. Stigler&#39;s conclusion: eponyms acquire authority through delayed community uptake, not historical precision.</p>
+<h4>Stigler&#39;s specific wrong attributions</h4>
+<table>
+<thead>
+<tr>
+<th>Eponym / attribution</th>
+<th>Earlier or better claimant in Stigler&#39;s account</th>
+<th>What is wrong about the name</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Gaussian distribution</td>
+<td>Abraham de Moivre (1733); Laplace discussed it by 1774</td>
+<td>Gauss studied and used it, but did not originate it; Gauss himself cited Laplace.</td>
+</tr>
+<tr>
+<td>Fourier transforms</td>
+<td>Laplace used them in print before Fourier published on the topic</td>
+<td>The transform label attaches to a later, more famous systematizer.</td>
+</tr>
+<tr>
+<td>Laplace transforms</td>
+<td>Lagrange presented them before Laplace began his scientific career</td>
+<td>The named figure is not the first known presenter.</td>
+</tr>
+<tr>
+<td>Cauchy distribution</td>
+<td>Poisson published it in 1824, 29 years before Cauchy&#39;s incidental use</td>
+<td>Cauchy&#39;s association is late and not originative.</td>
+</tr>
+<tr>
+<td>Chebychev inequality</td>
+<td>Bienaymé stated and proved it earlier and in greater generality</td>
+<td>Chebychev&#39;s version was later and less general.</td>
+</tr>
+<tr>
+<td>Mayer&#39;s method</td>
+<td>First appeared in Laplace&#39;s work a quarter century after Mayer died</td>
+<td>Not merely misattributed to the wrong discoverer; the namesake predates the method&#39;s publication.</td>
+</tr>
+<tr>
+<td>Pythagorean theorem</td>
+<td>Known before Pythagoras; first proof likely after Pythagoras</td>
+<td>Pythagoras may not even have known its geometrical significance.</td>
+</tr>
+<tr>
+<td>Pascal&#39;s triangle</td>
+<td>Published earlier by Hérigone; known in China before that</td>
+<td>Pascal is a famous transmitter, not the originator.</td>
+</tr>
+<tr>
+<td>Giffen&#39;s paradox</td>
+<td>Simon Gray stated it before Giffen&#39;s birth</td>
+<td>An example of an eponym attached to someone who may not have stated the result at all.</td>
+</tr>
+</tbody></table>
+<p>This table matters for Mathemes because it dissolves the most common defense of mathematical eponymy: “the name gives credit.” Often it does not. It gives credit to a node in the transmission chain, not necessarily the discovery source. That is useful historical evidence, but poor nomenclature.</p>
+<h3>1.4 White (2019–): the ad hoc catalog as data source</h3>
+<p>Steve White&#39;s “Better Terms for Mathematical Concepts” is less a theory than a field notebook — and that is precisely its value. It catalogs hundreds of replacement names, objections, exceptions, and cross-linguistic notes. It also reveals where mathematical renaming is easy, where it is hard, and where a compositional system would help.</p>
+<p>White&#39;s recurring principles are close to Henwood and Rival&#39;s, but sharper:</p>
+<ul>
+<li>Descriptive or suggestive names are pedagogically and mnemonically superior.</li>
+<li>Naming important mathematics after people is objectionable even when attribution is correct: “The concept is more important than the person.”</li>
+<li>Homage belongs in citations and history notes, not in the name.</li>
+<li>Ancient terms often deserve retention because they are entrenched, international, and originally descriptive.</li>
+<li>Some eponyms should remain: conjectures, false or historically bounded ideas, clever constructions, and cases where no compact descriptive name is available.</li>
+</ul>
+<h4>Pattern analysis by domain</h4>
+<p><strong>Geometry and analytic geometry</strong> are relatively tractable. White proposes “hypotenuse theorem,” “geometric plane,” “flat/non-flat geometry,” “regular convex polyhedron,” “band of one twist,” “linear fractional transform,” “point-line perspective theorem,” and “rectangular coordinate system.” The domain is visual; vernacular metaphors often work.</p>
+<p><strong>Calculus and vector calculus</strong> already contain many good descriptive alternatives: product rule, power series, tangent method, divergence theorem, circulation/curl theorem, splitting/decomposition theorem, derivative, directional derivative, rule of indeterminate forms. These terms expose operations. The resistance here is mostly inertia and textbook convention.</p>
+<p><strong>Linear algebra and numerical linear algebra</strong> are the densest eponym zones in White&#39;s catalog: Gaussian elimination, Laplace expansion, Binet-Cauchy, Cramer, Gram-Schmidt, Vandermonde, Gramian, Kronecker product, Frobenius/Hilbert-Schmidt norm, Jordan/Weyr/Frobenius/Hermite/Smith forms, Moore-Penrose inverse, Cayley-Hamilton, SVD, Schur form, Toeplitz matrix, Cholesky, Householder, Lanczos, Givens, Gauss-Seidel, Jacobi. This domain is especially ripe for Mathemes because its objects are structurally compositional: row reduction, cofactor expansion, determinant method, successive orthonormalization, dot-product matrix, value-power matrix, divisor-chain form, unitary diagonal decomposition, near-triangular form, convolution matrix. The names can often be generated from structure.</p>
+<p><strong>Analysis, complex analysis, differential equations, and distributions</strong> are also heavy with eponyms: Cauchy sequence, Cauchy-Riemann equations, Arzelà-Ascoli, Bolzano-Weierstrass, Riemann mapping, Liouville&#39;s theorem, Koebe function, Fourier/Laplace transforms, Plancherel, Dirac delta, Heaviside step, Helmholtz equation, D&#39;Alembertian, Poisson/Laplace equations, KdV, Galerkin, Runge-Kutta, Noether. White&#39;s replacements often use operator or phenomenon language: self-nearing sequence, differentiability conditions, bounded sequence convergence theorem, univalent mapping theorem, frequency transform, impulse distribution, unit step, wave operator, potential equation, shallow wave equation, weak-form projection, staged step, conservation-symmetry theorem.</p>
+<p><strong>Topology</strong> is where White finds nomenclatural hell. “Hausdorff,” “Urysohn,” “Tychonoff,” “regular,” “normal,” “completely,” “perfectly,” and the T-numbering scheme hide the hierarchy. White&#39;s AI-assisted separation-axiom table is a miniature Mathemes prototype: T0 becomes “distinct-point space,” T1 “closed-point space,” T2 “point-separable space,” T3 “point-set separable space,” T4 “closed-set separable space,” T6 “closed-set function-separable space.” The names display the two axes: <strong>what is separated</strong> and <strong>by what means</strong>. This is exactly the compositional naming pattern Mathemes should generalize.</p>
+<p><strong>Abstract algebra</strong> is the most resistant domain. White criticizes “group,” “ring,” “field,” “ideal,” “normal,” “semigroup,” and “quasigroup,” but often cannot improve them without clumsiness. The reason is not that the names are good; it is that foundational algebraic structures are abstract, compact, and massively entrenched. “Group” is semantically weak but monosyllabic and internationally stable. “Ring” and “field” are bad metaphors but short. “Commutative group” can replace “Abelian group,” and “subgroup order division theorem” can replace “Lagrange&#39;s theorem,” but the primitives themselves resist descriptive compression.</p>
+<p><strong>Logic, set theory, probability, graph theory, and optimization</strong> show mixed behavior. “Conditional probability theorem,” “memoryless chain,” “set diagram,” “maximal element principle,” “simple spanning path,” “tour,” and “amoeba method” are strong. But “Gödel incompleteness theorem” is arguably acceptable as “the incompleteness theorem” because the descriptive core is already present.</p>
+<h4>Lessons from White for Mathemes</h4>
+<p>White&#39;s catalog shows that renaming succeeds when a concept has a compact structural profile: operation + object, property + space, transformation + invariant, decomposition + form. It struggles when concepts are foundational, polysemous, historically overloaded, or defined by a long theorem statement. Mathemes therefore needs tiers:</p>
+<ol>
+<li><strong>Canonical compositional names</strong> for definitions and teaching.</li>
+<li><strong>Short expert aliases</strong> for frequent use.</li>
+<li><strong>Historical metadata</strong> for credit.</li>
+<li><strong>Exception policies</strong> for ancient terms, conjectures, named constructions, and entrenched monosyllables.</li>
+</ol>
+<hr>
+<h2>2. Comparative Nomenclature Systems</h2>
+<h3>2.1 IUPAC: systematic flexibility as the model</h3>
+<p>Evan Hepler-Smith&#39;s history of IUPAC organic nomenclature is the closest analogue for Mathemes. Chemistry faced a naming crisis caused by explosive growth: as chemists synthesized more compounds, they coined structure-expressing names under conflicting conventions. The 1892 Geneva Congress gathered thirty-four organic chemists to impose order.</p>
+<p>The central debate was Friedel versus Baeyer:</p>
+<ul>
+<li><strong>Charles Friedel</strong> wanted a flexible system allowing trivial and systematic names adapted to diverse uses and preferences.</li>
+<li><strong>Adolf von Baeyer</strong> wanted rigorous rules that would generate a unique name for every compound, especially for editors and indexers managing handbooks and journal indexes.</li>
+</ul>
+<p>Baeyer&#39;s rigor won at Geneva, but implementation exposed the problem. Unique systematic names for moderately complex compounds became unwieldy. Some editors refused to use the Geneva nomenclature because it was too cumbersome for actual chemical literature.</p>
+<p>Paul Jacobson, editor of German Chemical Society publications and Beilstein, pushed in the opposite direction. He considered Geneva a lost cause, preferred classification and empirical formula indexes, and later advocated a nomenclature commission made of experienced editors and indexers rather than famous theorists. His approach was “diametrically opposed” to Geneva rigor: evaluate proposals, resolve confusions, avoid sweeping rules that disrupt reference works.</p>
+<p>The Liège compromise came through Arnold Holleman&#39;s 1920s working group. Charged with revising Geneva but facing entrenched Beilstein and Chemical Abstracts practices, Holleman preserved Geneva&#39;s form while adopting Jacobson&#39;s spirit. The 1927 rules covered similar ground but tolerated variation and preserved well-established trivial names. Victor Grignard objected that this abandoned Geneva&#39;s logic, but Holleman secured support from the editors who controlled adoption. At Liège in 1930, the systematically flexible rules were approved without debate.</p>
+<h3>2.2 The parallel design tension for Mathemes</h3>
+<p>Mathemes faces the Friedel/Baeyer tension almost exactly.</p>
+<table>
+<thead>
+<tr>
+<th>Chemistry</th>
+<th>Mathemes parallel</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Baeyer: unique rigorous names aid indexing and retrieval</td>
+<td>A fully compositional grammar could make every structure searchable and comparable.</td>
+</tr>
+<tr>
+<td>Friedel: chemists need flexible names for actual work</td>
+<td>Mathematicians need compact terms, local conventions, and tolerable prose.</td>
+</tr>
+<tr>
+<td>Geneva: pure rigor produced cumbersome names</td>
+<td>Pure Mathemes names could become unreadable theorem-statements.</td>
+</tr>
+<tr>
+<td>Jacobson/Holleman: editors and reference works determine adoption</td>
+<td>Textbooks, arXiv, Wikipedia, MathWorld, proof assistants, and search engines determine adoption.</td>
+</tr>
+<tr>
+<td>Liège: preserve systematic structure while allowing curated exceptions</td>
+<td>Mathemes needs canonical descriptive names plus accepted short aliases and historical metadata.</td>
+</tr>
+</tbody></table>
+<p>The lesson is not “make every name algorithmic.” The lesson is: <strong>make the grammar strong, then make the adoption layer humane</strong>. Prime, let&#39;s not turn mathematics into a Rube Goldberg machine wearing a dictionary as a hat.</p>
+<h3>2.3 Chemistry&#39;s deeper lesson: names mirror structure</h3>
+<p>IUPAC works because organic molecules are compositional. Prefixes, suffixes, locants, and parent-chain choices encode molecular structure. Mathematical concepts are also compositional: a Hilbert space is a complete inner-product space; a Hausdorff space is a point-separable topological space; a Smith normal form is a divisor-chain diagonal form over a suitable domain.</p>
+<p>The analogy is imperfect. Molecules are concrete structures with standardized components; mathematical concepts are layered, context-sensitive, and often definitionally equivalent in multiple ways. Mathemes therefore cannot be a direct IUPAC clone. But it can adopt the core principle: <strong>the name should encode the defining structure at the level useful for the audience</strong>.</p>
+<hr>
+<h2>3. Cognitive Science Foundations</h2>
+<h3>3.1 Cognitive load, chunking, and dual coding</h3>
+<p>Opaque eponyms impose extraneous cognitive load. A student encountering “Hausdorff space” must store an arbitrary mapping. A student encountering “point-separable space” receives a retrieval cue for the defining condition. The name converts some memory work into conceptual work.</p>
+<p>Miller&#39;s chunking framework refines the point. “Complete inner-product space” is longer than “Hilbert space,” but its chunks are meaningful. For novices, “Hilbert” is not a chunk; it is an inert token. For experts, “Hilbert space” is a compact chunk precisely because they have already internalized the definition. This predicts a dual-register strategy: descriptive canonical names for learning and cross-domain transfer; short aliases for expert fluency.</p>
+<p>Paivio&#39;s dual coding theory adds that names with imagistic content can recruit both verbal and nonverbal systems. “Pullback,” “fiber,” “kernel,” “sheaf,” “bundle,” “cover,” “flow,” and “orbit” work because they evoke spatial or dynamic schemas. Good mathematical naming is not merely description; it is controlled metaphor.</p>
+<h3>3.2 Wolff &amp; Holmes (2011): language does not determine thought, but it does steer it</h3>
+<p>Wolff and Holmes reject simplistic linguistic determinism. They find no support for the idea that language “determines the basic categories of thought” or overwrites conceptual distinctions. But they identify several empirically supported mechanisms by which language affects cognition:</p>
+<ol>
+<li><strong>Thinking for speaking</strong> — speakers attend to distinctions their language requires when preparing speech.</li>
+<li><strong>Language as meddler</strong> — linguistic codes are recruited online and can facilitate or interfere with nonlinguistic processing.</li>
+<li><strong>Language as augmenter</strong> — language provides new representational tools, especially for exact number, rules, and embedded propositions.</li>
+<li><strong>Language as spotlight</strong> — habitual linguistic categories make some properties more salient.</li>
+<li><strong>Language as inducer</strong> — language can induce a more schematic mode of thought.</li>
+</ol>
+<p>Their domain findings matter directly for Mathemes.</p>
+<ul>
+<li><strong>Motion</strong>: English and Greek differ in whether manner or path is encoded in the verb; attention shifts when speakers prepare descriptions.</li>
+<li><strong>Color</strong>: Russian distinguishes light and dark blue lexically; Russian speakers discriminate across that boundary faster than English speakers, and the effect disappears under verbal interference.</li>
+<li><strong>Number</strong>: exact number appears to depend on learned linguistic systems; Pirahã speakers without exact number words rely on approximate magnitude.</li>
+<li><strong>False belief</strong>: Nicaraguan signers with richer mental-state vocabulary perform better on false-belief tasks.</li>
+<li><strong>Spatial relations</strong>: languages differ in whether they privilege relative, intrinsic, or absolute frames; speakers show corresponding biases in memory and reconstruction tasks.</li>
+<li><strong>Object/substance construal</strong>: English, Japanese, and Yucatec Maya differ in how nouns individuate objects and substances; speakers attend differently to shape versus material.</li>
+</ul>
+<p>For Mathemes, the lesson is precise: descriptive terminology will not magically create understanding, but it can <strong>spotlight</strong> relevant distinctions, <strong>augment</strong> reasoning with reusable verbal structures, and <strong>induce</strong> schematic thinking. A name like “closed-set function-separable space” does not prove a theorem, but it places the learner&#39;s attention on the right relation.</p>
+<h3>3.3 Evans &amp; Levinson: linguistic diversity as a natural laboratory</h3>
+<p>The provided BBS review on language diversity (Evans &amp; Levinson) strengthens the same point from another angle. Languages differ radically in sound systems, word classes, syntactic organization, semantic categories, spatial frames, evidentiality, number, and recursion. The old dream that all languages share a shallow English-like template is false.</p>
+<p>For Mathemes this is a design constraint: a good nomenclature cannot assume one natural language&#39;s morphology will always be ideal. English compounds work well for “point-separable space,” but other languages may prefer different orderings, derivations, or metaphors. Mathemes should specify semantic slots and compositional relations, not merely English strings.</p>
+<hr>
+<h2>4. Philosophy of Naming: Kripke and Mathematical Eponyms</h2>
+<h3>4.1 Rigid designation: the actual argument</h3>
+<p>Kripke&#39;s <em>Naming and Necessity</em> is often summarized as “names are rigid designators,” but the argument is richer. He separates epistemology from metaphysics: <strong>a priori</strong> concerns how something is known; <strong>necessary</strong> concerns whether it could have been otherwise. Goldbach&#39;s conjecture, if true, is necessarily true, even if no one knows it a priori. Conversely, “stick S is one meter long at time t0” may be knowable a priori for the person who fixes the meter by that stick, yet contingent because the stick might have been stretched.</p>
+<p>This distinction lets Kripke attack the description theory of names. Frege/Russell-style theories treat “Aristotle” as equivalent to some description such as “the teacher of Alexander.” But Aristotle might never have taught Alexander and still have been Aristotle. Descriptions can fix reference without giving meaning. “One meter” may be fixed by a stick; it does not mean “the length of that stick in all possible worlds.”</p>
+<p>A rigid designator picks out the same object in every possible world in which that object exists. “Nixon” refers to Nixon even in counterfactual situations where he loses the election. “The winner of the 1968 election” does not; it could have referred to Humphrey. Kripke insists that possible worlds are stipulated, not discovered through a telescope. We do not need a qualitative description to identify Nixon in another world; we stipulate that we are asking what might have happened to Nixon.</p>
+<h3>4.2 The causal chain theory</h3>
+<p>Kripke then rejects cluster theories of names. People often cannot uniquely identify the referent by descriptions. Many know Feynman only as “a physicist,” not enough to distinguish him from Gell-Mann. Worse, descriptions may be wrong: if Schmidt secretly proved the incompleteness theorem and Gödel stole it, ordinary speakers using “Gödel” still refer to Gödel, not Schmidt. If Peano&#39;s axioms were actually Dedekind&#39;s, “Peano” does not suddenly refer to Dedekind.</p>
+<p>Kripke&#39;s alternative is historical-causal. A baptism occurs: an object is named by ostension or by a reference-fixing description. The name then passes “from link to link” through a community. Later speakers can refer successfully even with incomplete or false beliefs, because they inherit the chain.</p>
+<h3>4.3 What Kripke predicts about mathematical eponyms</h3>
+<p>Mathematical eponyms behave like rigid designators inside mathematical discourse. “Hilbert space” does not mean “a space discovered by Hilbert.” It rigidly refers, through community practice, to a particular structure. This has several consequences:</p>
+<ol>
+<li><strong>Historical correction does not automatically rename the referent.</strong> If the Pythagorean theorem predates Pythagoras, “Pythagorean theorem” does not begin referring to a Babylonian tablet. The causal chain fixes the theorem-label relation, not the actual discovery relation.</li>
+<li><strong>Eponyms can survive false descriptions.</strong> “Gaussian distribution” can refer to the normal distribution even if de Moivre is historically prior. The name&#39;s referent is stabilized by mathematical use, not by the description “discovered by Gauss.”</li>
+<li><strong>Eponyms are efficient expert rigid labels.</strong> For experts, “Hausdorff” rigidly picks out a condition. The problem is not reference failure; the problem is semantic opacity for learners and outsiders.</li>
+<li><strong>Descriptive Mathemes names are not ordinary proper names.</strong> “Complete inner-product space” is closer to a reference-fixing description that also states the verification conditions. It tells the reader what to check.</li>
+<li><strong>Mathematical identities can be necessary yet pedagogically opaque.</strong> “Hilbert space = complete inner-product space” is not like “Hesperus = Phosphorus” empirically, but the eponym still hides the structure. Necessity does not equal intelligibility.</li>
+</ol>
+<p>Kripke therefore does not refute Mathemes; he explains why eponyms are stable. A causal chain gives them reference, but not meaning. Mathemes must preserve reference stability while adding semantic structure.</p>
+<hr>
+<h2>5. Gap Analysis and Design Implications</h2>
+<table>
+<thead>
+<tr>
+<th>Literature contribution</th>
+<th>What it gives Mathemes</th>
+<th>What remains missing</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Henwood &amp; Rival</td>
+<td>Direct mathematical critique; naming vs describing; vernacular principle</td>
+<td>No system, grammar, or adoption model</td>
+</tr>
+<tr>
+<td>Beretta</td>
+<td>Eponymy as reward economy; longue durée from Hellenistic science to modernity</td>
+<td>No constructive substitute for credit</td>
+</tr>
+<tr>
+<td>Stigler</td>
+<td>Empirical pattern: accepted eponyms are often historically wrong</td>
+<td>No replacement nomenclature</td>
+</tr>
+<tr>
+<td>Hepler-Smith / IUPAC</td>
+<td>Model of compositional naming plus systematic flexibility</td>
+<td>Chemistry analogy must be adapted to abstract structures</td>
+</tr>
+<tr>
+<td>Wolff &amp; Holmes</td>
+<td>Mechanisms by which language steers attention and reasoning</td>
+<td>Not applied specifically to mathematical naming</td>
+</tr>
+<tr>
+<td>Kripke</td>
+<td>Explains reference stability and causal chains</td>
+<td>Does not address pedagogical utility of descriptive names</td>
+</tr>
+<tr>
+<td>White</td>
+<td>Rich corpus of proposed renames and domain patterns</td>
+<td>Ad hoc; no morphology, ontology, or governance</td>
+</tr>
+</tbody></table>
+<h2>6. Mathemes Design Principles from the Review</h2>
+<ol>
+<li><strong>Separate credit from naming.</strong> Use citation, history notes, and metadata for credit; reserve names for concept structure.</li>
+<li><strong>Use compositional names where structure is compact.</strong> Especially for spaces, forms, transforms, operators, decompositions, and separation properties.</li>
+<li><strong>Permit expert aliases.</strong> Rigid labels are useful; abolishing all eponyms is neither realistic nor necessary.</li>
+<li><strong>Create exception classes.</strong> Retain ancient entrenched terms, conjectures, historically bounded constructions, and compact primitives where descriptive replacements are worse.</li>
+<li><strong>Make hierarchy visible.</strong> The separation axioms show the power of slot-based naming: object separated + means of separation.</li>
+<li><strong>Adopt systematic flexibility.</strong> Follow Liège, not Geneva: rigorous canonical grammar, flexible publication practice.</li>
+<li><strong>Internationalize the semantic schema.</strong> Mathemes should define conceptual slots independent of English word order.</li>
+<li><strong>Design for search and learning.</strong> Names should support retrieval, concept formation, and cross-domain analogy.</li>
+</ol>
+<hr>
+<h2>References</h2>
+<ul>
+<li>Beretta, M. (2019). “Names as Rewards: The Ambiguous Role of Eponyms in the History of Science.” <em>Nuncius</em> 34(2), 219–235.</li>
+<li>Evans, N. &amp; Levinson, S.C. (2009). “The Myth of Language Universals: Language Diversity and Its Importance for Cognitive Science.” <em>Behavioral and Brain Sciences</em> 32, 429–492.</li>
+<li>Hepler-Smith, E. (2015). “Systematic Flexibility and the History of the IUPAC Nomenclature of Organic Chemistry.” <em>Chemistry International</em> 37(2), 10–14.</li>
+<li>Henwood, M.R. &amp; Rival, I. (1980). “Eponymy in Mathematical Nomenclature: What&#39;s in a Name, and What Should Be?” <em>The Mathematical Intelligencer</em> 2(4), 204–205.</li>
+<li>Kripke, S. (1980). <em>Naming and Necessity</em>. Harvard University Press.</li>
+<li>Stigler, S.M. (1980). “Stigler&#39;s Law of Eponymy.” <em>Transactions of the New York Academy of Sciences</em> 39, 147–158.</li>
+<li>White, S. (2019–2026). “Better Terms for Mathematical Concepts.” Local HTML reference.</li>
+<li>Wolff, P. &amp; Holmes, K.J. (2011). “Linguistic Relativity.” <em>WIREs Cognitive Science</em> 2(3), 253–265.</li>
+</ul>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

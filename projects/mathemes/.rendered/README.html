@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathemes — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / README</div>
+  <h1>Mathemes</h1>
+<p><strong>A compositional naming system for mathematical concepts.</strong></p>
+<p><em>Math + morphemes — the smallest meaningful units of mathematical language.</em></p>
+<hr>
+<h2>The Problem</h2>
+<p>Mathematics is the only major science without a systematic naming convention. Biology has Linnaean taxonomy (1735). Chemistry has IUPAC nomenclature (1919). Medicine has WHO ICD. Mathematics has... eponyms and historical accidents.</p>
+<p>&quot;Hausdorff space&quot; tells you nothing about what it is. &quot;Point-separated space&quot; tells you everything. Yet the former is standard and the latter is not. Multiply this by thousands of concepts, and you have a field where the naming tradition actively impedes understanding — functioning as a gatekeeping mechanism dressed as tradition.</p>
+<h2>The Insight</h2>
+<p>Category theory — the most abstract branch of mathematics, the one most divorced from physical intuition — produced the most descriptive, semantically transparent vocabulary in all of mathematics: <em>pullback</em>, <em>pushforward</em>, <em>lifting</em>, <em>fiber</em>, <em>natural transformation</em>, <em>forgetful functor</em>.</p>
+<p>This is not coincidence. Category theory&#39;s abstraction <strong>forced</strong> good naming, because no physical intuition existed to subsidize opaque terminology. The name was the only cognitive interface available. Meanwhile, fields with strong physical intuition (waves, heat, mechanics) could afford to stamp surnames on concepts because the physics did the explanatory work the names should have done.</p>
+<p>If the most abstract field proved that descriptive naming scales to arbitrary abstraction, then every field that defaults to eponymous naming is leaving pedagogical value on the table — not because descriptive naming can&#39;t handle their subject, but because they never needed it badly enough to bother.</p>
+<h2>The System</h2>
+<p>Mathemes is a compositional naming system with two registers:</p>
+<p><strong>Formal register</strong> — Neo-classical morphemes (Latin/Greek roots) that compose algorithmically, analogous to IUPAC nomenclature. Language-agnostic by design.</p>
+<p><strong>Vernacular register</strong> — Plain English descriptive names built from the same compositional principles. Maximally accessible.</p>
+<p>Both registers are generated from the same underlying morpheme vocabulary and compositional grammar.</p>
+<h3>Architecture</h3>
+<ol>
+<li><p><strong>Morpheme vocabulary</strong> — A finite inventory of atomic meaningful units, organized by facet:</p>
+<ul>
+<li>Structures (space, group, ring, field, algebra, category, manifold...)</li>
+<li>Properties (complete, compact, connected, commutative, linear, bounded...)</li>
+<li>Operations (transform, decompose, project, embed, lift, factor...)</li>
+<li>Relations (dual, adjoint, conjugate, inverse, quotient, product...)</li>
+<li>Qualifiers (finite, countable, local, global, uniform, pointwise...)</li>
+<li>Domains (number, function, set, sequence, operator, measure...)</li>
+</ul>
+</li>
+<li><p><strong>Compositional grammar</strong> — Rules for combining morphemes into concept names, including precedence, abbreviation, and context-dependent shortening.</p>
+</li>
+<li><p><strong>Curated extensions</strong> — For concepts that resist clean decomposition (specific theorems, conjectures, constants), principled naming heuristics rather than algorithmic generation.</p>
+</li>
+</ol>
+<h3>Example Derivations</h3>
+<table>
+<thead>
+<tr>
+<th>Eponymous</th>
+<th>Compositional Derivation</th>
+<th>Formal Register</th>
+<th>Vernacular Register</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Hilbert space</td>
+<td>complete + inner-product + space</td>
+<td>—</td>
+<td>complete inner-product space</td>
+</tr>
+<tr>
+<td>Hausdorff space</td>
+<td>point-separated + topological space</td>
+<td>—</td>
+<td>point-separated space</td>
+</tr>
+<tr>
+<td>Fourier series</td>
+<td>harmonic + frequency + expansion</td>
+<td>—</td>
+<td>frequency expansion</td>
+</tr>
+<tr>
+<td>Jacobian</td>
+<td>derivative + matrix (of a map)</td>
+<td>—</td>
+<td>derivative matrix</td>
+</tr>
+<tr>
+<td>Laplace transform</td>
+<td>exponential + half-line + frequency transform</td>
+<td>—</td>
+<td>exponential frequency transform</td>
+</tr>
+<tr>
+<td>Noether&#39;s theorem</td>
+<td>symmetry-conservation + correspondence</td>
+<td>—</td>
+<td>symmetry-conservation theorem</td>
+</tr>
+</tbody></table>
+<h2>Interdisciplinary Foundations</h2>
+<p>This is not a lexicography project. It is a <strong>cognitive engineering</strong> project. The foundations draw on:</p>
+<ul>
+<li><strong>Linguistics</strong> — Morphology, terminology science (ISO 704), semantic transparency</li>
+<li><strong>Cognitive science</strong> — Cognitive load theory, semantic priming, dual coding, chunking</li>
+<li><strong>Cognitive psychology</strong> — Expert blind spot, math anxiety, transfer of learning</li>
+<li><strong>Philosophy of language</strong> — Rigid designators vs. definite descriptions (Kripke/Russell)</li>
+<li><strong>Information architecture</strong> — Faceted classification (Ranganathan), ontology design</li>
+<li><strong>History of nomenclature</strong> — IUPAC, Linnaeus, PhyloCode, DSM reform precedents</li>
+</ul>
+<h2>Deliverables</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Description</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Paper</strong></td>
+<td>The philosophical/pedagogical case, including the category theory paradox</td>
+<td>Planned</td>
+</tr>
+<tr>
+<td><strong>System Specification</strong></td>
+<td>Morpheme vocabulary + compositional grammar + conventions</td>
+<td>Planned</td>
+</tr>
+<tr>
+<td><strong>Corpus</strong></td>
+<td>200+ concepts across 8 domains, dual-register names with derivations</td>
+<td>Planned</td>
+</tr>
+<tr>
+<td><strong>Living Reference</strong></td>
+<td>Searchable, browsable, community-contributable reference</td>
+<td>Future</td>
+</tr>
+</tbody></table>
+<h2>Project Structure</h2>
+<pre><code>mathemes/
+├── README.md                          # This file
+├── MANIFESTO.md                       # The accessible public case
+├── research/                          # Interdisciplinary foundations
+│   ├── 00-literature-review.md
+│   ├── 01-category-theory-paradox.md
+│   ├── 02-comparative-systems.md
+│   ├── 03-cognitive-foundations.md
+│   ├── 04-linguistic-foundations.md
+│   ├── 05-philosophy-of-naming.md
+│   ├── 06-pedagogical-evidence.md
+│   └── 07-historical-naming.md
+├── system/                            # The naming system specification
+│   ├── 00-overview.md
+│   ├── morphemes/                     # Atomic vocabulary by facet
+│   ├── 01-grammar.md                  # Compositional rules
+│   ├── 02-precedence.md               # Ordering within compound names
+│   ├── 03-registers.md                # Formal + vernacular dual naming
+│   ├── 04-conventions.md              # Abbreviation, context shortening
+│   └── 05-edge-cases.md               # Theorems, conjectures, constants
+├── corpus/                            # 200+ renamed concepts by domain
+│   ├── algebra/
+│   ├── analysis/
+│   ├── topology/
+│   ├── linear-algebra/
+│   ├── calculus/
+│   ├── probability/
+│   ├── category-theory/               # The exemplar analysis
+│   └── diff-geometry/
+├── paper/                             # The publishable paper
+└── assets/references/                 # Bibliography + source materials
+</code></pre>
+<h2>Prior Art</h2>
+<table>
+<thead>
+<tr>
+<th>Work</th>
+<th>Year</th>
+<th>Contribution</th>
+<th>What It Lacks</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Henwood &amp; Rival, &quot;Eponymy in Mathematical Nomenclature&quot;</td>
+<td>1980</td>
+<td>First manifesto against eponyms</td>
+<td>No system — just principles</td>
+</tr>
+<tr>
+<td>Bourbaki, <em>Éléments de mathématique</em></td>
+<td>1939–83</td>
+<td>Introduced injective/surjective/bijective</td>
+<td>Incidental, not systematic</td>
+</tr>
+<tr>
+<td>Steve White, &quot;Better Terms for Mathematical Concepts&quot;</td>
+<td>2019–</td>
+<td>Exhaustive ad hoc rename catalog</td>
+<td>No generative grammar</td>
+</tr>
+<tr>
+<td>Marco Beretta, &quot;Names as Rewards&quot;</td>
+<td>2019</td>
+<td>Eponyms as credit/reward system (Nuncius)</td>
+<td>Historical analysis only</td>
+</tr>
+<tr>
+<td>Nautilus, &quot;Why Mathematicians Should Stop...&quot;</td>
+<td>2020</td>
+<td>Popular case against eponyms</td>
+<td>No constructive alternative</td>
+</tr>
+</tbody></table>
+<p><strong>What doesn&#39;t exist</strong>: A compositional naming grammar for mathematics — one that can <em>generate</em> the right name from a concept&#39;s defining properties, the way IUPAC generates a name from molecular structure.</p>
+<p>That&#39;s what Mathemes builds.</p>
+<hr>
+<p><em>Initiated May 2025.</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

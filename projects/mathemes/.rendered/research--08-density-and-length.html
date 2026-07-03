@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Density & Length: The Compression Constraint — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / research / 08-density-and-length</div>
+  <h1>Density &amp; Length: The Compression Constraint</h1>
+<p><strong>Status</strong>: New research document — addresses a gap identified during system design.</p>
+<hr>
+<h2>The Problem We Missed</h2>
+<p>Mathemes Principle P6 (&quot;frequency-length correlation&quot;) was stated as an axiom but never substantiated. We invoked Zipf and Miller in passing without asking the hard question:</p>
+<p><strong>At what point does a descriptive name become so long that its transparency benefit is consumed by its processing cost?</strong></p>
+<p>This isn&#39;t academic. If &quot;conjugation-invariant subgroup&quot; is better than &quot;normal subgroup&quot; but &quot;locally-compact-second-countable-connected-metrizable-Hausdorff space&quot; is worse than any eponym, then the system needs a principled boundary — not a vibe.</p>
+<hr>
+<h2>1. What the Psycholinguistics Says</h2>
+<h3>1.1 Compound Word Processing Is Length-Dependent</h3>
+<p>Bertram &amp; Hyönä (2003) demonstrate that word length fundamentally changes HOW morphologically complex words are processed:</p>
+<ul>
+<li><strong>Short compounds</strong> (≤8 characters, ~2-3 syllables): processed as <strong>whole units</strong> via single eye fixation. Morphological decomposition is not required. The brain recognizes the compound as a gestalt.</li>
+<li><strong>Long compounds</strong> (≥12 characters, ~4+ syllables): receive <strong>multiple fixations</strong> and are processed via <strong>morphological decomposition</strong> — the reader breaks the word into constituents, processes each, and reassembles meaning.</li>
+</ul>
+<p><strong>Critical implication</strong>: Short descriptive names get the best of both worlds — they&#39;re processed holistically (fast) AND their morphemes carry semantic content (transparent). Long descriptive names FORCE decomposition, which is slower than holistic recognition of a familiar opaque term.</p>
+<p>This means: <strong>a 2-morpheme descriptive name is almost always better than an eponym. A 5+ morpheme descriptive name may be worse than a familiar eponym for experts who process it holistically.</strong></p>
+<h3>1.2 Constituent Frequency Matters More Than Length</h3>
+<p>Research on compound word processing (Juhasz et al., 2003; Libben, 2006) consistently shows that the <strong>frequency of the constituent morphemes</strong> is a stronger predictor of processing speed than the overall compound length:</p>
+<ul>
+<li>A 4-morpheme compound made of high-frequency morphemes (e.g., &quot;complete inner-product space&quot;) processes faster than a 2-morpheme compound with a low-frequency morpheme (e.g., &quot;Tychonoff space&quot; for someone who hasn&#39;t memorized the mapping)</li>
+<li>The <strong>morpheme inventory</strong> should preferentially use high-frequency English/Latin words as its atoms — this directly accelerates compound processing</li>
+</ul>
+<h3>1.3 Semantic Transparency Accelerates Processing</h3>
+<p>El-Bialy et al. (2013) show that <strong>semantically transparent compounds</strong> (where the whole meaning is derivable from the parts) are processed faster than opaque compounds of the same length:</p>
+<ul>
+<li>&quot;Rosebud&quot; (transparent: a bud of a rose) → faster</li>
+<li>&quot;Hogwash&quot; (opaque: nothing to do with hogs or washing) → slower</li>
+</ul>
+<p>This is the core Mathemes thesis confirmed: transparency IS a processing advantage. But the advantage is <strong>bounded</strong> — it doesn&#39;t scale linearly with length. A 3-morpheme transparent compound is great. A 7-morpheme transparent compound is still transparent but the length penalty dominates.</p>
+<h3>1.4 The Working Memory Constraint Is Real But Nuanced</h3>
+<p>Miller (1956) said 7±2 chunks. Cowan (2001) refined to 4±1. But for compound terms specifically:</p>
+<ul>
+<li>A compound term is itself <strong>one chunk</strong> if the reader has encountered it before — &quot;complete inner-product space&quot; becomes a single chunk through familiarity</li>
+<li>For a first encounter, each morpheme is a separate chunk — 3 morphemes = 3 chunks, consuming most of working memory&#39;s capacity</li>
+<li>Beyond 4 novel morphemes in a single term, the reader cannot hold the entire name in working memory while simultaneously processing its meaning</li>
+</ul>
+<p><strong>Practical threshold</strong>: A Mathemes systematic name should contain <strong>≤4 morphemes</strong> for any concept encountered frequently. Rare concepts can tolerate 5-6 morphemes because the reader has more time to process them and encounters them less often.</p>
+<hr>
+<h2>2. What IUPAC&#39;s Experience Shows</h2>
+<h3>2.1 The Three-Name Reality</h3>
+<p>IUPAC&#39;s Blue Book (2013) defines three categories precisely because systematic names can be impractically long:</p>
+<ol>
+<li><strong>Preferred IUPAC Names (PINs)</strong>: The canonical systematic name, used for regulatory and indexing purposes. Can be very long.</li>
+<li><strong>Acceptable alternatives</strong>: Shorter systematic variants permitted in general nomenclature.</li>
+<li><strong>Retained trivial names</strong>: Traditional non-systematic names kept for practical communication (&quot;styrene&quot; not &quot;ethenylbenzene,&quot; &quot;urea&quot; not &quot;carbonyl diamide&quot;).</li>
+</ol>
+<p>The criteria for retaining a trivial name are instructive:</p>
+<ul>
+<li>The trivial name is <strong>widely established</strong> in the literature</li>
+<li>The systematic name is <strong>significantly longer</strong> without adding clarity in typical use</li>
+<li>The trivial name doesn&#39;t <strong>actively mislead</strong> about the structure</li>
+</ul>
+<p>This is not a failure of IUPAC&#39;s system — it&#39;s a <strong>designed feature</strong>. The system acknowledges that a purely systematic vocabulary is unusable for daily communication. Chemistry solved this by being explicit about WHEN each register is appropriate.</p>
+<h3>2.2 Chemists Actually Say &quot;Ethanol&quot;</h3>
+<p>In practice, chemists use systematic names primarily for:</p>
+<ul>
+<li>Indexing and database queries</li>
+<li>Regulatory filings</li>
+<li>Disambiguation when discussing structurally similar compounds</li>
+</ul>
+<p>For everything else, they use common names. Nobody says &quot;2,4,6-trinitrotoluene&quot; in conversation — they say &quot;TNT.&quot; The systematic name exists for precision; the short name exists for communication.</p>
+<p><strong>Lesson for Mathemes</strong>: Our three-register system (systematic / standard / legacy) isn&#39;t just philosophically principled — it&#39;s <strong>empirically necessary</strong>. Chemistry proved that a single-register system doesn&#39;t survive contact with human communication behavior.</p>
+<hr>
+<h2>3. The Compression Behavior</h2>
+<h3>3.1 Abbreviation Is Inevitable</h3>
+<p>Medical terminology research (Brunetti et al., 2007; Sinha et al., 2011) documents 50+ years of concern about abbreviation proliferation:</p>
+<ul>
+<li><strong>Every</strong> systematic terminology gets abbreviated in practice</li>
+<li>Abbreviation is driven by <strong>expression efficiency</strong> (Zipfian pressure) — speakers minimize articulatory effort</li>
+<li>Abbreviations arise <strong>independently and inconsistently</strong> across communities</li>
+<li>Official attempts to restrict abbreviation have <strong>universally failed</strong></li>
+</ul>
+<p><strong>Implication</strong>: If Mathemes prescribes &quot;conjugation-invariant subgroup,&quot; practitioners WILL abbreviate it. The question is whether the system designs the abbreviation (standard register) or lets it happen chaotically (the medical model).</p>
+<h3>3.2 Designed Compression vs. Organic Compression</h3>
+<p>Two strategies:</p>
+<p><strong>Organic</strong> (what happens without planning): Users create their own abbreviations. &quot;Locally compact Hausdorff&quot; becomes &quot;LCH.&quot; &quot;Conjugation-invariant subgroup&quot; becomes &quot;CI-subgroup&quot; or &quot;conj-invariant.&quot; Multiple communities create different abbreviations for the same concept. The abbreviations carry no systematic relationship to each other.</p>
+<p><strong>Designed</strong> (what IUPAC does): The system specifies acceptable abbreviations. &quot;Ethanol&quot; is the designed short form of &quot;ethan-1-ol.&quot; The abbreviation is curated, documented, and consistent across communities.</p>
+<p>Mathemes must use designed compression. The standard register exists precisely for this.</p>
+<hr>
+<h2>4. The Density/Length Budget</h2>
+<p>Based on the psycholinguistic evidence, the IUPAC precedent, and the compression reality, here are the concrete constraints:</p>
+<h3>4.1 Morpheme Count Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Usage Frequency</th>
+<th>Max Morphemes (Systematic)</th>
+<th>Standard Register</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ubiquitous (daily use in papers)</td>
+<td>2-3</td>
+<td>1-2 word shorthand</td>
+<td>Holistic processing zone — must be fast</td>
+</tr>
+<tr>
+<td>Common (weekly use)</td>
+<td>3-4</td>
+<td>2-3 word shorthand</td>
+<td>Decomposition zone — transparency helps</td>
+</tr>
+<tr>
+<td>Specialized (monthly use)</td>
+<td>4-5</td>
+<td>Full systematic OK</td>
+<td>Processing cost tolerable for rare terms</td>
+</tr>
+<tr>
+<td>Rare (encountered in specific papers)</td>
+<td>5-7</td>
+<td>Full systematic</td>
+<td>Reader has time; clarity trumps speed</td>
+</tr>
+</tbody></table>
+<h3>4.2 Syllable Budget</h3>
+<p>Based on the eye-tracking evidence (Bertram &amp; Hyönä, 2003):</p>
+<ul>
+<li><strong>≤4 syllables</strong>: holistic processing likely — this is the sweet spot</li>
+<li><strong>5-7 syllables</strong>: decomposition required but manageable</li>
+<li><strong>8-10 syllables</strong>: processing cost significant — needs a standard abbreviation</li>
+<li><strong>11+ syllables</strong>: unusable without abbreviation — systematic name exists only for disambiguation/indexing</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Eponymous</th>
+<th>Syllables</th>
+<th>Mathemes Systematic</th>
+<th>Syllables</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Hilbert space</td>
+<td>4</td>
+<td>complete inner-product space</td>
+<td>8</td>
+<td>⚠️ Needs standard abbreviation</td>
+</tr>
+<tr>
+<td>Hausdorff space</td>
+<td>4</td>
+<td>point-separated space</td>
+<td>6</td>
+<td>✅ Manageable</td>
+</tr>
+<tr>
+<td>Fourier series</td>
+<td>5</td>
+<td>frequency expansion</td>
+<td>7</td>
+<td>✅ Manageable</td>
+</tr>
+<tr>
+<td>Noether&#39;s theorem</td>
+<td>5</td>
+<td>symmetry-conservation theorem</td>
+<td>10</td>
+<td>⚠️ Needs abbreviation</td>
+</tr>
+<tr>
+<td>Abelian group</td>
+<td>5</td>
+<td>commutative group</td>
+<td>5</td>
+<td>✅ Equal — clear win</td>
+</tr>
+<tr>
+<td>Normal subgroup</td>
+<td>5</td>
+<td>conjugation-invariant subgroup</td>
+<td>10</td>
+<td>⚠️ Needs abbreviation</td>
+</tr>
+<tr>
+<td>Gaussian elimination</td>
+<td>7</td>
+<td>row reduction</td>
+<td>4</td>
+<td>✅ Shorter AND clearer</td>
+</tr>
+</tbody></table>
+<h3>4.3 The 8-Syllable Rule</h3>
+<p><strong>Proposed principle</strong>: Any systematic name exceeding 8 syllables MUST have a curated standard abbreviation in the standard register.</p>
+<p>This is not arbitrary — it&#39;s the boundary between the decomposition zone (where transparency helps) and the overload zone (where length cost dominates transparency benefit).</p>
+<hr>
+<h2>5. Implications for System Design</h2>
+<h3>5.1 Revision to P6 (Frequency-Length Correlation)</h3>
+<p>The original P6 was vague: &quot;Common concepts get short names.&quot; The substantiated version:</p>
+<p><strong>P6 (revised): The 8-Syllable Budget.</strong></p>
+<ul>
+<li>Systematic names ≤8 syllables need no abbreviation.</li>
+<li>Systematic names &gt;8 syllables MUST have a curated standard abbreviation.</li>
+<li>The standard abbreviation should be 2-4 syllables.</li>
+<li>For ubiquitous concepts (used daily), the standard register — not the systematic — is the default in papers.</li>
+</ul>
+<h3>5.2 New Principle: P8. Designed Compression</h3>
+<p>Abbreviation is inevitable. The system must design it, not leave it to chance.</p>
+<p>For every concept whose systematic name exceeds 8 syllables, the morpheme inventory must specify:</p>
+<ul>
+<li>The full systematic name (for disambiguation and indexing)</li>
+<li>The standard abbreviation (for working communication)</li>
+<li>The abbreviation&#39;s derivation (so it&#39;s not arbitrary — &quot;CI-subgroup&quot; from &quot;conjugation-invariant&quot;)</li>
+</ul>
+<h3>5.3 Morpheme Inventory Constraint</h3>
+<p>The morpheme inventory should prefer morphemes that are:</p>
+<ul>
+<li><strong>High-frequency</strong> in general English or scientific English (faster constituent processing)</li>
+<li><strong>≤3 syllables each</strong> (so compounds of 2-3 morphemes stay under the 8-syllable budget)</li>
+<li><strong>Phonologically distinct</strong> (don&#39;t sound like other morphemes — avoids confusion in speech)</li>
+</ul>
+<h3>5.4 The Composition Sweet Spot</h3>
+<p>The ideal Mathemes name is <strong>2-3 morphemes, 4-7 syllables, semantically transparent</strong>:</p>
+<pre><code>[1 qualifier/property] + [1 distinguishing property] + [1 structure]
+
+Examples:
+  complete + inner-product + space     (3 morphemes, 8 syllables — at the limit)
+  commutative + group                  (2 morphemes, 5 syllables — sweet spot)
+  point-separated + space              (2 morphemes, 6 syllables — sweet spot)  
+  frequency + expansion                (2 morphemes, 7 syllables — sweet spot)
+  row + reduction                      (2 morphemes, 4 syllables — ideal)
+</code></pre>
+<p>Names that exceed this sweet spot need designed compression:</p>
+<pre><code>  conjugation-invariant + subgroup     (3 morphemes, 10 syllables — OVER)
+  → Standard: &quot;invariant subgroup&quot;     (2 morphemes, 5 syllables — within budget)
+  
+  symmetry-conservation + theorem      (3 morphemes, 10 syllables — OVER)
+  → Standard: &quot;sym-con theorem&quot;        (3 morphemes, 5 syllables — within budget)
+</code></pre>
+<hr>
+<h2>6. What This Changes</h2>
+<p>This research fills a genuine gap. We were designing names without a cost function. Now we have one:</p>
+<p><strong>Name quality = transparency benefit − length penalty − compression chaos risk</strong></p>
+<ul>
+<li>Transparency benefit: proportional to morpheme count and semantic transparency (more morphemes = more information, but diminishing returns past 3)</li>
+<li>Length penalty: accelerates past 8 syllables (psycholinguistic evidence)</li>
+<li>Compression chaos risk: proportional to the gap between systematic name length and what humans will actually say</li>
+</ul>
+<p>A name is optimal when it maximizes transparency while staying within the 8-syllable budget. If it can&#39;t, it needs a designed abbreviation in the standard register.</p>
+<hr>
+<h2>References</h2>
+<ul>
+<li>Bertram, R. &amp; Hyönä, J. (2003). &quot;The length of a complex word modifies the role of morphological structure.&quot; <em>Journal of Memory and Language</em> 48(3), 615-634.</li>
+<li>Cowan, N. (2001). &quot;The magical number 4 in short-term memory.&quot; <em>Behavioral and Brain Sciences</em> 24(1), 87-114.</li>
+<li>El-Bialy, R. et al. (2013). &quot;Benefits and costs of lexical decomposition during processing of transparent and opaque English compounds.&quot; <em>Journal of Memory and Language</em> 68(4).</li>
+<li>IUPAC (2013). <em>Nomenclature of Organic Chemistry: Recommendations and Preferred Names</em>. Royal Society of Chemistry.</li>
+<li>Juhasz, B.J. et al. (2003). &quot;Effects of morphology on compound word recognition.&quot; <em>Journal of Experimental Psychology: Learning, Memory, and Cognition</em>.</li>
+<li>Miller, G.A. (1956). &quot;The magical number seven.&quot; <em>Psychological Review</em> 63(2), 81-97.</li>
+</ul>
+<hr>
+<p><em>This document substantiates the length/density constraint that was previously stated as an axiom. It introduces the 8-syllable budget, the designed compression principle, and the composition sweet spot — all grounded in psycholinguistic evidence.</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

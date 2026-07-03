@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathemes System Overview — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / system / 00-overview</div>
+  <h1>Mathemes System Overview</h1>
+<p><strong>Status</strong>: Active design — principles locked from interview 2025-05-11.</p>
+<hr>
+<h2>Design Principles (Locked)</h2>
+<p>These are the axioms of the naming system. Every subsequent design decision must be consistent with them.</p>
+<h3>P1. Three Registers</h3>
+<p>Every concept has up to three names, each with a defined context:</p>
+<table>
+<thead>
+<tr>
+<th>Register</th>
+<th>Form</th>
+<th>Context</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Systematic</strong></td>
+<td>Full compositional name from morpheme grammar</td>
+<td>Textbooks, cross-domain papers, first encounters, formal definitions</td>
+<td>complete inner-product space</td>
+</tr>
+<tr>
+<td><strong>Standard</strong></td>
+<td>Approved abbreviation or compact form</td>
+<td>Working papers, lecture notes, within-domain communication</td>
+<td>CIP-space (or similar)</td>
+</tr>
+<tr>
+<td><strong>Legacy</strong></td>
+<td>Traditional/eponymous name preserved as alias</td>
+<td>Expert conversation, historical reference, backward compatibility</td>
+<td>Hilbert space</td>
+</tr>
+</tbody></table>
+<p>The system <strong>generates</strong> the systematic name. The standard abbreviation is <strong>curated</strong> per concept. The legacy alias is <strong>inherited</strong> from existing usage.</p>
+<p>No register is deprecated. Each serves a communicative function. The systematic name is canonical for disambiguation; the others are convenience.</p>
+<h3>P2. Facet-Consistent, Cross-Facet Pragmatic Metaphor</h3>
+<p>Morphemes are organized into facets. Within each facet, metaphor domains are consistent:</p>
+<table>
+<thead>
+<tr>
+<th>Facet</th>
+<th>Metaphor Domain</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Structure</strong></td>
+<td>Spatial/architectural</td>
+<td>space, group, ring, field, bundle, lattice, tower</td>
+</tr>
+<tr>
+<td><strong>Property</strong></td>
+<td>State of being</td>
+<td>complete, compact, connected, dense, bounded, closed</td>
+</tr>
+<tr>
+<td><strong>Operation</strong></td>
+<td>Motion/action</td>
+<td>transform, project, embed, lift, fold, decompose</td>
+</tr>
+<tr>
+<td><strong>Relation</strong></td>
+<td>Positional</td>
+<td>dual, adjoint, conjugate, inverse, quotient</td>
+</tr>
+<tr>
+<td><strong>Qualifier</strong></td>
+<td>Scope/measure</td>
+<td>finite, countable, local, global, uniform</td>
+</tr>
+<tr>
+<td><strong>Domain</strong></td>
+<td>Material/substance</td>
+<td>number, function, set, sequence, operator, measure</td>
+</tr>
+</tbody></table>
+<p>Across facets, pragmatism rules — if the clearest name for a concept mixes metaphor domains (e.g., &quot;frequency decomposition&quot; = domain + operation), that&#39;s fine. Consistency is enforced <em>within</em> a facet, not <em>across</em> facets.</p>
+<h3>P3. Total Polysemy Resolution</h3>
+<p>Every morpheme in the inventory has <strong>exactly one meaning</strong>. If a word currently means multiple things in mathematics, each meaning gets a distinct morpheme.</p>
+<p><strong>The resolution process is analytic, not naive.</strong> For each polysemous term:</p>
+<ol>
+<li><strong>Collect</strong> all distinct mathematical meanings (the polysemy set)</li>
+<li><strong>Map</strong> the semantic network — how are the meanings related? Are they generalizations of each other, or genuinely distinct concepts?</li>
+<li><strong>Analyze</strong> the precision requirements — would a candidate replacement over-narrow or over-broaden the concept?</li>
+<li><strong>Name</strong> each distinct meaning with a morpheme whose semantic scope matches the mathematical scope exactly</li>
+</ol>
+<p>Example: &quot;normal&quot; is NOT simply replaced with &quot;perpendicular&quot; everywhere, because orthogonality generalizes beyond geometric perpendicularity. The polysemy network must be mapped first:</p>
+<pre><code>&quot;normal&quot; polysemy set:
+├── normal subgroup → invariant-under-conjugation → &quot;conjugation-invariant subgroup&quot;
+├── normal distribution → the specific bell-curve distribution → &quot;bell distribution&quot; or retain &quot;normal&quot; here (original usage)
+├── normal vector → perpendicular to a surface → &quot;surface-orthogonal vector&quot; (preserves generality)
+├── normal space (T4) → disjoint-closed-sets-separable → &quot;closed-set-separated space&quot;
+└── normal operator → commutes with its adjoint → &quot;adjoint-commuting operator&quot;
+</code></pre>
+<p>Each replacement must be vetted for precision at the level of working mathematicians, not just pedagogical clarity.</p>
+<h3>P4. Morpheme Transparency Test</h3>
+<p>A morpheme is admissible if it passes the <strong>decomposition test</strong>: can a reader with general scientific literacy decompose it into meaningful sub-units?</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Decomposable?</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>commutative</td>
+<td>com + mutare = &quot;change together&quot;</td>
+<td>✅ Keep</td>
+</tr>
+<tr>
+<td>injective</td>
+<td>in + jactare = &quot;throw in&quot;</td>
+<td>✅ Keep</td>
+</tr>
+<tr>
+<td>Hausdorff</td>
+<td>???</td>
+<td>❌ Replace</td>
+</tr>
+<tr>
+<td>Noetherian</td>
+<td>???</td>
+<td>❌ Replace</td>
+</tr>
+<tr>
+<td>compact</td>
+<td>com + pactum = &quot;pressed together&quot;</td>
+<td>✅ Keep</td>
+</tr>
+<tr>
+<td>metrizable</td>
+<td>metron + -izable = &quot;measurable&quot;</td>
+<td>✅ Keep</td>
+</tr>
+<tr>
+<td>Tychonoff</td>
+<td>???</td>
+<td>❌ Replace</td>
+</tr>
+</tbody></table>
+<p>The test applies equally to Latin/Greek roots and English vernacular. &quot;Swappable&quot; passes (swap + -able). &quot;Commutative&quot; passes (Latin decomposition). &quot;Hausdorff&quot; fails (opaque proper noun). The source language doesn&#39;t matter — transparency does.</p>
+<h3>P5. Distinguishing Properties Only</h3>
+<p>Names encode only the properties that distinguish a concept from its siblings in the structural hierarchy. Implied properties are not spelled out.</p>
+<pre><code>✅ complete inner-product space
+   (inner-product implies normed, normed implies metric, metric implies topological)
+
+❌ complete inner-product normed metric topological space
+   (redundant — every word after &#39;inner-product&#39; is implied)
+</code></pre>
+<p>The composition rules document which properties imply which. A reader who knows the rules can reconstruct the full hierarchy from the name. A reader who doesn&#39;t still gets the key distinguishing features.</p>
+<h3>P6. The 8-Syllable Budget (Substantiated)</h3>
+<p>Grounded in psycholinguistic evidence on compound word processing (Bertram &amp; Hyönä, 2003; El-Bialy et al., 2013). See <code>research/08-density-and-length.md</code> for full analysis.</p>
+<p><strong>The constraint</strong>: Any systematic name exceeding 8 syllables MUST have a curated standard abbreviation.</p>
+<table>
+<thead>
+<tr>
+<th>Syllable Count</th>
+<th>Processing Mode</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>≤4 syllables</td>
+<td>Holistic (single fixation)</td>
+<td>No abbreviation needed — this is ideal</td>
+</tr>
+<tr>
+<td>5-7 syllables</td>
+<td>Decomposition (manageable)</td>
+<td>Standard abbreviation optional</td>
+</tr>
+<tr>
+<td>8-10 syllables</td>
+<td>Decomposition (costly)</td>
+<td>Standard abbreviation REQUIRED</td>
+</tr>
+<tr>
+<td>11+ syllables</td>
+<td>Overload</td>
+<td>Systematic name for indexing only; standard register is the default</td>
+</tr>
+</tbody></table>
+<p><strong>The composition sweet spot</strong>: 2-3 morphemes, 4-7 syllables, semantically transparent.</p>
+<pre><code>[qualifier/property] + [distinguishing property] + [structure]
+Examples:
+  commutative + group                 (2 morphemes, 5 syllables) ✅ ideal
+  point-separated + space              (2 morphemes, 6 syllables) ✅ sweet spot
+  complete + inner-product + space     (3 morphemes, 8 syllables) ⚠️ at limit — abbreviation available
+</code></pre>
+<h3>P7. Designed Compression</h3>
+<p>Abbreviation is inevitable (50+ years of medical terminology research confirms this). The system must design it, not leave it to chance.</p>
+<p>For every concept whose systematic name exceeds 8 syllables:</p>
+<ol>
+<li>The full systematic name exists for disambiguation and indexing</li>
+<li>A curated standard abbreviation exists for working communication</li>
+<li>The abbreviation&#39;s derivation is documented (not arbitrary)</li>
+</ol>
+<pre><code>conjugation-invariant subgroup  (10 syllables — OVER budget)
+→ Standard: invariant subgroup  (5 syllables — within budget, already in use)
+
+symmetry-conservation theorem   (10 syllables — OVER budget)
+→ Standard: sym-con theorem     (5 syllables — designed compression)
+</code></pre>
+<h3>P8. The Tiered Source Language</h3>
+<p>Morphemes are drawn from all three source traditions, selected by the transparency test (P4):</p>
+<ol>
+<li><strong>Existing transparent terms</strong> (keep as-is): commutative, injective, compact, continuous, linear, metric, topology...</li>
+<li><strong>Classical roots</strong> (for new formal-register morphemes): Latin/Greek morphemes that compose cleanly and cross languages</li>
+<li><strong>English vernacular</strong> (for new vernacular-register morphemes): plain words that maximize accessibility</li>
+</ol>
+<p>The three registers (P1) map naturally:</p>
+<ul>
+<li>Systematic register may use classical morphemes for precision</li>
+<li>Standard register uses whatever&#39;s shortest and clear</li>
+<li>Legacy register preserves historical terms</li>
+</ul>
+<hr>
+<h2>Architecture Summary</h2>
+<pre><code>┌─────────────────────────────────────────────┐
+│            MATHEMES SYSTEM                   │
+├─────────────────────────────────────────────┤
+│                                              │
+│  ┌──────────────┐   ┌──────────────────┐    │
+│  │  Morpheme     │   │  Polysemy        │    │
+│  │  Inventory    │──▶│  Resolution      │    │
+│  │  (~200 atoms) │   │  Networks        │    │
+│  └──────┬───────┘   └────────┬─────────┘    │
+│         │                    │               │
+│         ▼                    ▼               │
+│  ┌──────────────────────────────────────┐   │
+│  │  Compositional Grammar               │   │
+│  │  (precedence + ordering + nesting)   │   │
+│  └──────────────┬───────────────────────┘   │
+│                 │                            │
+│         ┌───────┼───────┐                   │
+│         ▼       ▼       ▼                   │
+│  ┌──────────┐ ┌─────┐ ┌────────┐           │
+│  │Systematic│ │Std  │ │Legacy  │           │
+│  │Register  │ │Abbr │ │Alias   │           │
+│  └──────────┘ └─────┘ └────────┘           │
+│                                              │
+│  ┌──────────────────────────────────────┐   │
+│  │  Edge Case Handling                   │   │
+│  │  (theorems, conjectures, constants)  │   │
+│  └──────────────────────────────────────┘   │
+│                                              │
+└─────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<p><em>Principles locked 2025-05-11. All subsequent system design must conform.</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

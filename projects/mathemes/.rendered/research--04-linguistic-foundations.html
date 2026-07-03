@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linguistic & Terminological Foundations — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / research / 04-linguistic-foundations</div>
+  <h1>Linguistic &amp; Terminological Foundations</h1>
+<p><strong>Status</strong>: Enriched research draft</p>
+<hr>
+<h2>Thesis</h2>
+<p>Mathemes is a <strong>controlled compositional language</strong> for mathematical concepts: a morphology, a semantics, and a set of register-shifting rules that let a learner move from transparent description to expert shorthand without losing structure. Names are not decoration. They are cognitive handles.</p>
+<p>The linguistic evidence is careful rather than magical: language does not imprison thought, but labels can guide attention, modulate perception, support categorization, and make some distinctions easier to keep active. For mathematics — already abstract, symbolic, and heavily metaphorical — terminology is part of the interface through which concepts are learned.</p>
+<hr>
+<h2>1. Language Shapes Mathematical Cognition — Carefully</h2>
+<p>Wolff and Holmes reject hard linguistic determinism but retain several empirically supported weaker mechanisms. Language can act as a <strong>meddler</strong> by inserting linguistic codes into nonlinguistic judgments, an <strong>augmenter</strong> by enabling representations that are difficult without language, a <strong>spotlight</strong> by making certain properties habitually salient, and an <strong>inducer</strong> by pushing cognition toward schematic processing. Their review covers color, motion, space, number, false-belief reasoning, and relational analogy. The conclusion: language may not close conceptual doors, but it can fling some open and build others. <a href="https://www.reed.edu/psychology/thought-lab/assets/publications/Wolff%20_%20Holmes%202011%20-%20WIREs%20Cognitive%20Science.pdf">Wolff &amp; Holmes 2011</a></p>
+<p>Lupyan’s label-feedback hypothesis gives a mechanism: labels are not merely post-hoc tags. Hearing or activating a label can modulate visual discrimination, category learning, memory, and feature attention; verbal interference can reduce such effects. Labels participate in cognition online. <a href="file:///tmp/mathemes-txt/lupyan2012-linguistically-modulated-perception.md">Lupyan 2012</a></p>
+<p>Lakoff and Núñez make the mathematical version explicit. Mathematical ideas are not exhausted by symbols and formal proofs; they are human concepts structured by embodied cognition and conceptual metaphor — number lines, class algebra, symbolic logic as calculation, complex multiplication as rotation, and actual infinity as metaphorical completion. <a href="file:///tmp/mathemes-txt/lakoff-nunez2000-preface-intro.md">Lakoff &amp; Núñez 2000</a></p>
+<p><strong>Mathemes consequence:</strong> a name should do at least one of three things:</p>
+<ol>
+<li><strong>Index structure</strong> — expose defining relations.</li>
+<li><strong>Cue transfer</strong> — align parallel ideas across domains.</li>
+<li><strong>Stabilize metaphor</strong> — use consistent spatial, operational, or relational metaphors.</li>
+</ol>
+<p>Prime, a name is a tiny interface. If the interface lies, overloads, or hides affordances, the learner pays interest forever.</p>
+<hr>
+<h2>2. Morphological Typology: Which Strategy Fits Mathematics?</h2>
+<p>Morphology studies how meaningful units combine. Linguists often distinguish analytic, agglutinative, fusional, and polysynthetic patterns. These are prototypes, not rigid boxes, but they are excellent design options.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Pattern</th>
+<th>Mathematical analogue</th>
+<th>Mathemes verdict</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Analytic / isolating</strong></td>
+<td>Low morphemes per word; relations expressed by separate words and order.</td>
+<td><code>complete inner product space</code>; <code>left adjoint functor</code></td>
+<td>Best for vernacular teaching.</td>
+</tr>
+<tr>
+<td><strong>Agglutinative</strong></td>
+<td>Morphemes stack with clear boundaries and stable meanings.</td>
+<td><code>point-separated-topological-space</code>; IUPAC names</td>
+<td>Best for formal precision and machine parsing.</td>
+</tr>
+<tr>
+<td><strong>Fusional</strong></td>
+<td>One affix encodes multiple features; boundaries blur.</td>
+<td><code>endomorphism</code>, <code>idempotent</code>, <code>homology</code></td>
+<td>Useful historically, opaque for novices.</td>
+</tr>
+<tr>
+<td><strong>Polysynthetic</strong></td>
+<td>Very high morpheme-to-word ratio; sentence-like words.</td>
+<td><code>complete-separable-infinite-dimensional-complex-inner-product-space</code></td>
+<td>Too dense except as formal encoding.</td>
+</tr>
+</tbody></table>
+<p>Ramoo’s morphology overview defines analytic languages as using independent morphemes, agglutinative languages as combining identifiable morphemes, fusional languages as fusing features into one form, and polysynthetic languages as forming high-morpheme words equivalent to whole sentences. <a href="https://psychologyoflanguage.pressbooks.tru.ca/chapter/morphology-of-different-languages/">Ramoo, §3.3</a></p>
+<h3>Mathemes choice</h3>
+<p>Mathemes should be <strong>analytic in the learning register</strong> and <strong>agglutinative in the formal register</strong>:</p>
+<pre><code class="language-text">Learning register: complete inner-product space
+Formal register: complete-inner-product-space / Space[Vector, InnerProduct, Complete]
+Expert alias: Hilbert space
+</code></pre>
+<p>Human learners need readable phrases. Machines and catalogs need canonical morpheme boundaries. Experts need short handles. One surface form cannot optimize all three.</p>
+<hr>
+<h2>3. Category Theory as Evidence of Deliberate Naming</h2>
+<p>Eilenberg and Mac Lane’s 1945 <em>General Theory of Natural Equivalences</em> is primary evidence for mathematical terminology as deliberate design. Their motivating example is the finite-dimensional vector space <code>L</code> and its double conjugate <code>T(T(L))</code>. The isomorphism <code>L ≅ T(T(L))</code> is available without choosing a basis; it is “natural” because it is given <strong>simultaneously for all vector spaces and all linear transformations between them</strong>. They formalize this with a diagrammatic naturality condition. <a href="file:///tmp/mathemes-txt/eilenberg-maclane1945-natural-equivalences.md">Eilenberg &amp; Mac Lane 1945</a></p>
+<p>Their vocabulary is not accidental:</p>
+<ul>
+<li><strong>Natural</strong> = choice-free, basis-independent, compatible with maps.</li>
+<li><strong>Transformation</strong> = componentwise comparison between functors.</li>
+<li><strong>Functor</strong> = a paired operation on objects and mappings.</li>
+<li><strong>Category</strong> = objects plus mappings, abstracting groups, spaces, vector spaces, ordered sets, and complexes.</li>
+<li><strong>Covariant / contravariant</strong> = preserving or reversing mapping direction.</li>
+<li><strong>Equivalence</strong>, <strong>identity</strong>, <strong>domain</strong>, <strong>range</strong>, <strong>composition</strong> = names chosen around mapping behavior.</li>
+</ul>
+<p>They also justify the theory conceptually: it supplies notions applicable across abstract mathematics, compares constructions across fields, and continues the Klein Erlangen Program by replacing “a space with its transformation group” with “a category with its algebra of mappings.” That is exactly the Mathemes mission: terminology as architecture for transfer.</p>
+<h3>Category-theoretic morphemes already behave like Mathemes</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Morpheme parse</th>
+<th>Cognitive payload</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>pullback</strong></td>
+<td>pull + back</td>
+<td>Reverse-motion metaphor: transport structure backward along a map.</td>
+</tr>
+<tr>
+<td><strong>pushforward</strong></td>
+<td>push + forward</td>
+<td>Forward-motion metaphor: transport data along a map.</td>
+</tr>
+<tr>
+<td><strong>forgetful functor</strong></td>
+<td>forget + ful</td>
+<td>Information-loss metaphor: preserve underlying object, discard structure.</td>
+</tr>
+<tr>
+<td><strong>natural transformation</strong></td>
+<td>natural + transformation</td>
+<td>Choice-free, diagram-compatible family of maps.</td>
+</tr>
+<tr>
+<td><strong>universal property</strong></td>
+<td>universal + property</td>
+<td>Unique mediation from/to all relevant objects.</td>
+</tr>
+<tr>
+<td><strong>fiber / base / lifting</strong></td>
+<td>spatial-motion family</td>
+<td>Coherent spatial metaphor for bundles, covers, projections.</td>
+</tr>
+</tbody></table>
+<p>These terms work because their metaphors are systematic. Pull/push/lift/fiber/base belong to a spatial-action domain; natural/universal belong to invariance and generality; forgetful belongs to information loss. Mathemes should extend productive metaphor families rather than replacing them with sterile bureaucratese. Clarity, not taxonomic cosplay.</p>
+<hr>
+<h2>4. IUPAC as the Agglutinative Benchmark</h2>
+<p>Chemistry solved a version of this problem earlier. IUPAC nomenclature uses stable morphemes, canonical ordering, locants, stems, prefixes, and suffixes to encode structure:</p>
+<ul>
+<li><code>meth-yl</code> = one-carbon substituent.</li>
+<li><code>prop-an-ol</code> = three-carbon saturated chain with alcohol group.</li>
+<li><code>2-methylpropan-1-ol</code> = propan-1-ol parent with a methyl substituent at position 2.</li>
+</ul>
+<p>The IUPAC Blue Book states the pressure directly: older chemists did not always need unique names, but the information explosion made unambiguous systematic names increasingly important. IUPAC also notes that preferred systematic names must retain recognition value and acceptance among chemists. <a href="https://iupac.org/what-we-do/books/bluebook/">IUPAC Blue Book</a></p>
+<p>Mathemes should borrow the principles, not the surface style:</p>
+<ol>
+<li><strong>Canonical order</strong> for modifiers.</li>
+<li><strong>Stable morphemes</strong> with one primary technical function per register.</li>
+<li><strong>Locants / indices</strong> for arity, direction, variance, dimension, or position.</li>
+<li><strong>Parent-head structure</strong>: the head gives the object kind; modifiers constrain it.</li>
+<li><strong>Preferred names plus aliases</strong>: one systematic name, many accepted synonyms.</li>
+</ol>
+<p>Mathematics differs from chemistry: concepts are often relational, axiomatic, and context-dependent, not just graph-like physical structures. So Mathemes needs a dual grammar:</p>
+<pre><code class="language-text">Readable phrase: complete inner-product vector space
+Typed schema: Space[Vector, InnerProduct, Complete]
+Historical alias: Hilbert space
+</code></pre>
+<hr>
+<h2>5. Polysemy: The “Normal” Problem</h2>
+<p>Mathematics tolerates astonishing polysemy. The same adjective is reused across fields until it becomes a family of passwords. <code>Normal</code> is the mascot — a linguistic goblin wearing seven departmental badges.</p>
+<p>The nLab disambiguation page lists <code>normal</code>/<code>normalization</code> across linear algebra, category theory, group theory, topology, algebraic geometry, formal logic, and operator algebra. Examples include normal vector, normal bundle, normal subobject, normal subgroup, normalizer, normal topological space, normal variety, normal form, and normal operator. <a href="http://nlab.mathforge.org/nlab/show/normal">nLab: normalization</a></p>
+<p>Polysemy is not always bad. Experts reuse words because they gesture at loose family resemblances: perpendicular-to, canonical, invariant, well-behaved, rule-like. But the learner pays the cost when <code>normal</code> means unrelated things in different neighborhoods.</p>
+<p>Mathemes should classify overloaded terms:</p>
+<ol>
+<li><strong>Benign polysemy</strong> — same metaphor, compatible structure (<code>dual</code> often marks reversal/pairing).</li>
+<li><strong>Contextual polysemy</strong> — different meanings recoverable from field (<code>regular</code>, <code>proper</code>).</li>
+<li><strong>Dangerous polysemy</strong> — structurally unrelated meanings (<code>normal distribution</code>, <code>normal subgroup</code>, <code>normal topological space</code>).</li>
+</ol>
+<p>For dangerous polysemy, provide domain-qualified aliases:</p>
+<table>
+<thead>
+<tr>
+<th>Standard term</th>
+<th>Descriptive alias</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>normal subgroup</td>
+<td>conjugation-invariant subgroup</td>
+</tr>
+<tr>
+<td>normal topological space</td>
+<td>disjoint-closed-sets neighborhood-separable space</td>
+</tr>
+<tr>
+<td>normal vector</td>
+<td>perpendicular vector</td>
+</tr>
+<tr>
+<td>normal operator</td>
+<td>adjoint-commuting operator</td>
+</tr>
+<tr>
+<td>normal distribution</td>
+<td>Gaussian bell distribution / Gaussian law</td>
+</tr>
+<tr>
+<td>normal form</td>
+<td>canonical rewrite form</td>
+</tr>
+</tbody></table>
+<p>The alias need not replace expert usage. It exposes structure on first contact.</p>
+<hr>
+<h2>6. Morpheme Design Rules for Mathemes</h2>
+<h3>6.1 Head-last by default</h3>
+<p>English mathematical names should place the head last:</p>
+<ul>
+<li><code>complete inner-product space</code> is a kind of <strong>space</strong>.</li>
+<li><code>conjugation-invariant subgroup</code> is a kind of <strong>subgroup</strong>.</li>
+<li><code>measure-preserving transformation</code> is a kind of <strong>transformation</strong>.</li>
+</ul>
+<p>The head controls type; modifiers constrain it.</p>
+<h3>6.2 Modifier order should be canonical</h3>
+<p>Recommended order:</p>
+<ol>
+<li>size / finiteness / dimension;</li>
+<li>base domain;</li>
+<li>structure;</li>
+<li>operations / relations;</li>
+<li>properties;</li>
+<li>head.</li>
+</ol>
+<p>Thus <code>separable complete complex inner-product vector space</code> is parseable; random modifier soup is not.</p>
+<h3>6.3 Prefer relational morphemes over evaluative adjectives</h3>
+<p>Weak: <code>normal</code>, <code>nice</code>, <code>good</code>, <code>regular</code>, <code>proper</code>, <code>simple</code>.</p>
+<p>Stronger: <code>conjugation-invariant</code>, <code>adjoint-commuting</code>, <code>closed-set-separating</code>, <code>finite-kernel</code>, <code>identity-preserving</code>, <code>order-reflecting</code>.</p>
+<h3>6.4 Use systematic metaphor domains</h3>
+<p>Following Lakoff and Núñez, metaphor is not contamination; it is part of abstract understanding. But it must be disciplined.</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Use for</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Spatial</td>
+<td>structure/topology</td>
+<td>space, boundary, fiber, base</td>
+</tr>
+<tr>
+<td>Motion</td>
+<td>maps/operations</td>
+<td>push, pull, lift, project</td>
+</tr>
+<tr>
+<td>Vision</td>
+<td>representation</td>
+<td>visible, observable, transparent</td>
+</tr>
+<tr>
+<td>Algebraic balance</td>
+<td>invariance</td>
+<td>preserve, commute, cancel, invert</td>
+</tr>
+<tr>
+<td>Construction</td>
+<td>universal definitions</td>
+<td>generate, freely, complete, quotient</td>
+</tr>
+</tbody></table>
+<h3>6.5 Preserve expert aliases but attach transparent expansions</h3>
+<pre><code class="language-text">Hilbert space
+= complete inner-product vector space
+= Space[Vector, InnerProduct, Complete]
+</code></pre>
+<p>The historical name remains usable; the structural name becomes searchable, teachable, and transferable.</p>
+<hr>
+<h2>Design Implications</h2>
+<ol>
+<li><strong>Dual morphology:</strong> analytic phrases for learners; agglutinative schemas for precision.</li>
+<li><strong>Controlled morpheme inventory:</strong> each morpheme gets a canonical role.</li>
+<li><strong>Category theory as precedent:</strong> Eilenberg and Mac Lane show names can encode invariance, direction, and comparison.</li>
+<li><strong>Borrow from IUPAC cautiously:</strong> canonical composition and preferred names are useful; maximal chemical-style names are not always humane.</li>
+<li><strong>Treat polysemy as technical debt:</strong> overloaded words need domain-qualified transparent aliases.</li>
+<li><strong>Stabilize metaphor families:</strong> pull/push/lift/fiber systems are assets when coherent.</li>
+<li><strong>Support register switching:</strong> standard name, descriptive name, and formal schema must map cleanly.</li>
+</ol>
+<hr>
+<h2>Key Sources</h2>
+<ul>
+<li>Eilenberg, S. &amp; Mac Lane, S. (1945). <em>General Theory of Natural Equivalences</em>. <code>file:///tmp/mathemes-txt/eilenberg-maclane1945-natural-equivalences.md</code></li>
+<li>Lakoff, G. &amp; Núñez, R. (2000). <em>Where Mathematics Comes From</em>, preface and introduction. <code>file:///tmp/mathemes-txt/lakoff-nunez2000-preface-intro.md</code></li>
+<li>Lupyan, G. (2012). “Linguistically modulated perception and cognition.” <code>file:///tmp/mathemes-txt/lupyan2012-linguistically-modulated-perception.md</code></li>
+<li>Wolff, P. &amp; Holmes, K. J. (2011). “Linguistic relativity.” <a href="https://doi.org/10.1002/wcs.104">https://doi.org/10.1002/wcs.104</a></li>
+<li>IUPAC. <em>Nomenclature of Organic Chemistry: IUPAC Recommendations and Preferred Names 2013</em>. <a href="https://iupac.org/what-we-do/books/bluebook/">https://iupac.org/what-we-do/books/bluebook/</a></li>
+<li>Ramoo, D. “Morphology of Different Languages.” <a href="https://psychologyoflanguage.pressbooks.tru.ca/chapter/morphology-of-different-languages/">https://psychologyoflanguage.pressbooks.tru.ca/chapter/morphology-of-different-languages/</a></li>
+</ul>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

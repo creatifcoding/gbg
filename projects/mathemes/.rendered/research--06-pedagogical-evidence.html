@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedagogical Evidence — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / research / 06-pedagogical-evidence</div>
+  <h1>Pedagogical Evidence</h1>
+<p><strong>Status</strong>: Enriched research draft</p>
+<hr>
+<h2>Thesis</h2>
+<p>Mathemes is a pedagogical intervention disguised as a naming system. Its claim is not that students should avoid standard terminology. Its claim is that <strong>opaque terminology should not be the first interface to a concept</strong>.</p>
+<p>The evidence comes from three converging lines:</p>
+<ol>
+<li>Cognitive science: labels affect categorization, attention, memory, and transfer.</li>
+<li>Mathematics education: language is central to mathematical learning, not an accessory after the “real math.”</li>
+<li>Universal Design for Learning: multiple representations and accessible pathways improve participation without lowering rigor.</li>
+</ol>
+<p>Descriptive names reduce arbitrary memorization, expose structural relations, and support cross-domain transfer. Standard names remain necessary for reading the literature; Mathemes solves that with <strong>dual-register pedagogy</strong>: teach the transparent structural name first, then attach the standard alias.</p>
+<hr>
+<h2>1. Mathematics Learning Is Concept Learning</h2>
+<p>Lakoff and Núñez argue that the intellectual content of mathematics lies in human ideas, not merely in symbols or formal proof strings. Symbols are visible, but understanding depends on conceptual structures grounded in ordinary cognition, embodied experience, and metaphor. Their examples include number-as-points-on-a-line, Boolean operations as algebraic operations, symbolic logic as calculation, complex multiplication as rotation, and actual infinity as metaphorical completion of endless process. <a href="file:///tmp/mathemes-txt/lakoff-nunez2000-preface-intro.md">Lakoff &amp; Núñez 2000</a></p>
+<p>Their educational implication is direct: mathematics teaching should orient toward understanding what theorems <strong>mean</strong> and why they are true on the basis of that meaning. Names participate in that orientation. <code>Complete inner-product space</code> places the learner inside the conceptual structure. <code>Hilbert space</code> asks the learner to retrieve a historical lookup table before reasoning can begin.</p>
+<p>Lupyan’s label-feedback hypothesis strengthens the point. Labels can modulate visual perception and categorization, improve category learning, and make diagnostic features more salient. In novel category-learning tasks, labels help learners form more stable and flexible categories even when the labels are not logically required. <a href="file:///tmp/mathemes-txt/lupyan2012-linguistically-modulated-perception.md">Lupyan 2012</a></p>
+<p><strong>Pedagogical claim:</strong> if labels shape category learning in ordinary cognition, mathematical labels should be treated as instructional design. Names can reveal the category basis or hide it behind a password.</p>
+<hr>
+<h2>2. The Vocabulary Barrier Is Structural</h2>
+<p>Mathematics education research no longer treats language as a minor vocabulary issue. Erath, Ingram, Moschkovich, and Prediger review four decades of work and state a broad consensus: enhancing language is crucial for mathematics learning. They distinguish lexical, syntactic, and discursive dimensions, and emphasize that mathematics learning involves discourse practices such as explaining, justifying, arguing, defining, and generalizing. <a href="https://link.springer.com/article/10.1007/s11858-020-01213-2">Erath et al. 2021</a></p>
+<p>Opaque names create barriers on all three dimensions:</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Opaque-name barrier</th>
+<th>Descriptive-name affordance</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Lexical</td>
+<td><code>Hausdorff</code>, <code>Noetherian</code>, <code>Banach</code> must be memorized as arbitrary labels.</td>
+<td><code>point-separated</code>, <code>ascending-chain-condition</code>, <code>complete normed</code> expose meaning-bearing words.</td>
+</tr>
+<tr>
+<td>Syntactic</td>
+<td>Relations among modifiers are hidden or historical.</td>
+<td>Modifier-head structure shows object type and constraints.</td>
+</tr>
+<tr>
+<td>Discursive</td>
+<td>Students can only recite.</td>
+<td>Students can parse, compare, justify, and test against examples.</td>
+</tr>
+</tbody></table>
+<p>A vocabulary list is not enough. Erath et al. warn that language-responsive instruction must not be restricted to vocabulary work; it must engage rich discourse and connect language varieties with mathematical representations. Mathemes should therefore be embedded in tasks where students <strong>use</strong> names to explain structure.</p>
+<hr>
+<h2>3. Cross-Domain Transfer: Opaque Names Hide Structure</h2>
+<p>Transfer fails when learners do not recognize that two situations share structure. Names are strong surface cues. When the same structure has unrelated names across domains, the learner must solve an unnecessary matching problem before doing mathematics.</p>
+<h3>3.1 Hilbert vs. Banach</h3>
+<p>Standard names:</p>
+<ul>
+<li><code>Banach space</code></li>
+<li><code>Hilbert space</code></li>
+</ul>
+<p>Structural names:</p>
+<ul>
+<li><code>complete normed vector space</code></li>
+<li><code>complete inner-product vector space</code></li>
+</ul>
+<p>The descriptive pair reveals the hierarchy. Every inner product induces a norm; therefore a complete inner-product vector space is a special kind of complete normed vector space. The eponymic pair hides the relationship. The learner must retrieve:</p>
+<pre><code class="language-text">Banach -&gt; complete normed
+Hilbert -&gt; complete inner-product
+inner product -&gt; norm
+therefore Hilbert -&gt; Banach
+</code></pre>
+<p>Mathemes collapses the retrieval chain into the name.</p>
+<h3>3.2 Separation axioms</h3>
+<p>Topology mixes symbols, eponyms, and overloaded adjectives:</p>
+<table>
+<thead>
+<tr>
+<th>Standard</th>
+<th>Structural cue</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T0</td>
+<td>distinguishable-points space</td>
+</tr>
+<tr>
+<td>T1</td>
+<td>closed-points space</td>
+</tr>
+<tr>
+<td>Hausdorff / T2</td>
+<td>disjoint-neighborhood point-separated space</td>
+</tr>
+<tr>
+<td>regular</td>
+<td>point-and-closed-set neighborhood-separated space</td>
+</tr>
+<tr>
+<td>Tychonoff</td>
+<td>point-and-closed-set function-separated space</td>
+</tr>
+<tr>
+<td>normal</td>
+<td>disjoint-closed-sets neighborhood-separated space</td>
+</tr>
+</tbody></table>
+<p>The descriptive set shows the conceptual ladder: the objects being separated change, and the separating witnesses change. The standard names scatter the ladder across a shed.</p>
+<h3>3.3 Fourier, spectral, harmonic</h3>
+<p>Across signal processing, physics, PDEs, and pure mathematics, related ideas are named differently:</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Common name</th>
+<th>Structural family</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Signal processing</td>
+<td>Fourier transform</td>
+<td>frequency-decomposition transform</td>
+</tr>
+<tr>
+<td>Quantum mechanics</td>
+<td>spectral decomposition</td>
+<td>eigenmode / observable-value decomposition</td>
+</tr>
+<tr>
+<td>Harmonic analysis</td>
+<td>harmonic decomposition</td>
+<td>character / frequency decomposition</td>
+</tr>
+<tr>
+<td>PDEs</td>
+<td>eigenfunction expansion</td>
+<td>operator-mode decomposition</td>
+</tr>
+</tbody></table>
+<p>The expert sees the family resemblance. The novice sees unrelated doors. A descriptive alias such as <code>frequency-mode decomposition</code> or <code>eigenmode decomposition</code> makes transfer possible without erasing domain terms.</p>
+<h3>3.4 Hermitian, symmetric, self-adjoint</h3>
+<p>Physics often says <code>Hermitian operator</code> for observables. Mathematics distinguishes <code>symmetric</code> from <code>self-adjoint</code>, especially for unbounded operators. Descriptive names help separate:</p>
+<ul>
+<li><code>adjoint-equal operator</code> for self-adjointness;</li>
+<li><code>inner-product-symmetric operator</code> for symmetry on a domain;</li>
+<li><code>conjugate-transpose-equal matrix</code> for finite-dimensional Hermitian matrices.</li>
+</ul>
+<p>The point is not to make speech unbearable. The point is to expose hidden distinctions during learning.</p>
+<hr>
+<h2>4. Universal Design for Learning: Names as Access Features</h2>
+<p>CAST’s Universal Design for Learning framework emphasizes multiple means of engagement, representation, and action/expression so learners can access meaningful, challenging learning opportunities. The goal is learner agency: purposeful and reflective, resourceful and authentic, strategic and action-oriented. <a href="https://udlguidelines.cast.org/">CAST UDL Guidelines</a></p>
+<p>Descriptive naming supports all three principles.</p>
+<h3>4.1 Multiple means of representation</h3>
+<p>A descriptive name is a representation. It links language to structure.</p>
+<pre><code class="language-text">Hausdorff space
+</code></pre>
+<p>is opaque.</p>
+<pre><code class="language-text">distinct-points-disjoint-neighborhoods space
+</code></pre>
+<p>represents a relation among points and neighborhoods. It complements diagrams and formal quantifiers.</p>
+<h3>4.2 Multiple means of engagement</h3>
+<p>Opaque terms can make mathematics feel like a private club with inherited passwords. Descriptive names invite prediction:</p>
+<ul>
+<li>What does an <code>order-preserving map</code> preserve?</li>
+<li>What might a <code>measure-preserving transformation</code> do?</li>
+<li>Why would a <code>conjugation-invariant subgroup</code> support quotient groups?</li>
+</ul>
+<p>This does not make the mathematics trivial. It makes entry possible.</p>
+<h3>4.3 Multiple means of action and expression</h3>
+<p>Students should express understanding in both registers:</p>
+<pre><code class="language-text">A Hausdorff space is a point-separated topological space: any two distinct points have disjoint neighborhoods.
+</code></pre>
+<p>This sentence demonstrates literature fluency and structural understanding. “Hausdorff means T2” is only a synonym chain.</p>
+<hr>
+<h2>5. Language-Responsive Instruction: Mathemes as a Design Tool</h2>
+<p>Erath et al. identify six design principles for instruction that enhances language for mathematics learning:</p>
+<ol>
+<li>Engage students in rich discourse practices.</li>
+<li>Establish mathematics language routines.</li>
+<li>Connect language varieties and multimodal representations.</li>
+<li>Include students’ multilingual resources.</li>
+<li>Use macro-scaffolding to sequence language and mathematics learning.</li>
+<li>Compare language pieces to raise language awareness. <a href="https://link.springer.com/article/10.1007/s11858-020-01213-2">Erath et al. 2021</a></li>
+</ol>
+<p>Mathemes fits these principles if used correctly.</p>
+<h3>5.1 Rich discourse, not vocabulary substitution</h3>
+<p>Bad use:</p>
+<pre><code class="language-text">Memorize: Hausdorff = point-separated.
+</code></pre>
+<p>Good use:</p>
+<pre><code class="language-text">Compare three spaces. For each pair of distinct points, can you find disjoint neighborhoods? Explain why the name point-separated fits or fails.
+</code></pre>
+<p>The second task uses the name as a reasoning prompt.</p>
+<h3>5.2 Language routine</h3>
+<p>A Mathemes routine:</p>
+<ol>
+<li><strong>Parse the name</strong> — head, modifiers, relation words.</li>
+<li><strong>Predict the definition</strong> — what must be true if the name is honest?</li>
+<li><strong>Test examples/non-examples</strong>.</li>
+<li><strong>Map to standard alias</strong>.</li>
+<li><strong>Use both registers in a proof sentence</strong>.</li>
+</ol>
+<p>Example:</p>
+<pre><code class="language-text">Name: ascending-chain-condition ring
+Prediction: increasing chains of ideals eventually stop.
+Alias: Noetherian ring.
+Proof sentence: Since R is Noetherian, every ascending chain of ideals stabilizes.
+</code></pre>
+<h3>5.3 Connecting representations</h3>
+<p>For <code>complete normed vector space</code>, connect the name to metric diagrams of Cauchy sequences, algebraic vector operations, norm balls, formal quantifiers, and the alias <code>Banach space</code>. The name is one representation among many, not a replacement.</p>
+<h3>5.4 Raising language awareness</h3>
+<p>Compare overloaded terms:</p>
+<pre><code class="language-text">normal subgroup          -&gt; conjugation-invariant subgroup
+normal vector            -&gt; perpendicular vector
+normal operator          -&gt; adjoint-commuting operator
+normal distribution      -&gt; Gaussian bell distribution
+normal topological space -&gt; disjoint-closed-sets separable space
+</code></pre>
+<p>This reveals that <code>normal</code> is not one mathematical idea. It is an overloaded historical adjective. Awareness prevents false transfer.</p>
+<hr>
+<h2>6. Specific Pedagogical Benefits</h2>
+<h3>6.1 Reduced extraneous load</h3>
+<p>Opaque terms force arbitrary mappings:</p>
+<pre><code class="language-text">Hilbert -&gt; complete inner-product space
+Noetherian -&gt; ascending chain condition
+Hausdorff -&gt; disjoint neighborhoods for distinct points
+</code></pre>
+<p>Working memory spent retrieving mappings is not spent reasoning. Descriptive names convert some of that load into germane load: concept structure, not password management.</p>
+<h3>6.2 Error detection</h3>
+<p>Descriptive names expose contradictions:</p>
+<ul>
+<li>“A non-complete complete-normed space” sounds wrong.</li>
+<li>“A point-separated space where distinct points cannot be separated” sounds wrong.</li>
+<li>“A conjugation-invariant subgroup not closed under conjugation” sounds wrong.</li>
+</ul>
+<p>With <code>Banach</code>, <code>Hausdorff</code>, and <code>normal</code>, the contradiction is hidden until the mapping is retrieved.</p>
+<h3>6.3 Hierarchy recognition</h3>
+<pre><code class="language-text">complete inner-product vector space
+complete normed vector space
+normed vector space
+metric space
+</code></pre>
+<p>The learner sees which modifiers add structure and which properties follow.</p>
+<h3>6.4 Self-study and multilingual access</h3>
+<p>A self-learner reading “Noetherian ring” must stop and search. A self-learner reading “ideal-ascending-chain ring” can make an anchored guess before searching. This especially helps students outside the oral tradition of mathematics: multilingual students, first-generation students, autodidacts, and students from under-resourced institutions.</p>
+<p>This aligns with language-as-resource approaches, where students’ existing language repertoires are resources for mathematical meaning-making. <a href="https://link.springer.com/article/10.1007/s11858-020-01213-2">Erath et al. 2021</a></p>
+<hr>
+<h2>7. Counterargument: Students Must Learn Standard Terminology</h2>
+<p>Correct. Students must learn standard terminology to read papers, attend lectures, pass exams, search databases, and join mathematical communities.</p>
+<p>But standard terminology need not be the first or only interface.</p>
+<h3>7.1 Dual-register pedagogy</h3>
+<p>Teach in this order:</p>
+<ol>
+<li><strong>Experience / examples</strong> — see the structure.</li>
+<li><strong>Descriptive name</strong> — name it transparently.</li>
+<li><strong>Formal definition</strong> — state precise conditions.</li>
+<li><strong>Standard alias</strong> — attach the literature term.</li>
+<li><strong>Register switching</strong> — translate both ways.</li>
+</ol>
+<p>Example:</p>
+<pre><code class="language-text">Concept: complete normed vector space
+Formal: a normed vector space complete under the metric induced by its norm
+Standard alias: Banach space
+Usage: “Let X be a Banach space, i.e. a complete normed vector space.”
+</code></pre>
+<p>This does not shelter students from literature. It gives them a bridge into it.</p>
+<h3>7.2 Fade the scaffold</h3>
+<p>Early:</p>
+<pre><code class="language-text">A complete normed vector space (Banach space) ...
+</code></pre>
+<p>Later:</p>
+<pre><code class="language-text">A Banach space (complete normed vector space) ...
+</code></pre>
+<p>Eventually, use the expert term alone when the mapping is automated. The scaffold disappears after doing its job. Very civilized.</p>
+<h3>7.3 Preserve searchability</h3>
+<p>Every Mathemes entry should include standard term, descriptive name, formal definition, aliases, historical notes, field variants, examples, and non-examples. That makes students better at reading literature, not worse.</p>
+<hr>
+<h2>8. Risks and Constraints</h2>
+<ol>
+<li><strong>Long names can burden use.</strong> Use full descriptive names at introduction, shorter local aliases after definition, and expert aliases when appropriate.</li>
+<li><strong>Names can overpromise.</strong> <code>Point-separated space</code> is useful, but exact quantifiers still matter. Always pair names with formal definitions.</li>
+<li><strong>Some concepts resist compact description.</strong> Universal properties, derived functors, schemes, stacks, and spectra may need multi-part descriptions. Expose the central structural role; do not force monster names.</li>
+<li><strong>Existing terms carry culture.</strong> <code>Noetherian</code>, <code>Galois</code>, and <code>Fourier</code> preserve history. Mathemes should separate historical credit from first-contact comprehension, not erase it.</li>
+</ol>
+<hr>
+<h2>Design Implications</h2>
+<ol>
+<li>Use descriptive names as first-contact scaffolds.</li>
+<li>Attach standard aliases early and explicitly.</li>
+<li>Require bidirectional translation: <code>Hilbert space -&gt; complete inner-product space</code> and back.</li>
+<li>Use names in discourse tasks, not vocabulary lists.</li>
+<li>Expose hierarchy and transfer through modifier structure.</li>
+<li>Flag overloaded words with domain-specific aliases.</li>
+<li>Fade scaffolds as expertise develops.</li>
+<li>Treat naming as UDL representation: improve access without lowering rigor.</li>
+</ol>
+<hr>
+<h2>Key Sources</h2>
+<ul>
+<li>Lakoff, G. &amp; Núñez, R. (2000). <em>Where Mathematics Comes From</em>, preface and introduction. <code>file:///tmp/mathemes-txt/lakoff-nunez2000-preface-intro.md</code></li>
+<li>Lupyan, G. (2012). “Linguistically modulated perception and cognition.” <code>file:///tmp/mathemes-txt/lupyan2012-linguistically-modulated-perception.md</code></li>
+<li>Erath, K., Ingram, J., Moschkovich, J., &amp; Prediger, S. (2021). “Designing and enacting instruction that enhances language for mathematics learning.” <em>ZDM Mathematics Education</em>, 53, 245–262. <a href="https://doi.org/10.1007/s11858-020-01213-2">https://doi.org/10.1007/s11858-020-01213-2</a></li>
+<li>CAST. <em>Universal Design for Learning Guidelines 3.0</em>. <a href="https://udlguidelines.cast.org/">https://udlguidelines.cast.org/</a></li>
+<li>Gick, M. L. &amp; Holyoak, K. J. (1983). “Schema induction and analogical transfer.” <em>Cognitive Psychology</em>, 15, 1–38.</li>
+</ul>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

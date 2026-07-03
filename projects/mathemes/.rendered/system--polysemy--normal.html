@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polysemy Network: "Normal" — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / system / polysemy / normal</div>
+  <h1>Polysemy Network: &quot;Normal&quot;</h1>
+<p><strong>Status</strong>: Analysis draft — requires mathematician review for precision.</p>
+<hr>
+<h2>The Problem</h2>
+<p>&quot;Normal&quot; is used for at least 7 mathematically distinct concepts. The word&#39;s vernacular meaning (&quot;usual, typical, not deviant&quot;) bleeds into mathematical usage in misleading ways — it implies the named concept is the &quot;default&quot; or &quot;well-behaved&quot; case, which is sometimes true and sometimes not.</p>
+<h2>Semantic Network</h2>
+<pre><code>                          &quot;normal&quot; (vernacular: usual, standard, not deviant)
+                                    │
+            ┌───────────────────────┼───────────────────────┐
+            │                       │                       │
+     GEOMETRIC SENSE          ALGEBRAIC SENSE         ANALYTIC SENSE
+     &quot;perpendicular&quot;          &quot;invariant&quot;             &quot;well-behaved&quot;
+            │                       │                       │
+     ┌──────┴──────┐         ┌──────┴──────┐         ┌──────┴──────┐
+     │             │         │             │         │             │
+  normal        normal    normal       normal     normal       normal
+  vector        space     subgroup     operator   distribution   form
+  (geometry)    (T4)      (algebra)    (func.     (probability)  (diff.
+                                       analysis)                 geom.)
+</code></pre>
+<h2>Concept-by-Concept Analysis</h2>
+<h3>1. Normal Vector (Geometry / Differential Geometry)</h3>
+<p><strong>Mathematical meaning</strong>: A vector perpendicular (orthogonal) to a surface or curve at a given point.</p>
+<p><strong>Why &quot;normal&quot; is used</strong>: From Latin <em>normalis</em> — &quot;made according to a square&quot; (the carpenter&#39;s square, <em>norma</em>). A line at right angles. This is the oldest mathematical usage, geometrically precise.</p>
+<p><strong>Why naive replacement fails</strong>: &quot;Perpendicular vector&quot; is adequate in Euclidean geometry but loses precision in:</p>
+<ul>
+<li>Riemannian geometry (orthogonality defined by the metric tensor, not Euclidean angles)</li>
+<li>Pseudo-Riemannian geometry (orthogonality can involve null vectors — &quot;perpendicular&quot; misleads)</li>
+<li>Abstract inner-product spaces (orthogonality is defined by the inner product, not by visual right angles)</li>
+</ul>
+<p><strong>Proposed Mathemes resolution</strong>:</p>
+<ul>
+<li><strong>Systematic</strong>: surface-orthogonal vector (geometry), metric-orthogonal vector (Riemannian)</li>
+<li><strong>Standard</strong>: orthogonal vector (in context where the surface/metric is clear)</li>
+<li><strong>Legacy</strong>: normal vector</li>
+</ul>
+<p><strong>Precision check</strong>: &quot;Orthogonal&quot; inherits from Greek <em>orthos</em> (right, straight) + <em>gonia</em> (angle). It generalizes beyond perpendicularity because it&#39;s defined relative to whatever inner product or metric is in scope. This is the correct level of generality.</p>
+<h3>2. Normal Subgroup (Algebra)</h3>
+<p><strong>Mathematical meaning</strong>: A subgroup H of G such that gHg⁻¹ = H for all g in G. Equivalently, H is invariant under conjugation by any element of G.</p>
+<p><strong>Why &quot;normal&quot; is used</strong>: Galois used <em>sous-groupe distingué</em> (&quot;distinguished subgroup&quot;). The English &quot;normal&quot; was introduced later, probably from the sense of &quot;standard&quot; or &quot;canonical&quot; — a normal subgroup is the &quot;right&quot; kind of subgroup for forming quotients.</p>
+<p><strong>Why this is problematic</strong>: The word &quot;normal&quot; gives no hint of the defining property (invariance under conjugation). A student encountering &quot;normal subgroup&quot; has zero semantic scaffolding.</p>
+<p><strong>Proposed Mathemes resolution</strong>:</p>
+<ul>
+<li><strong>Systematic</strong>: conjugation-invariant subgroup</li>
+<li><strong>Standard</strong>: invariant subgroup (already used by some authors)</li>
+<li><strong>Legacy</strong>: normal subgroup</li>
+</ul>
+<p><strong>Precision check</strong>: &quot;Conjugation-invariant&quot; is exactly the defining property. &quot;Invariant subgroup&quot; is slightly ambiguous (invariant under what?) but is standard and understood in context. &quot;Self-conjugate subgroup&quot; is another option but less intuitive.</p>
+<h3>3. Normal Space (Topology — T4 separation)</h3>
+<p><strong>Mathematical meaning</strong>: A topological space where any two disjoint closed sets can be separated by disjoint open sets.</p>
+<p><strong>Why &quot;normal&quot; is used</strong>: Part of the Hausdorff/Tychonoff separation hierarchy. &quot;Normal&quot; was chosen as a value judgment — this is the &quot;nice&quot; separation condition. It tells you nothing about closed sets or open neighborhoods.</p>
+<p><strong>Proposed Mathemes resolution</strong>:</p>
+<ul>
+<li><strong>Systematic</strong>: closed-set-separated space</li>
+<li><strong>Standard</strong>: T4 space (already standard, but T4 is itself opaque)</li>
+<li><strong>Legacy</strong>: normal space</li>
+</ul>
+<p><strong>Precision check</strong>: &quot;Closed-set-separated&quot; exactly describes the defining property. Fits the pattern from the Steve White / Claude renaming: T0 = distinct-point, T1 = closed-point, T2 = point-separated, T3 = point-set-separated, T4 = closed-set-separated.</p>
+<h3>4. Normal Operator (Functional Analysis)</h3>
+<p><strong>Mathematical meaning</strong>: An operator A on a Hilbert space such that A<em>A = AA</em> (commutes with its adjoint).</p>
+<p><strong>Why &quot;normal&quot; is used</strong>: In the sense of &quot;standard&quot; or &quot;well-behaved&quot; — normal operators have nice spectral properties (the spectral theorem applies). The word encodes a value judgment about the operator&#39;s tractability.</p>
+<p><strong>Proposed Mathemes resolution</strong>:</p>
+<ul>
+<li><strong>Systematic</strong>: adjoint-commuting operator</li>
+<li><strong>Standard</strong>: self-adjoint-commuting operator (disambiguates from &quot;commuting with other operators&quot;)</li>
+<li><strong>Legacy</strong>: normal operator</li>
+</ul>
+<p><strong>Precision check</strong>: &quot;Adjoint-commuting&quot; is precisely the defining property. The name tells you exactly what to check: does it commute with its adjoint?</p>
+<h3>5. Normal Distribution (Probability / Statistics)</h3>
+<p><strong>Mathematical meaning</strong>: The Gaussian probability distribution with density (1/σ√2π)exp(-(x-μ)²/2σ²).</p>
+<p><strong>Why &quot;normal&quot; is used</strong>: Gauss called it this (from the connection to the geometric normal via inner products). Francis Galton popularized &quot;normal distribution&quot; in the sense of &quot;the distribution of normal (typical) variation.&quot; The name stuck through Galton&#39;s prestige.</p>
+<p><strong>Why this is a special case</strong>: &quot;Normal distribution&quot; is arguably the LEAST problematic use of &quot;normal&quot; — it&#39;s the most widely known mathematical term using this word, and &quot;normal&quot; in the vernacular sense of &quot;typical/standard&quot; is close to the mathematical meaning (the distribution describes typical random variation).</p>
+<p><strong>Proposed Mathemes resolution</strong>:</p>
+<ul>
+<li><strong>Systematic</strong>: Retain &quot;normal distribution&quot; as the canonical home of &quot;normal&quot; in the morpheme inventory. This is the usage with the strongest vernacular-to-mathematical mapping.</li>
+<li><strong>Alternative systematic</strong>: bell-curve distribution (more visually descriptive)</li>
+<li><strong>Legacy</strong>: Gaussian distribution (eponymous alias)</li>
+</ul>
+<h3>6. Normal Form (Various)</h3>
+<p><strong>Mathematical meaning</strong>: A canonical or standardized representation. Used in:</p>
+<ul>
+<li>Database theory (1NF, 2NF, 3NF — normalization)</li>
+<li>Logic (conjunctive/disjunctive normal form)</li>
+<li>Linear algebra (Jordan normal form, Smith normal form)</li>
+<li>Differential equations (Frobenius normal form)</li>
+</ul>
+<p><strong>Why &quot;normal&quot; is used</strong>: Here &quot;normal&quot; means &quot;standard, canonical, regularized.&quot; The closest to the vernacular meaning.</p>
+<p><strong>Proposed Mathemes resolution</strong>:</p>
+<ul>
+<li><strong>Systematic</strong>: canonical form (already widely used as a synonym)</li>
+<li><strong>Standard</strong>: standard form</li>
+<li><strong>Legacy</strong>: normal form</li>
+</ul>
+<h3>7. Normal Bundle / Normal Coordinates (Differential Geometry)</h3>
+<p><strong>Mathematical meaning</strong>: Related to sense #1 — the bundle of vectors normal (orthogonal) to a submanifold.</p>
+<p><strong>Proposed Mathemes resolution</strong>: Follows from #1.</p>
+<ul>
+<li><strong>Systematic</strong>: orthogonal bundle, orthogonal coordinates</li>
+<li><strong>Legacy</strong>: normal bundle, normal coordinates</li>
+</ul>
+<h2>Resolution Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Current Usage</th>
+<th>Underlying Concept</th>
+<th>Mathemes Systematic Name</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Normal vector</td>
+<td>Orthogonal to surface</td>
+<td>surface-orthogonal vector</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Normal subgroup</td>
+<td>Invariant under conjugation</td>
+<td>conjugation-invariant subgroup</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Normal space (T4)</td>
+<td>Closed sets separable by open sets</td>
+<td>closed-set-separated space</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Normal operator</td>
+<td>Commutes with adjoint</td>
+<td>adjoint-commuting operator</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Normal distribution</td>
+<td>The standard bell curve</td>
+<td>normal distribution (RETAIN)</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Normal form</td>
+<td>Canonical representation</td>
+<td>canonical form</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Normal bundle</td>
+<td>Orthogonal complement bundle</td>
+<td>orthogonal bundle</td>
+<td>High</td>
+</tr>
+</tbody></table>
+<h2>Design Decision</h2>
+<p><strong>&quot;Normal&quot; in the Mathemes inventory means</strong>: the probability distribution. This is the one usage where the vernacular meaning (&quot;typical, standard&quot;) genuinely illuminates the mathematical concept. All other senses get replaced by descriptive morphemes that encode their actual defining properties.</p>
+<h2>Network Implications</h2>
+<p>Resolving &quot;normal&quot; cascades into these related terms:</p>
+<ul>
+<li>&quot;Orthogonal&quot; becomes a property morpheme (replacing the geometric &quot;normal&quot;)</li>
+<li>&quot;Invariant&quot; becomes a property morpheme (replacing the algebraic &quot;normal&quot;)  </li>
+<li>&quot;Canonical&quot; replaces &quot;normal form&quot; in all contexts</li>
+<li>The separation axiom hierarchy gets systematic descriptive names throughout</li>
+</ul>
+<hr>
+<p><em>This analysis is the template for all polysemy resolutions. Each polysemous term gets the same treatment: collect meanings → map the network → analyze precision → propose resolutions → check cascading implications.</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

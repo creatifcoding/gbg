@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morpheme Inventory — Index — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / system / morphemes / index</div>
+  <h1>Morpheme Inventory — Index</h1>
+<p><strong>Status</strong>: Active construction.</p>
+<hr>
+<h2>Organization</h2>
+<p>Morphemes are organized by <strong>facet</strong> — the semantic role they play in a compound name. Each facet has its own document with the full inventory for that facet.</p>
+<table>
+<thead>
+<tr>
+<th>Facet</th>
+<th>Document</th>
+<th>Role in Names</th>
+<th>Count Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Structures</strong></td>
+<td><code>structures.md</code></td>
+<td>The head noun — what kind of mathematical object</td>
+<td>30-40</td>
+</tr>
+<tr>
+<td><strong>Properties</strong></td>
+<td><code>properties.md</code></td>
+<td>Modifiers describing intrinsic characteristics</td>
+<td>50-70</td>
+</tr>
+<tr>
+<td><strong>Operations</strong></td>
+<td><code>operations.md</code></td>
+<td>Verbs/processes acting on or between objects</td>
+<td>25-35</td>
+</tr>
+<tr>
+<td><strong>Relations</strong></td>
+<td><code>relations.md</code></td>
+<td>How objects relate to each other</td>
+<td>15-25</td>
+</tr>
+<tr>
+<td><strong>Qualifiers</strong></td>
+<td><code>qualifiers.md</code></td>
+<td>Scope, size, cardinality constraints</td>
+<td>15-20</td>
+</tr>
+<tr>
+<td><strong>Domains</strong></td>
+<td><code>domains.md</code></td>
+<td>The mathematical substance being structured</td>
+<td>15-25</td>
+</tr>
+</tbody></table>
+<p><strong>Total target</strong>: 150-215 morphemes.</p>
+<h2>Entry Format</h2>
+<p>Each morpheme entry includes:</p>
+<pre><code>### morpheme-name
+
+- **Meaning**: precise mathematical definition
+- **Etymology**: source language + decomposition
+- **Transparency**: ✅ transparent / ⚠️ semi-transparent / ❌ opaque
+- **Polysemy check**: single-meaning ✅ / polysemous ⚠️ (see resolution)
+- **Facet**: which facet this belongs to
+- **Composes with**: which other morphemes it naturally combines with
+- **Examples**: 2-3 compound names using this morpheme
+- **Notes**: usage constraints, gotchas, historical context
+</code></pre>
+<h2>Polysemy Resolution Index</h2>
+<p>Terms that mean multiple things in mathematics. Each gets its own analysis before entering the inventory.</p>
+<p>See <code>../polysemy/</code> directory for full polysemy network analyses.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meanings</th>
+<th>Resolution Status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>normal</td>
+<td>5+ (subgroup, distribution, vector, space, operator)</td>
+<td>🔴 Needs full analysis</td>
+</tr>
+<tr>
+<td>regular</td>
+<td>4+ (space, language, representation, polygon)</td>
+<td>🔴 Needs full analysis</td>
+</tr>
+<tr>
+<td>complete</td>
+<td>3+ (metric space, lattice, graph)</td>
+<td>🟡 Partially analyzed</td>
+</tr>
+<tr>
+<td>simple</td>
+<td>3+ (group, root, ring)</td>
+<td>🔴 Needs full analysis</td>
+</tr>
+<tr>
+<td>free</td>
+<td>3+ (group, module, variable)</td>
+<td>🔴 Needs full analysis</td>
+</tr>
+<tr>
+<td>closed</td>
+<td>3+ (set, form, manifold)</td>
+<td>🟡 Partially analyzed</td>
+</tr>
+<tr>
+<td>dual</td>
+<td>3+ (space, category, graph)</td>
+<td>🟡 Partially analyzed</td>
+</tr>
+<tr>
+<td>prime</td>
+<td>2+ (number, ideal)</td>
+<td>🟢 Related senses — may keep</td>
+</tr>
+<tr>
+<td>ideal</td>
+<td>2+ (ring theory, general usage)</td>
+<td>🟡 Context-dependent</td>
+</tr>
+<tr>
+<td>radical</td>
+<td>2+ (ring theory, root extraction)</td>
+<td>🔴 Needs analysis</td>
+</tr>
+<tr>
+<td>projection</td>
+<td>2+ (linear algebra, topology)</td>
+<td>🟢 Related senses</td>
+</tr>
+<tr>
+<td>kernel</td>
+<td>2+ (algebra, analysis)</td>
+<td>🟢 Related senses</td>
+</tr>
+<tr>
+<td>characteristic</td>
+<td>2+ (field, class)</td>
+<td>🔴 Needs analysis</td>
+</tr>
+<tr>
+<td>order</td>
+<td>3+ (group, relation, differential equation)</td>
+<td>🔴 Needs analysis</td>
+</tr>
+<tr>
+<td>degree</td>
+<td>3+ (polynomial, vertex, map)</td>
+<td>🔴 Needs analysis</td>
+</tr>
+<tr>
+<td>rank</td>
+<td>2+ (matrix, tensor)</td>
+<td>🟢 Related senses</td>
+</tr>
+<tr>
+<td>spectrum</td>
+<td>2+ (operator, ring)</td>
+<td>🟡 Related but distinct</td>
+</tr>
+</tbody></table>
+<h2>Construction Sequence</h2>
+<ol>
+<li><strong>Structures</strong> first — the head nouns anchor everything</li>
+<li><strong>Properties</strong> next — the largest facet, requires most polysemy work</li>
+<li><strong>Operations</strong> — the action vocabulary</li>
+<li><strong>Relations, Qualifiers, Domains</strong> — smaller, more stable facets</li>
+<li><strong>Polysemy networks</strong> — cross-cutting analysis, done in parallel</li>
+</ol>
+<hr>
+<p><em>This index will be updated as each facet inventory is built.</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>

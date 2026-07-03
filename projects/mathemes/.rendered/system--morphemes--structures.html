@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morpheme Inventory — Structures — Mathemes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface2: #f4f1eb;
+  --border: rgba(0,0,0,0.08);
+  --border-bright: rgba(0,0,0,0.15);
+  --text: #1c1917;
+  --text-dim: #78716c;
+  --accent: #1e3a5f;
+  --accent-dim: rgba(30,58,95,0.06);
+  --gold: #b8860b;
+  --gold-dim: rgba(184,134,11,0.07);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77,124,15,0.07);
+  --rose: #9f1239;
+  --rose-dim: rgba(159,18,57,0.06);
+  --teal: #0f766e;
+  --teal-dim: rgba(15,118,110,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131210; --surface: #1c1b18; --surface2: #252320;
+    --border: rgba(255,255,255,0.06); --border-bright: rgba(255,255,255,0.12);
+    --text: #e7e5e4; --text-dim: #a8a29e;
+    --accent: #93c5fd; --accent-dim: rgba(147,197,253,0.1);
+    --gold: #fbbf24; --gold-dim: rgba(251,191,36,0.1);
+    --sage: #a3e635; --sage-dim: rgba(163,230,53,0.08);
+    --rose: #fda4af; --rose-dim: rgba(253,164,175,0.08);
+    --teal: #5eead4; --teal-dim: rgba(94,234,212,0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+                    radial-gradient(ellipse at 85% 90%, var(--gold-dim) 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 48px 40px;
+  min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+.breadcrumb {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 32px;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+h1 {
+  font-family: var(--font-display); font-size: 42px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--font-display); font-size: 28px; font-weight: 400;
+  margin-top: 48px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: var(--font-body); font-size: 18px; font-weight: 700;
+  margin-top: 32px; margin-bottom: 10px; color: var(--accent);
+}
+h4 {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 24px; margin-bottom: 8px; color: var(--text-dim);
+}
+p { margin-bottom: 14px; font-size: 15px; }
+p strong { color: var(--text); }
+em { font-style: italic; }
+blockquote {
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  font-size: 15px;
+}
+blockquote p { margin-bottom: 8px; }
+blockquote p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 12px 0 16px 24px; font-size: 15px; }
+li { margin-bottom: 6px; }
+li ul, li ol { margin-top: 6px; margin-bottom: 6px; }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+
+code {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--accent-dim); padding: 2px 6px; border-radius: 4px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+  margin: 16px 0; font-size: 13px; line-height: 1.5;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 2px solid var(--border-bright);
+  position: sticky; top: 0; background: var(--bg);
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface2); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+.status-badge {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+  margin-bottom: 16px;
+}
+.meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.footer {
+  margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  body { padding: 24px 16px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  table { font-size: 12px; }
+  td, th { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Mathemes</a> / system / morphemes / structures</div>
+  <h1>Morpheme Inventory — Structures</h1>
+<p><strong>Facet</strong>: Structure (head nouns — what kind of mathematical object)
+<strong>Metaphor domain</strong>: Spatial/architectural
+<strong>Count</strong>: 35</p>
+<hr>
+<p>These are the <strong>head nouns</strong> of compound names. Every mathematical name ends with one of these (or a compound of these). They answer: &quot;what kind of thing is this?&quot;</p>
+<h2>Algebraic Structures</h2>
+<h3>space</h3>
+<ul>
+<li><strong>Meaning</strong>: A set with structure (topological, metric, vector, etc.)</li>
+<li><strong>Etymology</strong>: Latin <em>spatium</em> — extent, room, area</li>
+<li><strong>Transparency</strong>: ✅ Universally understood spatial metaphor</li>
+<li><strong>Polysemy</strong>: ⚠️ Very broad — always qualified by property morphemes. &quot;Space&quot; alone is not a complete name.</li>
+<li><strong>Composes with</strong>: [complete, compact, connected, normed, metric, inner-product, topological, measurable, ...] + space</li>
+<li><strong>Examples</strong>: complete inner-product space, point-separated space, locally-compact space</li>
+</ul>
+<h3>group</h3>
+<ul>
+<li><strong>Meaning</strong>: A set with an associative binary operation, identity element, and inverses</li>
+<li><strong>Etymology</strong>: French <em>groupe</em> (Galois, 1830s) — colloquial &quot;collection, cluster&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — the word is vernacular but doesn&#39;t specifically suggest algebraic structure</li>
+<li><strong>Polysemy</strong>: 🟢 Mathematical meaning is dominant in context</li>
+<li><strong>Composes with</strong>: [commutative, finite, cyclic, free, solvable, simple, ...] + group</li>
+<li><strong>Examples</strong>: commutative group, finite cyclic group, free group</li>
+</ul>
+<h3>ring</h3>
+<ul>
+<li><strong>Meaning</strong>: A set with addition (commutative group) and multiplication (associative, distributive)</li>
+<li><strong>Etymology</strong>: German <em>Zahlring</em> (Hilbert, 1897) — &quot;number ring,&quot; ring as in &quot;association&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — metaphor of cyclical return (modular arithmetic) is loose</li>
+<li><strong>Polysemy</strong>: 🟢 Mathematical meaning is dominant in context</li>
+<li><strong>Composes with</strong>: [commutative, integral, local, polynomial, ...] + ring</li>
+<li><strong>Examples</strong>: commutative ring, local ring, polynomial ring</li>
+</ul>
+<h3>field</h3>
+<ul>
+<li><strong>Meaning</strong>: A commutative ring where every nonzero element has a multiplicative inverse</li>
+<li><strong>Etymology</strong>: English translation of German <em>Körper</em> (Dedekind) — &quot;body&quot;; Moore (1893) chose &quot;field&quot;</li>
+<li><strong>Transparency</strong>: ❌ &quot;Field&quot; suggests agriculture or physics vector fields, not algebraic closure under division</li>
+<li><strong>Polysemy</strong>: ⚠️ Conflicts with &quot;vector field,&quot; &quot;field of study.&quot; Mathematical meaning is opaque.</li>
+<li><strong>Notes</strong>: This is a hard case. &quot;Field&quot; is entrenched but genuinely misleading. Dedekind&#39;s <em>Körper</em> (body) was arguably better — a self-contained body of arithmetic. Candidate replacements: &quot;arithmetic&quot; (White&#39;s suggestion), &quot;division-ring&quot; (too narrow — misses commutativity). For now, retained with a polysemy warning.</li>
+<li><strong>Composes with</strong>: [finite, algebraically-closed, ordered, ...] + field</li>
+</ul>
+<h3>algebra</h3>
+<ul>
+<li><strong>Meaning</strong>: A vector space with a bilinear product</li>
+<li><strong>Etymology</strong>: Arabic <em>al-jabr</em> — &quot;reunion of broken parts&quot; (al-Khwarizmi, 820 CE)</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — the word is ancient and well-known but doesn&#39;t describe the structure</li>
+<li><strong>Polysemy</strong>: ⚠️ &quot;Algebra&quot; as a field of study vs. &quot;an algebra&quot; as a specific structure</li>
+<li><strong>Composes with</strong>: [Lie → tangential, Boolean → binary-logic, Clifford → geometric, ...] + algebra</li>
+</ul>
+<h3>module</h3>
+<ul>
+<li><strong>Meaning</strong>: A generalization of a vector space where scalars come from a ring instead of a field</li>
+<li><strong>Etymology</strong>: Latin <em>modulus</em> — &quot;small measure&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — suggests measurement/proportion, which is loose</li>
+<li><strong>Composes with</strong>: [free, finitely-generated, projective, injective, flat, ...] + module</li>
+</ul>
+<h3>lattice</h3>
+<ul>
+<li><strong>Meaning</strong>: A partially ordered set where every pair has a least upper bound and greatest lower bound</li>
+<li><strong>Etymology</strong>: Old French <em>lattis</em> — crossed strips forming a grid</li>
+<li><strong>Transparency</strong>: ✅ The grid/crosshatch metaphor maps well to the order structure</li>
+<li><strong>Composes with</strong>: [complete, distributive, modular, Boolean, ...] + lattice</li>
+</ul>
+<h3>monoid</h3>
+<ul>
+<li><strong>Meaning</strong>: A set with an associative binary operation and identity element (group without inverses)</li>
+<li><strong>Etymology</strong>: Greek <em>monos</em> (single) + <em>eidos</em> (form) — coined by Bourbaki</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — requires Greek to decompose</li>
+<li><strong>Composes with</strong>: [commutative, free, cancellative, ...] + monoid</li>
+</ul>
+<h3>semigroup</h3>
+<ul>
+<li><strong>Meaning</strong>: A set with an associative binary operation (monoid without identity)</li>
+<li><strong>Etymology</strong>: Latin <em>semi</em> (half) + French <em>groupe</em> — &quot;half-group&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Misleading — it&#39;s not &quot;half&quot; a group in any precise sense</li>
+<li><strong>Notes</strong>: White suggests &quot;bunch.&quot; Mathemes could use &quot;associative-set&quot; for full systematic name.</li>
+</ul>
+<h2>Topological/Geometric Structures</h2>
+<h3>manifold</h3>
+<ul>
+<li><strong>Meaning</strong>: A topological space locally resembling Euclidean space</li>
+<li><strong>Etymology</strong>: German <em>Mannigfaltigkeit</em> (Riemann) — &quot;manifoldness, multiplicity&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — suggests multiplicity/variety, which is loose</li>
+<li><strong>Composes with</strong>: [smooth, Riemannian → curved-metric, compact, oriented, ...] + manifold</li>
+</ul>
+<h3>bundle</h3>
+<ul>
+<li><strong>Meaning</strong>: A space that locally looks like a product of two spaces</li>
+<li><strong>Etymology</strong>: Middle English <em>bundel</em> — things bound together</li>
+<li><strong>Transparency</strong>: ✅ The metaphor of things bundled over a base space works well</li>
+<li><strong>Composes with</strong>: [fiber, vector, principal, tangent, cotangent, ...] + bundle</li>
+</ul>
+<h3>sheaf</h3>
+<ul>
+<li><strong>Meaning</strong>: A tool for tracking locally defined data on a topological space</li>
+<li><strong>Etymology</strong>: Old English <em>scēaf</em> — a bundle of stalks</li>
+<li><strong>Transparency</strong>: ✅ The agricultural metaphor (stalks over a base) maps to fibers over a space</li>
+<li><strong>Composes with</strong>: [coherent, locally-free, flasque → soft, ...] + sheaf</li>
+</ul>
+<h3>complex</h3>
+<ul>
+<li><strong>Meaning</strong>: A sequence of algebraic objects connected by maps (chain complex, simplicial complex)</li>
+<li><strong>Etymology</strong>: Latin <em>complexus</em> — &quot;entwined, embraced&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Conflicts with &quot;complex number.&quot; In the chain-complex sense, the word is reasonably transparent (things woven together).</li>
+<li><strong>Polysemy</strong>: ⚠️ Complex number vs. chain complex vs. simplicial complex. Different structures entirely.</li>
+</ul>
+<h2>Analytic Structures</h2>
+<h3>function</h3>
+<ul>
+<li><strong>Meaning</strong>: A rule assigning each element of one set to exactly one element of another</li>
+<li><strong>Etymology</strong>: Latin <em>functio</em> — &quot;performance, execution&quot;</li>
+<li><strong>Transparency</strong>: ✅ Well-established, universally understood in mathematical context</li>
+</ul>
+<h3>map / mapping</h3>
+<ul>
+<li><strong>Meaning</strong>: Synonym of function, preferred in algebra and topology for structure-preserving functions</li>
+<li><strong>Etymology</strong>: Latin <em>mappa</em> — cloth, chart</li>
+<li><strong>Transparency</strong>: ✅ Spatial metaphor of one territory mapped onto another</li>
+</ul>
+<h3>transform</h3>
+<ul>
+<li><strong>Meaning</strong>: A function that changes the representation of an object (Fourier, Laplace, etc.)</li>
+<li><strong>Etymology</strong>: Latin <em>transformare</em> — &quot;change shape&quot;</li>
+<li><strong>Transparency</strong>: ✅ Clearly suggests shape-changing</li>
+</ul>
+<h3>series</h3>
+<ul>
+<li><strong>Meaning</strong>: A sum of a sequence of terms</li>
+<li><strong>Etymology</strong>: Latin <em>series</em> — &quot;row, chain, sequence&quot;</li>
+<li><strong>Transparency</strong>: ✅ Suggests ordered succession</li>
+</ul>
+<h3>sequence</h3>
+<ul>
+<li><strong>Meaning</strong>: An ordered list of elements</li>
+<li><strong>Etymology</strong>: Latin <em>sequentia</em> — &quot;that which follows&quot;</li>
+<li><strong>Transparency</strong>: ✅</li>
+</ul>
+<h3>operator</h3>
+<ul>
+<li><strong>Meaning</strong>: A function from a space to itself (or between function spaces)</li>
+<li><strong>Etymology</strong>: Latin <em>operari</em> — &quot;to work, to perform&quot;</li>
+<li><strong>Transparency</strong>: ✅ Suggests something that acts/works on inputs</li>
+</ul>
+<h3>distribution</h3>
+<ul>
+<li><strong>Meaning</strong>: (Analysis) A generalized function. (Probability) A measure on outcomes.</li>
+<li><strong>Etymology</strong>: Latin <em>distribuere</em> — &quot;divide, scatter&quot;</li>
+<li><strong>Transparency</strong>: ✅ for probability; ⚠️ for analysis (generalized function is clearer)</li>
+<li><strong>Polysemy</strong>: ⚠️ Analysis vs. probability senses are genuinely different concepts</li>
+</ul>
+<h3>measure</h3>
+<ul>
+<li><strong>Meaning</strong>: A function assigning sizes to sets (Lebesgue, Haar, etc.)</li>
+<li><strong>Etymology</strong>: Latin <em>mensura</em> — &quot;measurement&quot;</li>
+<li><strong>Transparency</strong>: ✅</li>
+</ul>
+<h2>Category-Theoretic Structures</h2>
+<h3>category</h3>
+<ul>
+<li><strong>Meaning</strong>: A collection of objects and morphisms (arrows) between them</li>
+<li><strong>Etymology</strong>: Greek <em>kategoria</em> (Aristotle) — &quot;accusation, predication, classification&quot;</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — borrowed from philosophy, doesn&#39;t describe the mathematical structure</li>
+<li><strong>Notes</strong>: Retained despite semi-transparency because it&#39;s the foundational term of an entire branch</li>
+</ul>
+<h3>functor</h3>
+<ul>
+<li><strong>Meaning</strong>: A structure-preserving map between categories</li>
+<li><strong>Etymology</strong>: Latin <em>functor</em> — &quot;performer&quot; (borrowed from Carnap&#39;s <em>Logische Syntax</em>)</li>
+<li><strong>Transparency</strong>: ⚠️ Semi — suggests &quot;something that functions&quot; but doesn&#39;t specify structure-preservation</li>
+<li><strong>Notes</strong>: Eilenberg &amp; Mac Lane deliberately chose this. Retained.</li>
+</ul>
+<h3>morphism</h3>
+<ul>
+<li><strong>Meaning</strong>: A structure-preserving map (in category theory, an arrow between objects)</li>
+<li><strong>Etymology</strong>: Greek <em>morphe</em> — &quot;form, shape&quot; + <em>-ism</em></li>
+<li><strong>Transparency</strong>: ✅ &quot;Form-preserving&quot; is recoverable from the Greek</li>
+</ul>
+<h3>topos</h3>
+<ul>
+<li><strong>Meaning</strong>: A category that behaves like a universe of sets (with internal logic)</li>
+<li><strong>Etymology</strong>: Greek <em>topos</em> — &quot;place&quot;</li>
+<li><strong>Transparency</strong>: ✅ The spatial metaphor is precise — a &quot;place&quot; where mathematics happens</li>
+</ul>
+<h2>Logical/Set-Theoretic</h2>
+<h3>set</h3>
+<ul>
+<li><strong>Meaning</strong>: A collection of distinct objects</li>
+<li><strong>Etymology</strong>: Old English <em>settan</em> — &quot;to place&quot;</li>
+<li><strong>Transparency</strong>: ✅</li>
+</ul>
+<h3>class</h3>
+<ul>
+<li><strong>Meaning</strong>: A collection that may be too large to be a set</li>
+<li><strong>Etymology</strong>: Latin <em>classis</em> — &quot;division, group&quot;</li>
+<li><strong>Transparency</strong>: ✅</li>
+</ul>
+<h3>type</h3>
+<ul>
+<li><strong>Meaning</strong>: A classification of terms in a formal system</li>
+<li><strong>Etymology</strong>: Greek <em>typos</em> — &quot;impression, model&quot;</li>
+<li><strong>Transparency</strong>: ✅</li>
+</ul>
+<hr>
+<p><strong>Total</strong>: 35 structure morphemes.</p>
+<p><em>Next: Properties facet (the largest — 50-70 morphemes with polysemy analysis).</em></p>
+
+  <div class="footer">Mathemes · a compositional naming system for mathematics · 2025</div>
+</div>
+</body>
+</html>
