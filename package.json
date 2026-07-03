@@ -93,6 +93,7 @@
   },
   "workspaces": [
     "packages/*",
-    "!packages/codemode-pi"
+    "!packages/codemode-pi",
+    "!packages/pi-workflows"
   ]
 }

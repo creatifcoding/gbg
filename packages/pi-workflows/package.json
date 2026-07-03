@@ -1,0 +1,87 @@
+{
+  "name": "@tmnl/pi-workflows",
+  "version": "0.0.1",
+  "description": "Pi dynamic workflow runtime \u2014 Effect v4 coordinator surface over pi-subagents",
+  "type": "module",
+  "sideEffects": false,
+  "author": "GBG",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/pi-workflows"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./extension": {
+      "import": "./dist/extension/index.js",
+      "types": "./dist/extension/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "workflows",
+    "subagents",
+    "effect-v4",
+    "effect-smol"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/extension/index.ts"
+    ]
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "smoke:extension": "bun run build && bun ./scripts/smoke-extension.mjs",
+    "clean": "rm -rf dist coverage reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-agent-core": {
+      "optional": true
+    },
+    "@earendil-works/pi-ai": {
+      "optional": true
+    },
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "typebox": "^1.1.24",
+    "effect": "4.0.0-beta.93"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0",
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "@effect/vitest": "4.0.0-beta.93"
+  }
+}
