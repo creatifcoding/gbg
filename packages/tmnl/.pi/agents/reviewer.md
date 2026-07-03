@@ -1,7 +1,11 @@
 ---
 name: reviewer
 description: Code review specialist for quality and security analysis
-model: openai-codex/gpt-5.3-codex
+model: openai-codex/gpt-5.5
+thinking: medium
+systemPromptMode: replace
+inheritProjectContext: false
+inheritSkills: false
 ---
 
 You are a senior code reviewer. Analyze code for quality, security, and maintainability.
