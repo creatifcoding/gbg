@@ -42,18 +42,18 @@
  * @module stack-vm
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
-import * as TxRef from "effect-v4/TxRef"
-import * as Data from "effect-v4/Data"
-import * as ServiceMap from "effect-v4/ServiceMap"
-import * as Layer from "effect-v4/Layer"
-import * as Cache from "effect-v4/Cache"
-import * as Duration from "effect-v4/Duration"
-import * as Metric from "effect-v4/Metric"
-import * as Semaphore from "effect-v4/Semaphore"
-import * as Cause from "effect-v4/Cause"
-import { pipe } from "effect-v4/Function"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as TxRef from "effect/TxRef"
+import * as Data from "effect/Data"
+import * as Context from "effect/Context"
+import * as Layer from "effect/Layer"
+import * as Cache from "effect/Cache"
+import * as Duration from "effect/Duration"
+import * as Metric from "effect/Metric"
+import * as Semaphore from "effect/Semaphore"
+import * as Cause from "effect/Cause"
+import { pipe } from "effect/Function"
 import { tryWasmDispatch } from "./wasm-dispatch"
 
 // ═══════════════════════════════════════════════════════
@@ -64,15 +64,21 @@ import { tryWasmDispatch } from "./wasm-dispatch"
  * Machine-readable error codes for VMValue errors.
  * These are the codes that appear in cells (e.g., #DIV/0!, #REF!)
  */
-export const VMErrorCode = Schema.Literal(
+export const VMErrorCode = Schema.Literals([
   "STACK_UNDERFLOW",
   "DIV_ZERO",
+  "DIV0",
   "TYPE_MISMATCH",
   "CIRCULAR_REF",
   "UNKNOWN_TOKEN",
   "EVAL_OVERFLOW",
   "GENERAL",
-)
+  "VALUE",
+  "VALUE_ERROR",
+  "NA",
+  "CALC_ERROR",
+  "REF_ERROR",
+])
 export type VMErrorCode = typeof VMErrorCode.Type
 
 /**
@@ -82,11 +88,17 @@ export type VMErrorCode = typeof VMErrorCode.Type
 export const errorCodeDisplay: Record<VMErrorCode, string> = {
   STACK_UNDERFLOW: "#VALUE!",
   DIV_ZERO: "#DIV/0!",
+  DIV0: "#DIV/0!",
   TYPE_MISMATCH: "#TYPE!",
   CIRCULAR_REF: "#REF!",
   UNKNOWN_TOKEN: "#NAME?",
   EVAL_OVERFLOW: "#CALC!",
   GENERAL: "#ERROR!",
+  VALUE: "#VALUE!",
+  VALUE_ERROR: "#VALUE!",
+  NA: "#N/A",
+  CALC_ERROR: "#CALC!",
+  REF_ERROR: "#REF!",
 }
 
 // ═══════════════════════════════════════════════════════
@@ -104,7 +116,10 @@ export const VMError = Schema.TaggedStruct("error", {
 export const VMValue = Schema.Union([VMNum, VMStr, VMBool, VMError])
 export type VMValue = typeof VMValue.Type
 
-// ─── Constructors ───────────────────────────────────
+/** @deprecated Use VMValue directly — legacy alias for stack operations */
+// StackValue is VMValue — using VMValue directly
+
+// ─── Constructors ─────────────────────────────────��─
 
 const _NUM_CACHE: VMValue[] = []
 for (let i = -1; i <= 100; i++) _NUM_CACHE[i + 1] = { _tag: "num", value: i }
@@ -2636,7 +2651,7 @@ const EXEC: Record<string, Executor> = {
     const n = op.n as number
     if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ALL")); return { result: s[s.length-1] } }
     const args = s.splice(s.length - n, n)
-    const truthy = (v: StackValue) => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true
+    const truthy = (v: VMValue) => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true
     const result = bool(args.every(truthy))
     s.push(result); return { result }
   },
@@ -2645,7 +2660,7 @@ const EXEC: Record<string, Executor> = {
     const n = op.n as number
     if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ANY")); return { result: s[s.length-1] } }
     const args = s.splice(s.length - n, n)
-    const truthy = (v: StackValue) => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true
+    const truthy = (v: VMValue) => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true
     const result = bool(args.some(truthy))
     s.push(result); return { result }
   },
@@ -2654,7 +2669,7 @@ const EXEC: Record<string, Executor> = {
     const n = op.n as number
     if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "NONE")); return { result: s[s.length-1] } }
     const args = s.splice(s.length - n, n)
-    const truthy = (v: StackValue) => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true
+    const truthy = (v: VMValue) => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true
     const result = bool(!args.some(truthy))
     s.push(result); return { result }
   },
@@ -2881,7 +2896,7 @@ const EXEC: Record<string, Executor> = {
     let x = asNum(a)
     if (x <= 0 && x === Math.floor(x)) return vmError("VALUE", "GAMMA2")
     const g = 7, c = [0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7]
-    if (x < 0.5) return num(Math.PI / (Math.sin(Math.PI * x) * asNum((() => { const xx = 1 - x; let t = c[0]; for (let i = 1; i < g + 2; i++) t += c[i] / (xx - 1 + i); const u = xx - 1 + g + 0.5; return num(Math.sqrt(2 * Math.PI) * Math.pow(u, xx - 0.5) * Math.exp(-u) * t) })().value)))
+    if (x < 0.5) return num(Math.PI / (Math.sin(Math.PI * x) * asNum(((() => { const xx = 1 - x; let t = c[0]; for (let i = 1; i < g + 2; i++) t += c[i] / (xx - 1 + i); const u = xx - 1 + g + 0.5; return num(Math.sqrt(2 * Math.PI) * Math.pow(u, xx - 0.5) * Math.exp(-u) * t) })() as any).value)))
     x -= 1; let t = c[0]; for (let i = 1; i < g + 2; i++) t += c[i] / (x + i); const u = x + g + 0.5
     return num(Math.sqrt(2 * Math.PI) * Math.pow(u, x + 0.5) * Math.exp(-u) * t)
   }, "GAMMA2") }),
@@ -4711,13 +4726,13 @@ const EXEC: Record<string, Executor> = {
     const n = op.n as number
     if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MAJORITY")); return { result: s[s.length-1] } }
     const args = s.splice(s.length - n, n)
-    const freq = new Map<string, { count: number, val: StackValue }>()
+    const freq = new Map<string, { count: number, val: VMValue }>()
     args.forEach(v => {
       const key = vmDisplay(v)
       const entry = freq.get(key)
       if (entry) entry.count++; else freq.set(key, { count: 1, val: v })
     })
-    let best: StackValue = args[0], maxCount = 0
+    let best: VMValue = args[0], maxCount = 0
     freq.forEach(({ count, val }) => { if (count > maxCount) { maxCount = count; best = val } })
     s.push(best); return { result: best }
   },
@@ -4848,7 +4863,7 @@ const EXEC: Record<string, Executor> = {
       case "num": return num(1)
       case "str": return num(2)
       case "bool": return num(4)
-      case "vm_error": return num(16)
+      case "error": return num(16)
       default: return num(64)
     }
   }, "CELLTYPE") }),
@@ -4969,7 +4984,7 @@ const EXEC: Record<string, Executor> = {
       case "num": return str("number")
       case "str": return str("text")
       case "bool": return str("boolean")
-      case "vm_error": return str("error")
+      case "error": return str("error")
       default: return str("blank")
     }
   }, "TYPEOF2") }),
@@ -5510,7 +5525,7 @@ const EXEC: Record<string, Executor> = {
     const pe = propagateError(a, b); if (pe) return pe
     const x = asNum(a), df = Math.round(asNum(b))
     // Simple approximation: 1 - regularized gamma
-    const p = Math.exp(-x/2) * Math.pow(x/2, df/2 - 1) / (Math.pow(2, df/2) * Math.exp(lgamma(df/2)))
+    const p = Math.exp(-x/2) * Math.pow(x/2, df/2 - 1) / (Math.pow(2, df/2) * Math.exp(gamma(df/2)))
     return num(Math.max(0, Math.min(1, 1 - p * x / df)))
   }, "CHISQ.DIST.RT") }),
   // TDIST_RT_OP: right-tailed t-distribution
@@ -7457,7 +7472,7 @@ const EXEC: Record<string, Executor> = {
       let best = 1, bestDiff = Infinity
       for (let i = 1; i < args.length; i++) {
         if (args[i]._tag === "num") {
-          const diff = Math.abs(args[i].value - lookupNum)
+          const diff = Math.abs((args[i] as any).value - lookupNum)
           if (diff < bestDiff) { bestDiff = diff; best = i }
         }
       }
@@ -8490,7 +8505,7 @@ const EXEC: Record<string, Executor> = {
     if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "COUNTA")); return { result: s[s.length-1] } }
     const args = s.splice(s.length - n, n)
     let count = 0
-    for (const v of args) { if (v._tag !== "blank") count++ }
+    for (const v of args) { if (((v as any)._tag !== "blank")) count++ }
     const result = num(count); s.push(result); return { result }
   },
 
@@ -8500,7 +8515,7 @@ const EXEC: Record<string, Executor> = {
     if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "COUNTBLANK")); return { result: s[s.length-1] } }
     const args = s.splice(s.length - n, n)
     let count = 0
-    for (const v of args) { if (v._tag === "blank") count++ }
+    for (const v of args) { if (((v as any)._tag === "blank")) count++ }
     const result = num(count); s.push(result); return { result }
   },
 
@@ -9177,7 +9192,7 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
     opcode: op._tag,
     stackDepthBefore: depthBefore,
     stackDepthAfter: s.length,
-    result,
+    result: result as VMValue | undefined,
   }
 
   const trail = state.trail as TrailEntry[]
@@ -11390,7 +11405,7 @@ export interface FunctionSignature {
   readonly name: string
   readonly args: string
   readonly description: string
-  readonly category: "math" | "stat" | "text" | "logic" | "lookup" | "info" | "volatile"
+  readonly category: "math" | "stat" | "text" | "logic" | "lookup" | "info" | "volatile" | "financial"
 }
 
 export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
@@ -12881,7 +12896,7 @@ export const dualEval = (
 
 /** Run a StackIR program with fresh state */
 export const evalProgram = (ir: StackIR, ctx?: CellContext): Effect.Effect<VMState> =>
-  Effect.transaction(
+  Effect.tx(
     Effect.gen(function*() {
       const ref = yield* TxRef.make(emptyState())
       return yield* runIRBatched(ref, ir, ctx)
@@ -12995,12 +13010,12 @@ export const decompileIR = (ir: StackIR): string => {
       stack.push(`REPLACE(${a},${b},${c},${d})`)
       continue
     }
-    if (op._tag === "IF" || op._tag === "IF_FN") {
+    if (op._tag === "IF" || (op._tag as string) === "IF_FN") {
       const c = stack.pop() ?? "?"; const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
       stack.push(`IF(${a},${b},${c})`)
       continue
     }
-    if (op._tag === "IFERROR" || op._tag === "IFERROR_FN") {
+    if (op._tag === "IFERROR" || (op._tag as string) === "IFERROR_FN") {
       const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
       stack.push(`IFERROR(${a},${b})`)
       continue
@@ -13031,7 +13046,7 @@ export const decompileIR = (ir: StackIR): string => {
 export const evalProgramBulk = (
   programs: ReadonlyArray<{ ir: StackIR; ctx?: CellContext }>,
 ): Effect.Effect<ReadonlyArray<VMState>> =>
-  Effect.transaction(
+  Effect.tx(
     Effect.gen(function*() {
       const results: VMState[] = []
       for (const { ir, ctx } of programs) {
@@ -13067,7 +13082,7 @@ export const formatCellValue = (v: VMValue): string => {
   if (v._tag === "num") return String((v as any).value)
   if (v._tag === "str") return (v as any).value
   if (v._tag === "bool") return (v as any).value ? "TRUE" : "FALSE"
-  if (v._tag === "blank") return ""
+  if (((v as any)._tag === "blank")) return ""
   return vmDisplay(v)
 }
 
@@ -13118,13 +13133,13 @@ export const evalExpr = (expr: string): Effect.Effect<VMState, CompileError> =>
 // ═══════════════════════════════════════════════════════
 
 /** StackVM service interface */
-export class StackVM extends ServiceMap.Service<StackVM, {
+export class StackVM extends Context.Service<StackVM, {
   /** Evaluate compiled StackIR */
-  readonly eval: (ir: StackIR) => Effect.Effect<VMState>
+  readonly eval: (ir: StackIR) => Effect.Effect<VMState, Cause.TimeoutError>
   /** Evaluate RPN expression string (may fail with CompileError) */
   readonly evalExpr: (expr: string) => Effect.Effect<VMState, CompileError | Cause.TimeoutError>
   /** Evaluate an Effect program that produces a VMValue */
-  readonly evalEffect: (program: Effect.Effect<VMValue>) => Effect.Effect<VMState>
+  readonly evalEffect: (program: Effect.Effect<VMValue>) => Effect.Effect<VMState, Cause.TimeoutError>
   /** Compile expression without evaluating (may fail with CompileError) */
   readonly compile: (expr: string) => Effect.Effect<StackIR, CompileError>
   /** Invalidate cached result for an expression */
@@ -13218,7 +13233,7 @@ export const StackVMLive = (config?: StackVMConfig): Layer.Layer<StackVM> => {
 
       evalEffect: (program) =>
         sem.withPermits(1)(
-          Effect.transaction(
+          Effect.tx(
             Effect.gen(function*() {
               yield* Metric.update(evalCounter, 1)
               const ref = yield* TxRef.make(emptyState())

@@ -414,9 +414,10 @@ describe("Spike F4 — REPL Session & Agent API Design", () => {
     it("trail records all operations", () => {
       session.push(3).push(4).eval("+")
       const trail = session.showTrail()
-      expect(trail.length).toBe(3)
+      // push(3), push(4), pop→4, pop→3, + → 7
+      expect(trail.length).toBe(5)
       expect(trail[0]).toContain("PUSH")
-      expect(trail[2]).toContain("+")
+      expect(trail[4]).toContain("+")
     })
 
     it("registers: STORE and LOAD", () => {
@@ -445,8 +446,8 @@ describe("Spike F4 — REPL Session & Agent API Design", () => {
       expect(s1.showStack()).toEqual([300])
       expect(s2.showStack()).toEqual([6])
 
-      // Trails are independent
-      expect(s1.showTrail().length).toBe(3)
+      // Trails are independent (push×2 + pop×2 + op = 5; push×3 + SUM = 4)
+      expect(s1.showTrail().length).toBe(5)
       expect(s2.showTrail().length).toBe(4)
     })
 
