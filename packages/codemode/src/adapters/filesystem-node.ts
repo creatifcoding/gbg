@@ -3,22 +3,16 @@
  *
  * Minimal Node.js FileSystem layer for Effect v4.
  *
- * Same pattern as sqlite-node.ts: we can't use @effect/platform-node (v3)
- * with effect-v4 alias, so we roll a minimal impl wrapping node:fs.
- *
- * CRITICAL: All methods use Effect.try (not Effect.sync!) so that
- * thrown node:fs errors (ENOENT, EACCES, etc.) flow through the
- * Effect error channel as PlatformError — not as unrecoverable defects.
- *
- * The upstream fs-ops.ts layer then catches these via:
- *   Effect.catchTag("PlatformError", ...) → safe fallback or domain error
+ * IMPORTANT: this adapter uses node:fs/promises. The metaskill extension runs
+ * in pi's extension host; synchronous filesystem scans here used to stall the
+ * entire TUI while `ms.inspect()`, `ms.audit()`, etc. walked skill trees.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as FS from "effect-v4/FileSystem"
-import { PlatformError, systemError } from "effect-v4/PlatformError"
-import * as NFS from "node:fs"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as FS from "effect/FileSystem"
+import { PlatformError, systemError } from "effect/PlatformError"
+import * as NFS from "node:fs/promises"
 import * as Path from "node:path"
 import * as OS from "node:os"
 
@@ -45,20 +39,9 @@ function errnoToReason(code: string | undefined): SystemErrorTag {
   }
 }
 
-/**
- * Wrap a sync node:fs call → Effect that fails with PlatformError on throw.
- *
- * Effect.try catches thrown exceptions and maps them through `catch:`.
- * This ensures ENOENT, EACCES, etc. become typed PlatformError values
- * on the error channel — recoverable via Effect.catchTag("PlatformError", ...).
- *
- * CRITICAL: Without this, Effect.sync turns throws into DEFECTS
- * which are uncatchable by catchTag("PlatformError"). The entire
- * fs-ops.ts safe-wrapper layer depends on errors being on the
- * error channel, not the defect channel.
- */
-function tryFs<A>(method: string, fn: () => A): Effect.Effect<A, PlatformError> {
-  return Effect.try({
+/** Wrap an async node:fs call → Effect failure with PlatformError on reject. */
+function tryFs<A>(method: string, fn: () => Promise<A>): Effect.Effect<A, PlatformError> {
+  return Effect.tryPromise({
     try: fn,
     catch: (err: unknown) => {
       const e = err as NodeJS.ErrnoException
@@ -76,17 +59,17 @@ function tryFs<A>(method: string, fn: () => A): Effect.Effect<A, PlatformError> 
 
 const impl = FS.make({
   access: (path) =>
-    tryFs("access", () => { NFS.accessSync(path) }),
+    tryFs("access", async () => { await NFS.access(path) }),
 
   readFile: (path) =>
-    tryFs("readFile", () => new Uint8Array(NFS.readFileSync(path))),
+    tryFs("readFile", async () => new Uint8Array(await NFS.readFile(path))),
 
   writeFile: (path, data) =>
-    tryFs("writeFile", () => { NFS.writeFileSync(path, data) }),
+    tryFs("writeFile", async () => { await NFS.writeFile(path, data) }),
 
   stat: (path) =>
-    tryFs("stat", () => {
-      const s = NFS.statSync(path)
+    tryFs("stat", async () => {
+      const s = await NFS.stat(path)
       return {
         type: s.isDirectory() ? 'Directory' as const : 'File' as const,
         size: FS.Size(s.size),
@@ -97,52 +80,52 @@ const impl = FS.make({
     }),
 
   remove: (path, opts) =>
-    tryFs("remove", () => { NFS.rmSync(path, { recursive: true, force: true }) }),
+    tryFs("remove", async () => { await NFS.rm(path, { recursive: true, force: true }) }),
 
   makeDirectory: (path, opts) =>
-    tryFs("makeDirectory", () => { NFS.mkdirSync(path, { recursive: opts?.recursive ?? false }) }),
+    tryFs("makeDirectory", async () => { await NFS.mkdir(path, { recursive: opts?.recursive ?? false }) }),
 
   copyFile: (from, to) =>
-    tryFs("copyFile", () => { NFS.copyFileSync(from, to) }),
+    tryFs("copyFile", async () => { await NFS.copyFile(from, to) }),
 
   readDirectory: (path, opts) =>
-    tryFs("readDirectory", () => NFS.readdirSync(path, { recursive: opts?.recursive ?? false }) as string[]),
+    tryFs("readDirectory", async () => await NFS.readdir(path, { recursive: opts?.recursive ?? false }) as string[]),
 
   rename: (from, to) =>
-    tryFs("rename", () => { NFS.renameSync(from, to) }),
+    tryFs("rename", async () => { await NFS.rename(from, to) }),
 
   truncate: (path, len) =>
-    tryFs("truncate", () => { NFS.truncateSync(path, len ?? 0) }),
+    tryFs("truncate", async () => { await NFS.truncate(path, len ?? 0) }),
 
   chmod: (path, mode) =>
-    tryFs("chmod", () => { NFS.chmodSync(path, mode) }),
+    tryFs("chmod", async () => { await NFS.chmod(path, mode) }),
 
   chown: (path, uid, gid) =>
-    tryFs("chown", () => { NFS.chownSync(path, uid, gid) }),
+    tryFs("chown", async () => { await NFS.chown(path, uid, gid) }),
 
   utimes: (path, atime, mtime) =>
-    tryFs("utimes", () => { NFS.utimesSync(path, atime, mtime) }),
+    tryFs("utimes", async () => { await NFS.utimes(path, atime, mtime) }),
 
   link: (from, to) =>
-    tryFs("link", () => { NFS.linkSync(from, to) }),
+    tryFs("link", async () => { await NFS.link(from, to) }),
 
   symlink: (from, to) =>
-    tryFs("symlink", () => { NFS.symlinkSync(from, to) }),
+    tryFs("symlink", async () => { await NFS.symlink(from, to) }),
 
   readLink: (path) =>
-    tryFs("readLink", () => NFS.readlinkSync(path)),
+    tryFs("readLink", async () => await NFS.readlink(path)),
 
   realPath: (path) =>
-    tryFs("realPath", () => NFS.realpathSync(path)),
+    tryFs("realPath", async () => await NFS.realpath(path)),
 
   makeTempDirectory: () =>
-    tryFs("makeTempDirectory", () => NFS.mkdtempSync(Path.join(OS.tmpdir(), 'rlm-'))),
+    tryFs("makeTempDirectory", async () => await NFS.mkdtemp(Path.join(OS.tmpdir(), 'rlm-'))),
 
   makeTempFile: () =>
-    tryFs("makeTempFile", () => {
-      const dir = NFS.mkdtempSync(Path.join(OS.tmpdir(), 'rlm-'))
+    tryFs("makeTempFile", async () => {
+      const dir = await NFS.mkdtemp(Path.join(OS.tmpdir(), 'rlm-'))
       const file = Path.join(dir, 'tmpfile')
-      NFS.writeFileSync(file, '')
+      await NFS.writeFile(file, '')
       return file
     }),
 
@@ -156,12 +139,6 @@ const impl = FS.make({
   watch: () => { throw new Error('FileSystem.watch not implemented in minimal Node adapter') },
 })
 
-/**
- * Node.js FileSystem layer for Effect v4.
- *
- * Usage:
- *   import { NodeFileSystemLayer } from "./filesystem-node.js"
- *   const AppLayer = ExportServiceLive.pipe(Layer.provide(NodeFileSystemLayer))
- */
+/** Node.js FileSystem layer for Effect v4. */
 export const NodeFileSystemLayer: Layer.Layer<FS.FileSystem> =
   Layer.succeed(FS.FileSystem, impl)

@@ -5,7 +5,7 @@
  *
  * Replaces raw node:fs/child_process calls with Effect-backed implementations:
  *   - read/write route through Effect.FileSystem for DI + typed errors
- *   - sh wraps execSync in Effect.try for typed error handling
+ *   - sh uses child_process.exec asynchronously so shell commands don't freeze pi
  *
  * All three go through ManagedRuntime.runPromise — making them async.
  * This changes function coloring: read/write/sh are now async (must await).
@@ -14,23 +14,22 @@
  *   - `yield* FileSystem` (service resolution)
  *   - `fs.readFileString(path)` / `fs.writeFileString(path, content)` (v4 API)
  *   - `fs.makeDirectory(dir, { recursive: true })` (parent dir creation)
- *   - `Effect.try` for wrapping sync operations with typed errors
+ *   - `Effect.tryPromise` for wrapping async operations with typed errors
  *   - `Effect.catchTag("PlatformError", ...)` for absorbing mkdir EEXIST
  *
  * NOTE on sh(): The canonical v4 approach for process execution is
  * ChildProcess.make + ChildProcessSpawner (effect/unstable/process).
  * However, NodeChildProcessSpawner lives in @effect/platform-node-shared
- * which has peer dep issues with our npm-aliased effect-v4. Since sh()
- * only needs sync-style exec with timeout (not streaming), we use
- * Effect.try wrapping execSync — same error channel discipline, no DI gap.
+ * which has peer dep issues with our npm-aliased effect. We use async
+ * child_process.exec instead: same shell semantics, no event-loop freeze.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as ManagedRuntime from "effect-v4/ManagedRuntime"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
+import { FileSystem } from "effect/FileSystem"
 import { join, dirname } from "node:path"
-import { execSync } from "node:child_process"
+import { exec } from "node:child_process"
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -54,7 +53,7 @@ export interface IoApi {
 // ── Factory ──────────────────────────────────────────────────────
 
 /**
- * Create IO primitives backed by Effect FileSystem + execSync.
+ * Create IO primitives backed by Effect FileSystem + async shell execution.
  *
  * @param cwd - Working directory for relative paths and shell commands
  * @param fsLayer - Effect Layer providing FileSystem (e.g. NodeFileSystemLayer)
@@ -94,20 +93,19 @@ export function createIoApi(cwd: string, fsLayer: Layer.Layer<FileSystem>): IoAp
   //
   // NOTE: Canonical v4 would use ChildProcess.make + ChildProcessSpawner.
   // We can't use @effect/platform-node-shared (peer dep mismatch with
-  // npm-aliased effect-v4). Instead: Effect.try wrapping execSync —
-  // typed errors through the Effect channel, ManagedRuntime execution.
+  // npm-aliased effect). Instead: async child_process.exec — typed result
+  // discipline without blocking the extension host event loop.
 
   const sh = (cmd: string): Promise<string> =>
     runtime.runPromise(
-      Effect.try({
-        try: () => execSync(cmd, { cwd, encoding: "utf-8", timeout: 15000 }).trim(),
-        catch: (err: unknown) => {
-          // On failure, return combined stdout+stderr instead of throwing
-          const e = err as { stdout?: string; stderr?: string }
-          return { _tag: "ShellError" as const, output: ((e.stdout ?? "") + (e.stderr ?? "")).trim() }
-        }
+      Effect.tryPromise({
+        try: () => new Promise<string>((resolve) => {
+          exec(cmd, { cwd, encoding: "utf-8", timeout: 15000 }, (_err, stdout, stderr) => {
+            resolve(`${stdout ?? ""}${stderr ?? ""}`.trim())
+          })
+        }),
+        catch: (err: unknown) => ({ _tag: "ShellError" as const, output: String(err) }),
       }).pipe(
-        // ShellError → return captured output (fail gracefully, don't crash)
         Effect.catch((e: { _tag: "ShellError"; output: string }) => Effect.succeed(e.output))
       )
     )

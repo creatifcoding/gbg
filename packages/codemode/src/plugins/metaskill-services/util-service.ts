@@ -9,12 +9,12 @@
  * Execution: contains result — exitCode captures failure, no thrown errors
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+import { FileSystem } from "effect/FileSystem"
 import { join } from "node:path"
-import { execSync } from "node:child_process"
+import { exec } from "node:child_process"
 import { SkillConfig } from "./skill-config.js"
 import * as Fs from "./fs-ops.js"
 import type { UtilInfo, UtilResult } from "./types.js"
@@ -77,19 +77,16 @@ export const UtilServiceLive = Layer.effect(
         }
 
         const cmd = codeMatch[1].trim().replace(/\$SKILL/g, skillName)
-        return yield* Effect.sync(() => {
-          try {
-            const output = execSync(cmd, { cwd: config.cwd, encoding: "utf-8", timeout: 15000 }).trim()
-            return { util: utilName, skill: skillName, output, exitCode: 0 }
-          } catch (err: any) {
-            return {
+        return yield* Effect.promise(() => new Promise<UtilResult>((resolve) => {
+          exec(cmd, { cwd: config.cwd, encoding: "utf-8", timeout: 15000 }, (err: any, stdout, stderr) => {
+            resolve({
               util: utilName,
               skill: skillName,
-              output: ((err.stdout ?? "") + (err.stderr ?? "")).trim(),
-              exitCode: err.status ?? 1,
-            }
-          }
-        })
+              output: `${stdout ?? ""}${stderr ?? ""}`.trim(),
+              exitCode: err?.code ?? err?.status ?? 0,
+            })
+          })
+        }))
       }),
     })
   }),

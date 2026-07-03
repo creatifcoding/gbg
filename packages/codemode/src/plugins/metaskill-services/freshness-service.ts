@@ -9,10 +9,10 @@
  * Write: typed — setUpdateStatus() propagates FileReadError
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+import { FileSystem } from "effect/FileSystem"
 import { join } from "node:path"
 import { SkillConfig } from "./skill-config.js"
 import { SkillDiscovery } from "./skill-discovery.js"
@@ -96,27 +96,28 @@ export const FreshnessServiceLive = Layer.effect(
 
       freshnessAll: Effect.gen(function*() {
         const skills = yield* discovery.discover
-        let total = 0, current = 0, stale = 0, pending = 0
-        let fileCount = 0
-        for (const s of skills) {
-          const f = yield* freshnessFor(s.name)
-          total += f.total
-          current += f.current
-          stale += f.stale
-          pending += f.pending
-          fileCount += s.fileCount
+        const reports = yield* Effect.all(skills.map(s => freshnessFor(s.name)))
+        const totals = reports.reduce((acc, f, i) => {
+          acc.total += f.total
+          acc.current += f.current
+          acc.stale += f.stale
+          acc.pending += f.pending
+          acc.fileCount += skills[i]?.fileCount ?? 0
+          return acc
+        }, { total: 0, current: 0, stale: 0, pending: 0, fileCount: 0 })
+        return {
+          total: totals.total,
+          current: totals.current,
+          stale: totals.stale,
+          pending: totals.pending,
+          untracked: totals.fileCount - totals.total,
         }
-        return { total, current, stale, pending, untracked: fileCount - total }
       }),
 
       staleAll: Effect.gen(function*() {
         const skills = yield* discovery.discover
-        const all: UpdatePolicy[] = []
-        for (const s of skills) {
-          const f = yield* freshnessFor(s.name)
-          all.push(...f.policies.filter(p => p.status === "stale"))
-        }
-        return all
+        const reports = yield* Effect.all(skills.map(s => freshnessFor(s.name)))
+        return reports.flatMap(f => f.policies.filter(p => p.status === "stale"))
       }),
     })
   }),
