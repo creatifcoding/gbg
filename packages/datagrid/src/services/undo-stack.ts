@@ -10,8 +10,8 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 import type { CellValue } from "../schemas/cell-value"
 import type { ColRow } from "../schemas/addressing"
@@ -50,7 +50,7 @@ export interface UndoStackConfigShape {
   readonly cellCache: CellCacheShape
 }
 
-export class UndoStackConfig extends ServiceMap.Service<UndoStackConfig, UndoStackConfigShape>()(
+export class UndoStackConfig extends Context.Service<UndoStackConfig, UndoStackConfigShape>()(
   "@tmnl/datagrid/UndoStackConfig",
 ) {}
 
@@ -111,7 +111,7 @@ export interface UndoStackShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class UndoStack extends ServiceMap.Service<UndoStack, UndoStackShape>()(
+export class UndoStack extends Context.Service<UndoStack, UndoStackShape>()(
   "@tmnl/datagrid/UndoStack",
 ) {}
 

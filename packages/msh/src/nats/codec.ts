@@ -6,13 +6,13 @@
  * @module @tmnl/msh/nats/codec
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Stream from 'effect-v4/Stream';
-import * as Chunk from 'effect-v4/Chunk';
-import * as Schema from 'effect-v4/Schema';
-import { pipe } from 'effect-v4/Function';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Stream from 'effect/Stream';
+import * as Chunk from 'effect/Chunk';
+import * as Schema from 'effect/Schema';
+import { pipe } from 'effect/Function';
 import { Codec } from './errors';
 
 // =============================================================================

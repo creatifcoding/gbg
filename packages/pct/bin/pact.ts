@@ -16,8 +16,8 @@
  * @module @tmnl/pct/bin/pact
  */
 
-import * as Effect from "effect-v4/Effect"
-import { CliOutput, Command } from "effect-v4/unstable/cli"
+import * as Effect from "effect/Effect"
+import { CliOutput, Command } from "effect/unstable/cli"
 
 import { pact } from "../src/cli/index.js"
 import { cliRuntimeLayer } from "../src/cli/runtime.js"

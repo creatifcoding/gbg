@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 import {
   MaterializedFrame,

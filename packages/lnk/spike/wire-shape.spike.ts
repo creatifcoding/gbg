@@ -29,11 +29,11 @@
  * If all four are green, this is the architecture.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
-import * as Stream from "effect-v4/Stream"
-import * as Rpc from "effect-v4/unstable/rpc/Rpc"
-import * as RpcGroup from "effect-v4/unstable/rpc/RpcGroup"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
+import * as Rpc from "effect/unstable/rpc/Rpc"
+import * as RpcGroup from "effect/unstable/rpc/RpcGroup"
 
 import { Offset, ReadPosition } from "../src/contracts/Offset.js"
 import { StreamId } from "../src/contracts/StreamId.js"

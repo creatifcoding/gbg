@@ -18,7 +18,7 @@ import {
   createCollection,
   localOnlyCollectionOptions,
 } from '@tanstack/db'
-import { Atom, AtomRegistry } from 'effect-v4/unstable/reactivity'
+import { Atom, AtomRegistry } from 'effect/unstable/reactivity'
 
 // ─── Test Types ──────────────────────────────────────────────
 interface Todo {

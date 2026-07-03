@@ -1,8 +1,8 @@
 /** Runtime-owned STM state for Sui transaction reservations. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as TxHashMap from 'effect-v4/TxHashMap';
-import * as TxRef from 'effect-v4/TxRef';
+import * as Effect from 'effect/Effect';
+import * as TxHashMap from 'effect/TxHashMap';
+import * as TxRef from 'effect/TxRef';
 
 import type { SuiReservationLock, SuiReservationRecord, SuiTxState, SuiTxStateSnapshot } from './types';
 

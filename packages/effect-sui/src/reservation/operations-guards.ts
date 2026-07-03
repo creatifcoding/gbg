@@ -1,6 +1,6 @@
-import * as Effect from 'effect-v4/Effect';
-import * as Option from 'effect-v4/Option';
-import * as TxHashMap from 'effect-v4/TxHashMap';
+import * as Effect from 'effect/Effect';
+import * as Option from 'effect/Option';
+import * as TxHashMap from 'effect/TxHashMap';
 
 import { SuiReservationConflict } from '../schema';
 import type { SuiReservationRequest } from '../services';

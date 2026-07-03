@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
+import * as Effect from "effect/Effect"
 
 import {
   FrameProjectionSpec,
@@ -34,6 +34,10 @@ const plan = ProjectionPlan.make({
   sourceFactTable: "metric_observations",
   stateTable: "frame_projection_state",
   ledgerTable: "frame_part_ledger",
+  leaseTable: "projection_worker_leases",
+  checkpointTable: "projection_source_checkpoints",
+  outboxTable: "projection_output_outbox",
+  emissionTable: "projection_frame_emissions",
   statements: [],
 })
 

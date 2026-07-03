@@ -12,11 +12,11 @@
  * 6. Optimistic concurrency (collaborative editing)
  */
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Exit from "effect-v4/Exit"
-import * as Result from "effect-v4/Result"
-import * as TxRef from "effect-v4/TxRef"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as Result from "effect/Result"
+import * as TxRef from "effect/TxRef"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { EntityMeta } from "../src/types.js"
 import {
   StxTxValidationError,

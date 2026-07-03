@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
+import * as Effect from "effect/Effect"
 
 import { InMemoryWire } from "../../../../src/services/wire/in-memory/index.js"
 import { runConformance } from "../conformance.js"

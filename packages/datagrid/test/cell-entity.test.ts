@@ -5,7 +5,7 @@
  * derived getters, and Schema encode/decode.
  */
 import { describe, it, expect } from "vitest"
-import { Schema } from "effect-v4"
+import { Schema } from "effect"
 import {
   Cell, makeCell,
   cellKey,

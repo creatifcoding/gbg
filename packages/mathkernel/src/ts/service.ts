@@ -1,7 +1,7 @@
 /**
  * @tmnl/mathkernel — MathKernel Effect Service
  *
- * ServiceMap.Service providing typed math operations backed by WASM.
+ * Context.Service providing typed math operations backed by WASM.
  * Two integration surfaces:
  * 1. StackVM bridge (range-via-CellContext → Float64Array → result)
  * 2. Codemode overlay (plain JS arrays → result)
@@ -9,9 +9,9 @@
  * @module service
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
 import { WasmBridge } from "./bridge.js"
 import { KernelError } from "./types.js"
 import type {
@@ -27,7 +27,7 @@ import type {
 // MATHKERNEL SERVICE
 // ═══════════════════════════════════════════════════════
 
-export class MathKernel extends ServiceMap.Service<MathKernel, {
+export class MathKernel extends Context.Service<MathKernel, {
   // ── Linear Algebra ──────────────────────────────────
   readonly mmult: (a: Float64Array, m: number, k: number, b: Float64Array, k2: number, n: number) => Effect.Effect<Float64Array, KernelError>
   readonly solve: (a: Float64Array, n: number, b: Float64Array) => Effect.Effect<Float64Array, KernelError>

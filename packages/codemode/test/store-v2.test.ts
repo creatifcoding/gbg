@@ -282,12 +282,12 @@ describe('§3 Collection Factory', () => {
       defaultTags: ['research'],
       required: ['summary'],
     })
-    await col.put('effect-v4', {
+    await col.put('effect', {
       _meta: { summary: 'Effect v4 evaluation' },
       breaking: ['Schema.Struct', 'ServiceMap'],
       recommendation: 'Adopt with caution',
     })
-    const data = await col.get('effect-v4')
+    const data = await col.get('effect')
     expect(data).not.toBeNull()
     expect((data as any)._meta).toBeUndefined()
   })

@@ -1,6 +1,6 @@
 /** Sui programmable transaction block Effectable facade. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { SuiEffect } from './base';
 

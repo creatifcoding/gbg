@@ -6,7 +6,7 @@
  * @module
  */
 
-import type * as SqlClient from "effect-v4/unstable/sql/SqlClient"
+import type * as SqlClient from "effect/unstable/sql/SqlClient"
 
 // ─── Migration SQL ──────────────────────────────────
 

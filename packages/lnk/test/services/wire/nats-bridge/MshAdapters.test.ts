@@ -1,8 +1,8 @@
 /** Tests for concrete MSH adapter seams. */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { NatsKVService, NatsStreamService, Inner } from "@tmnl/msh/nats"
 
 import { trust as trustContentType } from "../../../../src/contracts/ContentType.js"

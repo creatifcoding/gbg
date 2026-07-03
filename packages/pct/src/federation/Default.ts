@@ -7,15 +7,15 @@
  * @module @tmnl/pct/federation/Default
  */
 
-import * as Clock from "effect-v4/Clock"
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
-import * as Schedule from "effect-v4/Schedule"
-import * as Scope from "effect-v4/Scope"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
-import * as HttpClient from "effect-v4/unstable/http/HttpClient"
+import * as Clock from "effect/Clock"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
+import * as Schedule from "effect/Schedule"
+import * as Scope from "effect/Scope"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as HttpClient from "effect/unstable/http/HttpClient"
 
 import {
   type PactClientError,

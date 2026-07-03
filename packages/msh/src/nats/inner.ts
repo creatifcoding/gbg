@@ -7,10 +7,10 @@
  * @module @tmnl/msh/nats/inner
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Stream from 'effect-v4/Stream';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Stream from 'effect/Stream';
 
 import { headers as createNatsHeaders } from 'nats.ws';
 import type {

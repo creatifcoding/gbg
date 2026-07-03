@@ -1,9 +1,12 @@
 /**
  * Strict runtime-boundary guardrails.
  *
- * These tests prevent the two failures that are easiest to reintroduce during
- * migration pressure: importing Effect v3 inside MSH, and bridging v3 TMNL
- * consumers directly into @tmnl/msh.
+ * Canonical-path inversion (2026-07-03): bare `effect` now resolves to v4
+ * monorepo-wide; legacy v3 is the marked exception (`effect-v3` alias or a
+ * per-package 3.21.2 pin). These tests prevent the failures easiest to
+ * reintroduce during migration pressure: importing a v3-marked Effect or the
+ * retired `effect-v4` alias inside MSH, and bridging v3 TMNL consumers
+ * directly into @tmnl/msh.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -35,19 +38,19 @@ const walk = async (root: string): Promise<string[]> => {
   return files;
 };
 
-const actualEffectV3Import = /^\s*(?:import(?:\s+type)?\s+.*\s+from\s+['"]effect(?:\/|['"])|import\s*\(\s*['"]effect(?:\/|['"])|(?:const|let|var)\s+.*=\s*require\(\s*['"]effect(?:\/|['"]))/;
+const legacyOrAliasImport = /^\s*(?:import(?:\s+type)?\s+.*\s+from\s+['"]effect-v[34](?:\/|['"])|import\s*\(\s*['"]effect-v[34](?:\/|['"])|(?:const|let|var)\s+.*=\s*require\(\s*['"]effect-v[34](?:\/|['"]))/;
 const effectServiceUsage = /\bEffect\.Service\b/;
 const directMshImport = /^\s*import(?:\s+type)?\s+.*\s+from\s+['"]@tmnl\/msh(?:\/|['"])/;
 
 describe('strict Effect v4 package guardrails', () => {
-  it('does not import Effect v3 from MSH source or tests', async () => {
+  it('does not import v3-marked Effect or the retired effect-v4 alias from MSH source or tests', async () => {
     const files = await walk(packageRoot);
     const violations: string[] = [];
 
     for (const file of files) {
       const lines = (await readFile(file, 'utf8')).split('\n');
       for (let index = 0; index < lines.length; index += 1) {
-        if (actualEffectV3Import.test(lines[index])) {
+        if (legacyOrAliasImport.test(lines[index])) {
           violations.push(`${relative(packageRoot, file)}:${index + 1}: ${lines[index].trim()}`);
         }
       }

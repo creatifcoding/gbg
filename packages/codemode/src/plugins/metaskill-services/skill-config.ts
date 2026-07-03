@@ -7,8 +7,8 @@
  * No deps. Leaf service. Created via Layer.succeed.
  */
 
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
 import { join } from "node:path"
 
 // ── Shape ────────────────────────────────────────────────────────

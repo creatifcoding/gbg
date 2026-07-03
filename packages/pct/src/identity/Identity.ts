@@ -24,8 +24,8 @@
  * @module @tmnl/pct/identity/Identity
  */
 
-import * as Context from "effect-v4/Context"
-import type * as Option from "effect-v4/Option"
+import * as Context from "effect/Context"
+import type * as Option from "effect/Option"
 
 import type { NodeId } from "../contracts/Brands.js"
 

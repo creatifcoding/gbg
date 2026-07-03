@@ -6,7 +6,7 @@
  * while this public MSH-branded layer composes the real port/adapters.
  */
 
-import * as Layer from "effect-v4/Layer"
+import * as Layer from "effect/Layer"
 import {
   NatsConnectionService,
   NatsInnerService,

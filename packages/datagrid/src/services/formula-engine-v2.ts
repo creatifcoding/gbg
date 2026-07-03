@@ -25,7 +25,7 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer, Schema } from "effect-v4"
+import { Effect, Context, Layer, Schema } from "effect"
 import type { CellValue } from "../schemas/cell-value"
 import { cellToVM, vmToCell } from "./vm-cell-bridge"
 import {
@@ -69,7 +69,7 @@ export interface FormulaEngineV2ConfigShape {
   readonly namedRanges?: Record<string, string>
 }
 
-export class FormulaEngineV2Config extends ServiceMap.Service<FormulaEngineV2Config, FormulaEngineV2ConfigShape>()(
+export class FormulaEngineV2Config extends Context.Service<FormulaEngineV2Config, FormulaEngineV2ConfigShape>()(
   "@tmnl/datagrid/FormulaEngineV2Config",
 ) {}
 
@@ -167,7 +167,7 @@ export interface FormulaEngineV2Shape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class FormulaEngineV2 extends ServiceMap.Service<FormulaEngineV2, FormulaEngineV2Shape>()(
+export class FormulaEngineV2 extends Context.Service<FormulaEngineV2, FormulaEngineV2Shape>()(
   "@tmnl/datagrid/FormulaEngineV2",
 ) {}
 
@@ -217,7 +217,7 @@ export const FormulaEngineV2Live = Layer.effect(
         return null
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
-        cellStore.set(record.addr, { _tag: "Error", code: "GENERAL", message: msg })
+        cellStore.set(record.addr, { _tag: "Error", error: msg })
         return msg
       }
     }

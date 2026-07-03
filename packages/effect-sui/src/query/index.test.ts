@@ -1,7 +1,7 @@
 import { bcs } from '@mysten/sui/bcs';
-import * as Effect from 'effect-v4/Effect';
-import * as Exit from 'effect-v4/Exit';
-import * as Schema from 'effect-v4/Schema';
+import * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
+import * as Schema from 'effect/Schema';
 import { describe, expect, it } from 'vitest';
 
 import { SuiObject } from '../effectable';

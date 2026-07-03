@@ -1,5 +1,5 @@
 import { isValidStructTag, normalizeStructTag } from '@mysten/sui/utils';
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { normalizeStringOrFail } from './strings';
 import { normalizeSuiTypeTag, normalizeSuiTypeTagOption } from './type-tag-normalize';

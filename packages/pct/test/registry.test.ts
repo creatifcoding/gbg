@@ -15,10 +15,10 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
 
 import { Registry } from "../src/registry/Registry.js"
 import { layerMemory } from "../src/registry/Memory.js"

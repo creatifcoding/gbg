@@ -1,4 +1,4 @@
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import type { SuiTx } from '../effectable';
 import {

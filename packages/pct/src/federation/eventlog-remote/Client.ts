@@ -2,13 +2,13 @@
  * EventLogRemote HTTP client helpers for PCT Flow C.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as EventLogRemote from "effect-v4/unstable/eventlog/EventLogRemote"
-import * as EventLogMessage from "effect-v4/unstable/eventlog/EventLogMessage"
-import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
-import * as RpcClient from "effect-v4/unstable/rpc/RpcClient"
-import * as RpcSerialization from "effect-v4/unstable/rpc/RpcSerialization"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as EventLogRemote from "effect/unstable/eventlog/EventLogRemote"
+import * as EventLogMessage from "effect/unstable/eventlog/EventLogMessage"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
+import * as RpcClient from "effect/unstable/rpc/RpcClient"
+import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 
 import { DEFAULT_RPC_PATH } from "./Server.js"
 

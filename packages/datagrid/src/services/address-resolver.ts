@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
+import { Effect, Context, Layer } from "effect"
 import {
   type ColRow, type RangeRect, type CellAddress, type RangeAddress,
   formatA1, resolveCell, resolveRange, formatRange,
@@ -19,7 +19,7 @@ export interface AddressResolverConfigShape {
   readonly deleteNamedRange: (sheetId: string, name: string) => Effect.Effect<void>
 }
 
-export class AddressResolverConfig extends ServiceMap.Service<AddressResolverConfig, AddressResolverConfigShape>()(
+export class AddressResolverConfig extends Context.Service<AddressResolverConfig, AddressResolverConfigShape>()(
   "@tmnl/datagrid/AddressResolverConfig",
 ) {}
 
@@ -38,7 +38,7 @@ export interface AddressResolverShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class AddressResolver extends ServiceMap.Service<AddressResolver, AddressResolverShape>()(
+export class AddressResolver extends Context.Service<AddressResolver, AddressResolverShape>()(
   "@tmnl/datagrid/AddressResolver",
 ) {}
 

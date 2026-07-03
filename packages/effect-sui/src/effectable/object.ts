@@ -1,6 +1,6 @@
 /** Sui object Effectable facade. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import type { SuiObjectId, SuiObjectRef, SuiTypeTagString } from '../schema';
 import { SuiEffect } from './base';

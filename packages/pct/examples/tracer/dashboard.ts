@@ -19,11 +19,11 @@
  *   STREAM_ID default vitals.hr
  */
 
-import * as Console from "effect-v4/Console"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Schedule from "effect-v4/Schedule"
-import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
+import * as Console from "effect/Console"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Schedule from "effect/Schedule"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 
 import { StreamId } from "@tmnl/lnk/contracts"
 import { Lnks } from "@tmnl/lnk/services/lnks"

@@ -13,8 +13,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import { trust as trustContentType } from "../../../src/contracts/ContentType.js"
 import { trust as trustStreamId } from "../../../src/contracts/StreamId.js"

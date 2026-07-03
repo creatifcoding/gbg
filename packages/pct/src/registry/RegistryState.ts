@@ -34,7 +34,7 @@
  * @module @tmnl/pct/registry/RegistryState
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 import * as RegistryDelta from "./RegistryDelta.js"
 

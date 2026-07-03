@@ -1,6 +1,6 @@
 /** Core Sui object resolution program. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { SuiObjectLoadError, SuiSchemaDecodeError, SuiTransportError } from '../schema';
 import type { SuiObjectResolveRequest, SuiObjectResolveResult } from '../services';

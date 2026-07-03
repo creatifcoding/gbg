@@ -7,20 +7,20 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Queue from "effect-v4/Queue"
-import * as Redacted from "effect-v4/Redacted"
-import * as Schema from "effect-v4/Schema"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
-import * as EventLogMessage from "effect-v4/unstable/eventlog/EventLogMessage"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Queue from "effect/Queue"
+import * as Redacted from "effect/Redacted"
+import * as Schema from "effect/Schema"
+import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as EventLogMessage from "effect/unstable/eventlog/EventLogMessage"
 import {
   encodeSessionAuthPayload,
   signSessionAuthPayloadBytes,
-} from "effect-v4/unstable/eventlog/EventLogSessionAuth"
-import { makeGetIdentityRootSecretMaterial } from "effect-v4/unstable/eventlog/internal/identityRootSecretDerivation"
-import * as RpcTest from "effect-v4/unstable/rpc/RpcTest"
+} from "effect/unstable/eventlog/EventLogSessionAuth"
+import { makeGetIdentityRootSecretMaterial } from "effect/unstable/eventlog/internal/identityRootSecretDerivation"
+import * as RpcTest from "effect/unstable/rpc/RpcTest"
 
 import * as EventLogRemoteServer from "../src/federation/eventlog-remote/index.js"
 import * as IdentityLayers from "../src/identity/Layers.js"

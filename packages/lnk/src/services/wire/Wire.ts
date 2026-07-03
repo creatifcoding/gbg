@@ -8,7 +8,7 @@
  *
  * Implementations:
  *   - `InMemoryWire` (Phase 1)   — in-process state store
- *   - `HttpWire`     (Phase 1.1) — real HTTP via `effect-v4/unstable/http/HttpClient`
+ *   - `HttpWire`     (Phase 1.1) — real HTTP via `effect/unstable/http/HttpClient`
  *   - `NatsBridgeWire` (Phase 5) — server-side adapter onto NATS JetStream
  *
  * Each implementation is a `Layer<Wire, ..., InternalService>`
@@ -24,11 +24,11 @@
  * @module @tmnl/lnk/services/wire/Wire
  */
 
-import * as Context from "effect-v4/Context"
-import type * as Effect from "effect-v4/Effect"
-import type * as Scope from "effect-v4/Scope"
-import type * as Stream from "effect-v4/Stream"
-import type * as RpcGroup from "effect-v4/unstable/rpc/RpcGroup"
+import * as Context from "effect/Context"
+import type * as Effect from "effect/Effect"
+import type * as Scope from "effect/Scope"
+import type * as Stream from "effect/Stream"
+import type * as RpcGroup from "effect/unstable/rpc/RpcGroup"
 
 import {
   type Protocol,
@@ -216,7 +216,7 @@ void _driftGuard
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect-v4"
+ * import { Effect, Layer } from "effect"
  * import { Wire } from "@tmnl/lnk/services/wire"
  * import { InMemoryWire } from "@tmnl/lnk/services/wire/in-memory"
  *

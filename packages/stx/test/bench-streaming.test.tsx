@@ -15,10 +15,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest"
 import React, { memo } from "react"
 import { render, act, cleanup } from "@testing-library/react"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as AsyncResult from "effect-v4/unstable/reactivity/AsyncResult"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
 import {
   fromEffect,
   fromStream,

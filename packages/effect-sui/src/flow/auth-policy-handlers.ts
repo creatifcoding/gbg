@@ -1,6 +1,6 @@
 import { fromBase64 } from '@mysten/bcs';
 import type { Transaction } from '@mysten/sui/transactions';
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { KeypairAuthPolicy, OfflineAuthPolicy, SponsoredAuthPolicy, WalletCallbackAuthPolicy, type SuiAuthPolicy, type SuiWalletSignResult, type SuiWalletSignTransaction } from '../schema';
 import type { SuiAuthResult } from '../services';

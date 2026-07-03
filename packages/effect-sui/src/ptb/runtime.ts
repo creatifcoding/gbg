@@ -1,8 +1,8 @@
 /** ManagedRuntime-backed PTB builder edge. */
 
-import type * as Exit from 'effect-v4/Exit';
-import * as Layer from 'effect-v4/Layer';
-import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
+import type * as Exit from 'effect/Exit';
+import * as Layer from 'effect/Layer';
+import * as ManagedRuntime from 'effect/ManagedRuntime';
 
 import { SuiPTB, type SuiPtbBuildArtifact } from '../effectable';
 import { SuiPtbAnalyzer, SuiPtbCompiler } from '../services';

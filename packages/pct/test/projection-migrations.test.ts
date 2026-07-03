@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
 
 import {
   FrameProjectionSpec,

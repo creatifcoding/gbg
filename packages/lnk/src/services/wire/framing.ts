@@ -6,8 +6,8 @@
  * logical messages are assembled back into wire response bodies.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
 
 import { framingMode } from "../../contracts/ContentType.js"
 import { InvalidPayloadError } from "../../contracts/errors.js"

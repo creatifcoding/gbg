@@ -19,7 +19,7 @@
  * # Example
  *
  * ```ts
- * import { Effect } from "effect-v4"
+ * import { Effect } from "effect"
  * import { Lnks } from "@tmnl/lnk/services"
  * import { InMemoryWire } from "@tmnl/lnk/services/wire/in-memory"
  *
@@ -42,14 +42,14 @@
  * @module @tmnl/lnk/services/lnks/Lnks
  */
 
-import type * as Cause from "effect-v4/Cause"
-import * as Context from "effect-v4/Context"
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as RcMap from "effect-v4/RcMap"
-import type * as Schema from "effect-v4/Schema"
-import type * as Scope from "effect-v4/Scope"
+import type * as Cause from "effect/Cause"
+import * as Context from "effect/Context"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as RcMap from "effect/RcMap"
+import type * as Schema from "effect/Schema"
+import type * as Scope from "effect/Scope"
 
 import type { ContentType } from "../../contracts/ContentType.js"
 import {

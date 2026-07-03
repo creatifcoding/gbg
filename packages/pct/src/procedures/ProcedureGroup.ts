@@ -11,8 +11,8 @@
  * @module @tmnl/pct/procedures/ProcedureGroup
  */
 
-import { type Pipeable, pipeArguments } from "effect-v4/Pipeable"
-import * as Predicate from "effect-v4/Predicate"
+import { type Pipeable, pipeArguments } from "effect/Pipeable"
+import * as Predicate from "effect/Predicate"
 
 import type { Procedure } from "./Procedure.js"
 

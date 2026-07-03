@@ -9,7 +9,7 @@
  * @module @tmnl/pct/frames/ProjectionWorker
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 import { FrameProjectionSpec, ProjectionPlan } from "./FrameProjectionSpec.js"
 

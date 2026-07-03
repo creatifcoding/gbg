@@ -1,6 +1,6 @@
 /** PTB command AST schema nouns. */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SuiObjectId, SuiTypeTagString } from '../schema';
 import { SuiPtbArgument } from './arguments';

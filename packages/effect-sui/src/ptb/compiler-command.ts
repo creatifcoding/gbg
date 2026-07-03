@@ -1,5 +1,5 @@
 import { Transaction } from '@mysten/sui/transactions';
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 import { type SuiPtbCommandAst } from './commands';
 import { normalizePtbError, type SuiPtbError } from './errors';
 import { compileArg } from './compiler-args';

@@ -1,8 +1,8 @@
 /** Tests for high-level CAS append orchestration. */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import { trust as trustContentType } from "../../../../src/contracts/ContentType.js"
 import { trustProducerId, trustEpoch, trustSeq } from "../../../../src/contracts/Producer.js"

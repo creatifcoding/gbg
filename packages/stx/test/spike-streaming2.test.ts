@@ -15,16 +15,16 @@
  */
 
 import { describe, it, expect, afterEach, vi } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as AsyncResult from "effect-v4/unstable/reactivity/AsyncResult"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
-import * as Queue from "effect-v4/Queue"
-import * as PubSub from "effect-v4/PubSub"
-import * as Scope from "effect-v4/Scope"
-import * as Exit from "effect-v4/Exit"
-import * as Fiber from "effect-v4/Fiber"
-import * as Option from "effect-v4/Option"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
+import * as Queue from "effect/Queue"
+import * as PubSub from "effect/PubSub"
+import * as Scope from "effect/Scope"
+import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
+import * as Option from "effect/Option"
 
 // ─── SPIKE 1: Stream.runForEachArray — chunk-aware consumption ─────────────
 
@@ -202,7 +202,7 @@ describe("SPIKE 4: Scope lifecycle", () => {
     let cleaned = false
 
     const program = Effect.gen(function*() {
-      const scope = Scope.makeUnsafe("sequential")
+      const scope = yield* Scope.make("sequential")
 
       // Register a finalizer
       yield* Scope.addFinalizer(scope, Effect.sync(() => { cleaned = true }))

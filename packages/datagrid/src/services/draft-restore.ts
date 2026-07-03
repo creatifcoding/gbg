@@ -13,8 +13,8 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import { stxFamily, type StxFamily } from "@tmnl/stx"
 import type { CellValue } from "../schemas/cell-value"
 import type { ColRow } from "../schemas/addressing"
@@ -32,7 +32,7 @@ export interface DraftRestoreConfigShape {
   readonly undoStack?: UndoStackShape
 }
 
-export class DraftRestoreConfig extends ServiceMap.Service<DraftRestoreConfig, DraftRestoreConfigShape>()(
+export class DraftRestoreConfig extends Context.Service<DraftRestoreConfig, DraftRestoreConfigShape>()(
   "@tmnl/datagrid/DraftRestoreConfig",
 ) {}
 
@@ -99,7 +99,7 @@ export interface DraftRestoreShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class DraftRestore extends ServiceMap.Service<DraftRestore, DraftRestoreShape>()(
+export class DraftRestore extends Context.Service<DraftRestore, DraftRestoreShape>()(
   "@tmnl/datagrid/DraftRestore",
 ) {}
 

@@ -28,10 +28,10 @@
  * @module @tmnl/pct/federation/Sync
  */
 
-import * as Clock from "effect-v4/Clock"
-import * as Effect from "effect-v4/Effect"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
-import type * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
+import * as Clock from "effect/Clock"
+import * as Effect from "effect/Effect"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
+import type * as EventJournal from "effect/unstable/eventlog/EventJournal"
 
 import type { Manifest } from "../manifest/Manifest.js"
 import * as RegistryDelta from "../registry/RegistryDelta.js"

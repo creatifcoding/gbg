@@ -6,9 +6,9 @@
  */
 
 import { afterAll, beforeAll, expect, it } from 'vitest';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Redacted from 'effect-v4/Redacted';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Redacted from 'effect/Redacted';
 
 import { MshConfigCustom } from '../src/schemas/config';
 import { TokenAuth, MshAuthService } from '../src/auth';

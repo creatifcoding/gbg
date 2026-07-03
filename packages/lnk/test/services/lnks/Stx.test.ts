@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as AtomRegistry from "effect-v4/unstable/reactivity/AtomRegistry"
+import * as Effect from "effect/Effect"
+import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 
 import { trust as trustContentType } from "../../../src/contracts/ContentType.js"
 import { trust as trustStreamId } from "../../../src/contracts/StreamId.js"

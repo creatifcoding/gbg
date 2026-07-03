@@ -12,11 +12,11 @@
  *   The SqlClient backend is injected — node:sqlite, bun:sqlite, or test :memory:
  *   Each ms.* method → runtime.runPromise(serviceCall)
  */
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as ManagedRuntime from "effect-v4/ManagedRuntime"
-import { SqlClient } from "effect-v4/unstable/sql/SqlClient"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
+import { SqlClient } from "effect/unstable/sql/SqlClient"
+import { FileSystem } from "effect/FileSystem"
 import { RlmStore, RlmStoreLive, type CatalogEntry, type StoredObject, type QueryFilter } from "./service.js"
 import { SearchIndex, SearchIndexLive, type SearchHit } from "./search.js"
 import { DomainRegistry, DomainRegistryLive } from "./domains.js"

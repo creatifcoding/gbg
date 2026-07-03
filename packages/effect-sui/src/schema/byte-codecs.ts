@@ -1,5 +1,5 @@
-import * as Schema from 'effect-v4/Schema';
-import * as SchemaGetter from 'effect-v4/SchemaGetter';
+import * as Schema from 'effect/Schema';
+import * as SchemaGetter from 'effect/SchemaGetter';
 
 import { SuiAddressBytes, SuiDigestBytes } from './byte-schemas';
 

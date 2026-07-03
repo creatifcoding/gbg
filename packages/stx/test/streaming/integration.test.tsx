@@ -19,9 +19,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest"
 import React, { memo, useEffect, useMemo } from "react"
 import { render, act, cleanup, screen } from "@testing-library/react"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
+import { AtomRegistry } from "effect/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
 
 import {
   stxFeed,

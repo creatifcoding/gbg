@@ -7,9 +7,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import * as Effect from 'effect-v4/Effect';
-import * as Schema from 'effect-v4/Schema';
-import * as Redacted from 'effect-v4/Redacted';
+import * as Effect from 'effect/Effect';
+import * as Schema from 'effect/Schema';
+import * as Redacted from 'effect/Redacted';
 
 import {
   NKeyAuth, JwtAuth, CredsAuth, TokenAuth,

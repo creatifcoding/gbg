@@ -16,7 +16,7 @@ import { join } from "node:path"
 import { createServer } from "node:net"
 
 import { describe, expect, it } from "vitest"
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 import * as Procedure from "../src/procedures/index.js"
 

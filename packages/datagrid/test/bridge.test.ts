@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
-import { Effect } from "effect-v4"
+import { Effect } from "effect"
 import {
   type CellValue, type DatagridConfigShape, type RangeRect,
   num, str, empty,

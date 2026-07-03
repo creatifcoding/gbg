@@ -69,8 +69,8 @@ export type {
 
 // ── Layer Composition ────────────────────────────────────────────
 
-import * as Layer from "effect-v4/Layer"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Layer from "effect/Layer"
+import { FileSystem } from "effect/FileSystem"
 import { makeSkillConfigLayer } from "./skill-config.js"
 import { SkillDiscoveryLive } from "./skill-discovery.js"
 import { SkillInspectorLive } from "./skill-inspector.js"
@@ -87,7 +87,7 @@ import { FreshnessServiceLive } from "./freshness-service.js"
  *
  * @example
  * ```ts
- * import { NodeFileSystem } from "effect-v4/NodeFileSystem"  // or custom
+ * import { NodeFileSystem } from "effect/NodeFileSystem"  // or custom
  * const layer = makeMetaskillLayer("/path/to/project")
  * const runtime = ManagedRuntime.make(layer.pipe(Layer.provide(NodeFileSystem.layer)))
  * ```
@@ -133,7 +133,7 @@ export function makeMetaskillLayer(cwd: string) {
 
 // ── Composed Helpers ─────────────────────────────────────────────
 
-import * as Effect from "effect-v4/Effect"
+import * as Effect from "effect/Effect"
 import { SkillDiscovery } from "./skill-discovery.js"
 import { SkillInspector } from "./skill-inspector.js"
 import { FreshnessService } from "./freshness-service.js"

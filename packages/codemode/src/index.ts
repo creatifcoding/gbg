@@ -23,9 +23,9 @@
  * @module
  */
 
-import type * as Layer from "effect-v4/Layer"
-import type { SqlClient } from "effect-v4/unstable/sql/SqlClient"
-import type { FileSystem } from "effect-v4/FileSystem"
+import type * as Layer from "effect/Layer"
+import type { SqlClient } from "effect/unstable/sql/SqlClient"
+import type { FileSystem } from "effect/FileSystem"
 
 import { createStoreApi, type StoreApi } from "./store/api.js"
 import { createProcedureApi, type ProcedureApi } from "./store/procedures.js"

@@ -6,7 +6,7 @@
  * @module @tmnl/msh/utils/errors
  */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 /**
  * Generic NATS error wrapper factory

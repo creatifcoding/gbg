@@ -13,9 +13,9 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as FS from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as FS from "effect/FileSystem"
 import { NodeFileSystemLayer } from "../src/adapters/filesystem-node"
 import * as Fs from "../src/plugins/metaskill-services/fs-ops"
 import { FileReadError } from "../src/plugins/metaskill-services/errors"

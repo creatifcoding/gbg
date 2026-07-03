@@ -1,7 +1,7 @@
 /** Transaction execution RPC service. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { SuiClientService, SuiExecutionService, type SuiExecutionRequest, type SuiExecutionResultEnvelope, type SuiExecutionServiceShape } from '../services';
 import { execution, invariant, type SuiFlowError } from './errors';
 import { digestFromTransactionResult, requireTransactionBytes } from './rpc-shared';

@@ -1,6 +1,6 @@
 /** Signer normalization and transaction signing helpers for Sui auth. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { decodeSuiAddress, type SuiAddress } from '../schema';
 import { auth, signature } from './errors';

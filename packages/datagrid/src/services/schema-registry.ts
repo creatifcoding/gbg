@@ -7,12 +7,12 @@
  *   cell override → column schema → global default (CellValue)
  *
  * Each registered schema can validate and coerce values on write.
- * ServiceMap-injected, composable with CellCache.
+ * Context-injected, composable with CellCache.
  *
  * @module
  */
 
-import { Effect, ServiceMap, Layer, Schema } from "effect-v4"
+import { Effect, Context, Layer, Schema } from "effect"
 
 import { CellValue } from "../schemas/cell-value"
 import type { ColRow } from "../schemas/addressing"
@@ -51,7 +51,7 @@ export interface SchemaRegistryConfigShape {
   readonly columnBindings?: ReadonlyArray<ColumnSchemaBinding>
 }
 
-export class SchemaRegistryConfig extends ServiceMap.Service<SchemaRegistryConfig, SchemaRegistryConfigShape>()(
+export class SchemaRegistryConfig extends Context.Service<SchemaRegistryConfig, SchemaRegistryConfigShape>()(
   "@tmnl/datagrid/SchemaRegistryConfig",
 ) {}
 
@@ -106,7 +106,7 @@ export interface SchemaRegistryShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class SchemaRegistry extends ServiceMap.Service<SchemaRegistry, SchemaRegistryShape>()(
+export class SchemaRegistry extends Context.Service<SchemaRegistry, SchemaRegistryShape>()(
   "@tmnl/datagrid/SchemaRegistry",
 ) {}
 

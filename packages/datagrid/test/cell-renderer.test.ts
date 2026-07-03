@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer, ServiceMap } from "effect-v4"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Layer, Context } from "effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 
 import type { ColRow } from "../src/schemas/addressing"
 import { cellKey } from "../src/schemas/addressing"
@@ -31,7 +31,7 @@ function makeTestEnv() {
   }))
   const layer = Layer.provide(CellRendererLive, configLayer)
   const sm = Effect.runSync(Effect.scoped(layer.pipe(Layer.build)))
-  const renderer = ServiceMap.get(sm, CellRenderer)
+  const renderer = Context.get(sm, CellRenderer)
 
   return { renderer, errorStore, registry }
 }

@@ -1,7 +1,7 @@
 /** Reservation service layer assembly. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 
 import { SuiReservationService, type SuiReservationServiceShape } from '../services';
 import { acquireReservation, reconcileReservation, releaseReservation } from './operations';

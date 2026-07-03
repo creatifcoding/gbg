@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer, ServiceMap } from "effect-v4"
+import { Effect, Layer, Context } from "effect"
 
 import { num, str, bool, empty, type CellValue } from "../src/schemas/cell-value"
 import type { ColRow } from "../src/schemas/addressing"
@@ -29,7 +29,7 @@ function makeRegistry(opts?: { defaults?: CellSchema[]; columnBindings?: { colIn
   const layer = Layer.provide(SchemaRegistryLive, configLayer)
   return Effect.runSync(Effect.gen(function*() {
     const sm = yield* Effect.scoped(layer.pipe(Layer.build))
-    return ServiceMap.get(sm, SchemaRegistry)
+    return Context.get(sm, SchemaRegistry)
   }))
 }
 

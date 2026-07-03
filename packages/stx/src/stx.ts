@@ -20,7 +20,7 @@
  * @example
  * ```ts
  * import { stx } from "@tmnl/stx"
- * import { Schema } from "effect-v4"
+ * import { Schema } from "effect"
  *
  * class AppState extends Schema.TaggedClass<AppState>()("AppState", {
  *   count: Schema.Number,
@@ -48,8 +48,8 @@
  * @module
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Result from "effect-v4/Result"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Result from "effect/Result"
 import { autoLens } from "./internal/auto-lens.js"
 import { createFocusAtom } from "./internal/focus.js"
 import { createFilterAtom, createWhenAtom } from "./internal/filter.js"

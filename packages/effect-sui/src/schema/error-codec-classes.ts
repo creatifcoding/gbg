@@ -1,4 +1,4 @@
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 export class SuiBcsParseError extends Schema.TaggedErrorClass<SuiBcsParseError>('@tmnl/effect-sui/SuiBcsParseError')('Sui/BcsParse', {
   codec: Schema.String,

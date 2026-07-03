@@ -1,6 +1,6 @@
 /** Sui transaction lifecycle Effectable facade. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import type { SuiAddress, SuiAuthPolicy, SuiBuildMode, SuiGasPolicy, SuiPaymentPolicy } from '../schema';
 import { SuiEffect } from './base';

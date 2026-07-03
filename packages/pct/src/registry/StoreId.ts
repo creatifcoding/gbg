@@ -1,3 +1,3 @@
-import { StoreId } from "effect-v4/unstable/eventlog/EventLogMessage"
+import { StoreId } from "effect/unstable/eventlog/EventLogMessage"
 
 export const PctRegistryStoreId = StoreId.make("pct:registry")

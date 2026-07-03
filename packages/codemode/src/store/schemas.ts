@@ -4,9 +4,9 @@
  * Effect v4 Schema definitions for RLM Store v2.
  * Validates namespaces, keys, and _meta envelopes.
  *
- * Import convention: effect-v4 (npm alias for effect@4.0.0-beta.23)
+ * Import convention: effect (npm alias for effect@4.0.0-beta.23)
  */
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 // ── Namespace ────────────────────────────────────────────────────
 

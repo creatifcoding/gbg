@@ -8,11 +8,11 @@
  * @module @tmnl/pct/federation/Routes
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
-import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
-import * as HttpServerRequest from "effect-v4/unstable/http/HttpServerRequest"
-import * as HttpServerResponse from "effect-v4/unstable/http/HttpServerResponse"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as HttpRouter from "effect/unstable/http/HttpRouter"
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest"
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 
 import { type PactClientError } from "../client/PactClient.js"
 import { ErrorBody } from "../server/wire.js"

@@ -16,8 +16,8 @@
 import { describe, it, expect } from "vitest"
 import React, { useRef, useSyncExternalStore, memo } from "react"
 import { render, act } from "@testing-library/react"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import { Optic } from "effect-v4"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import { Optic } from "effect"
 import { observable } from "@legendapp/state"
 import { useSelector } from "@legendapp/state/react"
 

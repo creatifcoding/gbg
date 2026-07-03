@@ -10,9 +10,9 @@
  *   6. retry boundedly on CAS/tail conflicts.
  */
 
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Schedule from "effect-v4/Schedule"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Schedule from "effect/Schedule"
 
 import {
   FetchError,

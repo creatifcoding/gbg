@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer, ServiceMap } from "effect-v4"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Layer, Context } from "effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 
 import {
   num, str, empty, type CellValue,
@@ -38,13 +38,13 @@ function makeTestEnv() {
   }))
   const ccLayer = Layer.provide(CellCacheLive, ccConfigLayer)
   const ccSM = Effect.runSync(Effect.scoped(ccLayer.pipe(Layer.build)))
-  const cellCache = ServiceMap.get(ccSM, CellCache)
+  const cellCache = Context.get(ccSM, CellCache)
 
   // UndoStack
   const undoConfigLayer = Layer.succeed(UndoStackConfig)(UndoStackConfig.of({ registry, cellCache }))
   const undoLayer = Layer.provide(UndoStackLive, undoConfigLayer)
   const undoSM = Effect.runSync(Effect.scoped(undoLayer.pipe(Layer.build)))
-  const undoStack = ServiceMap.get(undoSM, UndoStack)
+  const undoStack = Context.get(undoSM, UndoStack)
 
   // DraftRestore
   const drConfigLayer = Layer.succeed(DraftRestoreConfig)(DraftRestoreConfig.of({
@@ -52,7 +52,7 @@ function makeTestEnv() {
   }))
   const drLayer = Layer.provide(DraftRestoreLive, drConfigLayer)
   const drSM = Effect.runSync(Effect.scoped(drLayer.pipe(Layer.build)))
-  const draftRestore = ServiceMap.get(drSM, DraftRestore)
+  const draftRestore = Context.get(drSM, DraftRestore)
 
   return { cellCache, undoStack, draftRestore, registry }
 }

@@ -1,8 +1,8 @@
 /** BCS decode/encode bridge for SuiQuery. */
 
 import { pureBcsSchemaFromTypeName } from '@mysten/sui/bcs';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 
 import { SuiBcsBridge, type SuiBcsBridgeShape, type SuiBcsDecodeRequest } from '../services';
 import { normalizePureEncodeError, parseWithCodec, serializeWithCodec } from './bcs-codec';

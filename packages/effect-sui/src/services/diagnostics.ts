@@ -1,9 +1,9 @@
 /** Diagnostics service contracts. */
 
-import * as Cause from 'effect-v4/Cause';
-import * as Context from 'effect-v4/Context';
-import type * as Effect from 'effect-v4/Effect';
-import * as Exit from 'effect-v4/Exit';
+import * as Cause from 'effect/Cause';
+import * as Context from 'effect/Context';
+import type * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
 
 import type { SuiDiagnostic, SuiDiagnosticEvent } from '../schema';
 

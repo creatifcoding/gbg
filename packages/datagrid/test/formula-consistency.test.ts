@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer, ServiceMap } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Layer, Context } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 import {
   num, str, empty, type CellValue, extractNumber,
@@ -39,7 +39,7 @@ function makeTestEnv() {
   }))
   const ccLayer = Layer.provide(CellCacheLive, ccConfigLayer)
   const ccSM = Effect.runSync(Effect.scoped(ccLayer.pipe(Layer.build)))
-  const cellCache = ServiceMap.get(ccSM, CellCache)
+  const cellCache = Context.get(ccSM, CellCache)
 
   // FormulaEngine
   const feConfigLayer = Layer.succeed(FormulaEngineConfig)(FormulaEngineConfig.of({
@@ -48,7 +48,7 @@ function makeTestEnv() {
   }))
   const feLayer = Layer.provide(FormulaEngineLive, feConfigLayer)
   const feSM = Effect.runSync(Effect.scoped(feLayer.pipe(Layer.build)))
-  const formulaEngine = ServiceMap.get(feSM, FormulaEngine)
+  const formulaEngine = Context.get(feSM, FormulaEngine)
 
   // FormulaConsistency
   const fcConfigLayer = Layer.succeed(FormulaConsistencyConfig)(FormulaConsistencyConfig.of({
@@ -56,7 +56,7 @@ function makeTestEnv() {
   }))
   const fcLayer = Layer.provide(FormulaConsistencyLive, fcConfigLayer)
   const fcSM = Effect.runSync(Effect.scoped(fcLayer.pipe(Layer.build)))
-  const consistency = ServiceMap.get(fcSM, FormulaConsistency)
+  const consistency = Context.get(fcSM, FormulaConsistency)
 
   return { cellCache, formulaEngine, consistency, registry }
 }

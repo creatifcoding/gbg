@@ -14,9 +14,9 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as HttpRouter from "effect/unstable/http/HttpRouter"
 
 import { Routes } from "../../../../src/services/wire/http/HttpRoutes.js"
 import { InMemoryWire } from "../../../../src/services/wire/in-memory/index.js"

@@ -1,6 +1,6 @@
 /** Canonical Sui schema decode/encode helpers. */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SuiObjectRef } from './objects';
 import {

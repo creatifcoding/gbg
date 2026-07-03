@@ -1,7 +1,7 @@
 /** Object resolver service contracts. */
 
-import * as Context from 'effect-v4/Context';
-import type * as Effect from 'effect-v4/Effect';
+import * as Context from 'effect/Context';
+import type * as Effect from 'effect/Effect';
 
 import type { SuiObject, SuiObjectSnapshot } from '../effectable';
 import type { SharedObjectRef, SuiObjectId, SuiObjectRef, SuiTypeTagString } from '../schema';

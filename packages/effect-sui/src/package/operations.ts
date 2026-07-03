@@ -1,6 +1,6 @@
 /** Effect operations over the SuiPackageRegistry service. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { SuiPackage } from '../effectable';
 import { SuiPackageDescriptor, type SuiObjectId } from '../schema';

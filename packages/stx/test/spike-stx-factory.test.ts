@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import { Optic, Schema } from "effect-v4"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import { Optic, Schema } from "effect"
 
 // ─────────────────────────────────────────────────────
 // autoLens (from spike-auto-lens)
@@ -275,7 +275,7 @@ describe("stx() with Schema.TaggedStruct", () => {
       text: Schema.String,
       done: Schema.Boolean,
     })),
-    filter: Schema.Literal("all", "active", "done"),
+    filter: Schema.Literals(["all", "active", "done"]),
     nextId: Schema.Number,
   })
   type TodoState = typeof TodoState.Type

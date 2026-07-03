@@ -6,7 +6,7 @@
  * @module @tmnl/msh/subject/errors
  */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 import type { SubjectSpecId, SubjectSpec } from './schemas';
 
 // =============================================================================

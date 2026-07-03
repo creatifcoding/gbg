@@ -9,7 +9,7 @@
  * @module
  */
 
-import type { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import type { Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 // ─── Stats Plane ─────────────────────────────────────────────────────────────
 

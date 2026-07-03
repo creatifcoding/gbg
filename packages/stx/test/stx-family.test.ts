@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { AtomRegistry } from "effect/unstable/reactivity"
 import { stxFamily } from "../src/internal/family.js"
 
 // ─── Test helpers ───────────────────────────────────

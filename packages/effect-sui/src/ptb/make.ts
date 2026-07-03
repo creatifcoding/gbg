@@ -1,7 +1,7 @@
 /** Effectable SuiPTB facade constructor. */
 
 import { Transaction } from '@mysten/sui/transactions';
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { SuiPTB, type SuiPtbBuildArtifact } from '../effectable';
 import { SuiPtbAnalyzer, SuiPtbCompiler } from '../services';

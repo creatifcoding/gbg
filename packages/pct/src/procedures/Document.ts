@@ -14,8 +14,8 @@
  * @module @tmnl/pct/procedures/Document
  */
 
-import * as Schema from "effect-v4/Schema"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
+import * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
 
 import { make as makeProcedure, type Procedure } from "./Procedure.js"
 import { ProcedureKind } from "./ProcedureKind.js"

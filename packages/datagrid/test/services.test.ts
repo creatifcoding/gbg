@@ -7,8 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
-import { Effect } from "effect-v4"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect } from "effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 import {
   type CellValue, type DatagridConfigShape, type RangeRect,
   empty, num, str, bool, formula, error,

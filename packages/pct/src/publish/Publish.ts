@@ -13,10 +13,10 @@
  * @module @tmnl/pct/publish/Publish
  */
 
-import * as Clock from "effect-v4/Clock"
-import * as Effect from "effect-v4/Effect"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
+import * as Clock from "effect/Clock"
+import * as Effect from "effect/Effect"
+import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
 
 import { toDocument } from "../procedures/Document.js"
 import type { Procedure } from "../procedures/Procedure.js"

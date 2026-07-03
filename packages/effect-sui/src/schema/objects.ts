@@ -1,6 +1,6 @@
 /** Sui object reference schemas and object argument nouns. */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SuiObjectDigest, SuiObjectId, SuiObjectVersion } from './strings';
 

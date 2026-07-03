@@ -1,7 +1,7 @@
 /** Sui client service boundary. */
 
-import * as Context from 'effect-v4/Context';
-import * as Layer from 'effect-v4/Layer';
+import * as Context from 'effect/Context';
+import * as Layer from 'effect/Layer';
 
 export interface SuiClientServiceShape {
   readonly client: unknown;

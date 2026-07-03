@@ -1,6 +1,6 @@
 /** PTB argument schema nouns. */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 export const SuiPtbInputKind = Schema.Literals(['pure', 'object', 'withdrawal'] as const);
 export type SuiPtbInputKind = typeof SuiPtbInputKind.Type;

@@ -12,14 +12,14 @@
  * @module @tmnl/pct/identity/Layers
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as FileSystem from "effect-v4/FileSystem"
-import * as Hash from "effect-v4/Hash"
-import * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
-import * as Path from "effect-v4/Path"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
-import * as EventLogEncryption from "effect-v4/unstable/eventlog/EventLogEncryption"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Hash from "effect/Hash"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Path from "effect/Path"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as EventLogEncryption from "effect/unstable/eventlog/EventLogEncryption"
 
 import { trustNodeId, type NodeId } from "../contracts/Brands.js"
 import { Identity } from "./Identity.js"

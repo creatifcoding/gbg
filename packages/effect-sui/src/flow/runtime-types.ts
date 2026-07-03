@@ -1,8 +1,8 @@
-import type * as Effect from 'effect-v4/Effect';
-import * as Exit from 'effect-v4/Exit';
-import type * as Fiber from 'effect-v4/Fiber';
-import * as Layer from 'effect-v4/Layer';
-import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
+import type * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
+import type * as Fiber from 'effect/Fiber';
+import * as Layer from 'effect/Layer';
+import * as ManagedRuntime from 'effect/ManagedRuntime';
 
 import type { SuiTx } from '../effectable';
 import type {

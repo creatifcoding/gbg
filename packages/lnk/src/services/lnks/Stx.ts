@@ -30,8 +30,8 @@
  * @module @tmnl/lnk/services/lnks/Stx
  */
 
-import type * as AtomRegistry from "effect-v4/unstable/reactivity/AtomRegistry"
-import * as Stream from "effect-v4/Stream"
+import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import * as Stream from "effect/Stream"
 import {
   stxFeed,
   stxLatest,

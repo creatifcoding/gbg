@@ -20,10 +20,10 @@
  * ```
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as ManagedRuntime from "effect-v4/ManagedRuntime"
-import type { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
+import type { FileSystem } from "effect/FileSystem"
 import type { CodemodeOverlay } from "../overlay.js"
 import {
   makeMetaskillLayer,

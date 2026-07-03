@@ -13,7 +13,7 @@
  * @module
  */
 
-import { Schema } from "effect-v4"
+import { Schema } from "effect"
 import { CellKeySchema, type CellKey } from "./addressing"
 import { CellValue } from "./cell-value"
 

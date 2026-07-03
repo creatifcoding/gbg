@@ -1,4 +1,4 @@
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 import { type SuiPtbArgument } from './arguments';
 import { ptbInvariant, type SuiPtbError } from './errors';
 import type { MystenArgument } from './compiler-types';

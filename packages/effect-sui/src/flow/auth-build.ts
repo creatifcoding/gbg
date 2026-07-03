@@ -1,7 +1,7 @@
 /** Transaction artifact, gas/payment application, and byte-build helpers for Sui auth. */
 
 import { Transaction } from '@mysten/sui/transactions';
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import type { SuiPtbBuildArtifact, SuiTx } from '../effectable';
 import { SuiInvariantViolation } from '../schema';

@@ -15,13 +15,13 @@
  *
  * All three resolve to RlmStore + SearchIndex underneath.
  */
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
-import * as Schema from "effect-v4/Schema"
-import * as Ref from "effect-v4/Ref"
-import * as ManagedRuntime from "effect-v4/ManagedRuntime"
-import { SqlClient } from "effect-v4/unstable/sql/SqlClient"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+import * as Schema from "effect/Schema"
+import * as Ref from "effect/Ref"
+import * as ManagedRuntime from "effect/ManagedRuntime"
+import { SqlClient } from "effect/unstable/sql/SqlClient"
 import { RlmStore, RlmStoreLive } from "./service.js"
 import { SearchIndex, SearchIndexLive } from "./search.js"
 import { MigrationLayer } from "./migrations.js"

@@ -12,9 +12,9 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Stream from "effect-v4/Stream"
-import * as Effect from "effect-v4/Effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Stream from "effect/Stream"
+import * as Effect from "effect/Effect"
 import { stxReduce } from "../../src/streaming/reduce.js"
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))

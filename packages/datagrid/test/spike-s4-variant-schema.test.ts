@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Schema } from "effect-v4"
+import { Schema } from "effect"
 import {
   CellValue,
   CellValueFromString,

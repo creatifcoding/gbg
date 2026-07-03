@@ -6,11 +6,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Schema from 'effect-v4/Schema';
-import * as Stream from 'effect-v4/Stream';
-import * as Fiber from 'effect-v4/Fiber';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Schema from 'effect/Schema';
+import * as Stream from 'effect/Stream';
+import * as Fiber from 'effect/Fiber';
 
 import {
   NatsHubService,

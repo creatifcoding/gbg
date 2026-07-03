@@ -7,7 +7,7 @@
  * @module
  */
 
-import { Schema, SchemaGetter } from "effect-v4"
+import { Schema, SchemaGetter } from "effect"
 
 // ─── Cell value variants (TaggedStruct) ─────────────
 

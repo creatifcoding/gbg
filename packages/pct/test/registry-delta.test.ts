@@ -3,8 +3,8 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
-import * as Schema from "effect-v4/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
+import * as Schema from "effect/Schema"
 
 import * as Delta from "../src/registry/RegistryDelta.js"
 

@@ -1,7 +1,7 @@
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Option from 'effect-v4/Option';
-import * as TxHashMap from 'effect-v4/TxHashMap';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Option from 'effect/Option';
+import * as TxHashMap from 'effect/TxHashMap';
 
 import { SuiInvariantViolation, SuiPackageDescriptor, type SuiObjectId } from '../schema';
 import { SuiPackageRegistry, type SuiPackageRegistryShape } from '../services';

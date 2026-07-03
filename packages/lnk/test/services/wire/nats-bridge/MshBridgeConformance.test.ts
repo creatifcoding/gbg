@@ -1,7 +1,7 @@
 /** MshBridgeWire conformance over the concrete PortLive CAS seams. */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { NatsStreamService } from "@tmnl/msh/nats"
 
 import { trust as trustStreamId, type StreamId } from "../../../../src/contracts/StreamId.js"

@@ -19,8 +19,8 @@
  * @module @tmnl/lnk/contracts/Headers
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
 import { Offset, type Offset as OffsetT, trust as trustOffset } from "./Offset.js"
 import {
   Epoch,
@@ -115,7 +115,7 @@ export type HeaderName = (typeof ALL_HEADERS)[number]
  *   - `Headers` (web/fetch)
  *   - `Response.headers` (fetch)
  *   - `Request.headers` (fetch)
- *   - effect-v4's `HttpClientResponse.headers` (lowercased keys; case-insensitive `.get`)
+ *   - effect's `HttpClientResponse.headers` (lowercased keys; case-insensitive `.get`)
  *
  * `get(name)` returns the value or `null` if absent.
  */

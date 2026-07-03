@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Result from "effect-v4/Result"
+import * as Effect from "effect/Effect"
+import * as Result from "effect/Result"
 import * as Offset from "../../src/contracts/Offset.js"
 
 describe("contracts/Offset", () => {

@@ -4,7 +4,7 @@
  * @module @tmnl/msh/schemas/errors
  */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 /**
  * Generic decode error used by shared codec utilities.

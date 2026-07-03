@@ -21,7 +21,7 @@
  * @internal
  */
 
-import { Atom } from "effect-v4/unstable/reactivity"
+import { Atom } from "effect/unstable/reactivity"
 
 // ─── Memoization ────────────────────────────────────
 

@@ -8,8 +8,8 @@
  * @module @tmnl/pct/frames/ProjectionAssembly
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Schema from "effect-v4/Schema"
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
 
 import type { FrameProjectionSpec as FrameProjectionSpecType } from "./FrameProjectionSpec.js"
 import {

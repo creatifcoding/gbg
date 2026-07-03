@@ -1,4 +1,4 @@
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 export const MoveIdentifier = Schema.String.check(
   Schema.isPattern(/^[a-zA-Z][a-zA-Z0-9_]*$/),

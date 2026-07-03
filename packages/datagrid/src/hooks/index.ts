@@ -13,9 +13,9 @@
  */
 
 import { useSyncExternalStore, useCallback, useMemo, useRef } from "react"
-import { Effect } from "effect-v4"
-import * as Result from "effect-v4/Result"
-import type { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect } from "effect"
+import * as Result from "effect/Result"
+import type { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { CellValue } from "../schemas/cell-value"
 import type { ColRow, CellAddress, RangeAddress } from "../schemas/addressing"
 import type { DatagridShape } from "../services/datagrid"

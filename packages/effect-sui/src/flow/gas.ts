@@ -1,7 +1,7 @@
 /** Gas planning services for SuiFlow. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 
 import { AutoGasPolicy } from '../schema';
 import { SuiClientService, SuiGasPlanner, type SuiGasPlan, type SuiGasPlannerShape } from '../services';

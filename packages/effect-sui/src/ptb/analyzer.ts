@@ -1,6 +1,6 @@
 /** PTB static analyzer service. */
 
-import * as Layer from 'effect-v4/Layer';
+import * as Layer from 'effect/Layer';
 import { SuiPtbAnalyzer, type SuiPtbAnalyzerShape } from '../services';
 import { analyzePtb } from './analyzer-core';
 

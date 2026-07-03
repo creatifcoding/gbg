@@ -4,9 +4,9 @@
  * @module
  */
 
-import type { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import type * as Result from "effect-v4/Result"
-import type { Predicate } from "effect-v4/Predicate"
+import type { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import type * as Result from "effect/Result"
+import type { Predicate } from "effect/Predicate"
 import type { AutoLens } from "./internal/auto-lens.js"
 
 // ─── STX Errors ─────────────────────────────────────
@@ -137,7 +137,7 @@ export interface StxInstance<S> {
    *
    * @example
    * ```ts
-   * import { Result } from 'effect-v4'
+   * import { Result } from 'effect'
    *
    * const r = store.trySet(nextState)
    * Result.match(r, {
@@ -190,7 +190,7 @@ export interface StxInstance<S> {
    *
    * @example
    * ```ts
-   * import { Predicate } from 'effect-v4'
+   * import { Predicate } from 'effect'
    *
    * const isActive = Predicate.Struct({ completed: (c: boolean) => !c })
    * const activeItems = store.filter(store.lens.items, items => items.filter(isActive))

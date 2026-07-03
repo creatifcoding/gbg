@@ -1,6 +1,6 @@
 /** Auth policy dispatch for Sui transaction authorization. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import type { SuiPtbBuildArtifact, SuiTx } from '../effectable';
 import { type SuiAuthPolicy } from '../schema';

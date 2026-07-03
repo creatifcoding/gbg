@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
+import * as Effect from "effect/Effect"
 import * as StreamId from "../../src/contracts/StreamId.js"
 
 describe("contracts/StreamId", () => {

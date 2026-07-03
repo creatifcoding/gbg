@@ -39,9 +39,9 @@
  * @module @tmnl/pct/procedures/Procedure
  */
 
-import { type Pipeable, pipeArguments } from "effect-v4/Pipeable"
-import * as Predicate from "effect-v4/Predicate"
-import type * as Schema from "effect-v4/Schema"
+import { type Pipeable, pipeArguments } from "effect/Pipeable"
+import * as Predicate from "effect/Predicate"
+import type * as Schema from "effect/Schema"
 
 import type { ProcedureKind } from "./ProcedureKind.js"
 

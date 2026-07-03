@@ -24,7 +24,7 @@
  * @module @tmnl/lnk/services/wire/Sse
  */
 
-import type * as Stream from "effect-v4/Stream"
+import type * as Stream from "effect/Stream"
 
 // ─── Event types ────────────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ export const decodeSseStream = (
   body: Stream.Stream<Uint8Array, never, never>,
 ): Stream.Stream<SseEvent, Error, never> => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const StreamMod = require("effect-v4/Stream") as typeof import("effect-v4/Stream")
+  const StreamMod = require("effect/Stream") as typeof import("effect/Stream")
 
   return StreamMod.suspend(() => {
     let buffer = ""

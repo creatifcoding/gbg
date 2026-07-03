@@ -8,10 +8,10 @@
  *   access, readFile, readDirectory, writeFile, makeDirectory, stat, open, remove
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import { FileSystem, make as makeFileSystem } from "effect-v4/FileSystem"
-import { systemError, badArgument, type PlatformError } from "effect-v4/PlatformError"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import { FileSystem, make as makeFileSystem } from "effect/FileSystem"
+import { systemError, badArgument, type PlatformError } from "effect/PlatformError"
 import * as NFS from "node:fs"
 import * as Path from "node:path"
 

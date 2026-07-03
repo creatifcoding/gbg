@@ -25,9 +25,9 @@
  * @module dep-graph
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Data from "effect-v4/Data"
-import * as Graph from "effect-v4/Graph"
+import * as Effect from "effect/Effect"
+import * as Data from "effect/Data"
+import * as Graph from "effect/Graph"
 import type { CellKey } from "../schemas/addressing"
 import { vmError, type VMErrorCode } from "./stack-vm"
 

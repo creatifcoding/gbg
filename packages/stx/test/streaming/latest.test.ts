@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Stream from "effect-v4/Stream"
+import { AtomRegistry } from "effect/unstable/reactivity"
+import * as Stream from "effect/Stream"
 import { stxLatest } from "../../src/streaming/latest.js"
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))

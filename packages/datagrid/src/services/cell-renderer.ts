@@ -21,8 +21,8 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import { stxFamily, type StxFamily } from "@tmnl/stx"
 import type { ColRow } from "../schemas/addressing"
 import { cellKey } from "../schemas/addressing"
@@ -76,7 +76,7 @@ export interface CellRendererConfigShape {
   readonly classPrefix?: string
 }
 
-export class CellRendererConfig extends ServiceMap.Service<CellRendererConfig, CellRendererConfigShape>()(
+export class CellRendererConfig extends Context.Service<CellRendererConfig, CellRendererConfigShape>()(
   "@tmnl/datagrid/CellRendererConfig",
 ) {}
 
@@ -126,7 +126,7 @@ export interface CellRendererShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class CellRenderer extends ServiceMap.Service<CellRenderer, CellRendererShape>()(
+export class CellRenderer extends Context.Service<CellRenderer, CellRendererShape>()(
   "@tmnl/datagrid/CellRenderer",
 ) {}
 

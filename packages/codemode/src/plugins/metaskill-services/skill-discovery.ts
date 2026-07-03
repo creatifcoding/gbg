@@ -8,10 +8,10 @@
  * All reads are safe (probes) — discovery never fails, just returns empty.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+import { FileSystem } from "effect/FileSystem"
 import { join, relative } from "node:path"
 import { SkillConfig } from "./skill-config.js"
 import * as Fs from "./fs-ops.js"

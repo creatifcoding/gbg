@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
+import { Effect, Context, Layer } from "effect"
 import type { CellValue } from "../schemas/cell-value"
 import type { ColRow } from "../schemas/addressing"
 import { cellKey } from "../schemas/addressing"
@@ -40,7 +40,7 @@ export interface CrdtLayerConfigShape {
   readonly onApply: (op: CellOp) => void
 }
 
-export class CrdtLayerConfig extends ServiceMap.Service<CrdtLayerConfig, CrdtLayerConfigShape>()(
+export class CrdtLayerConfig extends Context.Service<CrdtLayerConfig, CrdtLayerConfigShape>()(
   "@tmnl/datagrid/CrdtLayerConfig",
 ) {}
 
@@ -58,7 +58,7 @@ export interface CrdtLayerShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class CrdtLayer extends ServiceMap.Service<CrdtLayer, CrdtLayerShape>()(
+export class CrdtLayer extends Context.Service<CrdtLayer, CrdtLayerShape>()(
   "@tmnl/datagrid/CrdtLayer",
 ) {}
 

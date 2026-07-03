@@ -1,5 +1,5 @@
-import type * as Exit from 'effect-v4/Exit';
-import type * as Layer from 'effect-v4/Layer';
+import type * as Exit from 'effect/Exit';
+import type * as Layer from 'effect/Layer';
 
 import type { SuiTx } from '../effectable';
 import type * as SuiFlow from '../flow';

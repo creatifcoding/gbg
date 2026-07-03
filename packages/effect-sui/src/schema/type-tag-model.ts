@@ -1,5 +1,5 @@
 import { normalizeStructTag } from '@mysten/sui/utils';
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { MoveIdentifier } from './move-identifiers';
 import { SuiAddress } from './strings';

@@ -1,6 +1,6 @@
 /** PTB input AST schema nouns. */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SharedObjectRef, SuiObjectId, SuiObjectRef, SuiTypeTagString } from '../schema';
 

@@ -25,12 +25,12 @@
  * @module
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Exit from "effect-v4/Exit"
-import * as Fiber from "effect-v4/Fiber"
-import * as Cause from "effect-v4/Cause"
-import * as Result from "effect-v4/Result"
-import { type Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
+import * as Cause from "effect/Cause"
+import * as Result from "effect/Result"
+import { type Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 // ─── StxFiberAtoms ────────────────────────────────────────────────────────────
 // Intentionally uses read-only Atom<T> so callers can pass either

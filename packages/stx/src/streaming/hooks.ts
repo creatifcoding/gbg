@@ -16,7 +16,7 @@
  */
 
 import * as React from "react"
-import type { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import type { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { StxReduce, StxFeed, StxLatest, StxPullV2, StxDuplex, StxShared } from "./types.js"
 
 // ── Core: useSyncExternalStore bound to a specific registry ─────────────────

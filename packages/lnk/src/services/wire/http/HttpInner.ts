@@ -18,16 +18,16 @@
  * @module @tmnl/lnk/services/wire/http/HttpInner
  */
 
-import * as Context from "effect-v4/Context"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
-import * as Schedule from "effect-v4/Schedule"
-import * as Stream from "effect-v4/Stream"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Schedule from "effect/Schedule"
+import * as Stream from "effect/Stream"
 
-import * as HttpClient from "effect-v4/unstable/http/HttpClient"
-import * as HttpClientRequest from "effect-v4/unstable/http/HttpClientRequest"
-import type * as HttpClientResponse from "effect-v4/unstable/http/HttpClientResponse"
+import * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import type * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 
 import {
   decodeRawDataPayload,
@@ -210,7 +210,7 @@ const make = (
           ),
         )
 
-        // Convert effect-v4 HttpClientResponse to our ParsedResponse shape.
+        // Convert effect HttpClientResponse to our ParsedResponse shape.
         const r = response as HttpClientResponse.HttpClientResponse
         const respHeaders = new globalThis.Headers()
         for (const [k, v] of Object.entries(r.headers)) {

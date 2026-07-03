@@ -6,13 +6,13 @@
  * @module @tmnl/msh/nats/stream
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Stream from 'effect-v4/Stream';
-import * as Schema from 'effect-v4/Schema';
-import * as Result from 'effect-v4/Result';
-import { pipe } from 'effect-v4/Function';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Stream from 'effect/Stream';
+import * as Schema from 'effect/Schema';
+import * as Result from 'effect/Result';
+import { pipe } from 'effect/Function';
 import type { StreamInfo, Consumer, PubAck } from 'nats.ws';
 
 import { NatsInnerService, type InnerJsMessage, type StreamConfigInput, type ConsumerConfigInput } from './inner';

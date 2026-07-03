@@ -10,12 +10,12 @@
  * @module @tmnl/pct/notary/Default
  */
 
-import * as Clock from "effect-v4/Clock"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Schema from "effect-v4/Schema"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
+import * as Clock from "effect/Clock"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
 
 import { Identity } from "../identity/Identity.js"
 import {

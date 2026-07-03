@@ -8,10 +8,10 @@
  * All reads safe (probe) — protocols returns [] if SKILL.md missing.
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
-import { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+import { FileSystem } from "effect/FileSystem"
 import { join } from "node:path"
 import { SkillConfig } from "./skill-config.js"
 import * as Fs from "./fs-ops.js"

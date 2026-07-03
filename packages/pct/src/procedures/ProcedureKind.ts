@@ -8,7 +8,7 @@
  * @module @tmnl/pct/procedures/ProcedureKind
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 /**
  * Branded literal union of supported procedure kinds.

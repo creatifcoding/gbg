@@ -7,15 +7,15 @@
  * @module @tmnl/msh/nats/hub
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Stream from 'effect-v4/Stream';
-import * as PubSub from 'effect-v4/PubSub';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Stream from 'effect/Stream';
+import * as PubSub from 'effect/PubSub';
 
-import * as Scope from 'effect-v4/Scope';
-import * as Schema from 'effect-v4/Schema';
-import { pipe } from 'effect-v4/Function';
+import * as Scope from 'effect/Scope';
+import * as Schema from 'effect/Schema';
+import { pipe } from 'effect/Function';
 import type { Msg } from 'nats.ws';
 
 import { NatsInnerService } from './inner';

@@ -1,5 +1,5 @@
-import type * as Effect from 'effect-v4/Effect';
-import type * as Exit from 'effect-v4/Exit';
+import type * as Effect from 'effect/Effect';
+import type * as Exit from 'effect/Exit';
 import type { SuiTx } from '../effectable';
 import type {
   SuiAuthServiceShape,

@@ -8,17 +8,17 @@
  *   - cursor atom: tracks pull count
  *   - reset(): clear items + cursor, allow restart
  *
- * Built on Atom.pull() from effect-v4 (which wraps Stream.toPull internally).
+ * Built on Atom.pull() from effect (which wraps Stream.toPull internally).
  *
  * Use for: pagination, infinite scroll, lazy load on demand.
  *
  * @module
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as AsyncResult from "effect-v4/unstable/reactivity/AsyncResult"
-import * as Option from "effect-v4/Option"
-import type * as Stream from "effect-v4/Stream"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Option from "effect/Option"
+import type * as Stream from "effect/Stream"
 import type { PullConfig, StxPullV2 } from "./types.js"
 
 // ─── stx.pull ────────────────────────────────────────────────────────────────

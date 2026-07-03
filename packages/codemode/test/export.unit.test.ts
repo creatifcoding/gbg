@@ -10,10 +10,10 @@
  * §7 Edge cases — empty store, bad format, schema-validated import
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import * as Effect from 'effect-v4/Effect'
-import * as Layer from 'effect-v4/Layer'
-import * as Schema from 'effect-v4/Schema'
-import * as FS from 'effect-v4/FileSystem'
+import * as Effect from 'effect/Effect'
+import * as Layer from 'effect/Layer'
+import * as Schema from 'effect/Schema'
+import * as FS from 'effect/FileSystem'
 import { createStoreApi, type StoreApi } from '../src/store/api.js'
 import { layer as sqliteNodeLayer } from '../src/adapters/sqlite-node.js'
 import {

@@ -27,13 +27,13 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as Context from "effect-v4/Context"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Schema from "effect-v4/Schema"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
-import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
-import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Schema from "effect/Schema"
+import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
+import * as HttpRouter from "effect/unstable/http/HttpRouter"
 
 import * as PactClient from "../src/client/PactClient.js"
 import { DeltaRoutes } from "../src/federation/DeltaRoutes.js"

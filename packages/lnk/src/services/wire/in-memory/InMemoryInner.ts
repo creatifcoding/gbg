@@ -33,14 +33,14 @@
  * @module @tmnl/lnk/services/wire/in-memory/InMemoryInner
  */
 
-import * as Clock from "effect-v4/Clock"
-import * as Context from "effect-v4/Context"
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
-import * as Ref from "effect-v4/Ref"
-import * as Stream from "effect-v4/Stream"
+import * as Clock from "effect/Clock"
+import * as Context from "effect/Context"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Ref from "effect/Ref"
+import * as Stream from "effect/Stream"
 
 import { trust as trustOffset, type Offset } from "../../../contracts/Offset.js"
 import type { ContentType } from "../../../contracts/ContentType.js"

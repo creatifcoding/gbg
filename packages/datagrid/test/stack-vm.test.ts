@@ -10,9 +10,9 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Fiber from "effect-v4/Fiber"
-import * as Cause from "effect-v4/Cause"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Cause from "effect/Cause"
 
 import {
   // Value constructors
@@ -40,7 +40,7 @@ import {
 import * as CV from "../src/schemas/cell-value"
 import type { CellValue } from "../src/schemas/cell-value"
 import { FormulaEngineV2, FormulaEngineV2Config, FormulaEngineV2Live, type CellStore } from "../src/services/formula-engine-v2"
-const { Layer } = await import("effect-v4")
+const { Layer } = await import("effect")
 
 // ── Range test helpers ──────────────────────────────
 

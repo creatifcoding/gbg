@@ -28,12 +28,12 @@
  * @module @tmnl/lnk/services/wire/http/HttpWire
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
-import type * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import type * as Stream from "effect/Stream"
 
-import type * as HttpClient from "effect-v4/unstable/http/HttpClient"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
 
 import { trust as trustContentType } from "../../../contracts/ContentType.js"
 import { Wire } from "../Wire.js"
@@ -49,12 +49,12 @@ export class HttpWire {
    *
    * Self-contained at the HTTP-level: provides `HttpInner` internally. Caller
    * must additionally provide an `HttpClient` (typically via
-   * `FetchHttpClient.layer` from `effect-v4/unstable/http/FetchHttpClient`).
+   * `FetchHttpClient.layer` from `effect/unstable/http/FetchHttpClient`).
    *
    * @example
    * ```ts
-   * import { Effect, Layer } from "effect-v4"
-   * import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
+   * import { Effect, Layer } from "effect"
+   * import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
    * import { Wire } from "@tmnl/lnk/services/wire"
    * import { HttpWire } from "@tmnl/lnk/services/wire/http"
    *

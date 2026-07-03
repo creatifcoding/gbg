@@ -6,7 +6,7 @@
  * for the low-level fetch + spec header parsing.
  *
  * Caller must additionally provide an `HttpClient`. The simplest is
- * `FetchHttpClient.layer` from `effect-v4/unstable/http/FetchHttpClient`,
+ * `FetchHttpClient.layer` from `effect/unstable/http/FetchHttpClient`,
  * which has no platform-specific requirements.
  *
  * @module @tmnl/lnk/services/wire/http

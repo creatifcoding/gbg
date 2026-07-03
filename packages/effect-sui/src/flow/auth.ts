@@ -1,6 +1,6 @@
 /** Authorization service assembly for SuiFlow. */
 
-import * as Layer from 'effect-v4/Layer';
+import * as Layer from 'effect/Layer';
 
 import {
   SuiAuthService,

@@ -1,7 +1,7 @@
 /** Query-local Schema decode helpers. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Schema from 'effect-v4/Schema';
+import * as Effect from 'effect/Effect';
+import * as Schema from 'effect/Schema';
 
 import { SuiSchemaDecodeError } from '../schema';
 

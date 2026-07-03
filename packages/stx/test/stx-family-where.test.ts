@@ -10,8 +10,8 @@
  */
 import { describe, it, expect } from "vitest"
 import { stxFamily } from "../src/index.js"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Predicate from "effect-v4/Predicate"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Predicate from "effect/Predicate"
 
 // ─── Test data ───────────────────────────────────────
 

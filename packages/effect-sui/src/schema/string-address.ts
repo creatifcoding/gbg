@@ -1,7 +1,7 @@
 import { fromHex, toHex } from '@mysten/bcs';
 import { isValidSuiAddress, normalizeSuiAddress } from '@mysten/sui/utils';
-import * as Schema from 'effect-v4/Schema';
-import * as SchemaGetter from 'effect-v4/SchemaGetter';
+import * as Schema from 'effect/Schema';
+import * as SchemaGetter from 'effect/SchemaGetter';
 
 import { normalizeString } from './string-normalize';
 

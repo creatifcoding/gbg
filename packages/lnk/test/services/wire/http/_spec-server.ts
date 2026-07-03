@@ -22,10 +22,10 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http"
 import { AddressInfo } from "node:net"
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Stream from "effect-v4/Stream"
-import * as ManagedRuntime from "effect-v4/ManagedRuntime"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
+import * as ManagedRuntime from "effect/ManagedRuntime"
 
 import { Wire } from "../../../../src/services/wire/index.js"
 import { InMemoryWire } from "../../../../src/services/wire/in-memory/index.js"
@@ -54,7 +54,7 @@ import {
 } from "../../../../src/contracts/Headers.js"
 import { parsePositionParam } from "../../../../src/contracts/Offset.js"
 import { InvalidHeaderError, InvalidOffsetError } from "../../../../src/contracts/errors.js"
-import * as Option from "effect-v4/Option"
+import * as Option from "effect/Option"
 
 export interface SpecServerHandle {
   readonly baseUrl: string

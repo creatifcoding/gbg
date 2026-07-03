@@ -7,9 +7,9 @@
  * @module @tmnl/msh/nats/connection
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import {
   connect,
   type NatsConnection,

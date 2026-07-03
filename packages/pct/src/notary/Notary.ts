@@ -21,10 +21,10 @@
  * @module @tmnl/pct/notary/Notary
  */
 
-import * as Context from "effect-v4/Context"
-import type * as Effect from "effect-v4/Effect"
-import type * as Schema from "effect-v4/Schema"
-import type * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
+import * as Context from "effect/Context"
+import type * as Effect from "effect/Effect"
+import type * as Schema from "effect/Schema"
+import type * as EventJournal from "effect/unstable/eventlog/EventJournal"
 
 import type { SchemaId } from "../contracts/Brands.js"
 import type { Procedure } from "../procedures/Procedure.js"

@@ -1,9 +1,9 @@
 /** Concrete MshBridgePort implementation over MSH substrate seams. */
 
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Stream from "effect-v4/Stream"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
 import { NatsStreamService } from "@tmnl/msh/nats"
 
 import { framingMode } from "../../../contracts/ContentType.js"

@@ -7,9 +7,9 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
 
 import { trust as trustContentType } from "../../../src/contracts/ContentType.js"
 import { trust as trustStreamId } from "../../../src/contracts/StreamId.js"

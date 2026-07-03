@@ -1,6 +1,6 @@
-import * as Cause from 'effect-v4/Cause';
-import * as Effect from 'effect-v4/Effect';
-import * as Exit from 'effect-v4/Exit';
+import * as Cause from 'effect/Cause';
+import * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
 import { describe, expect, it } from 'vitest';
 
 import { SuiPTB, SuiTx } from '../effectable';

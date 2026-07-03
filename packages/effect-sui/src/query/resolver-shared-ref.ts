@@ -1,4 +1,4 @@
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { SharedObjectRef, type SuiObjectId, SuiObjectVersion, type SuiObjectVersion as SuiObjectVersionType, SuiSchemaDecodeError } from '../schema';
 import { decodeWithOptionalSchema } from './schema';

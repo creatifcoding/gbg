@@ -1,4 +1,4 @@
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 export const SuiObjectErrorCode = Schema.Literals([
   'notExists',

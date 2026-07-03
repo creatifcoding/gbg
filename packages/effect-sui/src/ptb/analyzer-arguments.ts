@@ -1,4 +1,4 @@
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 import { type SuiPtbArgument } from './arguments';
 import { type SuiPtbCommandAst } from './commands';
 import { knownCommandResultArity } from './analyzer-arity';

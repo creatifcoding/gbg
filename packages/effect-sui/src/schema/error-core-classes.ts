@@ -1,4 +1,4 @@
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SuiObjectErrorCode, SuiReservationConflictKind } from './error-codes';
 import { SuiObjectId, SuiObjectVersion, SuiTransactionDigest } from './strings';

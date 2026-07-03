@@ -1,7 +1,7 @@
 /** Concrete BatchPublisher backed by @tmnl/msh JetStream publish. */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { NatsStreamService } from "@tmnl/msh/nats"
 
 import { FetchError } from "../../../contracts/errors.js"

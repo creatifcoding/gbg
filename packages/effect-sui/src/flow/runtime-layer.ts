@@ -1,6 +1,6 @@
 /** SuiFlow service layer graph. */
 
-import * as Layer from 'effect-v4/Layer';
+import * as Layer from 'effect/Layer';
 
 import { SuiDiagnosticsLive } from '../diagnostics';
 import { SuiPtbLive } from '../ptb';

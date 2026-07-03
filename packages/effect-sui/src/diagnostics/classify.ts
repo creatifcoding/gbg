@@ -1,5 +1,5 @@
-import * as Cause from 'effect-v4/Cause';
-import * as Exit from 'effect-v4/Exit';
+import * as Cause from 'effect/Cause';
+import * as Exit from 'effect/Exit';
 
 import {
   SuiArgumentInvalidError,

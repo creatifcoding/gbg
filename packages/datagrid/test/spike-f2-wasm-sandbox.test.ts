@@ -21,7 +21,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest"
-import { Effect, Exit } from "effect-v4"
+import { Effect, Exit } from "effect"
 import type { QuickJSWASMModule, QuickJSContext, QuickJSHandle } from "quickjs-emscripten"
 
 // ─── Module-level QuickJS singleton ─────────────────────────────────────────
@@ -403,7 +403,7 @@ describe("F2: WASM Sandbox (QuickJS-Emscripten)", () => {
   it("H6: Effect service pattern — WasmSandbox as Effect.Service sketch", async () => {
     /**
      * Sketch of how WasmSandbox would be structured as an Effect service.
-     * Real implementation would use ServiceMap.Service (Effect v4 pattern).
+     * Real implementation would use Context.Service (Effect v4 pattern).
      *
      * interface WasmSandbox {
      *   eval: (code: string) => Effect.Effect<unknown, SandboxError>

@@ -172,16 +172,17 @@ function ensureWasm(): MainModule | null {
 async function _doLoad(): Promise<MainModule> {
   try {
     // Try direct WASM glue import first (works when alias configured)
+    // @ts-expect-error — resolved at runtime via Vite alias
     const createMathKernel = (await import(/* @vite-ignore */ '@tmnl/mathkernel/wasm')).default;
     _wasm = await createMathKernel();
-    return _wasm;
+    return _wasm!;
   } catch {
     try {
       // Fallback: try the TS wrapper
       const modPath = '@tmnl/mathkernel';
       const mod = await import(/* @vite-ignore */ modPath);
       _wasm = await mod.loadMathKernel();
-      return _wasm;
+      return _wasm!;
     } catch (e) {
       console.warn('[wasm-dispatch] Failed to load mathkernel WASM:', e);
       _loadFailed = true;

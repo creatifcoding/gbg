@@ -1,5 +1,5 @@
-import * as Effect from 'effect-v4/Effect';
-import * as Ref from 'effect-v4/Ref';
+import * as Effect from 'effect/Effect';
+import * as Ref from 'effect/Ref';
 import type { SuiTx } from '../effectable';
 import type { SuiReservationToken, SuiTxLifecycleResult } from '../services';
 import { makeLifecycleReservationRequest } from './reservation-request';

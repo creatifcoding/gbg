@@ -3,11 +3,11 @@
  */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as FileSystem from "effect-v4/FileSystem"
-import * as Layer from "effect-v4/Layer"
-import * as Path from "effect-v4/Path"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Layer from "effect/Layer"
+import * as Path from "effect/Path"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
 
 import { Identity } from "../src/identity/Identity.js"
 import * as IdentityLayers from "../src/identity/Layers.js"

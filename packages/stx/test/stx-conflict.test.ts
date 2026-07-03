@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, vi } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as TxRef from "effect-v4/TxRef"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as TxRef from "effect/TxRef"
+import { AtomRegistry } from "effect/unstable/reactivity"
 import {
   stxFamily,
   snapshotVersions,

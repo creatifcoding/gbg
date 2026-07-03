@@ -29,12 +29,12 @@
  * @module @tmnl/lnk/services/wire/http/HttpRoutes
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
-import * as Stream from "effect-v4/Stream"
-import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
-import * as HttpServerRequest from "effect-v4/unstable/http/HttpServerRequest"
-import * as HttpServerResponse from "effect-v4/unstable/http/HttpServerResponse"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as Stream from "effect/Stream"
+import * as HttpRouter from "effect/unstable/http/HttpRouter"
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest"
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 
 import * as ContentType from "../../../contracts/ContentType.js"
 import * as Headers from "../../../contracts/Headers.js"

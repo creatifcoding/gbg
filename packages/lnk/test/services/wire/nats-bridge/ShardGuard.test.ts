@@ -1,9 +1,9 @@
 /** Tests for the local sharded CAS guard. */
 
 import { describe, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
 
 import { trust as trustStreamId } from "../../../../src/contracts/StreamId.js"
 import { ShardGuard } from "../../../../src/services/wire/nats-bridge/ShardGuard.js"

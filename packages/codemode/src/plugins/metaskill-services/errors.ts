@@ -11,7 +11,7 @@
  *   Consumer uses Effect.catchTag("SkillNotFound", ...) for precise handling.
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 // ── Domain Errors ────────────────────────────────────────────────
 

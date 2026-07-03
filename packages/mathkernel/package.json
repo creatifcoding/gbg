@@ -35,7 +35,7 @@
     "datagrid"
   ],
   "scripts": {
-    "build:wasm": "mkdir -p build && cd build && emcmake cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . --parallel",
+    "build:wasm": "mkdir -p build && cd build && emcmake cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . --parallel && cd .. && bun run scripts/patch-wasm-glue.mjs",
     "build:ts": "tsc --project tsconfig.json",
     "build": "bun run build:wasm && bun run build:ts",
     "test": "vitest",

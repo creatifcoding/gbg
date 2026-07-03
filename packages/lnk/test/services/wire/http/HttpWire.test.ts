@@ -21,9 +21,9 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as FetchHttpClient from "effect-v4/unstable/http/FetchHttpClient"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 
 import { HttpWire } from "../../../../src/services/wire/http/index.js"
 import { InMemoryWire } from "../../../../src/services/wire/in-memory/index.js"

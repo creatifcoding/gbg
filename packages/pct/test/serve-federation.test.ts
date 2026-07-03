@@ -18,8 +18,8 @@ import { join } from "node:path"
 import { createServer } from "node:net"
 
 import { describe, expect, it } from "vitest"
-import * as Schema from "effect-v4/Schema"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
+import * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
 
 import * as Procedure from "../src/procedures/index.js"
 

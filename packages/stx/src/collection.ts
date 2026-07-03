@@ -14,7 +14,7 @@
  * @module
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 
 // ─── Types ───────────────────────────────────────────────────
 

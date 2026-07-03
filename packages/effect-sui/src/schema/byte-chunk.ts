@@ -1,4 +1,4 @@
-import * as Chunk from 'effect-v4/Chunk';
+import * as Chunk from 'effect/Chunk';
 
 export type ByteChunk = Chunk.Chunk<number>;
 

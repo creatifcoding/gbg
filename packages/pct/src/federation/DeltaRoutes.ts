@@ -9,10 +9,10 @@
  * @module @tmnl/pct/federation/DeltaRoutes
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
-import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
-import * as HttpServerResponse from "effect-v4/unstable/http/HttpServerResponse"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as HttpRouter from "effect/unstable/http/HttpRouter"
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 
 import { Identity } from "../identity/Identity.js"
 import * as RegistryDelta from "../registry/RegistryDelta.js"

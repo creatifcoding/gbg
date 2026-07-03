@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, vi } from "vitest"
-import { Effect, Layer, ServiceMap } from "effect-v4"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Layer, Context } from "effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 
 import {
   num, str, bool, empty, type CellValue, extractDisplay,
@@ -55,13 +55,13 @@ function makeTestEnv(opts?: {
   }))
   const cellCacheLayer = Layer.provide(CellCacheLive, cellCacheConfigLayer)
   const ccSM = Effect.runSync(Effect.scoped(cellCacheLayer.pipe(Layer.build)))
-  const cellCache = ServiceMap.get(ccSM, CellCache)
+  const cellCache = Context.get(ccSM, CellCache)
 
   // Build UndoStack
   const undoConfigLayer = Layer.succeed(UndoStackConfig)(UndoStackConfig.of({ registry, cellCache }))
   const undoLayer = Layer.provide(UndoStackLive, undoConfigLayer)
   const undoSM = Effect.runSync(Effect.scoped(undoLayer.pipe(Layer.build)))
-  const undoStack = ServiceMap.get(undoSM, UndoStack)
+  const undoStack = Context.get(undoSM, UndoStack)
 
   // Build SchemaRegistry
   const schemaConfigLayer = Layer.succeed(SchemaRegistryConfig)(SchemaRegistryConfig.of({
@@ -70,7 +70,7 @@ function makeTestEnv(opts?: {
   }))
   const schemaLayer = Layer.provide(SchemaRegistryLive, schemaConfigLayer)
   const schemaSM = Effect.runSync(Effect.scoped(schemaLayer.pipe(Layer.build)))
-  const schemaRegistry = ServiceMap.get(schemaSM, SchemaRegistry)
+  const schemaRegistry = Context.get(schemaSM, SchemaRegistry)
 
   // Build ErrorStore
   const errorStore = makeCellErrorStore(registry, sheetId)

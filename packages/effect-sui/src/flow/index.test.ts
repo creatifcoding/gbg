@@ -1,7 +1,7 @@
-import * as Effect from 'effect-v4/Effect';
-import * as Exit from 'effect-v4/Exit';
-import * as Layer from 'effect-v4/Layer';
-import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
+import * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
+import * as Layer from 'effect/Layer';
+import * as ManagedRuntime from 'effect/ManagedRuntime';
 import { describe, expect, it } from 'vitest';
 
 import { SuiPTB, SuiTx } from '../effectable';

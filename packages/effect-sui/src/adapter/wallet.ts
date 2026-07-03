@@ -1,6 +1,6 @@
 /** Wallet callback bridge helpers for adapter-owned transaction edges. */
 
-import * as Exit from 'effect-v4/Exit';
+import * as Exit from 'effect/Exit';
 
 import { SuiTx } from '../effectable';
 import { WalletCallbackAuthPolicy, type SuiAddress, type SuiWalletSignTransaction } from '../schema';

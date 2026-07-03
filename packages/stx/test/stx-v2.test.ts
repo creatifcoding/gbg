@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import { Optic, Schema } from "effect-v4"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import { Optic, Schema } from "effect"
 import {
   stx,
   autoLens,

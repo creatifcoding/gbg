@@ -8,7 +8,7 @@
  * @module @tmnl/msh/diagnostics/schemas
  */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 export const DiagnosticSeverity = Schema.Literals([
   'ok',

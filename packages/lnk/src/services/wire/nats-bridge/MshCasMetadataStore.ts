@@ -1,7 +1,7 @@
 /** Concrete CasMetadataStore backed by @tmnl/msh typed KV CAS ops. */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { NatsKVService } from "@tmnl/msh/nats"
 
 import type { StreamId } from "../../../contracts/StreamId.js"

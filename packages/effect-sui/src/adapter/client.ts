@@ -1,6 +1,6 @@
 /** ManagedRuntime-backed adapter client construction. */
 
-import * as Layer from 'effect-v4/Layer';
+import * as Layer from 'effect/Layer';
 
 import * as SuiFlow from '../flow';
 import * as SuiQuery from '../query';

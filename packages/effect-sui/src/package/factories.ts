@@ -1,4 +1,4 @@
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 
 import { SuiModule, SuiObject, type SuiObjectOptions, SuiPackage, SuiPTB, type SuiPTBOptions, SuiTx, type SuiTxOptions } from '../effectable';
 import { SuiInvariantViolation, SuiPackageDescriptor } from '../schema';

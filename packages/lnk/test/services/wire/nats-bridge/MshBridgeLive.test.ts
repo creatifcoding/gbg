@@ -1,8 +1,8 @@
 /** Live acceptance tests for the concrete MSH-backed LNK bridge. */
 
 import { afterAll, beforeAll, expect, it } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
 
 import { trust as trustContentType } from "../../../../src/contracts/ContentType.js"
 import { trustEpoch, trustProducerId, trustSeq } from "../../../../src/contracts/Producer.js"

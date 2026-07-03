@@ -1,8 +1,8 @@
 /** ManagedRuntime-backed SuiFlow client facade. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Fiber from 'effect-v4/Fiber';
-import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
+import * as Effect from 'effect/Effect';
+import * as Fiber from 'effect/Fiber';
+import * as ManagedRuntime from 'effect/ManagedRuntime';
 
 import { SuiFinalityService } from '../services';
 import { runTx } from './runner';

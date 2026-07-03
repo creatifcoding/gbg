@@ -29,16 +29,16 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
-import * as Result from "effect-v4/Result"
-import * as Schema from "effect-v4/Schema"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
-import * as EventGroup from "effect-v4/unstable/eventlog/EventGroup"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
-import * as EventLogEncryption from "effect-v4/unstable/eventlog/EventLogEncryption"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
+import * as Result from "effect/Result"
+import * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
+import * as EventGroup from "effect/unstable/eventlog/EventGroup"
+import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as EventLogEncryption from "effect/unstable/eventlog/EventLogEncryption"
 
 // ─── A real schema with brands + refinements (the round-trip target) ────────
 

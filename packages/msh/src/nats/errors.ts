@@ -12,7 +12,7 @@
  * @module @tmnl/msh/nats/errors
  */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 // =============================================================================
 // CONNECTION SERVICE ERRORS

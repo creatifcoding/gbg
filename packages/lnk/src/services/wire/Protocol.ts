@@ -31,9 +31,9 @@
  * @module @tmnl/lnk/services/wire/Protocol
  */
 
-import * as Schema from "effect-v4/Schema"
-import * as Rpc from "effect-v4/unstable/rpc/Rpc"
-import * as RpcGroup from "effect-v4/unstable/rpc/RpcGroup"
+import * as Schema from "effect/Schema"
+import * as Rpc from "effect/unstable/rpc/Rpc"
+import * as RpcGroup from "effect/unstable/rpc/RpcGroup"
 
 import { Offset, ReadPosition } from "../../contracts/Offset.js"
 import { StreamId } from "../../contracts/StreamId.js"

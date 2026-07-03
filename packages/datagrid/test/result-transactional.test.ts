@@ -9,10 +9,10 @@
  * 5. CellWriteError — Schema.TaggedErrorClass, catchable by _tag
  */
 import { describe, it, expect } from "vitest"
-import { Effect } from "effect-v4"
-import * as Result from "effect-v4/Result"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
-import { Layer, ServiceMap } from "effect-v4"
+import { Effect } from "effect"
+import * as Result from "effect/Result"
+import { AtomRegistry } from "effect/unstable/reactivity"
+import { Layer, Context } from "effect"
 import {
   CellCache, CellCacheConfig, CellCacheLive,
   CellWriteError, makeCellErrorStore,
@@ -67,7 +67,7 @@ function buildCellCache(opts: {
 
   const cacheLayer = Layer.provide(CellCacheLive, configLayer)
   const sm = Effect.runSync(Effect.scoped(cacheLayer.pipe(Layer.build)))
-  const cache = ServiceMap.get(sm, CellCache)
+  const cache = Context.get(sm, CellCache)
 
   return { cache, db, registry, errorStore }
 }

@@ -1,7 +1,7 @@
 import { requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
 import { SuiJsonRpcClient, JsonRpcHTTPTransport } from '@mysten/sui/jsonRpc';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 import { describe, expect, inject, it } from 'vitest';
 
 import { SuiTx } from '../../src/effectable';

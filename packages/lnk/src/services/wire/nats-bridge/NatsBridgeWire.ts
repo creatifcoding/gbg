@@ -10,9 +10,9 @@
  * @module @tmnl/lnk/services/wire/nats-bridge/NatsBridgeWire
  */
 
-import * as Duration from "effect-v4/Duration"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
+import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 import { FetchError } from "../../../contracts/errors.js"
 import { Wire, type WireShape } from "../Wire.js"

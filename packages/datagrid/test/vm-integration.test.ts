@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
+import * as Effect from "effect/Effect"
 
 import { num, str, bool, vmError, isVMError, evalProgram, compileExprSync, extractDeps, type StackIR, type VMValue, type VMState, type CellContext } from "../src/services/stack-vm"
 import { cellToVM, vmToCell } from "../src/services/vm-cell-bridge"

@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
 import { stxFeed } from "../../src/streaming/feed.js"
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))

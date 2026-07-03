@@ -16,8 +16,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "effect-v4": ["../../node_modules/effect-v4"],
-      "effect-v4/*": ["../../node_modules/effect-v4/*"]
     }
   },
   "include": ["src/**/*"],

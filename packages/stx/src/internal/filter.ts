@@ -16,7 +16,7 @@
  *
  * @example
  * ```ts
- * import { Predicate } from 'effect-v4'
+ * import { Predicate } from 'effect'
  *
  * // filter — projects a subset
  * const activeItems = createFilterAtom(root, lens.items, items =>
@@ -35,9 +35,9 @@
  * @internal
  */
 
-import { Atom } from "effect-v4/unstable/reactivity"
-import * as Result from "effect-v4/Result"
-import type { Predicate } from "effect-v4/Predicate"
+import { Atom } from "effect/unstable/reactivity"
+import * as Result from "effect/Result"
+import type { Predicate } from "effect/Predicate"
 
 // ─── Memoization ────────────────────────────────────
 

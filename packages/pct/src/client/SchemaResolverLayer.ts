@@ -29,9 +29,9 @@
  * @module @tmnl/pct/client/SchemaResolverLayer
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as HttpClient from "effect-v4/unstable/http/HttpClient"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as HttpClient from "effect/unstable/http/HttpClient"
 
 import {
   SchemaResolver,

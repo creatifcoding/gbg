@@ -33,9 +33,9 @@
  * @module @tmnl/lnk/contracts/Offset
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Order_ from "effect-v4/Order"
-import * as Schema from "effect-v4/Schema"
+import * as Effect from "effect/Effect"
+import * as Order_ from "effect/Order"
+import * as Schema from "effect/Schema"
 import { InvalidOffsetError } from "./errors.js"
 
 // ─── Brands ─────────────────────────────────────────────────────────────────

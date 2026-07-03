@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer } from "effect-v4"
+import { Effect, Layer } from "effect"
 import type { CellValue } from "../src/schemas/cell-value"
 import * as CV from "../src/schemas/cell-value"
 import {

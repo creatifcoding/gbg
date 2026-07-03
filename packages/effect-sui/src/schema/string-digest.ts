@@ -1,6 +1,6 @@
 import { fromBase58, toBase58 } from '@mysten/bcs';
-import * as Schema from 'effect-v4/Schema';
-import * as SchemaGetter from 'effect-v4/SchemaGetter';
+import * as Schema from 'effect/Schema';
+import * as SchemaGetter from 'effect/SchemaGetter';
 
 import { SuiDigestBytes } from './bytes';
 import { SUI_DIGEST_BYTE_LENGTH } from './constants';

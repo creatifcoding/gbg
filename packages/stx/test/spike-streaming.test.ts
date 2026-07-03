@@ -9,11 +9,11 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as AsyncResult from "effect-v4/unstable/reactivity/AsyncResult"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
-import * as Chunk from "effect-v4/Chunk"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
+import * as Chunk from "effect/Chunk"
 import { autoLens, fromEffect, fromStream, fromPull } from "../src/index.js"
 
 // ─── SPIKE 1: Atom.make(Effect) basics ──────────────

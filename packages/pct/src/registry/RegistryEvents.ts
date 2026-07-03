@@ -19,8 +19,8 @@
  * @module @tmnl/pct/registry/RegistryEvents
  */
 
-import * as EventGroup from "effect-v4/unstable/eventlog/EventGroup"
-import * as Schema from "effect-v4/Schema"
+import * as EventGroup from "effect/unstable/eventlog/EventGroup"
+import * as Schema from "effect/Schema"
 
 // ─── Payload schemas ────────────────────────────────────────────────────────
 

@@ -27,7 +27,7 @@
  * @internal
  */
 
-import { Optic } from "effect-v4"
+import { Optic } from "effect"
 import { classAwareReplace, classAwareModify } from "./class-patch.js"
 
 // ─── Sentinel for forwarded optic methods ───────────

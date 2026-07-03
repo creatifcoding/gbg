@@ -1,7 +1,7 @@
 /** Preflight dry-run RPC service. */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { SuiClientService, SuiPreflightService, type SuiPreflightRequest, type SuiPreflightResult, type SuiPreflightServiceShape } from '../services';
 import { dryRun, invariant, type SuiFlowError } from './errors';
 import { requireTransactionBytes, transactionPayload, transactionStatus } from './rpc-shared';

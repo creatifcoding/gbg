@@ -11,7 +11,7 @@
  * @module
  */
 
-import { Schema } from "effect-v4"
+import { Schema } from "effect"
 
 // ─── Core address types ─────────────────────────────
 
@@ -139,7 +139,7 @@ export function rangeSize(range: RangeRect): number {
  *
  * Construction:
  *   cellKey("sheet-1", { col: 3, row: 7 })  → CellKey "sheet-1:3:7"
- *   CellKeySchema.makeUnsafe("sheet-1:3:7") → CellKey (unchecked)
+ *   CellKeySchema.make("sheet-1:3:7") → CellKey (unchecked)
  *   Schema.decodeSync(CellKeySchema)(str)   → CellKey (validated)
  */
 const CELLKEY_RE = /^[^:]+:\d+:\d+$/
@@ -155,7 +155,7 @@ export type CellKey = typeof CellKeySchema.Type
 
 /** Stable branded key for a cell: sheetId + ColRow → CellKey */
 export function cellKey(sheetId: string, addr: ColRow): CellKey {
-  return CellKeySchema.makeUnsafe(`${sheetId}:${addr.col}:${addr.row}`)
+  return CellKeySchema.make(`${sheetId}:${addr.col}:${addr.row}`)
 }
 
 /** Parse CellKey back to { sheetId, col, row } */
@@ -172,5 +172,5 @@ export function parseCellKey(key: CellKey): { sheetId: string; col: number; row:
 
 /** Validate an arbitrary string as CellKey */
 export function validateCellKey(s: string): CellKey | null {
-  return CELLKEY_RE.test(s) ? CellKeySchema.makeUnsafe(s) : null
+  return CELLKEY_RE.test(s) ? CellKeySchema.make(s) : null
 }

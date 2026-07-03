@@ -24,10 +24,10 @@
  * @module @tmnl/lnk/services/wire/nats-bridge/Port
  */
 
-import * as Context from "effect-v4/Context"
-import type * as Duration from "effect-v4/Duration"
-import type * as Effect from "effect-v4/Effect"
-import type * as Stream from "effect-v4/Stream"
+import * as Context from "effect/Context"
+import type * as Duration from "effect/Duration"
+import type * as Effect from "effect/Effect"
+import type * as Stream from "effect/Stream"
 
 import type { ContentType } from "../../../contracts/ContentType.js"
 import type { Offset, ReadPosition } from "../../../contracts/Offset.js"

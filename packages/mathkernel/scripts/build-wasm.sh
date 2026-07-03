@@ -37,6 +37,9 @@ EIGEN3_INCLUDE_DIR="$EIGEN_PATH" emcmake cmake .. 2>&1
 echo "--- Build ---"
 emmake make -j$(nproc) 2>&1
 
+echo "--- Patch Vite-compatible WASM URL ---"
+bun run scripts/patch-wasm-glue.mjs
+
 echo "--- Output ---"
 ls -la "$PKG_DIR/dist/"
 echo ""

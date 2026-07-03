@@ -21,11 +21,11 @@
  * This means ms.search("Union") finds objects where "Union" appears
  * ANYWHERE in the stored data — keys, values, nested arrays, etc.
  */
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
-import * as Context from "effect-v4/Context"
-import { SqlClient } from "effect-v4/unstable/sql/SqlClient"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
+import * as Context from "effect/Context"
+import { SqlClient } from "effect/unstable/sql/SqlClient"
 import { Document } from "flexsearch"
 import { namespaceMatchesGlob } from "./schemas.js"
 import { RlmStore, type CatalogEntry } from "./service.js"

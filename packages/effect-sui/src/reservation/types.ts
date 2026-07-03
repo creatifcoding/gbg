@@ -1,8 +1,8 @@
 /** Reservation STM state and record types. */
 
-import type * as Effect from 'effect-v4/Effect';
-import type * as TxHashMap from 'effect-v4/TxHashMap';
-import type * as TxRef from 'effect-v4/TxRef';
+import type * as Effect from 'effect/Effect';
+import type * as TxHashMap from 'effect/TxHashMap';
+import type * as TxRef from 'effect/TxRef';
 
 import type { SuiReservationRequest, SuiReservationToken } from '../services';
 

@@ -7,11 +7,11 @@
  * @module @tmnl/msh/auth/jwt
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Redacted from 'effect-v4/Redacted';
-import * as Schema from 'effect-v4/Schema';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Redacted from 'effect/Redacted';
+import * as Schema from 'effect/Schema';
 import {
   Algorithms,
   createAccount,

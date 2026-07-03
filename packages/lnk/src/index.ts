@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect-v4"
+ * import { Effect } from "effect"
  * import { Services } from "@tmnl/lnk"
  * import { InMemoryWire } from "@tmnl/lnk/services/wire/in-memory"
  *

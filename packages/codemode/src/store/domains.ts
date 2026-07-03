@@ -6,9 +6,9 @@
  * Each domain declares collections, meta requirements, and description.
  * Persists across sessions.
  */
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Context from "effect-v4/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
 import { RlmStore } from "./service.js"
 import { validateDomainConfig, type DomainConfig } from "./schemas.js"
 

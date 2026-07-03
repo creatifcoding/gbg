@@ -5,8 +5,8 @@
  * without monkeypatching `nats.ws.connect` or requiring a real server.
  */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import type {
   Consumer,
   ConsumerConfig,

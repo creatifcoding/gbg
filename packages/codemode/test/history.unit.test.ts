@@ -187,12 +187,12 @@ describe('buildContext', () => {
   it('returns correct shape with skills and collections', () => {
     const ctx: ProjectContext = buildContext(
       '/home/user/project',
-      () => ['metaskill', 'nx-workspace', 'effect-v4-schema'],
+      () => ['metaskill', 'nx-workspace', 'effect-schema'],
       () => [{ name: 'research', count: 5 }, { name: 'decisions', count: 2 }],
     )
 
     expect(ctx.skills.count).toBe(3)
-    expect(ctx.skills.names).toEqual(['metaskill', 'nx-workspace', 'effect-v4-schema'])
+    expect(ctx.skills.names).toEqual(['metaskill', 'nx-workspace', 'effect-schema'])
     expect(ctx.collections).toHaveLength(2)
     expect(ctx.collections[0]).toEqual({ name: 'research', count: 5 })
     expect(ctx.cwd).toBe('/home/user/project')

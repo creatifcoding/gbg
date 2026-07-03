@@ -1,4 +1,4 @@
-import * as ManagedRuntime from 'effect-v4/ManagedRuntime';
+import * as ManagedRuntime from 'effect/ManagedRuntime';
 
 import { decode, encodePure, refresh, resolve, serialize } from './operations';
 import { makeLayer } from './runtime-layer';

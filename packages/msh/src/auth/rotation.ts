@@ -10,7 +10,7 @@
  * @module @tmnl/msh/auth/rotation
  */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 import { MshSpan } from '../tracing';
 import { TokenRotationError } from './schemas';
 

@@ -16,8 +16,8 @@
  * @module
  */
 
-import * as Effect from "effect-v4/Effect"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 import { extractDisplay, extractNumber, type CellValue, str, num, bool } from "../schemas/cell-value"
 import { cellKey, colIndexToLetter, type ColRow } from "../schemas/addressing"
 import type { DatagridShape } from "../services/datagrid"

@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest"
 import { stx, StxValidationError, StxConstraintError } from "../src/index.js"
-import * as Result from "effect-v4/Result"
+import * as Result from "effect/Result"
 
 // ─── Plain Object (no Entity) ────────────────────────
 

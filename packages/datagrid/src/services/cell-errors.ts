@@ -10,8 +10,8 @@
  * @module
  */
 
-import { Schema } from "effect-v4"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Schema } from "effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 import { stxFamily, type StxFamily } from "@tmnl/stx"
 import type { ColRow, CellKey } from "../schemas/addressing"
 import { cellKey } from "../schemas/addressing"

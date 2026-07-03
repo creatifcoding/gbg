@@ -10,9 +10,9 @@
  * @module @tmnl/msh/utils/stream
  */
 
-import * as Effect from 'effect-v4/Effect';
-import * as Stream from 'effect-v4/Stream';
-import * as Queue from 'effect-v4/Queue';
+import * as Effect from 'effect/Effect';
+import * as Stream from 'effect/Stream';
+import * as Queue from 'effect/Queue';
 
 /**
  * Wraps a callback-based subscription pattern into an Effect Stream.

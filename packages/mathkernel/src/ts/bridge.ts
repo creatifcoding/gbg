@@ -7,9 +7,9 @@
  * @module bridge
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
 import { KernelError } from "./types.js"
 import type { KernelErrorCode } from "./types.js"
 
@@ -59,7 +59,7 @@ function classifyWasmError(err: unknown, kernel: string): KernelError {
  * Manages the module lifecycle (load, ready check).
  * Higher-level MathKernel service delegates here.
  */
-export class WasmBridge extends ServiceMap.Service<WasmBridge, {
+export class WasmBridge extends Context.Service<WasmBridge, {
   /** Get the raw WASM module (loaded and ready) */
   readonly module: Effect.Effect<WasmKernel, KernelError>
   /** Call a kernel function with error classification */

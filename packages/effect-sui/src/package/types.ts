@@ -1,6 +1,6 @@
 /** Package registry descriptor/state contracts. */
 
-import type * as TxHashMap from 'effect-v4/TxHashMap';
+import type * as TxHashMap from 'effect/TxHashMap';
 
 import type { SuiPackageDescriptor, SuiObjectId } from '../schema';
 

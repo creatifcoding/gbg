@@ -15,10 +15,10 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import * as Result from "effect-v4/Result"
-import * as TxRef from "effect-v4/TxRef"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import * as Result from "effect/Result"
+import * as TxRef from "effect/TxRef"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import {
   stxFamily, type StxFamily,
   multiStoreTransaction, type TxStoreDescriptor,
@@ -50,7 +50,7 @@ export interface CellCacheConfigShape {
   readonly errorStore?: CellErrorStoreShape
 }
 
-export class CellCacheConfig extends ServiceMap.Service<CellCacheConfig, CellCacheConfigShape>()(
+export class CellCacheConfig extends Context.Service<CellCacheConfig, CellCacheConfigShape>()(
   "@tmnl/datagrid/CellCacheConfig",
 ) {}
 
@@ -94,7 +94,7 @@ export interface CellCacheShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class CellCache extends ServiceMap.Service<CellCache, CellCacheShape>()(
+export class CellCache extends Context.Service<CellCache, CellCacheShape>()(
   "@tmnl/datagrid/CellCache",
 ) {}
 
@@ -139,7 +139,7 @@ export const CellCacheLive = Layer.effect(
     // ── Family (transactional: TxRef+Atom per cell) ──
 
     const family = stxFamily(
-      (key: string) => readFromDb(CellKeySchema.makeUnsafe(key)),
+      (key: string) => readFromDb(CellKeySchema.make(key)),
       { registry, transactional: true },
     )
 

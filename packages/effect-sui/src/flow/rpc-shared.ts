@@ -1,6 +1,6 @@
 /** Shared transaction RPC normalization helpers. */
 
-import * as Effect from 'effect-v4/Effect';
+import * as Effect from 'effect/Effect';
 import { decodeSuiTransactionDigest, type SuiInvariantViolation } from '../schema';
 import type { SuiAuthResult } from '../services';
 import { execution, invariant, type SuiExecutionFailure } from './errors';

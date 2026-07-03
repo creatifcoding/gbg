@@ -25,9 +25,9 @@
  * @internal
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as TxRef from "effect-v4/TxRef"
-import type { Predicate } from "effect-v4/Predicate"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as TxRef from "effect/TxRef"
+import type { Predicate } from "effect/Predicate"
 import { autoLens, type AutoLens } from "./auto-lens.js"
 import { createFocusAtom } from "./focus.js"
 import type { TxStoreDescriptor } from "./transaction.js"
@@ -157,7 +157,7 @@ export interface StxFamily<K, V> {
    *
    * @example
    * ```ts
-   * import { Predicate } from 'effect-v4'
+   * import { Predicate } from 'effect'
    *
    * const activeView = family.where(
    *   Predicate.Struct({ completed: (c: boolean) => !c })

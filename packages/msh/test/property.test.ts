@@ -7,8 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import * as Effect from 'effect-v4/Effect';
-import * as Schema from 'effect-v4/Schema';
+import * as Effect from 'effect/Effect';
+import * as Schema from 'effect/Schema';
 
 import { NatsCodec } from '../src/nats/codec';
 import { parseJwtExpiry } from '../src/auth/rotation';

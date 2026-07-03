@@ -1,7 +1,7 @@
 /** PTB compiler service from Schema AST to Mysten Transaction. */
 
 import { Transaction } from '@mysten/sui/transactions';
-import * as Layer from 'effect-v4/Layer';
+import * as Layer from 'effect/Layer';
 import { SuiPtbCompiler, type SuiPtbCompilerShape } from '../services';
 import { compilePtb } from './compiler-core';
 import type { SuiPtbCompileOptions } from './compiler-types';

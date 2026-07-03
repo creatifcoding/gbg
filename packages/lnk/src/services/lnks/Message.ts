@@ -29,7 +29,7 @@
  * @module @tmnl/lnk/services/lnks/Message
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 import type { Offset } from "../../contracts/Offset.js"
 

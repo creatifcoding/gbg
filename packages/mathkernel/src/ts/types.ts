@@ -7,8 +7,8 @@
  * @module types
  */
 
-import * as Schema from "effect-v4/Schema"
-import * as Data from "effect-v4/Data"
+import * as Schema from "effect/Schema"
+import * as Data from "effect/Data"
 
 // ═══════════════════════════════════════════════════════
 // SHARED SCHEMA PRIMITIVES

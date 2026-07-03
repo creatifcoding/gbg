@@ -8,7 +8,7 @@
  * @module @tmnl/pct/federation/wire
  */
 
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 
 // ─── Shared peer status ────────────────────────────────────────────────────
 

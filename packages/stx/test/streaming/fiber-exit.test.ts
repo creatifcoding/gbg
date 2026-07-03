@@ -10,10 +10,10 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Effect from "effect-v4/Effect"
-import * as Fiber from "effect-v4/Fiber"
-import * as Stream from "effect-v4/Stream"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Stream from "effect/Stream"
 import { watchFiberExit, StxDefect } from "../../src/streaming/fiber-exit.js"
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))

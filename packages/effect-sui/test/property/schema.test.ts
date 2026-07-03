@@ -1,5 +1,5 @@
 import { fromBase58, toBase58, toHex } from '@mysten/bcs';
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 

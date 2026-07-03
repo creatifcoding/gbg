@@ -15,8 +15,8 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { CellValue } from "../schemas/cell-value"
 import type { ColRow } from "../schemas/addressing"
 import { validateCellKey } from "../schemas/addressing"
@@ -44,7 +44,7 @@ export interface FormulaConsistencyConfigShape {
   readonly sheetId: string
 }
 
-export class FormulaConsistencyConfig extends ServiceMap.Service<FormulaConsistencyConfig, FormulaConsistencyConfigShape>()(
+export class FormulaConsistencyConfig extends Context.Service<FormulaConsistencyConfig, FormulaConsistencyConfigShape>()(
   "@tmnl/datagrid/FormulaConsistencyConfig",
 ) {}
 
@@ -89,7 +89,7 @@ export interface FormulaRecalcState {
 
 // ─── Service tag ────────────────────────────────────
 
-export class FormulaConsistency extends ServiceMap.Service<FormulaConsistency, FormulaConsistencyShape>()(
+export class FormulaConsistency extends Context.Service<FormulaConsistency, FormulaConsistencyShape>()(
   "@tmnl/datagrid/FormulaConsistency",
 ) {}
 

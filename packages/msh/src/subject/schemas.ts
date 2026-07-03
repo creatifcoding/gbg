@@ -7,7 +7,7 @@
  * @module @tmnl/msh/subject/schemas
  */
 
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 // =============================================================================
 // BRANDED TYPES — Type-safe identifiers

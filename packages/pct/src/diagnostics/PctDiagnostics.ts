@@ -6,11 +6,11 @@
  * stream bridge diagnostics stay in LNK.
  */
 
-import * as Cause from "effect-v4/Cause"
-import * as Context from "effect-v4/Context"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
+import * as Cause from "effect/Cause"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import { SchemaResolver, SchemaResolverNotFound } from "@tmnl/lnk/contracts"
 import {
   DiagnosticCheck,

@@ -7,8 +7,8 @@
  */
 import { describe, it, expect } from "vitest"
 import { stx } from "../src/index.js"
-import * as Result from "effect-v4/Result"
-import * as Predicate from "effect-v4/Predicate"
+import * as Result from "effect/Result"
+import * as Predicate from "effect/Predicate"
 
 // ─── Test data ───────────────────────────────────────
 

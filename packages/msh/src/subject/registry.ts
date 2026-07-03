@@ -6,15 +6,15 @@
  * @module @tmnl/msh/subject/registry
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Ref from 'effect-v4/Ref';
-import * as HashMap from 'effect-v4/HashMap';
-import * as Stream from 'effect-v4/Stream';
-import * as PubSub from 'effect-v4/PubSub';
-import * as Option from 'effect-v4/Option';
-import { pipe } from 'effect-v4/Function';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Ref from 'effect/Ref';
+import * as HashMap from 'effect/HashMap';
+import * as Stream from 'effect/Stream';
+import * as PubSub from 'effect/PubSub';
+import * as Option from 'effect/Option';
+import { pipe } from 'effect/Function';
 
 import type {
   SubjectSpecId, SubjectSpec, SubjectQuery,

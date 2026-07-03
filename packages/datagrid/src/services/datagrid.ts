@@ -7,8 +7,8 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { StxFamily } from "@tmnl/stx"
 
 import type { CellValue } from "../schemas/cell-value"
@@ -35,7 +35,7 @@ export interface DatagridConfigShape {
   readonly deleteNamedRange: (sheetId: string, name: string) => Effect.Effect<void>
 }
 
-export class DatagridConfig extends ServiceMap.Service<DatagridConfig, DatagridConfigShape>()(
+export class DatagridConfig extends Context.Service<DatagridConfig, DatagridConfigShape>()(
   "@tmnl/datagrid/DatagridConfig",
 ) {}
 
@@ -79,7 +79,7 @@ export interface DatagridShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class Datagrid extends ServiceMap.Service<Datagrid, DatagridShape>()(
+export class Datagrid extends Context.Service<Datagrid, DatagridShape>()(
   "@tmnl/datagrid/Datagrid",
 ) {}
 
@@ -114,7 +114,7 @@ export function makeDatagridLayer(config: DatagridConfigShape): Layer.Layer<Data
       }))
       const cellCacheLayer = Layer.provide(CellCacheLive, cellCacheConfigLayer)
       const cellsSM = yield* Effect.scoped(cellCacheLayer.pipe(Layer.build))
-      const cells = ServiceMap.get(cellsSM, CellCache)
+      const cells = Context.get(cellsSM, CellCache)
 
       // AddressResolver
       const addrConfigLayer = Layer.succeed(AddressResolverConfig)(AddressResolverConfig.of({
@@ -125,7 +125,7 @@ export function makeDatagridLayer(config: DatagridConfigShape): Layer.Layer<Data
       }))
       const addrLayer = Layer.provide(AddressResolverLive, addrConfigLayer)
       const addrSM = yield* Effect.scoped(addrLayer.pipe(Layer.build))
-      const addresses = ServiceMap.get(addrSM, AddressResolver)
+      const addresses = Context.get(addrSM, AddressResolver)
 
       // FormulaEngine
       const formulaConfigLayer = Layer.succeed(FormulaEngineConfig)(FormulaEngineConfig.of({
@@ -135,7 +135,7 @@ export function makeDatagridLayer(config: DatagridConfigShape): Layer.Layer<Data
       }))
       const formulaLayer = Layer.provide(FormulaEngineLive, formulaConfigLayer)
       const formulaSM = yield* Effect.scoped(formulaLayer.pipe(Layer.build))
-      const formulas = ServiceMap.get(formulaSM, FormulaEngine)
+      const formulas = Context.get(formulaSM, FormulaEngine)
 
       // CrdtLayer
       const crdtConfigLayer = Layer.succeed(CrdtLayerConfig)(CrdtLayerConfig.of({
@@ -145,7 +145,7 @@ export function makeDatagridLayer(config: DatagridConfigShape): Layer.Layer<Data
       }))
       const crdtLayerInner = Layer.provide(CrdtLayerLive, crdtConfigLayer)
       const crdtSM = yield* Effect.scoped(crdtLayerInner.pipe(Layer.build))
-      const crdt = ServiceMap.get(crdtSM, CrdtLayer)
+      const crdt = Context.get(crdtSM, CrdtLayer)
 
       // ── High-level API ────────────────────────
       const resolve = (addr: CellAddress): ColRow => addresses.toColRow(addr)

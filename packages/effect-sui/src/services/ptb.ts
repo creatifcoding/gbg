@@ -1,7 +1,7 @@
 /** PTB analyzer/compiler service contracts. */
 
-import * as Context from 'effect-v4/Context';
-import type * as Effect from 'effect-v4/Effect';
+import * as Context from 'effect/Context';
+import type * as Effect from 'effect/Effect';
 
 import type { SuiPTB, SuiPtbBuildArtifact, SuiPtbCommand, SuiPtbInput } from '../effectable';
 import type { SuiObjectId } from '../schema';

@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Schema from 'effect-v4/Schema';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Schema from 'effect/Schema';
 import type {
   EndpointOptions,
   Service,

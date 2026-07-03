@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
 import * as Headers from "../../src/contracts/Headers.js"
 
 /**

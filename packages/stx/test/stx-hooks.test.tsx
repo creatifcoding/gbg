@@ -10,7 +10,7 @@
 import { describe, it, expect, afterEach } from "vitest"
 import React, { memo } from "react"
 import { render, act, cleanup } from "@testing-library/react"
-import { Schema } from "effect-v4"
+import { Schema } from "effect"
 import { stx, useStx, useFocus, useAtomValue, useStxSet } from "../src/index.js"
 
 afterEach(() => { cleanup() })

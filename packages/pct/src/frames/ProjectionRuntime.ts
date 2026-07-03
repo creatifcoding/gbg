@@ -8,11 +8,11 @@
  * @module @tmnl/pct/frames/ProjectionRuntime
  */
 
-import * as Context from "effect-v4/Context"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Ref from "effect-v4/Ref"
-import * as Schema from "effect-v4/Schema"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Ref from "effect/Ref"
+import * as Schema from "effect/Schema"
 
 import {
   emptyProjectionPartLedgerState,

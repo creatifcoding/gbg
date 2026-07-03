@@ -15,9 +15,9 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
 
 import { Wire } from "../../../src/services/wire/index.js"
 import { trust as trustStreamId } from "../../../src/contracts/StreamId.js"

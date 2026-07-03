@@ -11,8 +11,8 @@
  * We use Effect.catchTag("PlatformError", ...) at the boundary.
  */
 
-import * as Effect from "effect-v4/Effect"
-import type { FileSystem } from "effect-v4/FileSystem"
+import * as Effect from "effect/Effect"
+import type { FileSystem } from "effect/FileSystem"
 import { join } from "node:path"
 import { FileReadError } from "./errors.js"
 

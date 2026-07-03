@@ -1,4 +1,4 @@
-import * as Layer from 'effect-v4/Layer';
+import * as Layer from 'effect/Layer';
 
 import { SuiClientService } from '../services';
 import { SuiBcsBridgeLive } from './bcs';

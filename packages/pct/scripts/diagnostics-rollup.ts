@@ -7,10 +7,10 @@
  * precomputed MSH/LNK/PCT DiagnosticReport JSON files without rerunning checks.
  */
 
-import * as Cause from "effect-v4/Cause"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Schema from "effect-v4/Schema"
+import * as Cause from "effect/Cause"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Schema from "effect/Schema"
 import { DiagnosticReport } from "@tmnl/msh/diagnostics"
 
 import {

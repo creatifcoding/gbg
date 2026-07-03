@@ -6,13 +6,13 @@
  * @module
  */
 
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
-import * as Effect from "effect-v4/Effect"
-import * as Stream from "effect-v4/Stream"
-import * as Fiber from "effect-v4/Fiber"
-import * as Exit from "effect-v4/Exit"
-import * as Cause from "effect-v4/Cause"
-import * as Result from "effect-v4/Result"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
+import * as Fiber from "effect/Fiber"
+import * as Exit from "effect/Exit"
+import * as Cause from "effect/Cause"
+import * as Result from "effect/Result"
 import { StxDefect } from "./fiber-exit.js"
 import type { ReduceConfig, StxReduce } from "./types.js"
 

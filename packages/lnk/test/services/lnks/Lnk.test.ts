@@ -12,11 +12,11 @@
  */
 
 import { describe, it, expect } from "vitest"
-import * as Effect from "effect-v4/Effect"
-import * as Fiber from "effect-v4/Fiber"
-import type * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import type * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Stream from "effect/Stream"
 
 import { trust as trustContentType } from "../../../src/contracts/ContentType.js"
 import { trust as trustStreamId } from "../../../src/contracts/StreamId.js"

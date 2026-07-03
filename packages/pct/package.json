@@ -46,6 +46,10 @@
     "./diagnostics": {
       "import": "./dist/diagnostics/index.js",
       "types": "./dist/diagnostics/index.d.ts"
+    },
+    "./hardening": {
+      "import": "./dist/hardening/index.js",
+      "types": "./dist/hardening/index.d.ts"
     }
   },
   "files": [
@@ -76,6 +80,9 @@
     "test:run": "vitest run",
     "demo:nats-control-plane": "bun scripts/nats-control-plane-demo.ts",
     "diagnostics:rollup": "bun scripts/diagnostics-rollup.ts",
+    "hardening:docs:check": "bun scripts/check-hardening-closeout.ts",
+    "workspace:dirty-report": "bun scripts/workspace-dirty-report.ts",
+    "workspace:staged-gate": "bun scripts/check-staged-files.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist reports"
   },

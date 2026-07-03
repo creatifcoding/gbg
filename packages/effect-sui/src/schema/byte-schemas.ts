@@ -1,4 +1,4 @@
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SUI_ADDRESS_BYTE_LENGTH } from './constants';
 

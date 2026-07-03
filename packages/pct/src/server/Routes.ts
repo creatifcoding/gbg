@@ -20,13 +20,13 @@
  * @module @tmnl/pct/server/Routes
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Option from "effect-v4/Option"
-import * as Schema from "effect-v4/Schema"
-import * as SchemaRepresentation from "effect-v4/SchemaRepresentation"
-import * as HttpRouter from "effect-v4/unstable/http/HttpRouter"
-import * as HttpServerRequest from "effect-v4/unstable/http/HttpServerRequest"
-import * as HttpServerResponse from "effect-v4/unstable/http/HttpServerResponse"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
+import * as HttpRouter from "effect/unstable/http/HttpRouter"
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest"
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 
 import { Identity } from "../identity/Identity.js"
 import { Manifest } from "../manifest/Manifest.js"

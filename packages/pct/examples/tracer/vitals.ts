@@ -5,7 +5,7 @@
  * package that depends on @tmnl/pct, you'd write:
  *   import * as Procedure from "@tmnl/pct/procedures"
  */
-import * as Schema from "effect-v4/Schema"
+import * as Schema from "effect/Schema"
 import * as Procedure from "../../src/procedures/index.js"
 
 export const DeviceId = Schema.String.check(

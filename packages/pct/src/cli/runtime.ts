@@ -6,10 +6,10 @@
  *
  * The published `@effect/platform-*` packages import from `"effect/..."`
  * (the bare name). In this monorepo, `effect` resolves globally to v3
- * (3.19.18) via root `overrides`, while v4 lives at the `effect-v4`
+ * (3.19.18) via root `overrides`, while v4 lives at the `effect`
  * alias. Forcing nested-resolution overrides for platform-bun proved
  * fragile, so we wire the platform services here directly — using
- * effect-v4's own constructors (`FileSystem.make`, `Stdio.make`, etc.)
+ * effect's own constructors (`FileSystem.make`, `Stdio.make`, etc.)
  * — which is what `@effect/platform-bun` does internally anyway, just
  * without the alias mismatch.
  *
@@ -19,7 +19,7 @@
  *                            wrapping `process.stdout` / `process.stderr`
  *   - `FileSystem`         — `node:fs/promises`-backed implementation
  *                            (only the methods PCT actually uses)
- *   - `Path`               — `Path.layer` (POSIX, built into effect-v4)
+ *   - `Path`               — `Path.layer` (POSIX, built into effect)
  *   - `Terminal`           — non-interactive stub (errors on prompt)
  *   - `ChildProcessSpawner` — non-spawning stub (errors on use)
  *
@@ -32,16 +32,16 @@
 import * as fsPromises from "node:fs/promises"
 import { constants as fsConstants } from "node:fs"
 
-import * as Effect from "effect-v4/Effect"
-import * as FileSystem from "effect-v4/FileSystem"
-import * as Layer from "effect-v4/Layer"
-import * as Path from "effect-v4/Path"
-import * as PlatformError from "effect-v4/PlatformError"
-import * as Sink from "effect-v4/Sink"
-import * as Stdio from "effect-v4/Stdio"
-import * as Stream from "effect-v4/Stream"
-import * as Terminal from "effect-v4/Terminal"
-import * as ChildProcessSpawner from "effect-v4/unstable/process/ChildProcessSpawner"
+import * as Effect from "effect/Effect"
+import * as FileSystem from "effect/FileSystem"
+import * as Layer from "effect/Layer"
+import * as Path from "effect/Path"
+import * as PlatformError from "effect/PlatformError"
+import * as Sink from "effect/Sink"
+import * as Stdio from "effect/Stdio"
+import * as Stream from "effect/Stream"
+import * as Terminal from "effect/Terminal"
+import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
 
 // ─── FileSystem (node:fs/promises-backed) ───────────────────────────────────
 

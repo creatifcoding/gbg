@@ -1,5 +1,5 @@
-import * as Schema from 'effect-v4/Schema';
-import * as SchemaGetter from 'effect-v4/SchemaGetter';
+import * as Schema from 'effect/Schema';
+import * as SchemaGetter from 'effect/SchemaGetter';
 
 export const normalizeString = (normalize: (value: string) => string) =>
   Schema.decode<Schema.String>({

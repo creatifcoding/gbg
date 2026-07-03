@@ -9,7 +9,7 @@ import {
   createCollection,
   localOnlyCollectionOptions,
 } from '@tanstack/db'
-import { AtomRegistry } from 'effect-v4/unstable/reactivity'
+import { AtomRegistry } from 'effect/unstable/reactivity'
 import { stxCollection, type StxCollection } from '../src/collection.js'
 
 interface Todo {

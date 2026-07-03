@@ -1,7 +1,7 @@
-import * as Cause from 'effect-v4/Cause';
-import * as Effect from 'effect-v4/Effect';
-import * as Exit from 'effect-v4/Exit';
-import * as Layer from 'effect-v4/Layer';
+import * as Cause from 'effect/Cause';
+import * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
+import * as Layer from 'effect/Layer';
 
 import { SuiDiagnosticEvent, type SuiDiagnostic } from '../schema';
 import { SuiDiagnostics, type SuiDiagnosticsShape } from '../services';

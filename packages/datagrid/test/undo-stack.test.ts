@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Layer, ServiceMap } from "effect-v4"
-import { AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Layer, Context } from "effect"
+import { AtomRegistry } from "effect/unstable/reactivity"
 
 import { num, str, empty, type CellValue } from "../src/schemas/cell-value"
 import type { ColRow } from "../src/schemas/addressing"
@@ -44,7 +44,7 @@ function makeTestLayer(opts?: { capacity?: number }) {
   // Build CellCache first, then use it for UndoStack config
   return Effect.gen(function*() {
     const ccSM = yield* Effect.scoped(cellCacheLayer.pipe(Layer.build))
-    const cellCache = ServiceMap.get(ccSM, CellCache)
+    const cellCache = Context.get(ccSM, CellCache)
 
     const undoConfigLayer = Layer.succeed(UndoStackConfig)(UndoStackConfig.of({
       capacity: opts?.capacity,
@@ -54,7 +54,7 @@ function makeTestLayer(opts?: { capacity?: number }) {
 
     const undoLayer = Layer.provide(UndoStackLive, undoConfigLayer)
     const undoSM = yield* Effect.scoped(undoLayer.pipe(Layer.build))
-    const undoStack = ServiceMap.get(undoSM, UndoStack)
+    const undoStack = Context.get(undoSM, UndoStack)
 
     return { cellCache, undoStack, registry }
   })

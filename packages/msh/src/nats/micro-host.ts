@@ -11,11 +11,11 @@
  * @module @tmnl/msh/nats/micro-host
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import type * as Scope from 'effect-v4/Scope';
-import * as Schema from 'effect-v4/Schema';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import type * as Scope from 'effect/Scope';
+import * as Schema from 'effect/Schema';
 import type {
   EndpointOptions,
   MsgHdrs,

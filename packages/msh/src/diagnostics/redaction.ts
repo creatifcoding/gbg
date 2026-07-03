@@ -1,6 +1,6 @@
 /** Safe redaction helpers for diagnostics output. */
 
-import * as Cause from 'effect-v4/Cause';
+import * as Cause from 'effect/Cause';
 
 export const REDACTED = '<redacted>';
 

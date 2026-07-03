@@ -4,32 +4,27 @@
  * @module @tmnl/msh/schemas/config
  */
 
-import * as Context from 'effect-v4/Context';
-import * as Effect from 'effect-v4/Effect';
-import * as Layer from 'effect-v4/Layer';
-import * as Schema from 'effect-v4/Schema';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Schema from 'effect/Schema';
 import { MshAuthMode } from '../auth/schemas';
 
 export const MshConfigSchema = Schema.Struct({
-  servers: Schema.Union([
-    Schema.String,
-    Schema.Array(Schema.String),
-  ]),
+  servers: Schema.Union([Schema.String, Schema.Array(Schema.String)]),
   name: Schema.String.pipe(
-    Schema.withDecodingDefault(Effect.succeed('tmnl-msh')),
+    Schema.withDecodingDefault(Effect.succeed('tmnl-msh'))
   ),
   reconnect: Schema.Boolean.pipe(
-    Schema.withDecodingDefault(Effect.succeed(true)),
+    Schema.withDecodingDefault(Effect.succeed(true))
   ),
   maxReconnectAttempts: Schema.Number.pipe(
-    Schema.withDecodingDefault(Effect.succeed(10)),
+    Schema.withDecodingDefault(Effect.succeed(10))
   ),
   reconnectDelayMs: Schema.Number.pipe(
-    Schema.withDecodingDefault(Effect.succeed(2000)),
+    Schema.withDecodingDefault(Effect.succeed(2000))
   ),
-  debug: Schema.Boolean.pipe(
-    Schema.withDecodingDefault(Effect.succeed(false)),
-  ),
+  debug: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   /** Authentication mode — NKey, JWT, Creds, or Token. Absent = no auth. */
   auth: Schema.optionalKey(MshAuthMode),
 });
@@ -56,5 +51,5 @@ export const MshConfigDefault = Layer.succeed(MshConfigTag)(DEFAULT_CONFIG);
 export const MshConfigCustom = (config: MshConfigInput) =>
   Layer.effect(
     MshConfigTag,
-    Schema.decodeUnknownEffect(MshConfigSchema)(config),
+    Schema.decodeUnknownEffect(MshConfigSchema)(config)
   );

@@ -12,15 +12,15 @@
  * @module @tmnl/pct/federation/eventlog-remote/Server
  */
 
-import * as Context from "effect-v4/Context"
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Redacted from "effect-v4/Redacted"
-import * as Schema from "effect-v4/Schema"
-import * as Stream from "effect-v4/Stream"
-import * as EventJournal from "effect-v4/unstable/eventlog/EventJournal"
-import * as EventLog from "effect-v4/unstable/eventlog/EventLog"
-import * as EventLogMessage from "effect-v4/unstable/eventlog/EventLogMessage"
+import * as Context from "effect/Context"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Redacted from "effect/Redacted"
+import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
+import * as EventJournal from "effect/unstable/eventlog/EventJournal"
+import * as EventLog from "effect/unstable/eventlog/EventLog"
+import * as EventLogMessage from "effect/unstable/eventlog/EventLogMessage"
 import {
   ChangesRpc,
   ChunkedMessage,
@@ -30,10 +30,10 @@ import {
   SingleMessage,
   StoreId,
   WriteEntriesUnencrypted,
-} from "effect-v4/unstable/eventlog/EventLogMessage"
-import * as EventLogSessionAuth from "effect-v4/unstable/eventlog/EventLogSessionAuth"
-import * as RpcSerialization from "effect-v4/unstable/rpc/RpcSerialization"
-import * as RpcServer from "effect-v4/unstable/rpc/RpcServer"
+} from "effect/unstable/eventlog/EventLogMessage"
+import * as EventLogSessionAuth from "effect/unstable/eventlog/EventLogSessionAuth"
+import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
+import * as RpcServer from "effect/unstable/rpc/RpcServer"
 
 export { PctRegistryStoreId } from "../../registry/StoreId.js"
 

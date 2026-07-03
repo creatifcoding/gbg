@@ -6,8 +6,8 @@
  * barnacles just to satisfy exactOptionalPropertyTypes.
  */
 
-import * as Option from "effect-v4/Option"
-import * as Schema from "effect-v4/Schema"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 
 import { ContentType, type ContentType as ContentTypeT } from "../../../contracts/ContentType.js"
 import { Epoch, ProducerId, Seq } from "../../../contracts/Producer.js"

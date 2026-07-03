@@ -23,8 +23,8 @@
  * @module
  */
 
-import { Effect, ServiceMap, Layer } from "effect-v4"
-import { Atom, AtomRegistry } from "effect-v4/unstable/reactivity"
+import { Effect, Context, Layer } from "effect"
+import { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import type { CellValue } from "../schemas/cell-value"
 import type { ColRow } from "../schemas/addressing"
 import { cellKey } from "../schemas/addressing"
@@ -46,7 +46,7 @@ export interface FormulaEngineConfigShape {
   readonly getCellAtom: (addr: ColRow) => Atom.Writable<CellValue, CellValue>
 }
 
-export class FormulaEngineConfig extends ServiceMap.Service<FormulaEngineConfig, FormulaEngineConfigShape>()(
+export class FormulaEngineConfig extends Context.Service<FormulaEngineConfig, FormulaEngineConfigShape>()(
   "@tmnl/datagrid/FormulaEngineConfig",
 ) {}
 
@@ -72,7 +72,7 @@ export interface FormulaEngineShape {
 
 // ─── Service tag ────────────────────────────────────
 
-export class FormulaEngine extends ServiceMap.Service<FormulaEngine, FormulaEngineShape>()(
+export class FormulaEngine extends Context.Service<FormulaEngine, FormulaEngineShape>()(
   "@tmnl/datagrid/FormulaEngine",
 ) {}
 
@@ -182,7 +182,7 @@ export const FormulaEngineLive = Layer.effect(
         subscriptions.delete(key)
 
         const depAtoms = deps.map(d => config.getCellAtom(d))
-        const derived = Atom.make((get: Atom.Context) => {
+        const derived = Atom.make((get: Atom.FnContext) => {
           const values = depAtoms.map(a => get(a)) as ReadonlyArray<CellValue>
           return compute(values)
         })

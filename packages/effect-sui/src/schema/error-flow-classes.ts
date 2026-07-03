@@ -1,4 +1,4 @@
-import * as Schema from 'effect-v4/Schema';
+import * as Schema from 'effect/Schema';
 
 import { SuiAuthMode, SuiExecutionErrorKind, SuiPaymentMode, SuiWaitErrorKind } from './error-codes';
 import { SuiAddress, SuiObjectId, SuiTransactionDigest } from './strings';

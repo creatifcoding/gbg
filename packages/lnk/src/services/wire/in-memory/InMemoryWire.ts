@@ -31,10 +31,10 @@
  * @module @tmnl/lnk/services/wire/in-memory/InMemoryWire
  */
 
-import * as Effect from "effect-v4/Effect"
-import * as Layer from "effect-v4/Layer"
-import * as Option from "effect-v4/Option"
-import * as Stream from "effect-v4/Stream"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Stream from "effect/Stream"
 
 import { framingMode } from "../../../contracts/ContentType.js"
 import { trust as trustOffset } from "../../../contracts/Offset.js"
@@ -56,7 +56,7 @@ export class InMemoryWire {
    *
    * @example
    * ```ts
-   * import { Effect, Layer } from "effect-v4"
+   * import { Effect, Layer } from "effect"
    * import { Wire } from "@tmnl/lnk/services/wire"
    * import { InMemoryWire } from "@tmnl/lnk/services/wire/in-memory"
    *
@@ -168,7 +168,7 @@ export class InMemoryWire {
             // fail with 409 mismatch.
             //
             // `application/octet-stream` is treated as "no preference" —
-            // HTTP transports (e.g. effect-v4's bodyUint8Array) auto-apply
+            // HTTP transports (e.g. effect's bodyUint8Array) auto-apply
             // it as a default when the caller doesn't specify, so it
             // shouldn't be interpreted as a content-type assertion.
             const explicitClientCt =
