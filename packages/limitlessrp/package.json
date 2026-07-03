@@ -1,0 +1,46 @@
+{
+  "name": "@gbg/limitlessrp",
+  "version": "0.0.1",
+  "description": "Limitless Research Protocol — polyglot commodity intelligence workflows and schemas",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "workflows",
+    "data",
+    "python",
+    "rust"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "smoke": "bash scripts/smoke.sh",
+    "python:smoke": "PYTHONPATH=python python -m limitlessrp.smoke",
+    "rust:check": "cargo check --manifest-path rust/limitlessrp-core/Cargo.toml",
+    "rust:test": "cargo test --manifest-path rust/limitlessrp-core/Cargo.toml",
+    "reactor:doctor": "cd reactor && bunx --package @openprose/reactor-cli reactor doctor",
+    "reactor:compile:check": "cd reactor && bunx --package @openprose/reactor-cli reactor compile --check",
+    "clean": "rm -rf dist rust/limitlessrp-core/target python/limitlessrp/__pycache__ reactor/.reactor"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  },
+  "license": "MIT",
+  "author": "GBG",
+  "keywords": [
+    "gbg",
+    "limitlessrp",
+    "commodity-intelligence",
+    "iridium",
+    "research-workflows"
+  ]
+}

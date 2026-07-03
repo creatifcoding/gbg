@@ -1,0 +1,101 @@
+[
+  {
+    "id": "johnson-matthey-pgm-management",
+    "title": "PGM prices and trading",
+    "publisher": "Johnson Matthey",
+    "url": "https://matthey.com/products-and-markets/pgms-and-circularity/pgm-management",
+    "sourceClass": "price-benchmark",
+    "trustTier": "industry",
+    "refreshCadence": "daily",
+    "expectedFields": ["daily_prices", "monthly_prices", "jm_base_prices_usd_per_troy_oz", "market_insights"],
+    "extractionNotes": "Use for benchmark/base-price context. Treat as Johnson Matthey quoted/base prices, not necessarily executable third-party market depth."
+  },
+  {
+    "id": "johnson-matthey-trading",
+    "title": "Trading",
+    "publisher": "Johnson Matthey",
+    "url": "https://matthey.com/products-and-markets/pgms-and-circularity/pgm-management/trading",
+    "sourceClass": "market-context",
+    "trustTier": "industry",
+    "refreshCadence": "quarterly",
+    "expectedFields": ["standard_forms", "good_delivery_sponge_or_powder", "form_swaps", "delivery_locations", "base_price_definition"],
+    "extractionNotes": "Search result and fetched page indicate standard metal forms include commercial-grade good-delivery sponge or powder, with possible form swaps for ingot in London or Zurich subject to volume and availability."
+  },
+  {
+    "id": "umicore-iridium-price",
+    "title": "Iridium price",
+    "publisher": "Umicore Precious Metals Management",
+    "url": "https://pmm.umicore.com/en/prices/iridium/",
+    "sourceClass": "price-benchmark",
+    "trustTier": "industry",
+    "refreshCadence": "daily",
+    "expectedFields": ["sales_price_fabricated_usd_per_ounce", "sales_price_fabricated_eur_per_kg", "price_date"],
+    "extractionNotes": "Use as a fabricated iridium sales-price indicator. Keep unit and form distinction explicit."
+  },
+  {
+    "id": "argus-iridium-rotterdam-jm",
+    "title": "Iridium min 99.9% du Rotterdam Johnson Matthey prices USD/ozt",
+    "publisher": "Argus Media",
+    "url": "https://www.argusmedia.com/metals-platform/price/assessment/iridium-min-99-9--du-rotterdam-johnson-matthey-prices-PA00143320000",
+    "sourceClass": "price-benchmark",
+    "trustTier": "secondary",
+    "refreshCadence": "daily",
+    "expectedFields": ["assessment_name", "minimum_purity", "delivery_basis", "currency", "unit"],
+    "extractionNotes": "Use for price-assessment metadata; paywalled or platform-limited content may require licensed access."
+  },
+  {
+    "id": "johnson-matthey-pgm-report-2026",
+    "title": "Johnson Matthey 2026 PGM Market Report announcement",
+    "publisher": "Johnson Matthey",
+    "url": "https://matthey.com/media/2026/johnson-matthey-publishes-2026-pgm-market-report1",
+    "sourceClass": "market-report",
+    "trustTier": "industry",
+    "refreshCadence": "annual",
+    "expectedFields": ["pgm_supply_demand_summary", "iridium_outlook", "deficit_or_surplus", "industrial_demand_drivers"],
+    "extractionNotes": "Search result states PGMs were in deficit last year and iridium is expected to see further shortfalls in 2026. Verify against report PDF before treating as report fact."
+  },
+  {
+    "id": "johnson-matthey-pgm-report-2026-pdf",
+    "title": "PGM Market Report 2026 PDF",
+    "publisher": "Johnson Matthey",
+    "url": "https://matthey.com/documents/161599/509428/pgm-market-report-26.pdf/a2d115af-bf7c-f589-29e9-6beacf8a4452?t=1778750383760",
+    "sourceClass": "market-report",
+    "trustTier": "industry",
+    "refreshCadence": "annual",
+    "expectedFields": ["iridium_supply_troy_ounces", "iridium_demand_troy_ounces", "iridium_supply_tonnes", "iridium_demand_tonnes", "market_commentary"],
+    "extractionNotes": "Primary target for supply/demand tables. PDF extraction needs page/table-aware scraping."
+  },
+  {
+    "id": "usgs-mcs-2026-pgm",
+    "title": "Mineral Commodity Summaries 2026: Platinum-Group Metals",
+    "publisher": "USGS",
+    "url": "https://pubs.usgs.gov/periodicals/mcs2026/mcs2026-platinum-group.pdf",
+    "sourceClass": "statistical-agency",
+    "trustTier": "primary",
+    "refreshCadence": "annual",
+    "expectedFields": ["domestic_production", "world_resources", "imports_exports", "recycling", "strategic_context"],
+    "extractionNotes": "Use for government statistical context. PDF extraction should preserve units and distinguish PGM aggregate data from iridium-specific data."
+  },
+  {
+    "id": "lppm-responsible-sourcing-guidance",
+    "title": "LPPM Responsible Sourcing Guidance",
+    "publisher": "London Platinum and Palladium Market",
+    "url": "https://www.lppm.com/files/lppm-responsible-sourcing-guidance-version-251006.pdf",
+    "sourceClass": "responsible-sourcing",
+    "trustTier": "primary",
+    "refreshCadence": "annual",
+    "expectedFields": ["pgm_refiner_obligations", "audit_requirements", "suspension_or_removal_conditions", "responsible_sourcing_controls"],
+    "extractionNotes": "Use for refiner/accreditation responsible-sourcing due diligence. Validate current version before relying on detailed requirements."
+  },
+  {
+    "id": "rjc-2024-chain-of-custody",
+    "title": "RJC 2024 Chain of Custody Standard",
+    "publisher": "Responsible Jewellery Council",
+    "url": "https://www.responsiblejewellery.com/wp-content/uploads/RJC-2024-COC-Standard-24-12-10.pdf",
+    "sourceClass": "chain-of-custody",
+    "trustTier": "primary",
+    "refreshCadence": "annual",
+    "expectedFields": ["chain_of_custody_certification", "eligible_material", "transfer_documents", "responsible_sourcing_claims"],
+    "extractionNotes": "Use for traceability and chain-of-custody control vocabulary across gold, silver, and PGMs."
+  }
+]

@@ -1,0 +1,119 @@
+{
+  "name": "@gbg/limitlessrp",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/limitlessrp/src",
+  "projectType": "library",
+  "tags": [
+    "scope:gbg",
+    "type:lib",
+    "domain:commodity-intelligence",
+    "domain:research",
+    "polyglot:typescript",
+    "polyglot:python",
+    "polyglot:rust"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/limitlessrp"
+      },
+      "dependsOn": [
+        "^build"
+      ],
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "python:smoke": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run python:smoke",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "rust:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run rust:check",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "rust:test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run rust:test",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "smoke": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run smoke",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": false
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run clean",
+        "cwd": "packages/limitlessrp"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "reactor:doctor": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run reactor:doctor",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": false
+    },
+    "reactor:compile:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run reactor:compile:check",
+        "cwd": "packages/limitlessrp"
+      },
+      "cache": false
+    }
+  }
+}

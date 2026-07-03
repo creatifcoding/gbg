@@ -1,0 +1,5 @@
+dist/
+rust/limitlessrp-core/target/
+python/**/__pycache__/
+.python-version
+.venv/

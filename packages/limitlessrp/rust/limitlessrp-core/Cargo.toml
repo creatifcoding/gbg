@@ -1,0 +1,14 @@
+[package]
+name = "limitlessrp-core"
+version = "0.0.1"
+edition = "2021"
+description = "Limitless Research Protocol core commodity normalization utilities"
+license = "MIT"
+publish = false
+
+[lib]
+name = "limitlessrp_core"
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "deny"

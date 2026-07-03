@@ -1,0 +1,36 @@
+# LimitlessRP Reactor project.
+# Run from packages/limitlessrp/reactor with:
+#   bunx --package @openprose/reactor-cli reactor doctor
+#   bunx --package @openprose/reactor-cli reactor compile --check
+
+state:
+  dir: ./.reactor
+
+model:
+  # Ask the operator before live compile/run. OpenRouter is the current safe default
+  # per OpenProse Reactor docs; compile/run need a provider key and peers.
+  provider: openrouter
+  render_model: google/gemini-3.5-flash
+  compile_model: google/gemini-3.5-flash
+  temperature: 0
+  max_turns: 200
+
+sandbox:
+  mode: none
+  shell_timeout_ms: 300000
+
+gateways:
+  - node: iridium_source_refresh
+    source_id: iridium_source_refresh
+    connector:
+      type: static
+      id_field: id
+      items:
+        - id: initial-iridium-source-refresh
+          sourceRegistryPath: ../data/sources/iridium.sources.json
+          sourceRegistrySha: seed-registry-v0
+          requestedAt: "2026-06-03T00:00:00Z"
+          refreshReason: initial LimitlessRP iridium source registry seed
+
+telemetry:
+  enabled: false

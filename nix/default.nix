@@ -1,5 +1,8 @@
 { inputs, ... }:
 
 {
-  imports = [ ./devshell.nix ];
+  imports = [
+    ./devshell.nix
+    ../packages/limitlessrp/nix
+  ];
 }
