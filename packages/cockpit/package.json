@@ -1,0 +1,58 @@
+{
+  "name": "@tmnl/cockpit",
+  "version": "0.0.1",
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/cockpit"
+  },
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "description": "TMNL React Native cockpit vertical slice \u2014 SurfaceActor \u00d7 capability decision \u00d7 @tmnl/stx loop",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "tmnl",
+    "react-native",
+    "expo",
+    "effect",
+    "stx",
+    "cockpit"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "bunx vitest",
+    "test:run": "bunx vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tmnl/stx": "workspace:*",
+    "xstate": "^5.20.0",
+    "effect": "4.0.0-beta.93"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.8.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}
