@@ -28,5 +28,7 @@ libc = "0.2"
 gtk = { package = "gtk", version = "0.18", features = ["v3_24"] }
 gdk = { version = "0.18" }
 glib = { version = "0.18" }
+gio = { version = "0.18" }
 cairo-rs = { version = "0.18", features = ["use_glib"] }
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
+webkit2gtk = { version = "2.0", features = ["v2_40"] }

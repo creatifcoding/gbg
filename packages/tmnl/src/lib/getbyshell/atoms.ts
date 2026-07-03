@@ -23,14 +23,17 @@ import { ShellLoggerLive } from './logging'
 // Writable State Atoms (Module-Level Singletons)
 // =============================================================================
 
-/** Raw workspace data from niri */
+/** Raw workspace data from the active compositor (niri or DriftWM). */
 export const workspacesAtom = Atom.make<readonly any[]>([])
 
-/** Raw window data from niri */
+/** Raw window data from the active compositor (niri or DriftWM). */
 export const windowsAtom = Atom.make<readonly any[]>([])
 
-/** Niri connection status */
+/** Active compositor connection status. Kept as niriStatusAtom for API compatibility. */
 export const niriStatusAtom = Atom.make<ConnectionStatus>('disconnected')
+
+/** Compositor-neutral alias for new DriftWM/niri callers. */
+export const compositorStatusAtom = niriStatusAtom
 
 /** Current time — ticked every second */
 export const timeAtom = Atom.make<Date>(new Date())
@@ -76,7 +79,9 @@ export const clockAtom = Atom.make((get) => {
 
 /** System health derived from connection statuses */
 export const systemHealthAtom = Atom.make((get) => ({
+  // `niri` is retained for API compatibility; `compositor` is the neutral name.
   niri: get(niriStatusAtom),
+  compositor: get(niriStatusAtom),
   tmnl: get(tmnlStatusAtom),
   healthy: get(niriStatusAtom) === 'connected',
 }))
@@ -90,7 +95,7 @@ export const barRuntimeAtom = Atom.runtime(
 )
 
 // =============================================================================
-// Niri Operations — traced via Effect.withSpan
+// Compositor Operations — traced via Effect.withSpan
 // =============================================================================
 
 /** Focus a workspace by index */
@@ -110,10 +115,10 @@ export const focusWorkspaceFn = barRuntimeAtom.fn<number>()((idx, ctx) =>
   }).pipe(Effect.withSpan('bar.focusWorkspace')),
 )
 
-/** Refresh workspaces from niri */
+/** Refresh workspaces from the active compositor. */
 export const refreshWorkspacesFn = barRuntimeAtom.fn<void>()((_void, ctx) =>
   Effect.gen(function* () {
-    yield* Effect.logDebug('Refreshing workspaces from niri')
+    yield* Effect.logDebug('Refreshing workspaces from compositor')
     const niri = yield* NiriService
     const workspaces = yield* niri.getWorkspaces
     ctx.set(workspacesAtom, workspaces)
@@ -122,10 +127,10 @@ export const refreshWorkspacesFn = barRuntimeAtom.fn<void>()((_void, ctx) =>
   }).pipe(Effect.withSpan('bar.refreshWorkspaces')),
 )
 
-/** Refresh windows from niri */
+/** Refresh windows from the active compositor. */
 export const refreshWindowsFn = barRuntimeAtom.fn<void>()((_void, ctx) =>
   Effect.gen(function* () {
-    yield* Effect.logDebug('Refreshing windows from niri')
+    yield* Effect.logDebug('Refreshing windows from compositor')
     const niri = yield* NiriService
     const windows = yield* niri.getWindows
     ctx.set(windowsAtom, windows)
@@ -198,28 +203,34 @@ export const logInputRegionFn = barRuntimeAtom.fn<{
 )
 
 // =============================================================================
-// Niri Event Logging Fns
+// Compositor Event Logging Fns
 // =============================================================================
 
-/** Log niri event received */
+/** Log active compositor event received. */
 export const logNiriEventFn = barRuntimeAtom.fn<{
   type: string
   detail?: string
 }>()((params) =>
   Effect.gen(function* () {
-    yield* Effect.logDebug(`Niri event: ${params.type}${params.detail ? ` — ${params.detail}` : ''}`)
-  }).pipe(Effect.withSpan('bar.niri.event')),
+    yield* Effect.logDebug(`Compositor event: ${params.type}${params.detail ? ` — ${params.detail}` : ''}`)
+  }).pipe(Effect.withSpan('bar.compositor.event')),
 )
 
-/** Log niri connection status change */
+/** Compositor-neutral alias for new DriftWM/niri callers. */
+export const logCompositorEventFn = logNiriEventFn
+
+/** Log active compositor connection status change. */
 export const logNiriStatusFn = barRuntimeAtom.fn<{
   from: string
   to: string
 }>()((params) =>
   Effect.gen(function* () {
-    yield* Effect.log(`Niri status: ${params.from} → ${params.to}`)
-  }).pipe(Effect.withSpan('bar.niri.status')),
+    yield* Effect.log(`Compositor status: ${params.from} → ${params.to}`)
+  }).pipe(Effect.withSpan('bar.compositor.status')),
 )
+
+/** Compositor-neutral alias for new DriftWM/niri callers. */
+export const logCompositorStatusFn = logNiriStatusFn
 
 // =============================================================================
 // Lifecycle Logging Fns

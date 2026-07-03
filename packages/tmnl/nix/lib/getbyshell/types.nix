@@ -124,7 +124,7 @@ in
         {
           bar = {
             port = 1421;
-            layer = "top";
+            layer = "overlay";
             viteConfig = "vite.config.shell.ts";
             tauriDir = "src-shell-tauri";
           };

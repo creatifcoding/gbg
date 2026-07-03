@@ -26,7 +26,11 @@ in
       };
 
       Install = {
-        WantedBy = [ "graphical-session.target" ];
+        # Avoid ordering cycle: graphical-session.target → getbyshell.target →
+        # tmnl-*.service → graphical-session.target. Individual Tauri surface
+        # services still bind to graphical-session.target; this grouping target is
+        # user/default activated and may also be started manually.
+        WantedBy = [ "default.target" ];
       };
     };
   };

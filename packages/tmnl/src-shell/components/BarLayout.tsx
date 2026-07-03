@@ -1,9 +1,10 @@
 /**
  * BarLayout — Blacked-out machined aluminum panel.
  *
- * The layer-shell surface is 400px wide:
- *   [0–48px]   = bar strip (anodized black alu, exclusive zone)
- *   [48–400px] = overlay zone (transparent, popovers render here)
+ * The persistent layer-shell surface is 48px wide:
+ *   [0–48px] = bar strip (anodized black alu, exclusive zone)
+ * Popovers and overlays request temporary surface expansion through the
+ * Tauri resize/input-region bridge; there is no permanent 400px slab.
  *
  * Skeuomorphic details:
  *   - Micro-noise grain texture (anodized surface)
@@ -18,10 +19,13 @@ import React, { type ReactNode, useState, useEffect } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'motion/react'
 import { TMNL_FONT_SIZE } from '@/lib/tmnl-ui/tokens'
 import { FUI_COLORS } from '@/lib/fui/tokens'
-import { useClockTick, useNiriSync } from '@/lib/getbyshell'
+import { useClockTick, useCompositorSync } from '@/lib/getbyshell'
 import { BAR_WIDTH } from '@/lib/getbyshell/popover'
 
 // ─── Vantablack Tokens ──────────────────────────────────────────────────────
+
+const dense = (value: number, _floor = 0) => value
+const densePx = (value: number, _floor = 0) => `${value}px`
 
 export const V = {
   void: FUI_COLORS.vantablack,
@@ -75,11 +79,11 @@ function MilledGroove() {
   return (
     <div style={{
       width: '100%',
-      padding: '0 6px',
+      padding: `0 ${densePx(6, 3)}`,
     }}>
       <div style={{
         width: '100%',
-        height: 3,
+        height: dense(3, 2),
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -134,9 +138,11 @@ function InsetWell({ children, compact }: { children: ReactNode; compact?: boole
   return (
     <div style={{
       position: 'relative',
-      borderRadius: 4,
-      margin: compact ? '2px 5px' : '4px 5px',
-      padding: compact ? '4px 0' : '6px 0',
+      borderRadius: dense(4, 3),
+      margin: compact
+        ? `${densePx(2, 1)} ${densePx(5, 3)}`
+        : `${densePx(4, 2)} ${densePx(5, 3)}`,
+      padding: compact ? `${densePx(4, 2)} 0` : `${densePx(6, 3)} 0`,
       // Inner shadow = recessed into surface
       boxShadow: `
         inset 0 1px 2px ${V.insetShadow},
@@ -159,7 +165,7 @@ function Endcap({ position }: { position: 'top' | 'bottom' }) {
   return (
     <div style={{
       width: '100%',
-      height: 3,
+      height: dense(3, 2),
       background: isTop
         ? `linear-gradient(180deg, ${V.specular} 0%, transparent 100%)`
         : `linear-gradient(0deg, ${V.specular} 0%, transparent 100%)`,
@@ -174,8 +180,8 @@ function Endcap({ position }: { position: 'top' | 'bottom' }) {
 function MountingPin() {
   return (
     <div style={{
-      width: 4,
-      height: 4,
+      width: dense(4, 3),
+      height: dense(4, 3),
       borderRadius: '50%',
       background: `radial-gradient(circle at 35% 35%, 
         ${V.specularHot} 0%, 
@@ -203,8 +209,8 @@ function Top({ children }: { children: ReactNode }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 6,
-        paddingBottom: 4,
+        paddingTop: dense(6, 3),
+        paddingBottom: dense(4, 2),
         width: '100%',
       }}
     >
@@ -229,7 +235,7 @@ function Center({ children }: { children: ReactNode }) {
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        gap: 6,
+        gap: dense(6, 3),
       }}
     >
       {React.Children.map(children, (child) => (
@@ -249,10 +255,10 @@ function Bottom({ children }: { children: ReactNode }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 4,
-        paddingBottom: 8,
+        paddingTop: dense(4, 2),
+        paddingBottom: dense(8, 4),
         width: '100%',
-        gap: 4,
+        gap: dense(4, 2),
       }}
     >
       <MilledGroove />
@@ -273,12 +279,6 @@ function ScanlineMaterializer({ children }: { children: ReactNode }) {
   const [booted, setBooted] = useState(false)
   const scanY = useMotionValue(0)
 
-  // Mask: everything above scanline is visible, below is hidden
-  const maskImage = useTransform(
-    scanY,
-    (y) => `linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,1) ${y}%, rgba(0,0,0,0) ${y + 0.5}%, rgba(0,0,0,0) 100%)`
-  )
-
   // Scanline position as CSS top %
   const scanTop = useTransform(scanY, (y) => `${y}%`)
 
@@ -293,13 +293,12 @@ function ScanlineMaterializer({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* Content — masked by scanline progress */}
+      {/* Content is always visible. The scanline is decorative only; masking
+          can leave WebKitGTK layer-shell surfaces permanently blank. */}
       <motion.div
         style={{
           width: '100%',
           height: '100%',
-          maskImage: booted ? 'none' : maskImage,
-          WebkitMaskImage: booted ? 'none' : maskImage,
         }}
       >
         {children}
@@ -374,36 +373,72 @@ function ScanlineMaterializer({ children }: { children: ReactNode }) {
 
 // ─── Root ───────────────────────────────────────────────────────────────────
 
+function useLayerShellViewportCompensation() {
+  const measureMetrics = () => {
+    const rootRect = document.getElementById('root')?.getBoundingClientRect()
+    const rawWidth = Math.abs(rootRect?.width || window.innerWidth || BAR_WIDTH)
+    const scale = rawWidth > 100_000 ? rawWidth / BAR_WIDTH : 1
+    const screenHeight = Math.max(
+      480,
+      Math.round(
+        window.screen?.height
+          || Math.abs(window.outerHeight)
+          || Math.abs(rootRect?.height || 0) / scale
+          || 900,
+      ),
+    )
+
+    return { scale, height: screenHeight }
+  }
+
+  const [metrics, setMetrics] = useState({ scale: 1, height: 900 })
+
+  useEffect(() => {
+    const measure = () => setMetrics(measureMetrics())
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  return metrics
+}
+
 export function BarLayout({ children }: { children: ReactNode }) {
-  useNiriSync()
+  useCompositorSync()
   useClockTick()
+  const viewport = useLayerShellViewportCompensation()
 
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      position: 'relative',
-      background: 'transparent',
-      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
-      overflow: 'visible',
+    <div data-tmnl-bar-root="true" style={{
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      width: BAR_WIDTH * viewport.scale,
+      height: viewport.height * viewport.scale,
+      minHeight: viewport.height * viewport.scale,
+      background: V.void,
+      overflow: 'hidden',
+      overscrollBehavior: 'none',
+      zIndex: 2147483646,
+      isolation: 'isolate',
     }}>
-      {/* Bar strip — anodized black aluminum, 48px */}
       <div style={{
         position: 'absolute',
         left: 0,
         top: 0,
-        bottom: 0,
         width: BAR_WIDTH,
-        // Base: pure black
-        background: V.void,
+        height: viewport.height,
+        minHeight: viewport.height,
+        zoom: viewport.scale,
+        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        overflow: 'hidden',
+        overscrollBehavior: 'none',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        overflow: 'hidden',
       }}>
-
         {/* Layer 1: Convex curvature gradient — subtle cylindrical surface */}
         <div style={{
           position: 'absolute',
@@ -448,10 +483,10 @@ export function BarLayout({ children }: { children: ReactNode }) {
         {/* Right edge: Machined chamfer — specular highlight strip */}
         <div style={{
           position: 'absolute',
-          top: 4,
+          top: dense(4, 2),
           right: 0,
-          bottom: 4,
-          width: 3,
+          bottom: dense(4, 2),
+          width: dense(3, 2),
           background: `linear-gradient(90deg,
             transparent 0%,
             ${V.specular} 40%,
@@ -511,7 +546,7 @@ export function BarLayout({ children }: { children: ReactNode }) {
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              padding: '3px 0 1px',
+              padding: `${densePx(3, 1)} 0 ${densePx(1, 1)}`,
             }}>
               <MountingPin />
             </div>
@@ -522,7 +557,7 @@ export function BarLayout({ children }: { children: ReactNode }) {
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              padding: '1px 0 3px',
+              padding: `${densePx(1, 1)} 0 ${densePx(3, 1)}`,
             }}>
               <MountingPin />
             </div>
@@ -532,8 +567,6 @@ export function BarLayout({ children }: { children: ReactNode }) {
           </div>
         </ScanlineMaterializer>
       </div>
-
-      {/* Overlay zone — transparent, popovers render here via fixed positioning */}
     </div>
   )
 }

@@ -32,12 +32,15 @@ async function syncInputRegion(
   try {
     const { invoke } = await import('@tauri-apps/api/core')
     if (popovers.size > 0) {
-      // Full surface — let WebView handle click-outside
+      // Expand only while a popover is open. The persistent shell must remain
+      // a true 48px sidebar; DriftWM does not tolerate a fake transparent slab.
+      await invoke('set_surface_width', { width: SURFACE_WIDTH })
       await invoke('update_input_region', {
         regions: [{ x: 0, y: 0, w: SURFACE_WIDTH, h: 8000 }],
       })
     } else {
-      // No popovers — shrink back to bar strip only
+      // No popovers — collapse back to the real bar strip.
+      await invoke('set_surface_width', { width: BAR_WIDTH })
       await invoke('update_input_region', { regions: [] as any[] })
     }
   } catch (e) {

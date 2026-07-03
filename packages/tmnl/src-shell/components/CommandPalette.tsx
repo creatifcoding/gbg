@@ -11,7 +11,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { SURFACE_WIDTH } from '@/lib/getbyshell/popover/atoms'
+import { BAR_WIDTH } from '@/lib/getbyshell/popover/atoms'
 
 // ─── Tokens ─────────────────────────────────────────────────────────────────
 
@@ -24,10 +24,10 @@ const V = {
   ink: '#b8bcc6',
   inkMid: '#5a6070',
   inkFaint: '#2a2e38',
-  // Niri tokens
+  // Compositor-inspired focus tokens (legacy `niri*` names kept for local use).
   niriActive: '#7aa2f7',     // focus-ring active-color
   niriInactive: '#565f89',   // focus-ring inactive-color
-  niriRadius: 8,             // niri default corner radius
+  niriRadius: 8,             // compositor default corner radius
   niriGap: 8,                // layout.gaps
   niriFocusWidth: 2,         // focus-ring width
 } as const
@@ -66,7 +66,7 @@ async function expandSurface(): Promise<number> {
 async function collapseSurface() {
   try {
     const { invoke } = await import('@tauri-apps/api/core')
-    await invoke('set_surface_width', { width: SURFACE_WIDTH })
+    await invoke('set_surface_width', { width: BAR_WIDTH })
     await invoke('update_input_region', { regions: [] as any[] })
   } catch (e) {
     console.debug('[CommandPalette] surface collapse failed:', e)

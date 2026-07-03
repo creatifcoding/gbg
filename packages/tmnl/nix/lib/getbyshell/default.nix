@@ -37,12 +37,16 @@
           healthCheckTimeout = 30;
           restartSec = 5;
           viteRestartSec = 3;
-          extraEnv = [];
+          extraEnv = [ "TMNL_COMPOSITOR=driftwm" ];
           description = "GetByShell · Bar — left-anchored panel";
         };
 
         panel = {
-          enable = true;
+          # Disabled 2026-06-27: the current fullscreen transparent overlay can
+          # become an invisible input shield. Keep the declaration as a tombstone
+          # so mission-control / Home Manager generation makes the pause explicit
+          # while the bounded-panel architecture is redesigned from first principles.
+          enable = false;
           port = 1422;
           layer = "overlay";
           viteConfig = "vite.config.panel.ts";
@@ -52,8 +56,8 @@
           healthCheckTimeout = 30;
           restartSec = 5;
           viteRestartSec = 3;
-          extraEnv = [];
-          description = "GetByShell · Panel — persistent workspace overlay";
+          extraEnv = [ "TMNL_COMPOSITOR=driftwm" ];
+          description = "GetByShell · Panel — DISABLED pending bounded-panel redesign";
         };
       };
 

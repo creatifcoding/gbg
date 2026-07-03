@@ -86,7 +86,7 @@ export function TMNLStatus() {
   const health = useSystemHealth()
   const paletteOpen = usePaletteOpen()
 
-  const baseCfg = STATUS_MAP[health.niri] ?? STATUS_MAP.disconnected
+  const baseCfg = STATUS_MAP[health.compositor] ?? STATUS_MAP.disconnected
   const cfg = paletteOpen ? CMD_CONFIG : baseCfg
   const alive = health.healthy
 
@@ -120,7 +120,7 @@ export function TMNLStatus() {
         animate={{ color: cfg.color }}
         transition={COLOR_TRANSITION}
         style={{
-          fontSize: 8,
+          fontSize: V.xs,
           fontWeight: 700,
           letterSpacing: '0.2em',
           lineHeight: 1,

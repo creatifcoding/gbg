@@ -24,9 +24,9 @@ impl Default for BarConfig {
         Self {
             edge: BarEdge::Left,
             size: 48,
-            layer: BarLayer::Top,
+            layer: BarLayer::Overlay,
             exclusive: true,
-            keyboard: KeyboardMode::OnDemand,
+            keyboard: KeyboardMode::None,
         }
     }
 }

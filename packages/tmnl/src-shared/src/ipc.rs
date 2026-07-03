@@ -28,7 +28,10 @@ pub enum BarCommand {
     /// Open the command palette in the main app.
     OpenCommandPalette,
     /// Custom command passthrough.
-    Custom { key: String, payload: serde_json::Value },
+    Custom {
+        key: String,
+        payload: serde_json::Value,
+    },
 }
 
 /// Messages sent FROM the main app TO the bar.
@@ -40,7 +43,10 @@ pub enum AppMessage {
     /// Incremental state update.
     StateUpdate { patch: StatePatch },
     /// Acknowledgment of a command.
-    CommandAck { success: bool, message: Option<String> },
+    CommandAck {
+        success: bool,
+        message: Option<String>,
+    },
 }
 
 /// Snapshot of the main app's state.
@@ -73,7 +79,6 @@ pub enum StatePatch {
 
 /// Default socket path.
 pub fn socket_path() -> std::path::PathBuf {
-    let runtime_dir = std::env::var("XDG_RUNTIME_DIR")
-        .unwrap_or_else(|_| "/tmp".to_string());
+    let runtime_dir = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".to_string());
     std::path::PathBuf::from(runtime_dir).join("tmnl-bar.sock")
 }

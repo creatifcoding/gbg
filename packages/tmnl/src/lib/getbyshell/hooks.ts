@@ -2,7 +2,7 @@
  * TMNL Bar — React Hooks
  *
  * Thin hooks that wire atoms to React lifecycle.
- * Clock tick, niri event subscription, initial data fetch.
+ * Clock tick, compositor event subscription, initial data fetch.
  */
 
 import { useEffect, useState } from 'react'
@@ -44,7 +44,7 @@ export function useClockTick() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Niri Sync — fetches initial state + subscribes to events
+// Compositor Sync — fetches initial state + subscribes to events
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useNiriSync() {
@@ -60,19 +60,21 @@ export function useNiriSync() {
 
   useEffect(() => {
     // Initial fetch
-    logBoot({ phase: 'niri.connect', detail: 'Starting niri sync' })
+    logBoot({ phase: 'compositor.connect', detail: 'Starting compositor sync' })
     setStatus('connecting')
     logNiriStatus({ from: 'disconnected', to: 'connecting' })
     refreshWorkspaces(undefined)
     refreshWindows(undefined)
 
-    // Subscribe to niri events from Tauri backend
-    let unlisten: (() => void) | null = null
+    // Subscribe to compositor events from the Tauri backend. Niri is push-based;
+    // DriftWM currently has no event stream, so the backend polls its state file
+    // and emits driftwm-state when the snapshot changes.
+    const unlisteners: Array<() => void> = []
 
     const setup = async () => {
       try {
         const { listen } = await import('@tauri-apps/api/event')
-        const fn = await listen<Record<string, unknown>>('niri-event', (event) => {
+        const unlistenNiri = await listen<Record<string, unknown>>('niri-event', (event) => {
           const payload = event.payload
           if (!payload) return
 
@@ -101,22 +103,35 @@ export function useNiriSync() {
             refreshWindows(undefined)
           }
         })
-        unlisten = fn
+        unlisteners.push(unlistenNiri)
+
+        const unlistenDrift = await listen<Record<string, unknown>>('driftwm-state', (event) => {
+          const payload = event.payload
+          const windows = Array.isArray(payload?.windows) ? payload.windows : []
+          logNiriEvent({ type: 'DriftWMStateChanged', detail: `${windows.length} windows` })
+          refreshWorkspaces(undefined)
+          refreshWindows(undefined)
+        })
+        unlisteners.push(unlistenDrift)
+
         setStatus('connected')
         logNiriStatus({ from: 'connecting', to: 'connected' })
-        logBoot({ phase: 'niri.ready', detail: 'Event subscription active' })
+        logBoot({ phase: 'compositor.ready', detail: 'Event subscription active' })
       } catch (e) {
-        console.error('Niri event subscription failed:', e)
+        console.error('Compositor event subscription failed:', e)
         setStatus('error')
         logNiriStatus({ from: 'connecting', to: 'error' })
-        logError({ source: 'niri.sync', error: String(e) })
+        logError({ source: 'compositor.sync', error: String(e) })
       }
     }
 
     setup()
-    return () => { unlisten?.() }
+    return () => { unlisteners.forEach((unlisten) => unlisten()) }
   }, [setWorkspaces, setWindows, setStatus, refreshWorkspaces, refreshWindows, logNiriEvent, logNiriStatus, logBoot, logError])
 }
+
+/** Compositor-neutral alias. `useNiriSync` remains for API compatibility. */
+export const useCompositorSync = useNiriSync
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convenience Hooks — subscribe to derived atoms

@@ -5,10 +5,10 @@
  *
  * @example
  * ```tsx
- * import { useWorkspaces, useClock, useNiriSync } from '@/lib/getbyshell'
+ * import { useWorkspaces, useClock, useCompositorSync } from '@/lib/getbyshell'
  *
  * function ShellRoot() {
- *   useNiriSync()   // Subscribe to niri events
+ *   useCompositorSync() // Subscribe to active compositor events (DriftWM or niri)
  *   useClockTick()  // Start clock
  *   return <BarLayout>...</BarLayout>
  * }
@@ -23,6 +23,7 @@ export {
   workspacesAtom,
   windowsAtom,
   niriStatusAtom,
+  compositorStatusAtom,
   timeAtom,
   tmnlStatusAtom,
   sortedWorkspacesAtom,
@@ -43,6 +44,8 @@ export {
   logInputRegionFn,
   logNiriEventFn,
   logNiriStatusFn,
+  logCompositorEventFn,
+  logCompositorStatusFn,
   logBootPhaseFn,
   logErrorFn,
 } from './atoms'
@@ -54,6 +57,7 @@ export { NiriService } from './niri'
 export {
   useClockTick,
   useNiriSync,
+  useCompositorSync,
   useWorkspaces,
   useFocusedWorkspace,
   useFocusedWindow,

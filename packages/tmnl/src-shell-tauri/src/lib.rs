@@ -1,4 +1,4 @@
-mod layer_shell;
+mod layer_webview;
 mod niri_bridge;
 
 use std::sync::Mutex;
@@ -54,14 +54,29 @@ fn shell_log_batch(entries: Vec<LogEntry>) {
         let formatted = if spans.is_empty() {
             format!(
                 "[{}]{}{} {}{}",
-                entry.timestamp, fiber, source, entry.message, 
-                if annotations.is_empty() { String::new() } else { format!(" {}", annotations) }
+                entry.timestamp,
+                fiber,
+                source,
+                entry.message,
+                if annotations.is_empty() {
+                    String::new()
+                } else {
+                    format!(" {}", annotations)
+                }
             )
         } else {
             format!(
                 "[{}]{}{} [{}] {}{}",
-                entry.timestamp, fiber, source, spans, entry.message,
-                if annotations.is_empty() { String::new() } else { format!(" {}", annotations) }
+                entry.timestamp,
+                fiber,
+                source,
+                spans,
+                entry.message,
+                if annotations.is_empty() {
+                    String::new()
+                } else {
+                    format!(" {}", annotations)
+                }
             )
         };
 
@@ -82,49 +97,150 @@ fn shell_log_batch(entries: Vec<LogEntry>) {
     }
 }
 
-// ─── Niri Commands ──────────────────────────────────────────────────────────
+// ─── Compositor Commands (DriftWM/niri active compositor selection) ──────────
+
+fn prefer_driftwm() -> bool {
+    tmnl_shared::driftwm::DriftClient::should_prefer()
+}
+
+fn drift_workspaces_json() -> Result<serde_json::Value, String> {
+    use tmnl_shared::driftwm::DriftClient;
+
+    let state = DriftClient::read_state().map_err(|e| format!("driftwm state: {}", e))?;
+    let active_workspace = match (state.x, state.y) {
+        (Some(x), Some(y)) => DriftClient::workspace_for_point(x, y),
+        _ => 1,
+    };
+    let window_workspaces = state
+        .windows
+        .iter()
+        .enumerate()
+        .map(|(index, window)| {
+            let workspace = DriftClient::workspace_for_point(
+                window.position[0] as f64,
+                window.position[1] as f64,
+            );
+            (index + 1, workspace)
+        })
+        .collect::<Vec<_>>();
+
+    let workspaces = tmnl_shared::driftwm::DRIFT_WORKSPACE_ANCHORS
+        .iter()
+        .map(|(idx, name, _, _)| {
+            let active_window_id =
+                window_workspaces
+                    .iter()
+                    .find_map(|(id, workspace)| if workspace == idx { Some(*id) } else { None });
+            serde_json::json!({
+                "idx": idx,
+                "name": name,
+                "output": "driftwm",
+                "is_active": *idx == active_workspace,
+                "is_focused": *idx == active_workspace,
+                "active_window_id": active_window_id
+            })
+        })
+        .collect::<Vec<_>>();
+
+    Ok(serde_json::Value::Array(workspaces))
+}
+
+fn drift_windows_json() -> Result<serde_json::Value, String> {
+    use tmnl_shared::driftwm::DriftClient;
+
+    let state = DriftClient::read_state().map_err(|e| format!("driftwm state: {}", e))?;
+    let windows: Vec<serde_json::Value> = state
+        .windows
+        .iter()
+        .enumerate()
+        .map(|(index, window)| {
+            serde_json::json!({
+                "id": index + 1,
+                "title": if window.title.is_empty() { None::<String> } else { Some(window.title.clone()) },
+                "app_id": if window.app_id.is_empty() { None::<String> } else { Some(window.app_id.clone()) },
+                "workspace_id": DriftClient::workspace_for_point(window.position[0] as f64, window.position[1] as f64),
+                "is_focused": window.is_focused
+            })
+        })
+        .collect();
+
+    Ok(serde_json::Value::Array(windows))
+}
 
 #[tauri::command]
 fn get_workspaces() -> Result<serde_json::Value, String> {
     use tmnl_shared::niri::NiriClient;
-    let mut client = NiriClient::connect()
-        .map_err(|e| format!("niri connect: {}", e))?;
-    let ws = client.workspaces().map_err(|e| format!("workspaces: {}", e))?;
-    serde_json::to_value(&ws).map_err(|e| format!("serialize: {}", e))
+
+    if prefer_driftwm() {
+        return drift_workspaces_json();
+    }
+
+    if let Ok(mut client) = NiriClient::connect() {
+        match client.workspaces() {
+            Ok(ws) => return serde_json::to_value(&ws).map_err(|e| format!("serialize: {}", e)),
+            Err(e) => log::warn!("niri workspaces failed: {} — trying DriftWM", e),
+        }
+    }
+
+    drift_workspaces_json()
 }
 
 #[tauri::command]
 fn get_windows() -> Result<serde_json::Value, String> {
     use tmnl_shared::niri::NiriClient;
-    let mut client = NiriClient::connect()
-        .map_err(|e| format!("niri connect: {}", e))?;
-    let wins = client.windows().map_err(|e| format!("windows: {}", e))?;
-    serde_json::to_value(&wins).map_err(|e| format!("serialize: {}", e))
+
+    if prefer_driftwm() {
+        return drift_windows_json();
+    }
+
+    if let Ok(mut client) = NiriClient::connect() {
+        match client.windows() {
+            Ok(wins) => {
+                return serde_json::to_value(&wins).map_err(|e| format!("serialize: {}", e))
+            }
+            Err(e) => log::warn!("niri windows failed: {} — trying DriftWM", e),
+        }
+    }
+
+    drift_windows_json()
 }
 
 #[tauri::command]
 fn focus_workspace(idx: u8) -> Result<(), String> {
-    use tmnl_shared::niri::NiriClient;
-    use niri_ipc::{Request, Action};
-    let mut client = NiriClient::connect()
-        .map_err(|e| format!("niri connect: {}", e))?;
-    client.send(Request::Action(Action::FocusWorkspace {
-        reference: niri_ipc::WorkspaceReferenceArg::Index(idx),
-    })).map_err(|e| format!("focus: {}", e))?;
-    Ok(())
+    use tmnl_shared::{driftwm::DriftClient, niri::NiriClient};
+
+    if prefer_driftwm() && DriftClient::is_available() {
+        return DriftClient::focus_workspace(idx)
+            .map_err(|e| format!("driftwm focus workspace: {e}"));
+    }
+
+    if let Ok(mut client) = NiriClient::connect() {
+        use niri_ipc::{Action, Request};
+        match client.send(Request::Action(Action::FocusWorkspace {
+            reference: niri_ipc::WorkspaceReferenceArg::Index(idx),
+        })) {
+            Ok(_) => return Ok(()),
+            Err(e) => log::warn!("niri focus workspace failed: {} — trying DriftWM", e),
+        }
+    }
+
+    if DriftClient::is_available() {
+        return DriftClient::focus_workspace(idx)
+            .map_err(|e| format!("driftwm focus workspace: {e}"));
+    }
+
+    Err("no supported compositor IPC available".to_string())
 }
 
 // ─── Command Palette (Layer-Shell Overlay) ───────────────────────────────────
 
 /// Visibility flag — read from command threads, written from GTK thread.
-static PALETTE_VISIBLE: std::sync::atomic::AtomicBool =
-    std::sync::atomic::AtomicBool::new(false);
+static PALETTE_VISIBLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 // ─── Chronicle (Layer-Shell Overlay) ─────────────────────────────────────────
 
 /// Visibility flag — read from command threads, written from GTK thread.
-static CHRONICLE_VISIBLE: std::sync::atomic::AtomicBool =
-    std::sync::atomic::AtomicBool::new(false);
+static CHRONICLE_VISIBLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// Last toggle timestamp — debounce guard against double-fire.
 static LAST_TOGGLE_MS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -143,7 +259,10 @@ fn toggle_command_palette(app: tauri::AppHandle) -> Result<(), String> {
             .as_millis() as u64;
         let prev = LAST_TOGGLE_MS.swap(now, std::sync::atomic::Ordering::SeqCst);
         if now.saturating_sub(prev) < 250 {
-            log::debug!("Command palette toggle debounced ({}ms since last)", now - prev);
+            log::debug!(
+                "Command palette toggle debounced ({}ms since last)",
+                now - prev
+            );
             return Ok(());
         }
     }
@@ -154,7 +273,8 @@ fn toggle_command_palette(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(ref tx) = state.palette_toggle_tx {
         let visible = PALETTE_VISIBLE.load(std::sync::atomic::Ordering::SeqCst);
         tx.send(!visible).map_err(|e| format!("send: {}", e))?;
-        log::info!("Command palette: {} → {}",
+        log::info!(
+            "Command palette: {} → {}",
             if visible { "visible" } else { "hidden" },
             if !visible { "visible" } else { "hidden" },
         );
@@ -226,52 +346,6 @@ fn get_bar_geometry(app: tauri::AppHandle) -> Result<BarGeometry, String> {
     Ok(state.geometry.clone())
 }
 
-/// Spawn the Chronicle fullscreen calendar window.
-/// Positioned relative to bar geometry — fills usable area right of bar.
-#[tauri::command]
-fn open_chronicle(app: tauri::AppHandle) -> Result<BarGeometry, String> {
-    use tauri::Manager;
-
-    let geom = {
-        let state = app.state::<Mutex<BarSurfaceState>>();
-        let state = state.lock().map_err(|e| format!("lock: {}", e))?;
-        state.geometry.clone()
-    };
-
-    // If already open, just focus it
-    if let Some(win) = app.get_webview_window("chronicle") {
-        win.set_focus().map_err(|e| format!("focus: {}", e))?;
-        return Ok(geom);
-    }
-
-    // Position: fill the usable area right of the bar
-    let margin = 8; // breathing room
-    let x = geom.usable_x + margin;
-    let y = geom.usable_y + margin;
-    let w = geom.usable_width - (margin * 2);
-    let h = geom.usable_height - (margin * 2);
-
-    let _win = tauri::WebviewWindowBuilder::new(
-        &app,
-        "chronicle",
-        tauri::WebviewUrl::App("chronicle.html".into()),
-    )
-    .title("CHRONICLE")
-    .decorations(false)
-    .transparent(true)
-    .resizable(true)
-    .position(x as f64, y as f64)
-    .inner_size(w as f64, h as f64)
-    .build()
-    .map_err(|e| format!("build chronicle: {}", e))?;
-
-    log::info!(
-        "Chronicle window opened: pos=({},{}), size={}x{} (bar_width={}, usable={}x{})",
-        x, y, w, h, geom.bar_width, geom.usable_width, geom.usable_height
-    );
-    Ok(geom)
-}
-
 // ─── Input Region (Popover System) ──────────────────────────────────────────
 
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -311,8 +385,12 @@ fn set_surface_width(app: tauri::AppHandle, width: i32) -> Result<(), String> {
             tx.send(width).map_err(|e| format!("send: {}", e))?;
             state.surface_width = width;
             state.geometry.surface_width = width;
-            log::info!("Surface resized: {}px (bar={}px, overlay={}px)",
-                width, state.bar_width, width - state.bar_width);
+            log::info!(
+                "Surface resized: {}px (bar={}px, overlay={}px)",
+                width,
+                state.bar_width,
+                width - state.bar_width
+            );
         } else {
             return Err("No resize channel".into());
         }
@@ -378,10 +456,10 @@ impl Default for BarSurfaceState {
             #[cfg(target_os = "linux")]
             chronicle_toggle_tx: None,
             bar_width: 48,
-            surface_width: 400,
+            surface_width: 48,
             geometry: BarGeometry {
                 bar_width: 48,
-                surface_width: 400,
+                surface_width: 48,
                 edge: "left".into(),
                 monitor_width: 1645,
                 monitor_height: 1028,
@@ -392,6 +470,115 @@ impl Default for BarSurfaceState {
             },
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn wire_tauri_bar_surface(
+    app: &tauri::AppHandle,
+    layer_win: &gtk::ApplicationWindow,
+    content_win: Option<&gtk::ApplicationWindow>,
+    bar_width: i32,
+    surface_width: i32,
+    layer_height: i32,
+) -> Result<(), String> {
+    use gtk::prelude::*;
+
+    let (region_tx, region_rx) = std::sync::mpsc::channel::<Vec<Rect>>();
+    let (resize_tx, resize_rx) = std::sync::mpsc::channel::<i32>();
+
+    {
+        let state = app.state::<Mutex<BarSurfaceState>>();
+        let mut state = state.lock().map_err(|e| format!("lock: {}", e))?;
+        state.region_tx = Some(region_tx);
+        state.resize_tx = Some(resize_tx);
+        state.bar_width = bar_width;
+        state.surface_width = surface_width;
+    }
+
+    let layer_captures_input = content_win.is_none();
+    let bw = if layer_captures_input { bar_width } else { 0 };
+    let lh = layer_height;
+    layer_win.connect_realize(move |win| {
+        if let Some(gdk_win) = win.window() {
+            let rect = cairo::RectangleInt::new(0, 0, bw, lh);
+            let region = cairo::Region::create_rectangle(&rect);
+            gdk_win.input_shape_combine_region(&region, 0, 0);
+            log::info!("Tauri bar layer: initial input region applied");
+        }
+    });
+
+    let region_win = layer_win.clone();
+    glib::idle_add_local(move || {
+        while let Ok(regions) = region_rx.try_recv() {
+            if let Some(gdk_win) = region_win.window() {
+                let region = if layer_captures_input {
+                    let bar = cairo::RectangleInt::new(0, 0, bar_width, layer_height);
+                    let region = cairo::Region::create_rectangle(&bar);
+                    for r in &regions {
+                        let rect = cairo::RectangleInt::new(r.x, r.y, r.w, r.h);
+                        let _ = region.union_rectangle(&rect);
+                    }
+                    region
+                } else {
+                    cairo::Region::create()
+                };
+                gdk_win.input_shape_combine_region(&region, 0, 0);
+            }
+        }
+        glib::ControlFlow::Continue
+    });
+
+    let resize_layer_win = layer_win.clone();
+    let resize_content_win = content_win.cloned();
+    glib::idle_add_local(move || {
+        while let Ok(width) = resize_rx.try_recv() {
+            resize_layer_win.set_width_request(width);
+            resize_layer_win.set_size_request(width, layer_height);
+            if let Some(ref content_win) = resize_content_win {
+                content_win.set_width_request(width);
+                content_win.set_size_request(width, layer_height);
+            }
+        }
+        glib::ControlFlow::Continue
+    });
+
+    let display = gdk::Display::default().ok_or_else(|| "No GDK display".to_string())?;
+    let monitor = display
+        .primary_monitor()
+        .or_else(|| display.monitor(0))
+        .ok_or_else(|| "No GDK monitor".to_string())?;
+    let geom = monitor.geometry();
+    let scale = monitor.scale_factor();
+    let logical_w = geom.width() / scale;
+    let logical_h = geom.height() / scale;
+
+    let state = app.state::<Mutex<BarSurfaceState>>();
+    let mut state = state.lock().map_err(|e| format!("lock: {}", e))?;
+    state.surface_width = surface_width;
+    state.geometry = BarGeometry {
+        bar_width,
+        surface_width,
+        edge: "left".into(),
+        monitor_width: logical_w,
+        monitor_height: logical_h,
+        usable_x: bar_width,
+        usable_y: 0,
+        usable_width: logical_w - bar_width,
+        usable_height: logical_h,
+    };
+
+    log::info!(
+        "Tauri bar layer geometry: monitor={}x{} scale={} usable={}x{} @ ({},{})",
+        logical_w,
+        logical_h,
+        scale,
+        state.geometry.usable_width,
+        state.geometry.usable_height,
+        state.geometry.usable_x,
+        state.geometry.usable_y,
+    );
+
+    Ok(())
 }
 
 // ─── App ────────────────────────────────────────────────────────────────────
@@ -411,163 +598,73 @@ pub fn run() {
 
             let use_layer_shell = std::env::var("TMNL_BAR_NO_LAYER_SHELL").is_err();
             let bar_width: i32 = 48;
-            let surface_width: i32 = 400; // bar + overlay for popovers
-
-            let webview_window = tauri::WebviewWindowBuilder::new(
-                app,
-                "bar",
-                tauri::WebviewUrl::App("index.html".into()),
-            )
-            .title("TMNL Shell")
-            .decorations(false)
-            .transparent(true)
-            .resizable(false)
-            .skip_taskbar(true)
-            .inner_size(surface_width as f64, 600.0)
-            .build()?;
+            let surface_width: i32 = bar_width; // persistent sidebar only; overlays expand explicitly
+            #[cfg(target_os = "linux")]
+            let layer_height = {
+                use gdk::prelude::MonitorExt;
+                gdk::Display::default()
+                    .and_then(|display| display.primary_monitor().or_else(|| display.monitor(0)))
+                    .map(|monitor| monitor.geometry().height().clamp(480, 4096))
+                    .unwrap_or(1080)
+            };
+            #[cfg(not(target_os = "linux"))]
+            let layer_height = 600;
 
             #[cfg(target_os = "linux")]
             if use_layer_shell {
                 use gtk::prelude::*;
                 use gtk_layer_shell::LayerShell;
 
-                // === Vbox transplant ===
-                webview_window.hide().map_err(|e| format!("hide: {}", e))?;
+                let gtk_app = layer_webview::gtk_application()?;
 
-                let original = webview_window.gtk_window()
-                    .map_err(|e| format!("gtk_window: {}", e))?;
-                let gtk_app = original.application()
-                    .ok_or("No GTK application")?;
+                // Tauri owns the WebKit webview and IPC bridge; the runtime
+                // patch below makes the *Tauri GTK toplevel itself* a
+                // layer-shell surface before Wry builds WebKitGTK into its
+                // default_vbox. This avoids the black-pixel failure caused by
+                // reparenting an already-realized WebKit subtree.
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_LABELS", "bar");
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_NAMESPACE", "tmnl-shell");
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_LAYER", "overlay");
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_EDGE", "left");
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_SIZE", bar_width.to_string());
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_HEIGHT", layer_height.to_string());
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_EXCLUSIVE_ZONE", bar_width.to_string());
+                std::env::set_var("TMNL_TAURI_LAYER_SHELL_KEYBOARD", "none");
 
-                let new_win = gtk::ApplicationWindow::new(&gtk_app);
-                new_win.set_app_paintable(true);
+                let bar_webview = tauri::WebviewWindowBuilder::new(
+                    app,
+                    "bar",
+                    tauri::WebviewUrl::App("index.html".into()),
+                )
+                .title("TMNL Bar")
+                .decorations(false)
+                .transparent(true)
+                .resizable(false)
+                .skip_taskbar(true)
+                .visible(false)
+                .zoom_hotkeys_enabled(false)
+                .inner_size(bar_width as f64, layer_height as f64)
+                .build()?;
 
-                // RGBA visual for transparency
-                if let Some(screen) = gtk::prelude::WidgetExt::screen(&new_win) {
-                    if let Some(visual) = screen.rgba_visual() {
-                        gtk::prelude::WidgetExt::set_visual(&new_win, Some(&visual));
-                    }
-                }
+                let bar_surface = bar_webview
+                    .gtk_window()
+                    .map_err(|e| format!("bar gtk_window: {}", e))?;
+                bar_surface.set_width_request(surface_width);
+                bar_surface.set_size_request(surface_width, layer_height);
 
-                // Move WebView vbox
-                let vbox = webview_window.default_vbox()
-                    .map_err(|e| format!("vbox: {}", e))?;
-                original.remove(&vbox);
-                new_win.add(&vbox);
-
-                // Layer shell
-                new_win.init_layer_shell();
-                new_win.set_layer(gtk_layer_shell::Layer::Top);
-                new_win.set_namespace("tmnl-shell");
-
-                new_win.set_anchor(gtk_layer_shell::Edge::Left, true);
-                new_win.set_anchor(gtk_layer_shell::Edge::Top, true);
-                new_win.set_anchor(gtk_layer_shell::Edge::Bottom, true);
-                new_win.set_anchor(gtk_layer_shell::Edge::Right, false);
-
-                // Wide surface, narrow exclusive zone
-                new_win.set_width_request(surface_width);
-                new_win.set_exclusive_zone(bar_width);
-
-                // On-demand keyboard — surface grabs keyboard when it has input focus.
-                // Required for ESC to dismiss command palette / modals.
-                new_win.set_keyboard_mode(gtk_layer_shell::KeyboardMode::OnDemand);
-
-                // Set initial input region = bar strip only
-                let bw = bar_width;
-                new_win.connect_realize(move |win| {
-                    if let Some(gdk_win) = win.window() {
-                        let rect = cairo::RectangleInt::new(0, 0, bw, 8000);
-                        let region = cairo::Region::create_rectangle(&rect);
-                        gdk_win.input_shape_combine_region(&region, 0, 0);
-                    }
-                });
-
-                new_win.show_all();
-
-                // Set up input region channel for popover system.
-                // Channel: Tauri command thread → GTK idle handler.
-                {
-                    let (tx, rx) = std::sync::mpsc::channel::<Vec<Rect>>();
-                    let state = app.state::<Mutex<BarSurfaceState>>();
-                    let mut state = state.lock().unwrap();
-                    state.region_tx = Some(tx);
-                    state.bar_width = bar_width;
-
-                    // GTK idle handler: polls channel, updates input region
-                    let bw = bar_width;
-                    let win_clone = new_win.clone();
-                    glib::idle_add_local(move || {
-                        while let Ok(regions) = rx.try_recv() {
-                            if let Some(gdk_win) = win_clone.window() {
-                                let bar = cairo::RectangleInt::new(0, 0, bw, 8000);
-                                let region = cairo::Region::create_rectangle(&bar);
-                                for r in &regions {
-                                    let rect = cairo::RectangleInt::new(r.x, r.y, r.w, r.h);
-                                    let _ = region.union_rectangle(&rect);
-                                }
-                                gdk_win.input_shape_combine_region(&region, 0, 0);
-                            }
-                        }
-                        glib::ControlFlow::Continue
-                    });
-                }
-
-                // Set up resize channel for modal fullscreen expansion.
-                // Channel: Tauri command thread → GTK idle handler.
-                {
-                    let (resize_tx, resize_rx) = std::sync::mpsc::channel::<i32>();
-                    let state = app.state::<Mutex<BarSurfaceState>>();
-                    let mut state = state.lock().unwrap();
-                    state.resize_tx = Some(resize_tx);
-                    drop(state);
-
-                    let win_clone = new_win.clone();
-                    glib::idle_add_local(move || {
-                        while let Ok(width) = resize_rx.try_recv() {
-                            win_clone.set_width_request(width);
-                        }
-                        glib::ControlFlow::Continue
-                    });
-                }
-
-                // Populate real monitor geometry from GDK
-                {
-                    let display = gdk::Display::default().expect("No GDK display");
-                    let monitor = display.primary_monitor()
-                        .or_else(|| display.monitor(0))
-                        .expect("No GDK monitor");
-                    let geom = monitor.geometry();
-                    let scale = monitor.scale_factor();
-                    let logical_w = geom.width() / scale;
-                    let logical_h = geom.height() / scale;
-
-                    let state = app.state::<Mutex<BarSurfaceState>>();
-                    let mut state = state.lock().unwrap();
-                    state.surface_width = surface_width;
-                    state.geometry = BarGeometry {
-                        bar_width,
-                        surface_width,
-                        edge: "left".into(),
-                        monitor_width: logical_w,
-                        monitor_height: logical_h,
-                        usable_x: bar_width,
-                        usable_y: 0,
-                        usable_width: logical_w - bar_width,
-                        usable_height: logical_h,
-                    };
-
-                    log::info!(
-                        "Monitor: {}x{} (scale {}), usable: {}x{} @ ({},{})",
-                        logical_w, logical_h, scale,
-                        state.geometry.usable_width, state.geometry.usable_height,
-                        state.geometry.usable_x, state.geometry.usable_y,
-                    );
-                }
+                wire_tauri_bar_surface(
+                    &app.handle().clone(),
+                    &bar_surface,
+                    None,
+                    bar_width,
+                    surface_width,
+                    layer_height,
+                )?;
+                bar_webview.show().map_err(|e| format!("show bar: {}", e))?;
 
                 log::info!(
-                    "Layer shell: surface={}px, bar={}px, overlay={}px",
-                    surface_width, bar_width, surface_width - bar_width
+                    "Layer shell: tauri runtime prebuild namespace=tmnl-shell layer=overlay exclusive={}px surface={}px",
+                    bar_width, surface_width
                 );
 
                 // ── Command Palette: Layer-shell overlay surface ─────────
@@ -585,10 +682,11 @@ pub fn run() {
                     .transparent(true)
                     .resizable(false)
                     .skip_taskbar(true)
+                    .zoom_hotkeys_enabled(false)
                     .inner_size(640.0, 480.0) // Tauri requires a size; layer-shell overrides
                     .build()?;
 
-                    // Hide original Tauri window — we transplant to layer-shell
+                    // Hide original Tauri toplevel; palette content is rehosted in a dedicated overlay layer-shell surface.
                     palette_webview.hide().map_err(|e| format!("hide palette: {}", e))?;
 
                     let palette_original = palette_webview.gtk_window()
@@ -674,10 +772,11 @@ pub fn run() {
                     .transparent(true)
                     .resizable(false)
                     .skip_taskbar(true)
+                    .zoom_hotkeys_enabled(false)
                     .inner_size(800.0, 600.0) // Tauri requires a size; layer-shell overrides
                     .build()?;
 
-                    // Hide original Tauri window — we transplant to layer-shell
+                    // Hide original Tauri toplevel; Chronicle content is rehosted in a dedicated overlay layer-shell surface.
                     chronicle_webview.hide().map_err(|e| format!("hide chronicle: {}", e))?;
 
                     let chronicle_original = chronicle_webview.gtk_window()
@@ -754,20 +853,14 @@ pub fn run() {
             // ── Global Shortcut DISABLED ──────────────────────────────
             // Tauri global shortcut uses X11 grabs — partially works on
             // Wayland via XWayland, causing double-fire with SIGUSR1.
-            // SIGUSR1 via niri keybind is the sole activation path.
+            // SIGUSR1 via compositor keybind is the sole activation path.
 
-            // ── SIGUSR1 handler: Wayland-safe toggle via niri keybind ────
+            // ── SIGUSR1 handler: Wayland-safe toggle via compositor keybind ────
             // On Wayland, global shortcuts don't work (no X11 grab).
-            // Instead: niri keybind → `pkill -USR1 tmnl-shell` → this handler.
+            // Instead: niri/DriftWM keybind → `pkill -USR1 tmnl-shell` → this handler.
             {
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
-                    use std::sync::atomic::{AtomicBool, Ordering};
-                    use std::sync::Arc;
-
-                    let signaled = Arc::new(AtomicBool::new(false));
-                    let s = signaled.clone();
-
                     // Register SIGUSR1 handler
                     unsafe {
                         libc::signal(libc::SIGUSR1, {
@@ -801,11 +894,11 @@ pub fn run() {
                 });
             }
 
-            // Niri event bridge
+            // Compositor event bridge: niri EventStream or DriftWM state polling.
             let app_handle = app.handle().clone();
             std::thread::spawn(move || {
                 if let Err(e) = niri_bridge::start_event_bridge(app_handle) {
-                    log::error!("Niri event bridge failed: {}", e);
+                    log::error!("Compositor event bridge failed: {}", e);
                 }
             });
 

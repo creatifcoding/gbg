@@ -10,7 +10,7 @@
 #     enable = true;
 #     projectDir = "/home/.../tmnl";
 #     surfaces = {
-#       bar   = { port = 1421; layer = "top"; viteConfig = "vite.config.shell.ts"; tauriDir = "src-shell-tauri"; };
+#       bar   = { port = 1421; layer = "overlay"; viteConfig = "vite.config.shell.ts"; tauriDir = "src-shell-tauri"; };
 #       panel = { port = 1422; layer = "overlay"; viteConfig = "vite.config.panel.ts"; tauriDir = "src-panel-tauri"; };
 #     };
 #   };

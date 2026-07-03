@@ -31,7 +31,8 @@ let
     curl
     coreutils
     bash
-  ] ++ extraPkgs;
+  ] ++ lib.optional (pkgs ? driftwm) pkgs.driftwm
+    ++ extraPkgs;
 
   runtimePath = lib.makeBinPath runtimePkgs;
 

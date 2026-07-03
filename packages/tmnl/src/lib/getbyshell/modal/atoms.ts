@@ -96,7 +96,7 @@ async function syncModalSurface(isOpen: boolean) {
         regions: [{ x: 0, y: 0, w: monitorWidth, h: 8000 }],
       })
     } else {
-      await invoke('set_surface_width', { width: SURFACE_WIDTH })
+      await invoke('set_surface_width', { width: BAR_WIDTH })
       if (version !== surfaceVersion) return
       await invoke('update_input_region', { regions: [] as any[] })
     }
