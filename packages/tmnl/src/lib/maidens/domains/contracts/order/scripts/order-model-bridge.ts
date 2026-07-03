@@ -148,7 +148,7 @@ function providerCredentialCandidates(provider: string): string[] {
 
 async function getCredential(provider: string): Promise<{ credential: string; resolvedProvider: string }> {
   const authPath = process.env[AUTH_PATH_ENV]
-  const storage = authPath ? new AuthStorage(authPath) : new AuthStorage()
+  const storage = authPath ? AuthStorage.create(authPath) : AuthStorage.create()
 
   for (const candidate of providerCredentialCandidates(provider)) {
     const credential = await storage.getApiKey(candidate)

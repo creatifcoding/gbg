@@ -16,7 +16,7 @@ import {
   HttpClientRequest,
   Headers,
 } from "@effect/platform"
-import { Effect, Layer, Redacted } from "effect"
+import { Config, Effect, Layer, Redacted } from "effect"
 
 import { PiAuthBridge } from "../auth/PiAuthBridge"
 
@@ -134,21 +134,23 @@ export const makeAnthropicLayer = (
 export const makeAnthropicLayerFromEnv = (
   modelId: string = "claude-sonnet-4-20250514",
   config?: Omit<AnthropicLanguageModel.Config.Service, "model">
-) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set")
+) =>
+  Layer.unwrapEffect(
+    Effect.gen(function* () {
+      const apiKey = yield* Config.redacted("ANTHROPIC_API_KEY")
 
-  const clientLayer = AnthropicClient.layer({
-    apiKey: Redacted.make(apiKey),
-  }).pipe(Layer.provide(FetchHttpClient.layer))
+      const clientLayer = AnthropicClient.layer({
+        apiKey,
+      }).pipe(Layer.provide(FetchHttpClient.layer))
 
-  const languageModelLayer = AnthropicLanguageModel.layer({
-    model: modelId,
-    config,
-  })
+      const languageModelLayer = AnthropicLanguageModel.layer({
+        model: modelId,
+        config,
+      })
 
-  return languageModelLayer.pipe(Layer.provide(clientLayer))
-}
+      return languageModelLayer.pipe(Layer.provide(clientLayer))
+    })
+  )
 
 /**
  * Pre-built layer for Claude Sonnet 4 (balanced speed + capability).

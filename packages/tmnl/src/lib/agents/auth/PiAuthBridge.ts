@@ -162,7 +162,7 @@ const makeBridgeShape = (authStorage: AuthStorage): PiAuthBridgeShape => ({
 
 export const PiAuthBridgeLive = Layer.succeed(
   PiAuthBridge,
-  PiAuthBridge.of(makeBridgeShape(new AuthStorage())),
+  PiAuthBridge.of(makeBridgeShape(AuthStorage.create())),
 )
 
 /**
@@ -172,5 +172,5 @@ export const PiAuthBridgeLive = Layer.succeed(
 export const PiAuthBridgeFrom = (authPath: string) =>
   Layer.succeed(
     PiAuthBridge,
-    PiAuthBridge.of(makeBridgeShape(new AuthStorage(authPath))),
+    PiAuthBridge.of(makeBridgeShape(AuthStorage.create(authPath))),
   )

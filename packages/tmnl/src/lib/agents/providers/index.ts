@@ -42,8 +42,8 @@ const PROVIDERS: Record<ProviderId, ProviderEntry> = {
   'openai-codex': {
     id: 'openai-codex',
     name: 'OpenAI (Codex via ChatGPT)',
-    defaultModel: 'gpt-5.2',
-    makeLayer: (modelId) => makeOpenAiCodexLayer(modelId ?? 'gpt-5.2') as any,
+    defaultModel: 'gpt-5.5',
+    makeLayer: (modelId) => makeOpenAiCodexLayer(modelId ?? 'gpt-5.5') as any,
   },
   'anthropic': {
     id: 'anthropic',

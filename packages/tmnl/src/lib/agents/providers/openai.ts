@@ -21,7 +21,7 @@ import {
   HttpClient,
   HttpClientResponse,
 } from "@effect/platform"
-import { Effect, Layer, Redacted } from "effect"
+import { Config, Effect, Layer, Redacted } from "effect"
 
 import { PiAuthBridge } from "../auth/PiAuthBridge"
 
@@ -283,21 +283,23 @@ export const makeOpenAiLayer = (
 export const makeOpenAiLayerFromEnv = (
   modelId: string = "gpt-4o-mini",
   config?: Omit<OpenAiLanguageModel.Config.Service, "model">
-) => {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) throw new Error("OPENAI_API_KEY not set")
+) =>
+  Layer.unwrapEffect(
+    Effect.gen(function* () {
+      const apiKey = yield* Config.redacted("OPENAI_API_KEY")
 
-  const clientLayer = OpenAiClient.layer({
-    apiKey: Redacted.make(apiKey),
-  }).pipe(Layer.provide(FetchHttpClient.layer))
+      const clientLayer = OpenAiClient.layer({
+        apiKey,
+      }).pipe(Layer.provide(FetchHttpClient.layer))
 
-  const languageModelLayer = OpenAiLanguageModel.layer({
-    model: modelId,
-    config,
-  })
+      const languageModelLayer = OpenAiLanguageModel.layer({
+        model: modelId,
+        config,
+      })
 
-  return languageModelLayer.pipe(Layer.provide(clientLayer))
-}
+      return languageModelLayer.pipe(Layer.provide(clientLayer))
+    })
+  )
 
 /**
  * Pre-built layer for gpt-4o-mini using env var (no OAuth dependency).
