@@ -176,3 +176,11 @@
 	path = submodules/liveline
 	url = https://github.com/benjitaylor/liveline.git
 	ignore = untracked
+[submodule "packages/tmnl/agent-browser"]
+	path = packages/tmnl/agent-browser
+	url = https://github.com/vercel-labs/agent-browser
+	ignore = dirty
+[submodule "packages/mathkernel/vendor/eigen/agent-browser"]
+	path = packages/mathkernel/vendor/eigen/agent-browser
+	url = https://github.com/vercel-labs/agent-browser
+	ignore = dirty
