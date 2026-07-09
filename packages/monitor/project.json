@@ -1,0 +1,59 @@
+{
+  "name": "@gbg/monitor",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/monitor",
+  "projectType": "application",
+  "tags": ["scope:gbg", "type:app", "domain:rca-observability", "platform:local-dev"],
+  "targets": {
+    "backend": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python app.py",
+        "cwd": "packages/monitor/backend"
+      }
+    },
+    "frontend": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run dev",
+        "cwd": "packages/monitor/frontend"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          { "command": "python app.py", "cwd": "packages/monitor/backend" },
+          { "command": "bun run dev", "cwd": "packages/monitor/frontend" }
+        ],
+        "parallel": true
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/monitor/frontend"
+      },
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/frontend/dist"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "packages/monitor/frontend"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run preview",
+        "cwd": "packages/monitor/frontend"
+      }
+    }
+  }
+}

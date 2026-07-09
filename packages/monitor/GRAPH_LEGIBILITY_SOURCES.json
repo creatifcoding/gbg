@@ -1,0 +1,201 @@
+{
+  "package": "packages/monitor",
+  "artifact": "graph-legibility-source-ledger",
+  "updated_at": "2026-07-09",
+  "purpose": "Source-backed interaction grammar for the monitor RCA graph and DIIKW sidebar.",
+  "scope": "getbymonitor graph legibility, attention frontier, semantic zoom, evidence-path interaction, and operator-facing RCA UI.",
+  "sources": [
+    {
+      "id": "microsoft-nodexl-overview",
+      "title": "NodeXL - Network Overview, Discovery and Exploration in Excel",
+      "url": "https://www.microsoft.com/en-us/research/project/nodexl-network-overview-discovery-and-exploration-in-excel/",
+      "source_type": "product-research",
+      "decision": "kept",
+      "supports": ["overview-first exploration", "adjacency-table backup", "computed network metrics"],
+      "monitor_use": "Graph starts with ranked overview labels and keeps data/sidebar fallbacks instead of relying on spatial layout alone."
+    },
+    {
+      "id": "microsoft-visualizing-networks",
+      "title": "Visualizing Networks - Microsoft Research",
+      "url": "https://www.microsoft.com/en-us/research/project/visualizing-networks/",
+      "source_type": "product-research",
+      "decision": "kept",
+      "supports": ["algorithm/interface/prototype loop", "network exploration as incremental analysis"],
+      "monitor_use": "Treat RCA graph interactions as analysis steps: select, inspect, compare, then choose the next probe/action."
+    },
+    {
+      "id": "microsoft-graphttrail-video",
+      "title": "Measuring and improving the readability of network visualizations",
+      "url": "https://www.microsoft.com/en-us/research/video/measuring-and-improving-the-readability-of-network-visualizations/",
+      "source_type": "research-video",
+      "decision": "kept",
+      "supports": ["readability", "exploration history", "graph trail provenance"],
+      "monitor_use": "Keep selected/focused state and make exploration history an explicit future affordance."
+    },
+    {
+      "id": "office-data-viz-guidelines",
+      "title": "Data visualization style guidelines for Office Add-ins",
+      "url": "https://learn.microsoft.com/en-us/office/dev/add-ins/design/data-visualization-guidelines",
+      "source_type": "design-guideline",
+      "decision": "kept",
+      "supports": ["avoid gratuitous animation", "motion follows data", "shape/size/texture plus color"],
+      "monitor_use": "Non-color node encodings are preserved through Cytoscape shapes; layout animation is disabled where it caused renderer errors."
+    },
+    {
+      "id": "fluent-accessibility",
+      "title": "Accessibility - Fluent 2 Design System",
+      "url": "https://fluent2.microsoft.design/accessibility",
+      "source_type": "design-system-guideline",
+      "decision": "kept",
+      "supports": ["contrast", "inclusive interaction", "keyboard and screen-reader concerns"],
+      "monitor_use": "Graph controls remain buttons with pressed states; labels and sidebars do not depend on color alone."
+    },
+    {
+      "id": "cytoscape-home",
+      "title": "Cytoscape.js",
+      "url": "https://js.cytoscape.org/",
+      "source_type": "library-docs",
+      "decision": "kept",
+      "supports": ["compound graph platform", "selectors", "headless-compatible graph rendering"],
+      "monitor_use": "Cytoscape owns the graph viewport, hit-testing, pan/zoom, classes, and style selectors inside a single React island."
+    },
+    {
+      "id": "cytoscape-layouts",
+      "title": "Using layouts - Cytoscape.js blog",
+      "url": "https://blog.js.cytoscape.org/2020/05/11/layouts/",
+      "source_type": "library-guidance",
+      "decision": "kept",
+      "supports": ["layout choice", "discrete vs continuous layouts", "synchrony"],
+      "monitor_use": "Cose layout remains the default, but overview labels are ranked so readability does not depend on perfect layout."
+    },
+    {
+      "id": "cytoscape-expand-collapse",
+      "title": "cytoscape.js-expand-collapse",
+      "url": "https://github.com/iVis-at-Bilkent/cytoscape.js-expand-collapse",
+      "source_type": "extension-reference",
+      "decision": "kept-for-later",
+      "supports": ["compound node expansion", "collapse affordances"],
+      "monitor_use": "Future local expansion should be reversible and branch-scoped, not a full graph reshuffle."
+    },
+    {
+      "id": "cytoscape-paper",
+      "title": "Cytoscape.js: a graph theory library for visualisation and analysis",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4708103/",
+      "source_type": "paper",
+      "decision": "kept",
+      "supports": ["interactive graph rendering", "graph analysis", "headless use"],
+      "monitor_use": "Supports using Cytoscape as both an interactive graph layer and a future analysis substrate."
+    },
+    {
+      "id": "argo-lite",
+      "title": "Argo Lite: Open-Source Interactive Graph Exploration and Visualization in Browsers",
+      "url": "https://www.microsoft.com/en-us/research/publication/argo-lite-open-source-interactive-graph-exploration-and-visualization-in-browsers/",
+      "source_type": "paper",
+      "decision": "kept",
+      "supports": ["browser graph exploration", "incremental related-node exploration"],
+      "monitor_use": "Selected-node focus now brightens 1-hop neighborhoods and keeps 2-hop context faint."
+    },
+    {
+      "id": "bocd",
+      "title": "Bayesian Online Changepoint Detection",
+      "url": "https://arxiv.org/abs/0710.3742",
+      "source_type": "paper",
+      "decision": "kept-for-backend",
+      "supports": ["online changepoints", "time-series anomaly evidence"],
+      "monitor_use": "Future evidence updater can mark fresh pressure/thermal changes without pretending static samples prove root cause."
+    },
+    {
+      "id": "divi",
+      "title": "DIVI: Dynamically Linking Views in Interactive Visualization",
+      "url": "https://arxiv.org/pdf/2310.17814",
+      "source_type": "paper",
+      "decision": "kept",
+      "supports": ["view linking", "interaction inference", "coordinated views"],
+      "monitor_use": "Graph selection drives DIIKW sidebar context and should eventually synchronize evidence/model views bidirectionally."
+    },
+    {
+      "id": "responsive-matrix-cells",
+      "title": "Responsive Matrix Cells: A Focus+Context Approach for Exploring and Editing Multivariate Graphs",
+      "url": "https://arxiv.org/pdf/2009.03385",
+      "source_type": "paper",
+      "decision": "kept",
+      "supports": ["focus+context", "detail without losing overview"],
+      "monitor_use": "Focus mode dims unrelated graph context instead of removing it."
+    },
+    {
+      "id": "subgraph-selection",
+      "title": "Interaction techniques for selecting and manipulating subgraphs in network visualizations",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19834157/",
+      "source_type": "paper",
+      "decision": "kept",
+      "supports": ["neighborhood selection", "radius-based subgraph selection"],
+      "monitor_use": "Selection treatment distinguishes selected node, direct neighborhood, branch edges, second hop, and unrelated faded context."
+    },
+    {
+      "id": "focus-plus-context",
+      "title": "Focus-plus-Context - InfoVis Wiki",
+      "url": "https://infovis-wiki.net/wiki/Focus-plus-Context",
+      "source_type": "concept-reference",
+      "decision": "kept",
+      "supports": ["focus object plus surrounding context", "avoid losing orientation"],
+      "monitor_use": "The graph keeps faint context around selected RCA branches rather than forcing a separate drilldown screen."
+    },
+    {
+      "id": "dikw-pyramid",
+      "title": "What Is the Data, Information, Knowledge, Wisdom Pyramid?",
+      "url": "https://www.ontotext.com/knowledgehub/fundamentals/dikw-pyramid/",
+      "source_type": "concept-reference",
+      "decision": "kept",
+      "supports": ["data-information-knowledge-wisdom ladder"],
+      "monitor_use": "The right sidebar is organized as Data, Information, Intelligence, Knowledge, and Action."
+    },
+    {
+      "id": "ashbys-law",
+      "title": "Ashby's Law of Requisite Variety",
+      "url": "https://www.businessballs.com/strategy-innovation/ashbys-law-of-requisite-variety/",
+      "source_type": "systems-theory-reference",
+      "decision": "kept",
+      "supports": ["response variety must match system variety"],
+      "monitor_use": "The UI should preserve branch options while reducing simultaneous visual noise."
+    },
+    {
+      "id": "cambridge-graph-ux",
+      "title": "Designing intuitive data experiences with graph visualisations",
+      "url": "https://cambridge-intelligence.com/blog/designing-intuitive-data-experiences-with-graph-visualisations/",
+      "source_type": "industry-guidance",
+      "decision": "kept",
+      "supports": ["start from user questions", "graph UX for insight workflows"],
+      "monitor_use": "The graph starts from operator questions: what happened, why, evidence strength, next safe action."
+    },
+    {
+      "id": "fluent-motion-page",
+      "title": "Interaction - Fluent 2 Design System",
+      "url": "https://fluent2.microsoft.design/interaction",
+      "source_type": "design-system-guideline",
+      "decision": "partially-kept",
+      "supports": ["interaction consistency"],
+      "monitor_use": "Button/control behavior follows simple pressed/selected states; expensive graph layout motion is gated by runtime safety."
+    }
+  ],
+  "rejected_or_deferred": [
+    {
+      "id": "react-native-out-of-tree-platforms",
+      "reason": "Useful for platform architecture research, but not directly relevant to monitor graph legibility."
+    },
+    {
+      "id": "react-native-skia",
+      "reason": "Rendering substrate research only; Cytoscape is the current graph layer."
+    },
+    {
+      "id": "small-drawing-canvas-projects",
+      "reason": "Too immature or weakly sourced for RCA graph architecture."
+    }
+  ],
+  "implementation_commitments": [
+    "Default overview must not label every node.",
+    "Selected branches must preserve context instead of deleting surrounding graph state.",
+    "Motion is subordinate to runtime stability and evidence comprehension.",
+    "Color never carries the whole meaning; shape, label priority, sidebar text, and control state carry meaning too.",
+    "Raw data remains available, but the default operator path is interpretation-first."
+  ]
+}

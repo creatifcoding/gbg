@@ -1,0 +1,14 @@
+{
+  "name": "@gbg/monitor",
+  "version": "0.0.1",
+  "private": true,
+  "description": "getbymonitor — local RCA observability: /tmp SQLite probe graph, script runs, agent decisions, incident markers",
+  "scripts": {
+    "backend": "cd backend && python app.py",
+    "frontend": "cd frontend && bun run dev",
+    "dev": "(cd backend && python app.py) & (cd frontend && bun run dev)",
+    "build": "cd frontend && bun run build",
+    "typecheck": "cd frontend && bun run typecheck",
+    "preview": "cd frontend && bun run preview"
+  }
+}
