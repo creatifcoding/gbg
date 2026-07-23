@@ -1,0 +1,2 @@
+# Never commit a populated config — holds the ntfy topic + SMTP credentials.
+notify.env
