@@ -1,4 +1,4 @@
-i# See http://help.github.com/ignore-files/ for more about ignoring files.
+# See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # ignore all saved code-workspaces.
 **/*.code-workspace.*
@@ -117,10 +117,14 @@ packages/theia-ide/lib/
 .agents/context/repomix/
 packages/tmnl/agent-browser
 
-# pi CLI runtime state (root-level, ephemeral)
+# pi CLI runtime state (ephemeral)
 .pi/workflows/
 .pi/extensions.log
+**/.pi/extensions.log
 .pi/mcp-tools-cache.json
 .pi/mcp-tools-cache.json.bak-*
 .pi/messenger/feed.jsonl
 .pi/lotprophet-wireflow-research/sources/
+prime-agent-session-*.html
+.tldr/stats/
+.tldr/daemon.pid
