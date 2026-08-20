@@ -4,14 +4,14 @@ Research only. No viewer, no minted ids, no UI restyle, no merge.
 
 This note answers issue [#59](https://github.com/creatifcoding/gbg/issues/59) section 9. Requirements stay in that issue; this file picks libraries and hosts. An implementer may mint refs and show W7 **after** these calls land.
 
-Host for this note: `packages/specimendb/docs/` because the recommended viewer host is the specimendb testbed, and because PGlite / Effect `4.0.0-beta.93` already live in this package. Lab artifacts still are **not** Specimens.
+Host for this note: `packages/specimendb/docs/` because the recommended viewer host is the specimendb testbed, and because PGlite / Effect `4.0.0-beta.93` already live in this package. Do not file the terrarium as a Specimen.
 
 ---
 
 ## Locks
 
-- Specimen remains the only catalog type (`packages/specimendb/README.md`, `docs/functionalization-journal.md`).
-- Lab artifacts (sheet, solid, run, PR, doctor report) are provenance entities. They do not become Specimens unless someone files them.
+- Specimen is a bundle (Status+Claim+Media+…); sheets/solids/activities/views are entities too; views are projections; do not file the terrarium as a Specimen. ([#69](https://github.com/creatifcoding/gbg/issues/69); supersedes “Specimen is the only catalog type” in `README.md` / `docs/functionalization-journal.md`.)
+- Lab artifacts (sheet, solid, run, PR, doctor report, export/HLR/`generate.py`/doctor/Goal) are entities. They are not filed as Specimens.
 - No invented GPS, taxon, SKU, or pinout. Unknown is a value.
 - No `VANTA_*`. specimendb does not import tmnl (`test/strict-v4.test.ts`).
 - Do not merge PRs 34 / 36 / 45 / 57 / 58 from this work.
@@ -33,6 +33,26 @@ Host for this note: `packages/specimendb/docs/` because the recommended viewer h
 | 6. Doctor bridge | **ADOPT** PR 57 `doctor-report.v1.json` | Reuse the report schema; wrap it as a `report` entity. Do not fork. |
 
 Implementer work (not this PR): mint refs, append activities for the PR 58 sheet set, add a `/shop` or `/lab` route that does not restyle Terminal/Workbench.
+
+---
+
+## Overlay — ECS / EVA (#69, #74, #76)
+
+Canon that landed after this Goal started. Does not undo the table above. This PR still does not mint ids, implement a viewer, or write adapters.
+
+ECS is canon ([#69](https://github.com/creatifcoding/gbg/issues/69)). Entity is a branded stable ref. Kind is a component. Views are projections, never SoT. AnalogCard stays a view.
+
+Operations that produce artifacts are themselves entities (`Kind=activity`) ([#74](https://github.com/creatifcoding/gbg/issues/74)). W7 lives on the activity. Edges are `used` / `generated`. A STEP without a Get-able export activity is incomplete. Seed operations (not entities yet): PR 34 `fe8f875a` export; PR 58 `export_carriage_step.py` / `project_step.py`; PR 45 `generate.py`; PR 57 `mantis doctor`.
+
+`packages/tmnl/src-ava` is the view runtime ([#76](https://github.com/creatifcoding/gbg/issues/76)). AVA = Asset View Agent. For the lab it is **EVA = Entity View Agent** (Asset → Entity). It compiles a declared view to a DataFusion plan. Do not build a second DataFusion compiler or a homemade EAV next to PGlite.
+
+Already in-repo (opened): `ava-domain` (`SourceKind::Sql | Stream | Api | Graph | Lake | Cache | Custom` in `ava-domain/src/channels.rs`); `ava-compiler` DataFusion **44** / Arrow **53** (`src-ava/Cargo.toml` workspace pin); `ava-adapters` Memory, SQLite (`sqlx`), NATS, durable-streams; `ava-wasm`; `ava-runtime` hydrates `SourceKind::Graph` as `QueryRows` with no graph engine (`ava-runtime/src/v2/hydration.rs`). NATS subjects remain `tmnl.ava.*`. No `src-eva` tree. No `pggraph` string. `packages/getbygraph` is an Nx stub (`getbygraph()` returns `'getbygraph'`).
+
+| Overlay seam | Call | One-sentence why |
+|---|---|---|
+| View runtime | **ADOPT** `ava-*` as EVA at the catalog seam | Bind `ava-*` and call it EVA; do not fork `src-eva`. Mechanical rename of `tmnl.ava.*` / Elixir / crates is consider-only. |
+| Store cut | **BUILD** a PGlite `SourceAdapter` (`SourceKind::Sql`) on `4.0.0-beta.93` | Next cut is an adapter against the existing pin, not a new compiler and not a second catalog. |
+| Graph | **DEFER** graph adapter | `SourceKind::Graph` exists; no pggraph in-repo. Call CTE vs PGlite AGE (`@electric-sql/pglite-age`) vs Evokoa pgGraph (pgrx, not WASM) later. `packages/getbygraph` is empty. |
 
 ---
 
@@ -288,6 +308,7 @@ FreeCADCmd was not on PATH in the PR 58 environment. That absence is a first-cla
 
 - Viewer implementation, route, or restyle
 - Minting refs
+- AVA/EVA adapters (no PGlite `SourceAdapter`, no graph adapter, no `src-eva` fork)
 - Shop-release (#31), ordering, energize
 - OpenTelemetry product
 - Second specimen ontology
@@ -302,6 +323,14 @@ FreeCADCmd was not on PATH in the PR 58 environment. That absence is a first-cla
 | Source | URL or path |
 |---|---|
 | Brief | https://github.com/creatifcoding/gbg/issues/59 |
+| ECS canon | https://github.com/creatifcoding/gbg/issues/69 |
+| Operations are entities | https://github.com/creatifcoding/gbg/issues/74 |
+| AVA is EVA | https://github.com/creatifcoding/gbg/issues/76 |
+| AVA workspace / DataFusion 44 | `packages/tmnl/src-ava/Cargo.toml` |
+| SourceKind | `packages/tmnl/src-ava/ava-domain/src/channels.rs` |
+| Graph hydration (QueryRows) | `packages/tmnl/src-ava/ava-runtime/src/v2/hydration.rs` |
+| SQLite Sql adapter | `packages/tmnl/src-ava/ava-adapters/src/sqlite.rs` |
+| getbygraph stub | `packages/getbygraph/src/lib/getbygraph.ts` |
 | W3C PROV-DM | https://www.w3.org/TR/prov-dm/ |
 | W3C PROV-O | https://www.w3.org/TR/prov-o/ |
 | W3C PROV-N | https://www.w3.org/TR/prov-n/ |
