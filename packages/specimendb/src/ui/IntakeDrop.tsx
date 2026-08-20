@@ -1,18 +1,29 @@
 /**
- * IntakeDrop — compound drop/pick zone. Calls SpecimenRpcs.Intake.
- * Visual: Variant Terminal (Initiate_Intake_Protocol + tech-grid).
+ * IntakeDrop — full Terminal page. Calls SpecimenRpcs.Intake.
+ * Layout is the Variant Terminal HTML, not a mashed two-column shell.
  *
  * @module @tmnl/specimendb/ui
  */
 
-import { createContext, useContext, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
-import { useFocus } from '@tmnl/stx';
-import { at, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { useFocus, useStx } from '@tmnl/stx';
+import { statusOf } from '../schemas/specimen.js';
+import type { Specimen } from '../schemas/specimen.js';
+import type { SpecimenStatus } from '../schemas/components.js';
+import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { claimLine, imgSrcLabel, tagSlots } from './catalog-view.js';
+import { useIntakeBind, type IntakeBind } from './intake-bind.js';
+import { CrosshairMark, DatabaseMark, UploadMark } from './marks.js';
 import './catalog.css';
 
-const IntakeDropContext = createContext<CatalogSurface | null>(null);
+type IntakeDropContextValue = {
+  readonly catalog: CatalogSurface;
+  readonly bind: IntakeBind;
+};
 
-const useIntakeDrop = (): CatalogSurface => {
+const IntakeDropContext = createContext<IntakeDropContextValue | null>(null);
+
+const useIntakeDrop = (): IntakeDropContextValue => {
   const ctx = useContext(IntakeDropContext);
   if (ctx === null) {
     throw new Error('IntakeDrop compound components must be used within IntakeDrop');
@@ -20,39 +31,95 @@ const useIntakeDrop = (): CatalogSurface => {
   return ctx;
 };
 
+const METRIC_KICKERS = [
+  'CLASS / ORDER',
+  'EXTRACTION VECTOR',
+  'THERMAL BASE',
+  'SPECTROSCOPY',
+  'CELLULAR VIABILITY',
+  'PROTOCOL ID',
+] as const;
+
+const StatusPill = ({
+  status,
+  testId,
+}: {
+  readonly status: SpecimenStatus;
+  readonly testId?: string;
+}) => (
+  <span className="sdb-pill" data-status={status} data-testid={testId}>
+    {status}
+  </span>
+);
+
 export type IntakeDropProps = {
   readonly catalog: CatalogSurface;
   readonly children?: ReactNode;
 };
 
 function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
+  const bind = useIntakeBind(catalog);
+
+  useEffect(() => {
+    void catalog.list();
+  }, [catalog]);
+
   return (
-    <IntakeDropContext.Provider value={catalog}>
-      <section className="sdb-intake" data-testid="intake-drop">
+    <IntakeDropContext.Provider value={{ catalog, bind }}>
+      <div className="sdb-terminal" data-testid="intake-drop">
+        <input
+          ref={bind.inputRef}
+          className="sdb-file-input"
+          data-testid="intake-file"
+          type="file"
+          multiple
+          onChange={bind.onChange}
+        />
         {children ?? (
           <>
-            <IntakeDropHeader />
-            <IntakeDropZone />
-            <IntakeDropHint />
+            <aside className="sdb-t-rail">
+              <IntakeDropHeader />
+              <IntakeDropList />
+            </aside>
+            <main className="sdb-t-main">
+              <IntakeDropStatusBar />
+              <div className="sdb-t-stage">
+                <IntakeDropZone />
+                <IntakeDropDetail />
+              </div>
+            </main>
           </>
         )}
-      </section>
+      </div>
     </IntakeDropContext.Provider>
   );
 }
 
 function IntakeDropHeader() {
   return (
-    <div className="sdb-intake-header">
-      <span className="sdb-kicker-title">Local Catalog</span>
-    </div>
+    <header className="sdb-t-rail-header">
+      <DatabaseMark className="sdb-t-mark" />
+      <h1>Local Catalog</h1>
+    </header>
+  );
+}
+
+function IntakeDropStatusBar() {
+  const { catalog } = useIntakeDrop();
+  const online = useFocus(catalog.store, at<CatalogState['online']>(catalog.store.lens.online));
+  return (
+    <header className="sdb-t-status">
+      <span className="sdb-t-brand">SPECIMEN_DB</span>
+      <span className="sdb-t-sys" data-online={online ? 'true' : 'false'} data-testid="rail-online">
+        <span className="sdb-t-sys-sq" />
+        {online ? 'SYS_ONLINE' : 'SYS_OFFLINE'}
+      </span>
+    </header>
   );
 }
 
 function IntakeDropZone() {
-  const catalog = useIntakeDrop();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [active, setActive] = useState(false);
+  const { catalog, bind } = useIntakeDrop();
   const intakeStatus = useFocus(
     catalog.store,
     at<CatalogState['intakeStatus']>(catalog.store.lens.intakeStatus),
@@ -62,57 +129,27 @@ function IntakeDropZone() {
     at<CatalogState['intakeError']>(catalog.store.lens.intakeError),
   );
 
-  const take = (files: FileList | Iterable<File> | null) => {
-    if (files === null) return;
-    const list = Array.from(files);
-    if (list.length === 0) return;
-    void catalog.intakeFiles(list);
-  };
-
-  const onDrop = (event: DragEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    setActive(false);
-    take(event.dataTransfer.files);
-  };
-
-  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-    take(event.target.files);
-    event.target.value = '';
-  };
-
   return (
     <>
       <button
         type="button"
-        className="sdb-zone tech-grid"
+        className="sdb-t-zone"
         data-testid="intake-zone"
-        data-active={active ? 'true' : 'false'}
+        data-active={bind.active ? 'true' : 'false'}
         data-status={intakeStatus}
-        onClick={() => inputRef.current?.click()}
-        onDragEnter={(event) => {
-          event.preventDefault();
-          setActive(true);
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setActive(true);
-        }}
-        onDragLeave={() => setActive(false)}
-        onDrop={onDrop}
+        onClick={bind.open}
+        onDragEnter={bind.onDragEnter}
+        onDragOver={bind.onDragOver}
+        onDragLeave={bind.onDragLeave}
+        onDrop={bind.onDrop}
       >
-        <span className="sdb-zone-protocol">
+        <span className="sdb-t-zone-grid tech-grid" />
+        <UploadMark className="sdb-t-upload" />
+        <span className="sdb-t-protocol">
           {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'Initiate_Intake_Protocol'}
         </span>
-        <span className="sdb-zone-sub">DRAG FIELD ASSETS OR RAW DATA PACKETS HERE</span>
+        <span className="sdb-t-sub">DROP FIELD MEDIA / RAW TELEMETRY HERE</span>
       </button>
-      <input
-        ref={inputRef}
-        className="sdb-file-input"
-        data-testid="intake-file"
-        type="file"
-        multiple
-        onChange={onChange}
-      />
       {intakeError !== null ? (
         <p className="sdb-error" data-testid="intake-error">
           {intakeError}
@@ -122,17 +159,174 @@ function IntakeDropZone() {
   );
 }
 
-function IntakeDropHint() {
+function IntakeDropList() {
+  const { catalog } = useIntakeDrop();
+  const { value } = useStx(catalog.store);
+  const rows = visibleSpecimens(value);
+
   return (
-    <p className="sdb-hint">
-      System accepts .raw, .tiff, .csv telemetry, and standardized sequencing archives. EXIF extraction is automatic.
-      Locality is unknown unless the file has real EXIF GPS.
-    </p>
+    <div className="sdb-t-list" data-testid="rail-list">
+      {rows.length === 0 ? (
+        <TerminalCardChrome />
+      ) : (
+        rows.map((specimen) => <IntakeDropCard key={specimen.id} specimen={specimen} />)
+      )}
+    </div>
+  );
+}
+
+function TerminalWell({
+  preview,
+  caption,
+}: {
+  readonly preview?: string;
+  readonly caption: string;
+}) {
+  return (
+    <div className="sdb-t-well">
+      <span className="sdb-t-well-grid tech-grid" />
+      {preview !== undefined ? <img src={preview} alt="" /> : null}
+      <CrosshairMark className="sdb-t-crosshair" />
+      <span className="sdb-t-imgsrc">{caption}</span>
+    </div>
+  );
+}
+
+function TerminalCardChrome() {
+  const slots = tagSlots();
+  return (
+    <article className="sdb-t-card" data-empty="true" data-testid="card-chrome">
+      <TerminalWell caption="IMG_SRC" />
+      <div className="sdb-t-card-body">
+        <div className="sdb-t-card-meta">
+          <span className="sdb-pill" data-status="raw">
+            raw
+          </span>
+          <span className="sdb-t-locality" data-testid="locality">
+            unknown
+          </span>
+        </div>
+        <p className="sdb-t-claim" />
+        <div className="sdb-t-tags">
+          {slots.map((_, index) => (
+            <span className="sdb-t-tag" key={`empty-tag-${index}`} />
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
+  const { catalog } = useIntakeDrop();
+  const selectedId = useFocus(
+    catalog.store,
+    at<CatalogState['selectedId']>(catalog.store.lens.selectedId),
+  );
+  const previews = useFocus(
+    catalog.store,
+    at<CatalogState['previews']>(catalog.store.lens.previews),
+  );
+  const status = (statusOf(specimen) ?? 'raw') satisfies SpecimenStatus;
+  const slots = tagSlots(specimen);
+
+  return (
+    <button
+      type="button"
+      className="sdb-t-card"
+      data-testid="specimen-card"
+      data-selected={selectedId === specimen.id ? 'true' : 'false'}
+      onClick={() => void catalog.select(specimen.id)}
+    >
+      <TerminalWell preview={previews[specimen.id]} caption={imgSrcLabel(specimen)} />
+      <div className="sdb-t-card-body">
+        <div className="sdb-t-card-meta">
+          <StatusPill status={status} testId="status-pill" />
+          <span className="sdb-t-locality" data-testid="locality">
+            {localityLabel(specimen)}
+          </span>
+        </div>
+        <p className="sdb-t-claim">{claimLine(specimen)}</p>
+        <span className="sdb-t-id" data-testid="specimen-id" hidden>
+          {specimen.id}
+        </span>
+        <div className="sdb-t-tags">
+          {slots.map((tag, index) => (
+            <span className="sdb-t-tag" key={`${specimen.id}:tag:${index}`}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function IntakeDropDetail() {
+  const { catalog } = useIntakeDrop();
+  const selected = useFocus(
+    catalog.store,
+    at<CatalogState['selected']>(catalog.store.lens.selected),
+  );
+  const intakeError = useFocus(
+    catalog.store,
+    at<CatalogState['intakeError']>(catalog.store.lens.intakeError),
+  );
+  const status = selected === null ? undefined : (statusOf(selected) ?? 'raw');
+  const taxon = selected?.components.find((component) => component._tag === 'Taxon');
+  const classOrder =
+    taxon?._tag === 'Taxon'
+      ? [taxon.scientificName, taxon.commonName].filter((part) => part !== undefined && part.length > 0).join(' / ')
+      : '';
+
+  return (
+    <section className="sdb-t-detail" data-testid="specimen-detail">
+      <div className="sdb-t-detail-head">
+        <h2 className="sdb-t-detail-id" data-testid="detail-id">
+          {selected === null ? '>>' : `>> ${selected.id}`}
+        </h2>
+        <div className="sdb-t-live">
+          {status !== undefined ? <StatusPill status={status} testId="detail-status" /> : null}
+          <span className="sdb-pill" data-status="working">
+            ANALYSIS_ACTIVE
+          </span>
+          <span className="sdb-t-live-feed">_ LIVE_FEED</span>
+        </div>
+      </div>
+      <div className="sdb-t-metrics">
+        {METRIC_KICKERS.map((kicker) => (
+          <div className="sdb-t-cell" key={kicker}>
+            <div className="sdb-t-kicker">{kicker}</div>
+            <div className="sdb-t-cell-value">{kicker === 'CLASS / ORDER' ? classOrder : ''}</div>
+          </div>
+        ))}
+      </div>
+      <div className="sdb-t-split">
+        <div className="sdb-t-wave">
+          <div className="sdb-t-panel-head">WAVEFORM_ANALYSIS // CHROMATOPHORE_REACTIVITY</div>
+          <div className="sdb-t-wave-grid tech-grid" />
+        </div>
+        <div className="sdb-t-log">
+          <div className="sdb-t-panel-head">PROCESS LOG</div>
+          <div className="sdb-t-log-body">
+            {selected !== null ? (
+              <p className="sdb-t-locality" data-testid="detail-locality">
+                {localityLabel(selected)}
+              </p>
+            ) : null}
+            {intakeError !== null ? <p className="sdb-error">{intakeError}</p> : null}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
 export const IntakeDrop = Object.assign(IntakeDropRoot, {
   Header: IntakeDropHeader,
+  StatusBar: IntakeDropStatusBar,
   Zone: IntakeDropZone,
-  Hint: IntakeDropHint,
+  List: IntakeDropList,
+  Card: IntakeDropCard,
+  Detail: IntakeDropDetail,
 });

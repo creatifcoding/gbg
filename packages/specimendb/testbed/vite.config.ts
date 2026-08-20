@@ -4,6 +4,7 @@ import path from 'node:path';
 
 export default defineConfig({
   root: __dirname,
+  appType: 'spa',
   plugins: [react()],
   resolve: {
     alias: {
@@ -11,6 +12,11 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
+    port: 4177,
+    strictPort: true,
+  },
+  preview: {
     host: true,
     port: 4177,
     strictPort: true,

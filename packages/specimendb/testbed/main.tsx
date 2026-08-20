@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createCatalog } from '../src/ui/catalog-stx.js';
 import { IntakeDrop } from '../src/ui/IntakeDrop.js';
@@ -7,27 +7,30 @@ import { makeMemoryClient } from './memory-client.js';
 
 const catalog = createCatalog(makeMemoryClient());
 
+const pageOf = (pathname: string): '/intake' | '/rail' => {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  if (path === '/rail' || path.endsWith('/rail')) return '/rail';
+  return '/intake';
+};
+
 function App() {
-  return (
-    <div className="sdb-shell">
-      <SpecimenRail catalog={catalog}>
-        <SpecimenRail.Header />
-        <SpecimenRail.Query />
-        <SpecimenRail.Filters />
-        <SpecimenRail.List />
-      </SpecimenRail>
-      <div className="sdb-stage">
-        <IntakeDrop catalog={catalog}>
-          <IntakeDrop.Header />
-          <IntakeDrop.Zone />
-          <IntakeDrop.Hint />
-        </IntakeDrop>
-        <SpecimenRail catalog={catalog}>
-          <SpecimenRail.Detail />
-        </SpecimenRail>
-      </div>
-    </div>
-  );
+  const [page, setPage] = useState(() => pageOf(window.location.pathname));
+
+  useEffect(() => {
+    const onPop = () => setPage(pageOf(window.location.pathname));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  useEffect(() => {
+    document.title = page === '/rail' ? 'SpecimenDB Workbench' : 'SpecimenDB Terminal';
+  }, [page]);
+
+  if (page === '/rail') {
+    return <SpecimenRail catalog={catalog} />;
+  }
+
+  return <IntakeDrop catalog={catalog} />;
 }
 
 const root = document.getElementById('root');

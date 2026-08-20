@@ -1,21 +1,41 @@
 /**
- * SpecimenRail — compound list + detail. List() on mount, Get() on select.
- * Visual: Variant Workbench (dense charcoal cards, IBM Plex Mono kickers).
+ * SpecimenRail — full Workbench page. List() on mount, Get() on select.
+ * Layout is the Variant Workbench HTML, not a mashed two-column shell.
  *
  * @module @tmnl/specimendb/ui
  */
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useFocus, useStx } from '@tmnl/stx';
-import { mediaOf, statusOf } from '../schemas/specimen.js';
+import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
-import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface, type StatusFilter } from './catalog-stx.js';
+import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { claimLine, tagSlots, wellKind } from './catalog-view.js';
+import { useIntakeBind, type IntakeBind } from './intake-bind.js';
+import {
+  CubeMark,
+  DnaMark,
+  GridMark,
+  HexMark,
+  PinMark,
+  PlusMark,
+  ShutterMark,
+  SlidersMark,
+  TerminalMark,
+  UploadMark,
+  ViewportMark,
+} from './marks.js';
 import './catalog.css';
 
-const SpecimenRailContext = createContext<CatalogSurface | null>(null);
+type SpecimenRailContextValue = {
+  readonly catalog: CatalogSurface;
+  readonly bind: IntakeBind;
+};
 
-const useRail = (): CatalogSurface => {
+const SpecimenRailContext = createContext<SpecimenRailContextValue | null>(null);
+
+const useRail = (): SpecimenRailContextValue => {
   const ctx = useContext(SpecimenRailContext);
   if (ctx === null) {
     throw new Error('SpecimenRail compound components must be used within SpecimenRail');
@@ -23,23 +43,18 @@ const useRail = (): CatalogSurface => {
   return ctx;
 };
 
-const FILTERS: ReadonlyArray<{ readonly id: StatusFilter; readonly label: string }> = [
-  { id: 'all', label: 'ALL RECORDS' },
-  { id: 'raw', label: 'RAW' },
-  { id: 'filed', label: 'FILED' },
-  { id: 'working', label: 'WORKING' },
-  { id: 'dead', label: 'DEAD' },
-];
+const CLASSIFICATION_ROWS = ['Phylum', 'Class', 'Order', 'Family'] as const;
+const METRIC_ROWS = ['Tensile_Str', 'Density', 'Modulus'] as const;
 
 const StatusMark = ({
   status,
   testId,
 }: {
   readonly status: SpecimenStatus;
-  readonly testId: string;
+  readonly testId?: string;
 }) => (
-  <span className="sdb-pill" data-status={status} data-testid={testId}>
-    <span className="sdb-pill-dot" aria-hidden="true" />
+  <span className="sdb-status-dot" data-status={status} data-testid={testId}>
+    <span className="sdb-status-sq" aria-hidden="true" />
     {status}
   </span>
 );
@@ -50,112 +65,190 @@ export type SpecimenRailProps = {
 };
 
 function SpecimenRailRoot({ catalog, children }: SpecimenRailProps) {
-  const composed = children !== undefined
-  return (
-    <SpecimenRailContext.Provider value={catalog}>
-      <section
-        className={composed ? 'sdb-rail-host' : 'sdb-rail'}
-        data-testid="specimen-rail"
-      >
-        {children ?? (
-          <>
-            <SpecimenRailHeader />
-            <SpecimenRailQuery />
-            <SpecimenRailFilters />
-            <SpecimenRailList />
-          </>
-        )}
-      </section>
-    </SpecimenRailContext.Provider>
-  );
-}
-
-function SpecimenRailHeader() {
-  const catalog = useRail();
-  const online = useFocus(catalog.store, at<CatalogState['online']>(catalog.store.lens.online));
-  return (
-    <div className="sdb-rail-header">
-      <span className="sdb-kicker-title">SpecimenDB // Core</span>
-      <span className={online ? 'sdb-online' : 'sdb-offline'} data-testid="rail-online">
-        {online ? 'ONLINE' : 'OFFLINE'}
-      </span>
-    </div>
-  );
-}
-
-function SpecimenRailQuery() {
-  const catalog = useRail();
-  const { value, set } = useStx(catalog.store);
-  return (
-    <input
-      className="sdb-query"
-      data-testid="rail-query"
-      value={value.query}
-      placeholder="Q QUERY ACCESSION ID..."
-      onChange={(event) => set({ ...value, query: event.target.value })}
-      spellCheck={false}
-    />
-  );
-}
-
-function SpecimenRailFilters() {
-  const catalog = useRail();
-  const statusFilter = useFocus(
-    catalog.store,
-    at<CatalogState['statusFilter']>(catalog.store.lens.statusFilter),
-  );
-  const { value, set } = useStx(catalog.store);
-  return (
-    <div className="sdb-filters" data-testid="rail-filters">
-      {FILTERS.map((filter) => (
-        <button
-          key={filter.id}
-          type="button"
-          data-active={statusFilter === filter.id ? 'true' : 'false'}
-          onClick={() => set({ ...value, statusFilter: filter.id })}
-        >
-          {filter.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function SpecimenRailList() {
-  const catalog = useRail();
-  const { value } = useStx(catalog.store);
+  const bind = useIntakeBind(catalog);
 
   useEffect(() => {
     void catalog.list();
   }, [catalog]);
 
-  const rows = visibleSpecimens(value);
-  if (value.listStatus === 'loading' && rows.length === 0) {
-    return (
-      <div className="sdb-list sdb-empty" data-testid="rail-list">
-        LIST()
+  return (
+    <SpecimenRailContext.Provider value={{ catalog, bind }}>
+      <div className="sdb-workbench" data-testid="specimen-rail">
+        <input
+          ref={bind.inputRef}
+          className="sdb-file-input"
+          data-testid="intake-file"
+          type="file"
+          multiple
+          onChange={bind.onChange}
+        />
+        {children ?? (
+          <>
+            <SpecimenRailStrip />
+            <aside className="sdb-w-rail">
+              <SpecimenRailHeader />
+              <SpecimenRailList />
+            </aside>
+            <main className="sdb-w-main">
+              <div className="sdb-w-zone-wrap">
+                <SpecimenRailIntake />
+              </div>
+              <div className="sdb-w-body">
+                <SpecimenRailDetail />
+                <SpecimenRailProperties />
+              </div>
+            </main>
+          </>
+        )}
       </div>
-    );
-  }
-  if (rows.length === 0) {
-    return (
-      <div className="sdb-list sdb-empty" data-testid="rail-list">
-        {value.listError ?? 'NO RECORDS'}
-      </div>
-    );
-  }
+    </SpecimenRailContext.Provider>
+  );
+}
+
+function SpecimenRailStrip() {
+  const { bind } = useRail();
+  return (
+    <aside className="sdb-w-strip">
+      <span className="sdb-w-icon" data-active="true">
+        <CubeMark />
+      </span>
+      <button type="button" className="sdb-w-icon" onClick={bind.open} aria-label="intake">
+        <PlusMark />
+      </button>
+      <span className="sdb-w-icon">
+        <GridMark />
+      </span>
+      <span className="sdb-w-icon-spacer" />
+      <span className="sdb-w-icon">
+        <SlidersMark />
+      </span>
+    </aside>
+  );
+}
+
+function SpecimenRailHeader() {
+  const { catalog } = useRail();
+  const online = useFocus(catalog.store, at<CatalogState['online']>(catalog.store.lens.online));
+  return (
+    <header className="sdb-w-rail-header">
+      <h1>SpecimenDB // Core</h1>
+      <span className="sdb-w-icon" data-testid="rail-online" data-online={online ? 'true' : 'false'}>
+        <SlidersMark />
+        <span hidden>{online ? 'ONLINE' : 'OFFLINE'}</span>
+      </span>
+    </header>
+  );
+}
+
+function SpecimenRailIntake() {
+  const { catalog, bind } = useRail();
+  const intakeStatus = useFocus(
+    catalog.store,
+    at<CatalogState['intakeStatus']>(catalog.store.lens.intakeStatus),
+  );
+  const intakeError = useFocus(
+    catalog.store,
+    at<CatalogState['intakeError']>(catalog.store.lens.intakeError),
+  );
 
   return (
-    <div className="sdb-list" data-testid="rail-list">
-      {rows.map((specimen) => (
-        <SpecimenRailCard key={specimen.id} specimen={specimen} />
-      ))}
+    <>
+      <button
+        type="button"
+        className="sdb-w-zone"
+        data-testid="intake-zone"
+        data-active={bind.active ? 'true' : 'false'}
+        data-status={intakeStatus}
+        onClick={bind.open}
+        onDragEnter={bind.onDragEnter}
+        onDragOver={bind.onDragOver}
+        onDragLeave={bind.onDragLeave}
+        onDrop={bind.onDrop}
+      >
+        <span className="sdb-w-corner sdb-w-corner-tl" />
+        <span className="sdb-w-corner sdb-w-corner-tr" />
+        <span className="sdb-w-corner sdb-w-corner-bl" />
+        <span className="sdb-w-corner sdb-w-corner-br" />
+        <UploadMark className="sdb-t-upload" />
+        <span className="sdb-w-zone-copy">
+          {intakeStatus === 'dropping'
+            ? 'INTAKE_IN_FLIGHT'
+            : 'Initiate Intake Sequence // Drop Telemetry Data'}
+        </span>
+      </button>
+      {intakeError !== null ? (
+        <p className="sdb-error" data-testid="intake-error">
+          {intakeError}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function SpecimenRailList() {
+  const { catalog } = useRail();
+  const { value } = useStx(catalog.store);
+  const rows = visibleSpecimens(value);
+
+  return (
+    <div className="sdb-w-list" data-testid="rail-list">
+      {rows.length === 0 ? (
+        <WorkbenchCardChrome />
+      ) : (
+        rows.map((specimen) => <SpecimenRailCard key={specimen.id} specimen={specimen} />)
+      )}
     </div>
   );
 }
 
+function WorkbenchWell({
+  preview,
+  caption,
+}: {
+  readonly preview?: string;
+  readonly caption: string;
+}) {
+  return (
+    <div className="sdb-w-well">
+      {preview !== undefined ? <img src={preview} alt="" /> : null}
+      <ShutterMark className="sdb-w-shutter" />
+      <span className="sdb-w-well-cap">{caption}</span>
+    </div>
+  );
+}
+
+function WorkbenchCardChrome() {
+  const slots = tagSlots();
+  return (
+    <article className="sdb-w-card" data-empty="true" data-testid="card-chrome">
+      <div className="sdb-w-idrow">
+        <span className="sdb-w-id" />
+        <span className="sdb-status-dot" data-status="raw">
+          <span className="sdb-status-sq" aria-hidden="true" />
+          raw
+        </span>
+      </div>
+      <WorkbenchWell caption="" />
+      <div className="sdb-w-card-body">
+        <p className="sdb-w-claim" />
+        <div className="sdb-w-locality">
+          <PinMark />
+          <span data-testid="locality">unknown</span>
+        </div>
+        <div className="sdb-w-tags">
+          {slots.map((_, index) => (
+            <span className="sdb-w-tag" key={`empty-tag-${index}`}>
+              []
+            </span>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
-  const catalog = useRail();
+  const { catalog } = useRail();
   const selectedId = useFocus(
     catalog.store,
     at<CatalogState['selectedId']>(catalog.store.lens.selectedId),
@@ -165,92 +258,158 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
     at<CatalogState['previews']>(catalog.store.lens.previews),
   );
   const status = (statusOf(specimen) ?? 'raw') satisfies SpecimenStatus;
-  const media = mediaOf(specimen);
-  const preview = previews[specimen.id];
-  const claim = specimen.components.find((c) => c._tag === 'Claim');
-  const tags = specimen.components.filter((c) => c._tag === 'Tag');
-  const body = claim?._tag === 'Claim' && claim.text.length > 0 ? claim.text : media?.filename;
+  const slots = tagSlots(specimen);
 
   return (
     <button
       type="button"
-      className="sdb-card"
+      className="sdb-w-card"
       data-testid="specimen-card"
       data-selected={selectedId === specimen.id ? 'true' : 'false'}
       onClick={() => void catalog.select(specimen.id)}
     >
-      <div className="sdb-card-idrow">
-        <span className="sdb-id" data-testid="specimen-id">
+      <div className="sdb-w-idrow">
+        <span className="sdb-w-id" data-testid="specimen-id">
           {specimen.id}
         </span>
         <StatusMark status={status} testId="status-pill" />
       </div>
-      <div className="sdb-card-media tech-grid">
-        {preview !== undefined ? <img src={preview} alt="" /> : null}
-      </div>
-      {body !== undefined ? <p className="sdb-claim">{body}</p> : null}
-      <div className="sdb-card-foot">
-        <span className="sdb-locality" data-testid="locality">
-          {localityLabel(specimen)}
-        </span>
-        {tags.length > 0 ? (
-          <div className="sdb-tags">
-            {tags.map((tag) =>
-              tag._tag === 'Tag' ? (
-                <span className="sdb-tag" key={`${specimen.id}:${tag.value}`}>
-                  {tag.value}
-                </span>
-              ) : null,
-            )}
-          </div>
-        ) : null}
+      <WorkbenchWell preview={previews[specimen.id]} caption={wellKind(specimen)} />
+      <div className="sdb-w-card-body">
+        <p className="sdb-w-claim">{claimLine(specimen)}</p>
+        <div className="sdb-w-locality">
+          <PinMark />
+          <span data-testid="locality">{localityLabel(specimen)}</span>
+        </div>
+        <div className="sdb-w-tags">
+          {slots.map((tag, index) => (
+            <span className="sdb-w-tag" key={`${specimen.id}:tag:${index}`}>
+              [{tag}]
+            </span>
+          ))}
+        </div>
       </div>
     </button>
   );
 }
 
 function SpecimenRailDetail() {
-  const catalog = useRail();
+  const { catalog } = useRail();
   const selected = useFocus(
     catalog.store,
     at<CatalogState['selected']>(catalog.store.lens.selected),
   );
-  if (selected === null) {
-    return (
-      <section className="sdb-detail" data-testid="specimen-detail">
-        <div className="sdb-detail-header">
-          <span className="sdb-kicker-title">Record</span>
-        </div>
-        <p className="sdb-empty">NO SELECTION</p>
-      </section>
-    );
-  }
-  const status = statusOf(selected) ?? 'raw';
-  const media = mediaOf(selected);
-  const claim = selected.components.find((component) => component._tag === 'Claim');
+  const status = selected === null ? undefined : (statusOf(selected) ?? 'raw');
+  const body = selected === null ? '' : claimLine(selected);
+
   return (
-    <section className="sdb-detail" data-testid="specimen-detail">
-      <div className="sdb-detail-meta">
-        <StatusMark status={status} testId="detail-status" />
-        <span className="sdb-locality">CREATED {selected.createdAt}</span>
+    <section className="sdb-w-detail" data-testid="specimen-detail">
+      <div className="sdb-w-detail-head">
+        <div>
+          <h1 className="sdb-w-detail-id" data-testid="detail-id">
+            {selected?.id ?? ''}
+          </h1>
+          <p className="sdb-w-detail-claim">{body}</p>
+          {selected !== null ? (
+            <p className="sdb-w-locality">
+              <PinMark />
+              <span data-testid="detail-locality">{localityLabel(selected)}</span>
+            </p>
+          ) : null}
+          {status !== undefined ? <StatusMark status={status} testId="detail-status" /> : null}
+        </div>
+        <div className="sdb-w-actions">
+          <button type="button">EXPORT DB</button>
+          <button type="button">RUN SIM</button>
+        </div>
       </div>
-      <h1 className="sdb-detail-id" data-testid="detail-id">
-        {selected.id}
-      </h1>
-      <p className="sdb-locality" data-testid="detail-locality">
-        {localityLabel(selected)}
-      </p>
-      {claim?._tag === 'Claim' && claim.text.length > 0 ? <p className="sdb-claim">{claim.text}</p> : null}
-      {media !== undefined ? <p className="sdb-locality">{media.filename}</p> : null}
+      <div className="sdb-w-viewport">
+        <span className="sdb-w-corner sdb-w-corner-tl" />
+        <span className="sdb-w-corner sdb-w-corner-tr" />
+        <span className="sdb-w-corner sdb-w-corner-bl" />
+        <span className="sdb-w-corner sdb-w-corner-br" />
+        <div className="sdb-w-viewport-head">
+          <span>VIEWPORT_XZ</span>
+          <span>MAG</span>
+        </div>
+        <div className="sdb-w-viewport-stage">
+          <ViewportMark />
+        </div>
+        <div className="sdb-w-viewport-foot">
+          <span className="sdb-w-active">ACTIVE_RENDER</span>
+          <span />
+        </div>
+      </div>
     </section>
+  );
+}
+
+function SpecimenRailProperties() {
+  const { catalog } = useRail();
+  const selected = useFocus(
+    catalog.store,
+    at<CatalogState['selected']>(catalog.store.lens.selected),
+  );
+  const taxon = selected?.components.find((component) => component._tag === 'Taxon');
+  const structure = selected?.components.find((component) => component._tag === 'Structure');
+  const observation = selected?.components.find((component) => component._tag === 'Observation');
+  const taxonValue = (rank: string): string => {
+    if (taxon?._tag !== 'Taxon') return '';
+    if (rank === 'Class') return taxon.commonName ?? '';
+    return taxon.scientificName ?? taxon.rank ?? '';
+  };
+
+  return (
+    <aside className="sdb-w-props" data-testid="properties-log">
+      <header className="sdb-w-props-header">PROPERTIES LOG</header>
+      <section className="sdb-w-prop">
+        <div className="sdb-w-prop-head">
+          <span>CLASSIFICATION</span>
+          <DnaMark />
+        </div>
+        <dl>
+          {CLASSIFICATION_ROWS.map((row) => (
+            <div className="sdb-w-row" key={row}>
+              <dt>{row}</dt>
+              <dd>{taxonValue(row)}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section className="sdb-w-prop">
+        <div className="sdb-w-prop-head">
+          <span>STRUCTURAL METRICS</span>
+          <HexMark />
+        </div>
+        <dl>
+          {METRIC_ROWS.map((row) => (
+            <div className="sdb-w-row" key={row}>
+              <dt>{row}</dt>
+              <dd>{structure?._tag === 'Structure' && row === 'Tensile_Str' ? structure.text : ''}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section className="sdb-w-prop">
+        <div className="sdb-w-prop-head">
+          <span>OBSERVATION LOG</span>
+          <TerminalMark />
+        </div>
+        <p className="sdb-w-obs">{observation?._tag === 'Observation' ? observation.text : ''}</p>
+      </section>
+      <div className="sdb-w-updated">
+        LAST_UPDATED {selected?.createdAt ?? ''}
+      </div>
+    </aside>
   );
 }
 
 export const SpecimenRail = Object.assign(SpecimenRailRoot, {
   Header: SpecimenRailHeader,
-  Query: SpecimenRailQuery,
-  Filters: SpecimenRailFilters,
+  Strip: SpecimenRailStrip,
+  Intake: SpecimenRailIntake,
   List: SpecimenRailList,
   Card: SpecimenRailCard,
   Detail: SpecimenRailDetail,
+  Properties: SpecimenRailProperties,
 });

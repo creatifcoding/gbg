@@ -20,25 +20,37 @@ afterEach(() => {
   cleanup();
 });
 
-const BANISHED_IDS = ['SP-2023-084', 'SEQ-882.C', 'SP-9942-X'];
+const BANISHED = [
+  'SP-2023-084',
+  'SEQ-882.C',
+  'SP-9942-X',
+  'SPC-88.94X',
+  'SESSION_ID',
+  '98A-F',
+  'NO RECORDS',
+  'NO SELECTION',
+  'DRAG_AND_DROP_ASSETS',
+  'VOL: 04',
+];
 
-function Shell({ client }: { readonly client: SpecimenRpcClient }) {
+function TerminalPage({ client }: { readonly client: SpecimenRpcClient }) {
   const catalog = useMemo(() => createCatalog(client), [client]);
-  return React.createElement(
-    'div',
-    { className: 'sdb-shell' },
-    React.createElement(SpecimenRail, { catalog }),
-    React.createElement(
-      'div',
-      { className: 'sdb-stage' },
-      React.createElement(IntakeDrop, { catalog }),
-      React.createElement(SpecimenRail, { catalog }, React.createElement(SpecimenRail.Detail)),
-    ),
-  );
+  return React.createElement(IntakeDrop, { catalog });
 }
 
-describe('IntakeDrop + SpecimenRail', () => {
-  it('calls List on mount, Intake on pick, Get on select', async () => {
+function WorkbenchPage({ client }: { readonly client: SpecimenRpcClient }) {
+  const catalog = useMemo(() => createCatalog(client), [client]);
+  return React.createElement(SpecimenRail, { catalog });
+}
+
+const emptyClient = (): SpecimenRpcClient => ({
+  List: () => Effect.succeed([]),
+  Get: () => Effect.die('Get should not run on empty catalog'),
+  Intake: () => Effect.die('Intake should not run'),
+});
+
+describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
+  it('Terminal page calls List on mount, Intake on pick, Get on select', async () => {
     const calls = { intake: 0, list: 0, get: 0 };
     const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
     const specimen: Specimen = {
@@ -80,14 +92,18 @@ describe('IntakeDrop + SpecimenRail', () => {
       },
     };
 
-    const view = render(React.createElement(Shell, { client }));
+    const view = render(React.createElement(TerminalPage, { client }));
 
     await waitFor(() => {
       expect(calls.list).toBeGreaterThan(0);
     });
     expect(view.getByTestId('intake-zone').textContent).toContain('Initiate_Intake_Protocol');
-    expect(view.container.textContent).toContain('SpecimenDB // Core');
+    expect(view.container.textContent).toContain('SPECIMEN_DB');
+    expect(view.container.textContent).toContain('SYS_ONLINE');
+    expect(view.container.textContent).toContain('Local Catalog');
+    expect(view.getByTestId('card-chrome')).toBeTruthy();
     expect(view.container.textContent).not.toContain('DRAG_AND_DROP_ASSETS');
+    expect(view.container.className).not.toContain('sdb-shell');
 
     const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
     const input = view.getByTestId('intake-file') as HTMLInputElement;
@@ -101,6 +117,7 @@ describe('IntakeDrop + SpecimenRail', () => {
     await waitFor(() => {
       expect(view.getByTestId('specimen-id').textContent).toBe(id);
     });
+    expect(view.queryByTestId('card-chrome')).toBeNull();
     expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
     expect(view.getByTestId('locality').textContent).toBe('unknown');
 
@@ -111,14 +128,58 @@ describe('IntakeDrop + SpecimenRail', () => {
     await waitFor(() => {
       expect(calls.get).toBeGreaterThan(getBeforeSelect);
     });
-    expect(view.getByTestId('detail-id').textContent).toBe(id);
+    expect(view.getByTestId('detail-id').textContent).toContain(id);
     expect(view.getByTestId('detail-locality').textContent).toBe('unknown');
     expect(view.getByTestId('detail-status').getAttribute('data-status')).toBe('raw');
 
     const html = view.container.textContent ?? '';
-    for (const banned of BANISHED_IDS) {
+    for (const banned of BANISHED) {
       expect(html).not.toContain(banned);
     }
+  });
+
+  it('Workbench page is its own layout with empty card chrome and List on mount', async () => {
+    const calls = { list: 0 };
+    const client: SpecimenRpcClient = {
+      List: () => {
+        calls.list += 1;
+        return Effect.succeed([]);
+      },
+      Get: () => Effect.die('Get should not run'),
+      Intake: () => Effect.die('Intake should not run'),
+    };
+
+    const view = render(React.createElement(WorkbenchPage, { client }));
+    await waitFor(() => {
+      expect(calls.list).toBeGreaterThan(0);
+    });
+    expect(view.container.textContent).toContain('SpecimenDB // Core');
+    expect(view.container.textContent).toContain('Initiate Intake Sequence // Drop Telemetry Data');
+    expect(view.container.textContent).toContain('PROPERTIES LOG');
+    expect(view.container.textContent).toContain('VIEWPORT_XZ');
+    expect(view.getByTestId('card-chrome')).toBeTruthy();
+    expect(view.getByTestId('intake-zone')).toBeTruthy();
+    const html = view.container.textContent ?? '';
+    for (const banned of BANISHED) {
+      expect(html).not.toContain(banned);
+    }
+  });
+
+  it('empty catalog keeps card chrome on both pages', async () => {
+    const terminal = render(React.createElement(TerminalPage, { client: emptyClient() }));
+    await waitFor(() => {
+      expect(terminal.getByTestId('card-chrome')).toBeTruthy();
+    });
+    expect(terminal.container.textContent).not.toContain('NO RECORDS');
+    expect(terminal.container.textContent).not.toContain('NO SELECTION');
+    terminal.unmount();
+
+    const workbench = render(React.createElement(WorkbenchPage, { client: emptyClient() }));
+    await waitFor(() => {
+      expect(workbench.getByTestId('card-chrome')).toBeTruthy();
+    });
+    expect(workbench.container.textContent).not.toContain('NO RECORDS');
+    expect(workbench.container.textContent).not.toContain('NO SELECTION');
   });
 
   it('shows unknown locality for a real JPEG without EXIF GPS, and real coords when GPS exists', async () => {
@@ -128,21 +189,11 @@ describe('IntakeDrop + SpecimenRail', () => {
           const client = yield* RpcTest.makeClient(SpecimenRpcs);
           const catalog = createCatalog(client);
 
-          const view = render(
-            React.createElement('div', { className: 'sdb-shell' }, [
-              React.createElement(SpecimenRail, { catalog, key: 'rail' }),
-              React.createElement(IntakeDrop, { catalog, key: 'drop' }),
-              React.createElement(
-                SpecimenRail,
-                { catalog, key: 'detail' },
-                React.createElement(SpecimenRail.Detail),
-              ),
-            ]),
-          );
+          const view = render(React.createElement(IntakeDrop, { catalog }));
 
           yield* Effect.promise(() =>
             waitFor(() => {
-              expect(view.getByTestId('rail-online').textContent).toBe('ONLINE');
+              expect(view.getByTestId('rail-online').textContent).toContain('ONLINE');
             }),
           );
 
@@ -180,6 +231,7 @@ describe('IntakeDrop + SpecimenRail', () => {
           const html = view.container.textContent ?? '';
           expect(html).not.toContain('SP-2023-084');
           expect(html).not.toContain('SEQ-882.C');
+          expect(html).not.toContain('SPC-88.94X');
           view.unmount();
         }),
       ).pipe(Effect.provide(MemoryCatalogLive)) as Effect.Effect<void>,
