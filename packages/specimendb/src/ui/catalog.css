@@ -209,10 +209,12 @@ button.sdb-t-card {
   background: #0a0a0a;
 }
 
-.sdb-t-well-grid {
+.sdb-t-well-grid,
+.sdb-t-zone-grid {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background-color: transparent;
 }
 
 .sdb-t-well img {
@@ -390,11 +392,7 @@ button.sdb-t-card {
   border-color: #525252;
 }
 
-.sdb-t-zone-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
+.sdb-t-upload {
 
 .sdb-t-upload {
   width: 28px;
