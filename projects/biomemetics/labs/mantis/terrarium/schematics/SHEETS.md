@@ -79,8 +79,9 @@ and are never dimensional authority.
 ```text
 python3 terrarium/schematics/generate.py
 python3 terrarium/schematics/build_pdf.py
+python3 terrarium/schematics/export_hitl.py
 ```
 
-Inkscape is required for the combined PDF. There is no raster fallback.
+Inkscape is required for the combined PDF and for HITL PNG rasters. There is no raster fallback for the shop PDF. HITL PNGs are LOOK/THEORY screenshots for readability; see `HITL.md`.
 The sibling generator `terrarium/cad/generate_schematics.py` is outside this
 write set and is not the #41 source.
