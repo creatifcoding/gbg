@@ -6,8 +6,28 @@
 let
   inherit (pkgs.stdenv) isLinux isDarwin;
 
-  pyHas = name: builtins.hasAttr name pkgs.python3Packages;
-  pyPkg = name: if pyHas name then pkgs.python3Packages.${name} else null;
+  tryPkg =
+    name:
+    let
+      ev =
+        if builtins.hasAttr name pkgs then builtins.tryEval pkgs.${name} else { success = false; value = null; };
+    in
+    if ev.success then ev.value else null;
+
+  tryPy =
+    name:
+    let
+      ev =
+        if builtins.hasAttr name pkgs.python3Packages then
+          builtins.tryEval pkgs.python3Packages.${name}
+        else
+          {
+            success = false;
+            value = null;
+          };
+    in
+    if ev.success then ev.value else null;
+
   present = builtins.filter (p: p != null);
 
   pythonCore = pkgs.python3.withPackages (
@@ -28,8 +48,8 @@ let
       ps.scipy
       ps.pyyaml
     ]
-    ++ lib.optional (builtins.hasAttr "scikit-rf" ps) ps.scikit-rf
-    ++ lib.optional (builtins.hasAttr "scikit_rf" ps) ps.scikit_rf
+    ++ lib.optional (tryPy "scikit-rf" != null) ps."scikit-rf"
+    ++ lib.optional (tryPy "scikit_rf" != null) ps.scikit_rf
   );
 
   pythonCad = pkgs.python3.withPackages (
@@ -38,9 +58,9 @@ let
       ps.jsonschema
       ps.numpy
     ]
-    ++ lib.optional (builtins.hasAttr "cadquery" ps) ps.cadquery
-    ++ lib.optional (builtins.hasAttr "pythonocc-core" ps) ps.pythonocc-core
-    ++ lib.optional (builtins.hasAttr "build123d" ps) ps.build123d
+    ++ lib.optional (tryPy "cadquery" != null) ps.cadquery
+    ++ lib.optional (tryPy "pythonocc-core" != null) ps."pythonocc-core"
+    ++ lib.optional (tryPy "build123d" != null) ps.build123d
   );
 
   pythonAnalysis = pkgs.python3.withPackages (
@@ -78,19 +98,19 @@ let
     diffutils
   ];
 
-  linuxOnly = pkgs: names: present (map (n: if isLinux then pkgs.${n} or null else null) names);
+  linuxOnly = pkgs: names: present (map (n: if isLinux then tryPkg n else null) names);
 
-  kicad = pkgs.kicad or null;
-  ngspice = pkgs.ngspice or null;
-  openscad = pkgs.openscad or null;
-  freecad = pkgs.freecad or null;
-  inkscape = pkgs.inkscape or null;
-  gmsh = pkgs.gmsh or null;
-  calculix = pkgs.calculix or null;
-  poppler = pkgs.poppler-utils or pkgs.poppler or null;
-  xvfb = if isLinux then pkgs.xvfb-run or null else null;
-  chromium = pkgs.chromium or null;
-  occt = pkgs.opencascade-occt or null;
+  kicad = tryPkg "kicad";
+  ngspice = tryPkg "ngspice";
+  openscad = tryPkg "openscad";
+  freecad = tryPkg "freecad";
+  inkscape = tryPkg "inkscape";
+  gmsh = tryPkg "gmsh";
+  calculix = tryPkg "calculix-ccx";
+  poppler = tryPkg "poppler-utils";
+  xvfb = if isLinux then tryPkg "xvfb-run" else null;
+  chromium = tryPkg "chromium";
+  occt = tryPkg "opencascade-occt";
 
   missingNames =
     attrs:
@@ -121,7 +141,6 @@ in
     isLinux
     isDarwin
     present
-    pyPkg
     ;
 
   corePackages = [ pythonCore ] ++ jsTools ++ rustTools ++ coreCli;
@@ -183,9 +202,9 @@ in
       gmsh = gmsh == null;
       calculix = calculix == null;
       chromium = chromium == null;
-      "scikit-rf" = !(pyHas "scikit-rf" || pyHas "scikit_rf");
-      cadquery = !(pyHas "cadquery");
-      pythonocc-core = !(pyHas "pythonocc-core");
+      "scikit-rf" = tryPy "scikit-rf" == null && tryPy "scikit_rf" == null;
+      cadquery = tryPy "cadquery" == null;
+      pythonocc-core = tryPy "pythonocc-core" == null;
     }
     // {
       openems = true; # omitted until a headless smoke test qualifies it
