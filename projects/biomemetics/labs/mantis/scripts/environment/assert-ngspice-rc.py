@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assert ngspice RC transient reached near DC at end of run."""
+"""Assert ngspice RC transient charged toward DC by end of run."""
 
 from __future__ import annotations
 
@@ -11,31 +11,39 @@ from pathlib import Path
 def main() -> int:
     path = Path(sys.argv[1])
     text = path.read_text(encoding="utf-8", errors="replace")
-    # Look for final v(out) near 1.0 V (tau=1ms, t=5ms => ~99.3%).
-    values: list[float] = []
+
+    rows: list[tuple[float, float]] = []
+    in_table = False
     for line in text.splitlines():
-        # ngspice print formats vary; accept "v(out) = 9.9e-01" style or columns.
-        m = re.search(r"v\(out\)\s*=\s*([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)", line)
-        if m:
-            values.append(float(m.group(1)))
+        if re.search(r"Total analysis time", line, re.I):
+            break
+        if re.search(r"Index\s+time\s+v\(out\)", line, re.I):
+            in_table = True
+            continue
+        if not in_table:
+            continue
+        if re.match(r"^-{5,}", line) or not line.strip():
             continue
         parts = line.split()
-        if len(parts) >= 2 and re.fullmatch(r"[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?", parts[-1]):
-            # skip headers
-            if parts[0].lower() in {"index", "time", "#"}:
-                continue
+        if len(parts) >= 3:
             try:
-                values.append(float(parts[-1]))
+                rows.append((float(parts[1]), float(parts[2])))
             except ValueError:
-                pass
-    if not values:
-        print("no v(out) samples parsed", file=sys.stderr)
+                continue
+
+    if len(rows) < 2:
+        print("no transient table rows parsed", file=sys.stderr)
         return 1
-    final = values[-1]
-    if final < 0.95:
-        print(f"final v(out)={final} below 0.95", file=sys.stderr)
+
+    t0, v0 = rows[0]
+    t1, v1 = rows[-1]
+    if v0 > 0.2:
+        print(f"initial v(out)={v0} at t={t0} expected near 0", file=sys.stderr)
         return 1
-    print(f"ok final_v_out={final}")
+    if v1 < 0.95:
+        print(f"final v(out)={v1} at t={t1} below 0.95", file=sys.stderr)
+        return 1
+    print(f"ok v0={v0} v1={v1} samples={len(rows)}")
     return 0
 
 

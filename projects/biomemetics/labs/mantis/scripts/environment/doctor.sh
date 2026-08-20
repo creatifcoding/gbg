@@ -346,9 +346,10 @@ main() {
   export MANTIS_CHECK_DETAIL="$(printf '%s\n' "${CHECK_DETAIL[@]}")"
 
   local fail=0
-  if ! emit_report; then
-    fail=$?
-  fi
+  set +e
+  emit_report
+  fail=$?
+  set -e
   if [ "$fail" -gt 0 ]; then
     echo "doctor FAILED ($fail checks) — non-mutating; see $REPORT_JSON" >&2
     exit 1
