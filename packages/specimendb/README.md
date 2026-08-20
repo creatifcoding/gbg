@@ -24,4 +24,4 @@ Static page in [`capture/`](./capture/): stamp GPS + DateTimeOriginal into a JPE
 
 ## Versions
 
-Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pglite@4.0.0-beta.93` (peers that pin) plus `@electric-sql/pglite@0.4.5`. The repo talks `SqlClient`. L1 is PGlite. There is no DuckDB driver and no `@effect/sql-duckdb`.
+Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pglite@4.0.0-beta.93` (peers that pin) plus `@electric-sql/pglite@0.4.5`. Do not take `@effect/sql-pglite@4.0.0-beta.107`; it peers `effect@^4.0.0-beta.107` and would fight msh. The repo talks `SqlClient`. L1 is PGlite. There is no DuckDB driver and no `@effect/sql-duckdb`.
