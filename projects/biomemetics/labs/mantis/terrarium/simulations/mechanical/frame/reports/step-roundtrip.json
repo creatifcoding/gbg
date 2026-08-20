@@ -1,0 +1,18 @@
+{
+  "maturity": "DRAFT",
+  "sourceClass": "calculated",
+  "epistemic": "UNVERIFIED",
+  "step": "terrarium/cad/src/frame/exports/MANTIS-TERRARIUM-FRAME-RAIL-B20-DRAFT.step",
+  "isValid": true,
+  "solidCount": 1,
+  "volumeMm3": 6832814.999999996,
+  "bboxMm": [
+    -43.0,
+    -43.0,
+    -8.0,
+    258.0,
+    250.0,
+    508.0
+  ],
+  "note": "Re-import agrees with OCCT write only if isValid is true. This is not a coupon measurement."
+}
