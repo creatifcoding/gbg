@@ -19,8 +19,13 @@ class TerrariumLocksTests(unittest.TestCase):
     def draft_copy(self, root: Path) -> Path:
         target = root / "terrarium"
         (target / "ee").mkdir(parents=True)
+        (root / "contracts").mkdir(parents=True)
         shutil.copy2(self.workspace / "terrarium" / "params.json", target)
         shutil.copy2(self.workspace / "terrarium" / "bus.json", target)
+        shutil.copy2(
+            self.workspace / "contracts" / "interfaces.json",
+            root / "contracts" / "interfaces.json",
+        )
         shutil.copytree(
             self.workspace / "terrarium" / "ee" / "protocols",
             target / "ee" / "protocols",

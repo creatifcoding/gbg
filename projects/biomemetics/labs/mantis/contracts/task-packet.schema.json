@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:contracts:task-packet:v1",
+  "title": "Mantis leaf task packet",
+  "description": "Deterministic, path-confined packet emitted per leaf issue. Contains only the fields an implementer may consume.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "issueId",
+    "workstreamId",
+    "baseSHA",
+    "model",
+    "mode",
+    "writeSet",
+    "readSet",
+    "dependencies",
+    "lockedDecisions",
+    "claimParameterRefs",
+    "sources",
+    "acceptanceCommands",
+    "outputPaths",
+    "evidenceClass",
+    "stopConditions"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "TaskPacket" },
+    "issueId": { "type": "integer", "minimum": 1 },
+    "workstreamId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "baseSHA": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "model": {
+      "type": "string",
+      "enum": ["grok-4.5", "grok-4.6"]
+    },
+    "mode": {
+      "type": "object",
+      "required": ["fast", "readOnly"],
+      "properties": {
+        "fast": { "const": false },
+        "readOnly": { "type": "boolean" },
+        "effort": { "enum": ["xhigh"] }
+      },
+      "additionalProperties": false
+    },
+    "writeSet": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      },
+      "uniqueItems": true
+    },
+    "readSet": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      },
+      "uniqueItems": true
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "lockedDecisions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "claimParameterRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      },
+      "uniqueItems": true
+    },
+    "acceptanceCommands": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "outputPaths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      },
+      "uniqueItems": true
+    },
+    "evidenceClass": {
+      "enum": [
+        "none",
+        "theoretical",
+        "simulated",
+        "calculated",
+        "measured",
+        "observed"
+      ]
+    },
+    "stopConditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "notes": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}

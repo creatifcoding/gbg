@@ -1,0 +1,60 @@
+{
+  "acceptanceCommands": [
+    "python3 -m mantis_lab.cli --workspace projects/biomemetics/labs/mantis run-corpus"
+  ],
+  "baseSHA": "1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3",
+  "claimParameterRefs": [
+    "contracts/interfaces.json",
+    "terrarium/params.json"
+  ],
+  "dependencies": [
+    "mantis-00-workspace",
+    "mantis-00b-control-plane",
+    "gbg-pr-12-merged"
+  ],
+  "evidenceClass": "theoretical",
+  "issueId": 16,
+  "kind": "TaskPacket",
+  "lockedDecisions": [
+    "workspace.not-a-specimen",
+    "terrarium.raw-mipi-local",
+    "terrarium.break-before-move",
+    "ADR-003",
+    "ADR-004"
+  ],
+  "mode": {
+    "fast": false,
+    "readOnly": false
+  },
+  "model": "grok-4.5",
+  "notes": "No direct PGlite writes and no lab-as-Specimen projection.",
+  "outputPaths": [
+    "projects/biomemetics/labs/mantis/.agents/control/packets/16.json"
+  ],
+  "readSet": [
+    "projects/biomemetics/labs/mantis/workspace.json",
+    "projects/biomemetics/labs/mantis/GOAL.md",
+    "projects/biomemetics/labs/mantis/docs/ARCHITECTURE.md",
+    "projects/biomemetics/labs/mantis/contracts/",
+    "projects/biomemetics/labs/mantis/.agents/control/workstreams.json"
+  ],
+  "schemaVersion": "1.0.0",
+  "sources": [
+    "contracts/interfaces.json",
+    "docs/ARCHITECTURE.md",
+    "docs/EXECUTION.md"
+  ],
+  "stopConditions": [
+    "second identical deterministic failure",
+    "write-set growth exceeds 15%",
+    "missing sourced pinout/model/limit",
+    "new cross-domain decision required"
+  ],
+  "workstreamId": "mantis-01-specimendb-bridge",
+  "writeSet": [
+    "packages/specimendb/src/**",
+    "packages/specimendb/test/**",
+    "projects/biomemetics/labs/mantis/tooling/typescript/mantis-lab/src/specimendb.ts",
+    "projects/biomemetics/labs/mantis/tooling/typescript/mantis-lab/test/specimendb.test.ts"
+  ]
+}

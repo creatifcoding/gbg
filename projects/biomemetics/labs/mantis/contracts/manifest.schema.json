@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:contracts:manifest:v1",
+  "title": "Mantis artifact digest manifest",
+  "description": "Lifecycle-separated digest manifest. Generators emit lifecycle=generated. Reviewers promote to reviewed. Verifiers certify reviewed or immutable-baseline only and never mint the baseline they certify.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "lifecycle",
+    "algorithm",
+    "artifacts"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": {
+      "oneOf": [
+        { "const": 1 },
+        { "const": "1" },
+        { "const": "1.0.0" }
+      ]
+    },
+    "kind": {
+      "enum": ["ArtifactDigestManifest", "artifact-manifest"]
+    },
+    "id": { "type": "string", "minLength": 1 },
+    "lifecycle": {
+      "enum": ["generated", "reviewed", "immutable-baseline"]
+    },
+    "algorithm": {
+      "type": "string",
+      "enum": ["sha256", "SHA256"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "role": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["reviewer", "reviewedAt", "notes"],
+      "properties": {
+        "reviewer": { "type": "string", "minLength": 1 },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "status": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "lifecycle": { "const": "generated" } },
+        "required": ["lifecycle"]
+      },
+      "then": {
+        "not": { "required": ["review"] }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle": { "enum": ["reviewed", "immutable-baseline"] }
+        },
+        "required": ["lifecycle"]
+      },
+      "then": {
+        "required": ["review"]
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -19,8 +19,8 @@ struct Cli {
     #[arg(long)]
     lab: Option<PathBuf>,
 
-    /// Artifact/project manifest JSON. Repeat for multiple manifests.
-    #[arg(long = "manifest")]
+    /// Artifact/project manifest JSON. Required; verifier never mints manifests.
+    #[arg(long = "manifest", required = true)]
     manifests: Vec<PathBuf>,
 
     /// Emit compact JSON rather than pretty-printed JSON.
@@ -31,15 +31,14 @@ struct Cli {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let lab = cli.lab.unwrap_or_else(|| default_lab_path(&cli.root));
-    let manifests = if cli.manifests.is_empty() {
-        vec![default_manifest_path(&cli.root)]
-    } else {
-        cli.manifests
-    };
+    if cli.manifests.is_empty() {
+        eprintln!("mantis-lab-verifier: at least one --manifest is required (ADR-003)");
+        return ExitCode::from(2);
+    }
     let options = VerifyOptions {
         root: cli.root,
         lab,
-        manifests,
+        manifests: cli.manifests,
     };
 
     match verify(&options) {
@@ -70,17 +69,4 @@ fn default_lab_path(root: &Path) -> PathBuf {
     } else {
         PathBuf::from("workspace.json")
     }
-}
-
-fn default_manifest_path(root: &Path) -> PathBuf {
-    for candidate in [
-        "artifact-manifest.json",
-        "artifacts/manifest.json",
-        "manifests/artifacts.json",
-    ] {
-        if root.join(candidate).is_file() {
-            return PathBuf::from(candidate);
-        }
-    }
-    PathBuf::from("artifact-manifest.json")
 }

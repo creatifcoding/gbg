@@ -1,0 +1,19 @@
+{
+  "target": "projects/biomemetics/labs/mantis/.agents/control/workstreams.json",
+  "owner": "mantis-root-integration",
+  "issue": 22,
+  "reason": "Leaf #22 does not edit the hot workstream graph; propose acceptance and status only.",
+  "proposedPatch": {
+    "workstreamId": "mantis-00b-control-plane",
+    "set": {
+      "status": "review",
+      "acceptance": [
+        "python3 -m mantis_lab.cli --workspace projects/biomemetics/labs/mantis run-corpus",
+        "python3 -m mantis_lab.cli --workspace projects/biomemetics/labs/mantis check-terrarium",
+        "node --test projects/biomemetics/labs/mantis/tooling/typescript/mantis-lab/test/corpus.test.ts",
+        "cargo test --manifest-path projects/biomemetics/labs/mantis/tooling/rust/mantis-lab-verifier/Cargo.toml"
+      ],
+      "writeSetNote": "Exclude .agents/control/workstreams.json and tooling/typescript/.../specimendb.ts|test from leaf edits; those remain integration/#16."
+    }
+  }
+}

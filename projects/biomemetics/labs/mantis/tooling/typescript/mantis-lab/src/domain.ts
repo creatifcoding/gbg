@@ -47,6 +47,7 @@ export interface EvidenceRecordObservation {
 export interface EvidenceRecordArtifact {
   readonly path?: string;
   readonly uri?: string;
+  /** Required by contracts/evidence.schema.json for both path and uri artifacts. */
   readonly sha256?: string;
   readonly mediaType: string;
   readonly description?: string;
@@ -57,6 +58,12 @@ export interface EvidenceRecordAdmission {
   readonly kind: EvidenceKind;
   readonly text: string;
   readonly target?: string;
+  readonly projectionBinding?: {
+    readonly evidenceId: string;
+    readonly claimRef: string;
+    readonly admissionText: string;
+    readonly reviewStatus: 'accepted';
+  };
 }
 
 /**

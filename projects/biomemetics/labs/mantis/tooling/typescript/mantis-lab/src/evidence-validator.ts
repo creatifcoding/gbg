@@ -5,7 +5,7 @@ import type { ValidatedEvidenceRecord } from './domain.ts';
 
 export const EVIDENCE_SCHEMA_PATH = 'contracts/evidence.schema.json' as const;
 export const EVIDENCE_SCHEMA_SHA256 =
-  'e0c9b09fe30bbac9a903ae4c5cf13e3a4c79adb1680a6303b39239a37f68b5e2' as const;
+  'bf38331eb8f66d1152e0ef16ab003ebc6fb4c5d9ec9b06cf395860e2f3485cf1' as const;
 
 export interface EvidenceValidationSuccess {
   readonly valid: true;
@@ -282,17 +282,17 @@ const validateArtifacts = (value: unknown, errors: string[]): void => {
       (path !== undefined) !== (uri !== undefined),
       `/artifacts/${index} requires path xor uri`,
     );
+    push(
+      errors,
+      isSha256(artifact.sha256),
+      `/artifacts/${index}/sha256 is required for path and uri artifacts`,
+    );
     if (path !== undefined) {
       push(
         errors,
-        !path.startsWith('/') &&
-          !path.split('/').includes('..') &&
-          isSha256(artifact.sha256),
-        `/artifacts/${index}/path or sha256 is invalid`,
+        !path.startsWith('/') && !path.split('/').includes('..'),
+        `/artifacts/${index}/path is invalid`,
       );
-    }
-    if (artifact.sha256 !== undefined) {
-      push(errors, isSha256(artifact.sha256), `/artifacts/${index}/sha256 is invalid`);
     }
     if (uri !== undefined) {
       try {
@@ -324,7 +324,10 @@ const validateAdmissions = (value: unknown, errors: string[]): void => {
     }
     push(
       errors,
-      hasOnlyKeys(admission, new Set(['claimRef', 'kind', 'text', 'target'])),
+      hasOnlyKeys(
+        admission,
+        new Set(['claimRef', 'kind', 'text', 'target', 'projectionBinding']),
+      ),
       `/admissions/${index} contains an unknown property`,
     );
     push(
@@ -347,6 +350,41 @@ const validateAdmissions = (value: unknown, errors: string[]): void => {
         admission.target === undefined,
         `/admissions/${index}/target is allowed only for analog`,
       );
+    }
+    if (admission.projectionBinding !== undefined) {
+      if (!isObject(admission.projectionBinding)) {
+        errors.push(`/admissions/${index}/projectionBinding must be an object`);
+      } else {
+        const binding = admission.projectionBinding;
+        push(
+          errors,
+          hasOnlyKeys(
+            binding,
+            new Set(['evidenceId', 'claimRef', 'admissionText', 'reviewStatus']),
+          ),
+          `/admissions/${index}/projectionBinding contains an unknown property`,
+        );
+        push(
+          errors,
+          isNonBlank(binding.evidenceId),
+          `/admissions/${index}/projectionBinding/evidenceId is required`,
+        );
+        push(
+          errors,
+          binding.claimRef === admission.claimRef,
+          `/admissions/${index}/projectionBinding/claimRef must equal admission claimRef`,
+        );
+        push(
+          errors,
+          binding.admissionText === admission.text,
+          `/admissions/${index}/projectionBinding/admissionText must equal admission text`,
+        );
+        push(
+          errors,
+          binding.reviewStatus === 'accepted',
+          `/admissions/${index}/projectionBinding/reviewStatus must be accepted`,
+        );
+      }
     }
   });
 };
@@ -486,6 +524,7 @@ const validateRecord = (
   const artifacts = Array.isArray(input.artifacts) ? input.artifacts : [];
   const admissions = Array.isArray(input.admissions) ? input.admissions : [];
   const claimRefs = Array.isArray(input.claimRefs) ? input.claimRefs : [];
+  const review = isObject(input.review) ? input.review : {};
   admissions.forEach((admission, index) => {
     if (isObject(admission)) {
       push(
@@ -493,6 +532,20 @@ const validateRecord = (
         claimRefs.includes(admission.claimRef),
         `/admissions/${index}/claimRef must occur in /claimRefs`,
       );
+      if (admission.projectionBinding !== undefined) {
+        push(
+          errors,
+          review.status === 'accepted',
+          `/admissions/${index}/projectionBinding requires /review/status accepted`,
+        );
+        if (isObject(admission.projectionBinding)) {
+          push(
+            errors,
+            admission.projectionBinding.evidenceId === input.evidenceId,
+            `/admissions/${index}/projectionBinding/evidenceId must equal /evidenceId`,
+          );
+        }
+      }
     }
   });
   if (sourceClass === 'measured') {
