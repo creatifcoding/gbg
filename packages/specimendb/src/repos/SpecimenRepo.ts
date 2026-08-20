@@ -159,19 +159,18 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
             );
           }
 
-          if (Object.keys(tags).length > 0) {
-            yield* assets.writeSidecar(stored.sidecarPath, toExiftoolSidecar(stored.filename, tags));
-            components.push(
-              new ExifComponent({
-                tags,
-                sidecarPath: stored.sidecarPath,
-              }),
-            );
-          }
+          yield* assets.writeSidecar(stored.sidecarPath, toExiftoolSidecar(stored.filename, tags));
+          components.push(
+            new ExifComponent({
+              tags,
+              sidecarPath: stored.sidecarPath,
+            }),
+          );
 
           if (gps !== undefined) {
             components.push(
               new LocalityComponent({
+                state: 'fixed',
                 latitude: gps.latitude,
                 longitude: gps.longitude,
                 ...(gps.altitudeMeters !== undefined ? { altitudeMeters: gps.altitudeMeters } : {}),
@@ -181,6 +180,7 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
           } else if (payload.geo !== undefined) {
             components.push(
               new LocalityComponent({
+                state: 'fixed',
                 latitude: payload.geo.latitude,
                 longitude: payload.geo.longitude,
                 ...(payload.geo.altitudeMeters !== undefined
@@ -192,6 +192,8 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
                 source: 'capture-page',
               }),
             );
+          } else {
+            components.push(new LocalityComponent({ state: 'unknown' }));
           }
 
           yield* sql`

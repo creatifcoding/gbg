@@ -10,3 +10,4 @@ export * from './media/index.js';
 export * from './repos/index.js';
 export * from './rpc/index.js';
 export { CatalogPersistenceLive, SpecimenCatalogLive, layer } from './layers.js';
+export { localityView, specimenSurface, type LocalityView } from './surface.js';

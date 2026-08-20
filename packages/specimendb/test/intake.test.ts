@@ -1,8 +1,9 @@
 /**
- * Intake / Get / List over PGlite. JPEG and HEIC without GPS still file as raw.
+ * Intake / Get / List over PGlite.
+ * JPEG/HEIC without GPS file as raw, locality unknown, sidecar always written.
  */
 
-import { mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -10,7 +11,8 @@ import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { heicWithoutGps, jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { gpsFromExif, extractExifTags } from '../src/media/exif.js';
-import { localityOf } from '../src/schemas/specimen.js';
+import { exifOf, localityOf, localityStateOf, mediaOf, statusOf } from '../src/schemas/specimen.js';
+import { specimenSurface } from '../src/surface.js';
 import { layer } from '../src/layers.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
 
@@ -31,6 +33,11 @@ const runCatalog = async (program: Effect.Effect<unknown, unknown, never>) => {
     await rm(root, { recursive: true, force: true });
   }
 };
+
+const readUtf8 = (path: string) => Effect.tryPromise(() => readFile(path, 'utf8'));
+const readBytes = (path: string) => Effect.tryPromise(() => readFile(path));
+const exists = (path: string) =>
+  Effect.tryPromise(() => access(path)).pipe(Effect.as(true), Effect.orElseSucceed(() => false));
 
 describe('exif gps extraction', () => {
   it('does not invent GPS for a JPEG without EXIF', () => {
@@ -57,35 +64,59 @@ describe('exif gps extraction', () => {
 });
 
 describe('Intake / Get / List', () => {
-  it('files a JPEG without GPS as a raw specimen and omits locality', async () => {
+  it('files a JPEG without GPS as raw, sidecar present, locality unknown', async () => {
     await runCatalog(
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(SpecimenRpcs);
+        const original = jpegWithoutGps();
         const intake = yield* client.Intake({
-          bytes: jpegWithoutGps(),
+          bytes: original,
           filename: 'field.jpg',
         });
-        expect(intake.specimenId.length).toBeGreaterThan(0);
-        const status = intake.components.find((c) => c._tag === 'Status');
-        expect(status?._tag === 'Status' && status.value).toBe('raw');
-        expect(intake.components.some((c) => c._tag === 'Locality')).toBe(false);
+        expect(statusOf(intake)).toBe('raw');
         expect(intake.components.some((c) => c._tag === 'Taxon')).toBe(false);
-        const media = intake.components.find((c) => c._tag === 'Media');
-        expect(media?._tag === 'Media' && media.kind).toBe('jpeg');
+
+        const locality = localityOf(intake);
+        expect(locality?._tag).toBe('Locality');
+        expect(locality?.state).toBe('unknown');
+        expect(locality?.latitude).toBeUndefined();
+        expect(locality?.longitude).toBeUndefined();
+        expect(localityStateOf(intake)).toBe('unknown');
+
+        const media = mediaOf(intake);
+        expect(media?.kind).toBe('jpeg');
+        expect(yield* exists(media!.assetPath)).toBe(true);
+        const stored = yield* readBytes(media!.assetPath);
+        expect(Buffer.from(stored).equals(Buffer.from(original))).toBe(true);
+
+        const exif = exifOf(intake);
+        expect(exif?.sidecarPath).toBe(`${media!.assetPath}.json`);
+        expect(yield* exists(exif!.sidecarPath!)).toBe(true);
+        const sidecar = JSON.parse(yield* readUtf8(exif!.sidecarPath!)) as Record<string, unknown>;
+        expect(sidecar['SourceFile']).toBe(media!.filename);
+        expect(sidecar['GPSLatitude']).toBeUndefined();
+
+        const surface = specimenSurface(intake);
+        expect(surface.status).toBe('raw');
+        expect(surface.locality).toEqual({ state: 'unknown' });
 
         const got = yield* client.Get({ specimenId: intake.specimenId });
         expect(got.id).toBe(intake.specimenId);
-        expect(localityOf(got)).toBeUndefined();
+        expect(statusOf(got)).toBe('raw');
+        expect(localityOf(got)?.state).toBe('unknown');
+        expect(exifOf(got)?.sidecarPath).toBe(exif?.sidecarPath);
 
         const listed = yield* client.List();
-        expect(listed.some((s) => s.id === intake.specimenId)).toBe(true);
         const listedHit = listed.find((s) => s.id === intake.specimenId);
-        expect(listedHit && localityOf(listedHit)).toBeUndefined();
+        expect(listedHit).toBeDefined();
+        expect(statusOf(listedHit!)).toBe('raw');
+        expect(localityOf(listedHit!)?.state).toBe('unknown');
+        expect(exifOf(listedHit!)?.sidecarPath).toBe(exif?.sidecarPath);
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });
 
-  it('files a HEIC without GPS as a raw specimen and omits locality', async () => {
+  it('files a HEIC without GPS as raw with locality unknown and a sidecar', async () => {
     await runCatalog(
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(SpecimenRpcs);
@@ -94,19 +125,43 @@ describe('Intake / Get / List', () => {
           filename: 'leaf.heic',
           mediaType: 'image/heic',
         });
-        const status = intake.components.find((c) => c._tag === 'Status');
-        expect(status?._tag === 'Status' && status.value).toBe('raw');
-        expect(intake.components.some((c) => c._tag === 'Locality')).toBe(false);
-        const media = intake.components.find((c) => c._tag === 'Media');
-        expect(media?._tag === 'Media' && media.kind).toBe('heic');
+        expect(statusOf(intake)).toBe('raw');
+        expect(localityOf(intake)?.state).toBe('unknown');
+        const media = mediaOf(intake);
+        expect(media?.kind).toBe('heic');
+        const exif = exifOf(intake);
+        expect(yield* exists(exif!.sidecarPath!)).toBe(true);
 
         const got = yield* client.Get({ specimenId: intake.specimenId });
-        expect(localityOf(got)).toBeUndefined();
+        expect(localityOf(got)?.state).toBe('unknown');
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });
 
-  it('attaches locality from EXIF GPS when it actually exists', async () => {
+  it('does not overwrite an original when the same filename arrives twice', async () => {
+    await runCatalog(
+      Effect.gen(function* () {
+        const client = yield* RpcTest.makeClient(SpecimenRpcs);
+        const first = yield* client.Intake({
+          bytes: jpegWithoutGps(),
+          filename: 'field.jpg',
+        });
+        const second = yield* client.Intake({
+          bytes: jpegWithGps(),
+          filename: 'field.jpg',
+        });
+        const firstPath = mediaOf(first)!.assetPath;
+        const secondPath = mediaOf(second)!.assetPath;
+        expect(firstPath).not.toBe(secondPath);
+        expect(yield* exists(firstPath)).toBe(true);
+        expect(yield* exists(secondPath)).toBe(true);
+        expect(statusOf(first)).toBe('raw');
+        expect(statusOf(second)).toBe('raw');
+      }) as Effect.Effect<unknown, unknown, never>,
+    );
+  });
+
+  it('attaches fixed locality from EXIF GPS when it actually exists', async () => {
     await runCatalog(
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(SpecimenRpcs);
@@ -114,15 +169,17 @@ describe('Intake / Get / List', () => {
           bytes: jpegWithGps(),
           filename: 'located.jpg',
         });
-        const locality = intake.components.find((c) => c._tag === 'Locality');
-        expect(locality?._tag === 'Locality' && locality.source).toBe('exif');
-        if (locality?._tag === 'Locality') {
-          expect(locality.latitude).toBe(37);
-          expect(locality.longitude).toBe(-122);
-        }
-        const exif = intake.components.find((c) => c._tag === 'Exif');
-        expect(exif?._tag === 'Exif' && exif.tags['Make']).toBe('Apple');
-        expect(exif?._tag === 'Exif' && exif.tags['Model']).toBe('iPhone');
+        expect(statusOf(intake)).toBe('raw');
+        const locality = localityOf(intake);
+        expect(locality?.state).toBe('fixed');
+        expect(locality?.source).toBe('exif');
+        expect(locality?.latitude).toBe(37);
+        expect(locality?.longitude).toBe(-122);
+        expect(specimenSurface(intake).locality.state).toBe('fixed');
+        const exif = exifOf(intake);
+        expect(exif?.tags['Make']).toBe('Apple');
+        expect(exif?.tags['Model']).toBe('iPhone');
+        expect(yield* exists(exif!.sidecarPath!)).toBe(true);
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });
@@ -137,12 +194,11 @@ describe('Intake / Get / List', () => {
           geo: { latitude: 51.5, longitude: -0.12 },
           claim: 'leaf on the path',
         });
-        const locality = intake.components.find((c) => c._tag === 'Locality');
-        expect(locality?._tag === 'Locality' && locality.source).toBe('capture-page');
-        if (locality?._tag === 'Locality') {
-          expect(locality.latitude).toBe(51.5);
-          expect(locality.longitude).toBe(-0.12);
-        }
+        const locality = localityOf(intake);
+        expect(locality?.state).toBe('fixed');
+        expect(locality?.source).toBe('capture-page');
+        expect(locality?.latitude).toBe(51.5);
+        expect(locality?.longitude).toBe(-0.12);
         const claim = intake.components.find((c) => c._tag === 'Claim');
         expect(claim?._tag === 'Claim' && claim.text).toBe('leaf on the path');
       }) as Effect.Effect<unknown, unknown, never>,

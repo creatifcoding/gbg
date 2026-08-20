@@ -44,5 +44,27 @@ export const GetPayload = Schema.Struct({
 });
 export type GetPayload = typeof GetPayload.Type;
 
-export const localityOf = (specimen: Specimen): LocalityComponent | undefined =>
+export type ComponentBag = { readonly components: ReadonlyArray<Component> };
+
+export const localityOf = (specimen: ComponentBag): LocalityComponent | undefined =>
   specimen.components.find((c): c is LocalityComponent => c._tag === 'Locality');
+
+export const localityStateOf = (specimen: ComponentBag): LocalityComponent['state'] => {
+  const locality = localityOf(specimen);
+  return locality?.state === 'fixed' ? 'fixed' : 'unknown';
+};
+
+export const statusOf = (specimen: ComponentBag): 'raw' | 'filed' | 'working' | 'dead' | undefined => {
+  const status = specimen.components.find((c) => c._tag === 'Status');
+  return status?._tag === 'Status' ? status.value : undefined;
+};
+
+export const exifOf = (specimen: ComponentBag) => {
+  const exif = specimen.components.find((c) => c._tag === 'Exif');
+  return exif?._tag === 'Exif' ? exif : undefined;
+};
+
+export const mediaOf = (specimen: ComponentBag) => {
+  const media = specimen.components.find((c) => c._tag === 'Media');
+  return media?._tag === 'Media' ? media : undefined;
+};

@@ -2,7 +2,7 @@
 
 Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in PGlite and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
 
-Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality and taxon are never invented.
+Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality is attached as `unknown` unless EXIF GPS or capture-page geo actually arrived. Sidecar JSON is always written next to the original. Taxon is never invented.
 
 ## RPC
 
@@ -14,7 +14,7 @@ Understanding is attaching components later. A JPEG or HEIC with no GPS still fi
 
 ## Components
 
-None are required at birth. Intake attaches Status (`raw`), Media, and Exif tags that arrived. Locality is attached only when GPS exists in EXIF or an explicit capture-page geo payload is supplied.
+None are required at birth. Intake attaches Status (`raw`), Media, Exif (sidecar always), and Locality (`unknown` or `fixed`). Locality is `fixed` only when GPS exists in EXIF or an explicit capture-page geo payload is supplied. Otherwise it says unknown. It does not invent a place.
 
 Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag, Question, Observation.
 

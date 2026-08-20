@@ -26,6 +26,10 @@ export type MediaKind = typeof MediaKind.Type;
 export const LocalitySource = Schema.Literals(['exif', 'capture-page'] as const);
 export type LocalitySource = typeof LocalitySource.Type;
 
+/** unknown = no GPS arrived. fixed = EXIF or capture-page geo was actually present. */
+export const LocalityState = Schema.Literals(['unknown', 'fixed'] as const);
+export type LocalityState = typeof LocalityState.Type;
+
 export const ExifTagValue = Schema.Union([
   Schema.String,
   Schema.Number,
@@ -64,15 +68,16 @@ export class ExifComponent extends Schema.TaggedClass<ExifComponent>()('Exif', {
 }) {}
 
 /**
- * GPS only. Attached when EXIF GPS exists or capture-page geo is supplied.
- * Absent when neither exists — never invent a place.
+ * Always attached at intake. `unknown` means no GPS arrived — say unknown,
+ * do not omit, do not invent coordinates. `fixed` is EXIF GPS or capture-page geo.
  */
 export class LocalityComponent extends Schema.TaggedClass<LocalityComponent>()('Locality', {
-  latitude: Schema.Number,
-  longitude: Schema.Number,
+  state: LocalityState,
+  latitude: Schema.optional(Schema.Number),
+  longitude: Schema.optional(Schema.Number),
   altitudeMeters: Schema.optional(Schema.Number),
   accuracyMeters: Schema.optional(Schema.Number),
-  source: LocalitySource,
+  source: Schema.optional(LocalitySource),
 }) {}
 
 /** Never invent. Unknown is fine; omit the component. */
