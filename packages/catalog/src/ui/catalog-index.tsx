@@ -30,15 +30,10 @@ export function CatalogIndex({ cards }: { cards: ReadonlyArray<CatalogCard> }) {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="catalog-sans text-[12px] uppercase tracking-[0.16em] text-[color:var(--catalog-muted)]">
-            Index
-          </p>
-          <h2 className="text-3xl">Cards</h2>
+          <p className="vanta-label">Index</p>
+          <h2 className="vanta-heading text-3xl">Cards</h2>
         </div>
-        <Link
-          to="/intake"
-          className="catalog-sans rounded-full bg-[color:var(--catalog-ink)] px-4 py-2 text-[14px] text-[color:var(--catalog-paper)]"
-        >
+        <Link to="/intake" className="vanta-btn-primary">
           Dump something
         </Link>
       </header>
@@ -61,9 +56,7 @@ export function CatalogIndex({ cards }: { cards: ReadonlyArray<CatalogCard> }) {
           }}
         />
       ) : visible.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[color:var(--catalog-line)] bg-white p-8 text-[16px] text-[color:var(--catalog-muted)]">
-          No cards match those filters.
-        </p>
+        <p className="vanta-empty">No cards match those filters.</p>
       ) : (
         <ul className="grid gap-4">
           {visible.map((card) => (
@@ -80,21 +73,18 @@ export function CatalogIndex({ cards }: { cards: ReadonlyArray<CatalogCard> }) {
 function EmptyCatalog({ onLoadExamples }: { onLoadExamples: () => Promise<void> }) {
   const [pending, setPending] = useState(false)
   return (
-    <div className="rounded-2xl border border-dashed border-[color:var(--catalog-line)] bg-white p-8">
-      <p className="text-[20px]">Empty catalog. That is valid.</p>
-      <p className="mt-2 max-w-xl text-[16px] text-[color:var(--catalog-muted)]">
+    <div className="vanta-empty">
+      <p className="vanta-heading text-xl">Empty catalog. That is valid.</p>
+      <p className="vanta-muted mt-2 max-w-xl text-[16px]">
         Intake is one screen. A dump becomes a card with type, claim, tags, organism, and open questions. Deeper notes wait until after the card exists.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          to="/intake"
-          className="catalog-sans rounded-full bg-[color:var(--catalog-ink)] px-4 py-2 text-[14px] text-[color:var(--catalog-paper)]"
-        >
+        <Link to="/intake" className="vanta-btn-primary">
           Open intake
         </Link>
         <button
           type="button"
-          className="catalog-sans catalog-chip"
+          className="vanta-btn"
           disabled={pending}
           onClick={async () => {
             setPending(true)

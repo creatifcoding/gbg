@@ -95,11 +95,21 @@ Each recipe keeps its `prefers-reduced-motion` guard.
 packages/catalog/
   src/lib/catalog/   schema, intake, file store, server functions
   src/routes/        Start file routes
-  src/ui/            catalog screens and vendored-pattern components
-  src/styles/        Tailwind + transitions.dev CSS
+  src/ui/            catalog screens, VANTA token copy, vendored-pattern components
+  src/styles/        VANTA CSS variables + transitions.dev recipes
 ```
 
-`src/index.ts` re-exports the schema and UI the same way other `@gbg/*` packages expose a facade.
+`src/index.ts` re-exports the schema, VANTA tokens, and UI the same way other `@gbg/*` packages expose a facade.
+
+## Visual system
+
+Catalog uses TMNL's Vanta Black tokens. There is no second palette.
+
+Canonical source: `packages/tmnl/src/components/portal/tokens.ts` (`VANTA_COLORS`, `VANTA_TYPOGRAPHY`, `VANTA_BORDERS`, `VANTA_ANIMATION`). `@gbg/tmnl` barrels the whole app from `src/index.ts`, so catalog copies those token constants into `src/ui/vanta/tokens.ts`. It does not import tmnl shells, tauri, or `VantaCard`.
+
+Surfaces are void/base (`#000000` / `#030303`). Accents stay cyan, emerald, amber, rose, violet. Labels use Share Tech Mono, headings Space Grotesk, body Geo. Radii are 2–4px.
+
+Radix, Beautiful UI patterns, and Transitions.dev sit on these tokens. Transitions.dev tab/tooltip colors are remapped to VANTA surfaces; the motion recipes are unchanged.
 
 ## Example cards
 

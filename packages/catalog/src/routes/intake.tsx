@@ -9,11 +9,9 @@ function IntakePage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="catalog-sans text-[12px] uppercase tracking-[0.16em] text-[color:var(--catalog-muted)]">
-          Ten-second start
-        </p>
-        <h2 className="text-3xl">Dump, then file</h2>
-        <p className="mt-2 max-w-xl text-[16px] text-[color:var(--catalog-muted)]">
+        <p className="vanta-label">Ten-second start</p>
+        <h2 className="vanta-heading text-3xl">Dump, then file</h2>
+        <p className="vanta-muted mt-2 max-w-xl text-[16px]">
           One screen. No wizard. A card needs a type, a one-line claim, three tags, an organism or unknown, and whatever questions you already have.
         </p>
       </header>

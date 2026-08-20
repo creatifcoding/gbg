@@ -59,8 +59,7 @@ export function IntakeDrop() {
       }}
     >
       <div
-        className="catalog-drop catalog-sans flex flex-col items-center justify-center gap-3 px-6 py-8 text-center"
-        data-active={hover ? 'true' : 'false'}
+        className={hover ? 'vanta-drop is-active' : 'vanta-drop'}
         onDragOver={(event) => {
           event.preventDefault()
           setHover(true)
@@ -72,11 +71,11 @@ export function IntakeDrop() {
           onFiles(event.dataTransfer.files)
         }}
       >
-        <p className="text-[16px]">Drop a picture, dossier, or artifact</p>
-        <p className="text-[14px] text-[color:var(--catalog-muted)]">
+        <p className="vanta-heading text-base">Drop a picture, dossier, or artifact</p>
+        <p className="vanta-muted mt-2 text-[14px]">
           One file is enough. Notes-only dumps work too.
         </p>
-        <label className="catalog-chip cursor-pointer">
+        <label className="vanta-chip mt-3 cursor-pointer">
           Choose file
           <input
             className="sr-only"
@@ -85,15 +84,11 @@ export function IntakeDrop() {
             onChange={(event) => onFiles(event.currentTarget.files)}
           />
         </label>
-        {file ? (
-          <p className="text-[12px] text-[color:var(--catalog-accent)]">{file.name}</p>
-        ) : null}
+        {file ? <p className="vanta-file mt-3">{file.name}</p> : null}
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]">
-          Type
-        </legend>
+        <legend className="vanta-label">Type</legend>
         <SlidingTabs
           ariaLabel="Card type"
           value={kind}
@@ -125,10 +120,7 @@ export function IntakeDrop() {
         placeholder="unknown"
       />
       <div className="space-y-2">
-        <Label.Root
-          htmlFor={questionsId}
-          className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]"
-        >
+        <Label.Root htmlFor={questionsId} className="vanta-label">
           Open questions
         </Label.Root>
         <textarea
@@ -136,19 +128,13 @@ export function IntakeDrop() {
           name="questions"
           rows={3}
           placeholder="One question per line"
-          className="t-input w-full rounded-xl border border-[color:var(--catalog-line)] bg-white px-3 py-2 text-[16px]"
+          className="t-input vanta-textarea"
         />
       </div>
 
-      <p className="t-error-msg catalog-sans text-[14px] text-[color:var(--catalog-danger)]">
-        {error}
-      </p>
+      <p className="t-error-msg vanta-error">{error}</p>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="catalog-sans rounded-full bg-[color:var(--catalog-ink)] px-5 py-2 text-[14px] text-[color:var(--catalog-paper)] disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className="vanta-btn-primary">
         {pending ? 'Filing…' : 'File card'}
       </button>
     </form>
@@ -172,10 +158,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <Label.Root
-        htmlFor={id}
-        className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]"
-      >
+      <Label.Root htmlFor={id} className="vanta-label">
         {label}
       </Label.Root>
       <input
@@ -183,7 +166,11 @@ function Field({
         name={name}
         required={required}
         placeholder={placeholder}
-        className={error ? 't-input is-error is-shaking w-full rounded-xl border border-[color:var(--catalog-danger)] bg-white px-3 py-2 text-[16px]' : 't-input w-full rounded-xl border border-[color:var(--catalog-line)] bg-white px-3 py-2 text-[16px]'}
+        className={
+          error
+            ? 't-input is-error is-shaking vanta-input'
+            : 't-input vanta-input'
+        }
       />
     </div>
   )
@@ -198,20 +185,17 @@ function KindSelect({
 }) {
   return (
     <Select.Root value={value} onValueChange={(next) => onChange(next as CardKind)}>
-      <Select.Trigger
-        aria-label="Card type"
-        className="catalog-sans sr-only"
-      >
+      <Select.Trigger aria-label="Card type" className="sr-only">
         <Select.Value />
       </Select.Trigger>
       <Select.Portal>
-        <Select.Content className="catalog-sans rounded-xl border border-[color:var(--catalog-line)] bg-white p-1 shadow-md">
+        <Select.Content className="rounded-[4px] border border-[color:var(--vanta-border)] bg-[color:var(--vanta-elevated)] p-1">
           <Select.Viewport>
             {CARD_KINDS.map((kind) => (
               <Select.Item
                 key={kind}
                 value={kind}
-                className="cursor-pointer rounded-lg px-3 py-2 text-[14px] outline-none data-[highlighted]:bg-[color:var(--catalog-bg)]"
+                className="vanta-label cursor-pointer rounded-[2px] px-3 py-2 outline-none data-[highlighted]:bg-[color:var(--vanta-hover)] data-[highlighted]:text-[color:var(--vanta-cyan)]"
               >
                 <Select.ItemText>{kind}</Select.ItemText>
               </Select.Item>

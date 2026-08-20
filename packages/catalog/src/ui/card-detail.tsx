@@ -20,19 +20,20 @@ export function CardDetail({ card }: { card: CatalogCard }) {
   return (
     <article className="t-panel-slide space-y-6" data-open="true">
       {card.example ? (
-        <p className="catalog-sans rounded-xl bg-[color:var(--catalog-example)] px-4 py-3 text-[14px] text-white">
+        <p className="vanta-banner">
           EXAMPLE CARD. Synthetic UI fixture. Not a paper, not a citation, not a result.
         </p>
       ) : null}
 
       <header className="space-y-3">
-        <p className="catalog-sans text-[12px] uppercase tracking-[0.16em] text-[color:var(--catalog-muted)]">
-          {card.kind} · {organismLabel(card.organism)}
+        <p className="vanta-label">
+          {card.kind} · <span className={`status-${card.status}`}>{status}</span> ·{' '}
+          {organismLabel(card.organism)}
         </p>
-        <h2 className="text-3xl leading-tight">{card.claim}</h2>
+        <h2 className="vanta-heading text-3xl leading-tight">{card.claim}</h2>
         <div className="flex flex-wrap gap-2">
           {card.tags.map((tag) => (
-            <span key={tag} className="catalog-chip catalog-sans">
+            <span key={tag} className="vanta-chip cursor-default">
               {tag}
             </span>
           ))}
@@ -40,9 +41,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
       </header>
 
       <section className="space-y-3">
-        <h3 className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]">
-          Status
-        </h3>
+        <h3 className="vanta-label">Status</h3>
         <SlidingTabs
           ariaLabel="Card status"
           value={status}
@@ -56,11 +55,9 @@ export function CardDetail({ card }: { card: CatalogCard }) {
       </section>
 
       <section className="space-y-3">
-        <h3 className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]">
-          Open questions
-        </h3>
+        <h3 className="vanta-label">Open questions</h3>
         {card.questions.length === 0 ? (
-          <p className="text-[16px] text-[color:var(--catalog-muted)]">None written at intake.</p>
+          <p className="vanta-muted text-[16px]">None written at intake.</p>
         ) : (
           <ul className="list-disc space-y-1 pl-5 text-[16px]">
             {card.questions.map((question) => (
@@ -71,11 +68,9 @@ export function CardDetail({ card }: { card: CatalogCard }) {
       </section>
 
       <section className="space-y-3">
-        <h3 className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]">
-          Attachments
-        </h3>
+        <h3 className="vanta-label">Attachments</h3>
         {card.attachments.length === 0 ? (
-          <p className="text-[16px] text-[color:var(--catalog-muted)]">No file on this card.</p>
+          <p className="vanta-muted text-[16px]">No file on this card.</p>
         ) : (
           <ul className="space-y-4">
             {card.attachments.map((attachment) => (
@@ -84,11 +79,11 @@ export function CardDetail({ card }: { card: CatalogCard }) {
                   <img
                     src={`/api/blobs/${card.id}/${attachment.id}`}
                     alt={attachment.filename}
-                    className="max-h-80 rounded-xl border border-[color:var(--catalog-line)]"
+                    className="max-h-80 rounded-[4px] border border-[color:var(--vanta-border)]"
                   />
                 ) : null}
                 <a
-                  className="catalog-sans text-[14px] underline"
+                  className="vanta-file underline"
                   href={`/api/blobs/${card.id}/${attachment.id}`}
                 >
                   {attachment.filename}
@@ -99,7 +94,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
         )}
       </section>
 
-      <Separator.Root className="h-px bg-[color:var(--catalog-line)]" />
+      <Separator.Root className="h-px bg-[color:var(--vanta-border)]" />
 
       <form
         className="space-y-3"
@@ -114,13 +109,10 @@ export function CardDetail({ card }: { card: CatalogCard }) {
           }
         }}
       >
-        <Label.Root
-          htmlFor="notes"
-          className="catalog-sans text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]"
-        >
+        <Label.Root htmlFor="notes" className="vanta-label">
           Deeper notes
         </Label.Root>
-        <p className="text-[14px] text-[color:var(--catalog-muted)]">
+        <p className="vanta-muted text-[14px]">
           This field stays empty until the card exists. Write after filing.
         </p>
         <textarea
@@ -128,13 +120,9 @@ export function CardDetail({ card }: { card: CatalogCard }) {
           value={notes}
           onChange={(event) => setNotes(event.currentTarget.value)}
           rows={8}
-          className="w-full rounded-xl border border-[color:var(--catalog-line)] bg-white px-3 py-2 text-[16px]"
+          className="vanta-textarea"
         />
-        <button
-          type="submit"
-          disabled={pending}
-          className="catalog-sans rounded-full bg-[color:var(--catalog-ink)] px-4 py-2 text-[14px] text-[color:var(--catalog-paper)] disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className="vanta-btn-primary">
           {pending ? 'Saving…' : 'Save notes'}
         </button>
       </form>

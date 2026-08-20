@@ -34,7 +34,7 @@ export function SlidingTabs<T extends string>({
   }, [value, options])
 
   return (
-    <div ref={barRef} className="t-tabs catalog-sans" role="tablist" aria-label={ariaLabel}>
+    <div ref={barRef} className="t-tabs" role="tablist" aria-label={ariaLabel}>
       <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
       {options.map((option) => (
         <button

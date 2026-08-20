@@ -19,7 +19,7 @@ export function FilterChips({
   onTag: (value: string) => void
 }) {
   return (
-    <div className="catalog-sans flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <ChipRow label="Type">
         <Chip active={kind === 'all'} onClick={() => onKind('all')}>
           all
@@ -65,9 +65,7 @@ function ChipRow({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-14 text-[12px] uppercase tracking-[0.14em] text-[color:var(--catalog-muted)]">
-        {label}
-      </span>
+      <span className="vanta-label w-14">{label}</span>
       {children}
     </div>
   )
@@ -85,7 +83,7 @@ function Chip({
   return (
     <button
       type="button"
-      className="catalog-chip"
+      className="vanta-chip"
       data-active={active ? 'true' : 'false'}
       onClick={onClick}
     >

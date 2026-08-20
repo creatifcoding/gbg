@@ -1,34 +1,84 @@
-@import 'tailwindcss' source('../');
+@import 'tailwindcss';
 @import './transitions.css';
 
+/*
+  Vanta Black design system (copied tokens).
+  Canonical: packages/tmnl/src/components/portal/tokens.ts
+  Color/type/border values live in src/ui/vanta/tokens.ts.
+  Do not introduce a second palette.
+*/
+
 :root {
-  --catalog-bg: #f6f5f2;
-  --catalog-paper: #fffcf7;
-  --catalog-ink: #1c1b19;
-  --catalog-muted: #6b675f;
-  --catalog-line: rgba(28, 27, 25, 0.12);
-  --catalog-accent: #2f5d50;
-  --catalog-danger: #9b2c2c;
-  --catalog-example: #8a5a12;
-  --catalog-text-xs: 12px;
-  --catalog-text-sm: 14px;
-  --catalog-text-base: 16px;
-  color-scheme: light;
+  color-scheme: dark;
+  --vanta-void: #000000;
+  --vanta-base: #030303;
+  --vanta-elevated: #0a0a0a;
+  --vanta-raised: #111111;
+  --vanta-border: #1a1a1a;
+  --vanta-hover: #1f1f1f;
+
+  --vanta-text: #e5e5e5;
+  --vanta-text-secondary: #a3a3a3;
+  --vanta-text-tertiary: #737373;
+  --vanta-text-muted: #525252;
+
+  --vanta-cyan: #22d3ee;
+  --vanta-cyan-muted: #0891b2;
+  --vanta-cyan-glow: rgba(34, 211, 238, 0.15);
+  --vanta-emerald: #34d399;
+  --vanta-emerald-muted: #059669;
+  --vanta-emerald-glow: rgba(52, 211, 153, 0.15);
+  --vanta-amber: #fbbf24;
+  --vanta-amber-muted: #d97706;
+  --vanta-amber-glow: rgba(251, 191, 36, 0.15);
+  --vanta-rose: #fb7185;
+  --vanta-rose-muted: #e11d48;
+  --vanta-rose-glow: rgba(251, 113, 133, 0.15);
+  --vanta-violet: #a78bfa;
+  --vanta-violet-muted: #7c3aed;
+  --vanta-violet-glow: rgba(167, 139, 250, 0.15);
+
+  --vanta-gradient: linear-gradient(180deg, #050505 0%, #000000 100%);
+
+  --vanta-radius-sm: 2px;
+  --vanta-radius-md: 4px;
+  --vanta-radius-lg: 6px;
+
+  --vanta-border-subtle: 1px solid #1a1a1a;
+  --vanta-border-hairline: 1px solid #0a0a0a;
+  --vanta-border-dashed: 1px dashed #1a1a1a;
+
+  --font-label: 'Share Tech Mono', ui-monospace, monospace;
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Geo', ui-sans-serif, system-ui, sans-serif;
+  --font-stats: 'Geo', ui-sans-serif, system-ui, sans-serif;
+  --font-code: 'Share Tech Mono', ui-monospace, monospace;
+
+  /* Catalog keeps the 12px floor (do not import tmnl's compact 10px scale). */
+  --tmnl-text-xs: 12px;
+  --tmnl-text-sm: 14px;
+  --tmnl-text-base: 16px;
 }
 
 html,
-body {
+body,
+#app {
   min-height: 100%;
-  background: var(--catalog-bg);
-  color: var(--catalog-ink);
-  font-family:
-    'Iowan Old Style',
-    'Palatino Linotype',
-    Palatino,
-    'URW Palladio L',
-    P052,
-    serif;
-  font-size: var(--catalog-text-base);
+}
+
+body {
+  margin: 0;
+  background: var(--vanta-void);
+  background-image: var(--vanta-gradient);
+  color: var(--vanta-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 button,
@@ -38,51 +88,255 @@ textarea {
   font: inherit;
 }
 
-.catalog-sans {
-  font-family:
-    'IBM Plex Sans',
-    'Source Sans 3',
-    ui-sans-serif,
-    system-ui,
-    sans-serif;
+.vanta-label {
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vanta-text-tertiary);
 }
 
-.catalog-chip {
+.vanta-title {
+  font-family: var(--font-heading);
+  font-size: var(--tmnl-text-xs);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--vanta-text);
+}
+
+.vanta-heading {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--vanta-text);
+}
+
+.vanta-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--catalog-line);
-  background: #fff;
-  font-size: var(--catalog-text-xs);
-  letter-spacing: 0.02em;
+  gap: 0.4rem;
+  border: var(--vanta-border-subtle);
+  background: var(--vanta-elevated);
+  color: var(--vanta-text-secondary);
+  border-radius: var(--vanta-radius-md);
+  padding: 0.35rem 0.75rem;
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
-.catalog-chip[data-active='true'] {
-  background: var(--catalog-ink);
-  color: var(--catalog-paper);
-  border-color: var(--catalog-ink);
+.vanta-chip:hover {
+  background: var(--vanta-hover);
+  color: var(--vanta-text);
 }
 
-.catalog-drop {
-  border: 1.5px dashed var(--catalog-line);
-  background: #fff;
-  border-radius: 18px;
-  min-height: 140px;
+.vanta-chip[data-state='on'],
+.vanta-chip[data-active='true'],
+.vanta-chip.is-active {
+  background: var(--vanta-cyan-glow);
+  border-color: var(--vanta-cyan);
+  color: var(--vanta-cyan);
 }
 
-.catalog-drop[data-active='true'] {
-  border-color: var(--catalog-accent);
-  background: color-mix(in srgb, var(--catalog-accent) 8%, white);
+.vanta-muted {
+  color: var(--vanta-text-secondary);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+.vanta-mark {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--vanta-amber);
+  background: var(--vanta-amber-glow);
+  color: var(--vanta-amber);
+  border-radius: var(--vanta-radius-sm);
+  padding: 0.15rem 0.45rem;
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vanta-empty {
+  border: var(--vanta-border-dashed);
+  background: var(--vanta-base);
+  border-radius: var(--vanta-radius-md);
+  padding: 2rem;
+  color: var(--vanta-text-secondary);
+}
+
+.vanta-nav a {
+  display: block;
+  border-radius: var(--vanta-radius-md);
+  padding: 0.55rem 0.75rem;
+  color: var(--vanta-text-secondary);
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vanta-nav a:hover,
+.vanta-nav a[data-status='active'] {
+  background: var(--vanta-hover);
+  color: var(--vanta-cyan);
+}
+
+.vanta-card {
+  background: var(--vanta-base);
+  border: var(--vanta-border-subtle);
+  border-radius: var(--vanta-radius-md);
+  padding: 20px;
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+a.vanta-card:hover,
+.vanta-card.is-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--vanta-cyan);
+}
+
+.vanta-input,
+.vanta-select,
+.vanta-textarea {
+  width: 100%;
+  border: var(--vanta-border-subtle);
+  background: var(--vanta-elevated);
+  color: var(--vanta-text);
+  border-radius: var(--vanta-radius-md);
+  padding: 0.7rem 0.8rem;
+}
+
+.vanta-input::placeholder,
+.vanta-textarea::placeholder {
+  color: var(--vanta-text-muted);
+}
+
+.vanta-input:focus,
+.vanta-select:focus,
+.vanta-textarea:focus {
+  outline: none;
+  border-color: var(--vanta-cyan);
+  box-shadow: 0 0 12px var(--vanta-cyan-glow);
+}
+
+.t-input.is-error {
+  border-color: var(--vanta-rose);
+}
+
+.vanta-file {
+  color: var(--vanta-cyan);
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+}
+
+.vanta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: var(--vanta-border-subtle);
+  background: var(--vanta-elevated);
+  color: var(--vanta-text-secondary);
+  border-radius: var(--vanta-radius-md);
+  padding: 0.55rem 0.9rem;
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.vanta-btn:hover {
+  background: var(--vanta-hover);
+  color: var(--vanta-text);
+}
+
+.vanta-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vanta-cyan);
+  background: var(--vanta-cyan-glow);
+  color: var(--vanta-cyan);
+  border-radius: var(--vanta-radius-md);
+  padding: 0.7rem 1rem;
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.vanta-btn-primary:hover {
+  background: rgba(34, 211, 238, 0.25);
+}
+
+.vanta-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vanta-drop {
+  border: 2px dashed var(--vanta-cyan-muted);
+  background: var(--vanta-cyan-glow);
+  border-radius: var(--vanta-radius-md);
+  min-height: 8rem;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.vanta-drop.is-active {
+  border-color: var(--vanta-cyan);
+  background: rgba(34, 211, 238, 0.22);
+}
+
+.vanta-banner {
+  border: 1px solid var(--vanta-amber);
+  background: var(--vanta-amber-glow);
+  color: var(--vanta-amber);
+  border-radius: var(--vanta-radius-md);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-label);
+  font-size: var(--tmnl-text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vanta-error {
+  border: 1px solid var(--vanta-rose);
+  background: var(--vanta-rose-glow);
+  color: var(--vanta-rose);
+  border-radius: var(--vanta-radius-md);
+  padding: 0.7rem 0.85rem;
+  font-size: 13px;
+}
+
+.status-raw {
+  color: var(--vanta-amber);
+}
+.status-filed {
+  color: var(--vanta-cyan);
+}
+.status-working {
+  color: var(--vanta-emerald);
+}
+.status-dead {
+  color: var(--vanta-rose);
 }

@@ -9,32 +9,26 @@ export function ContextCard({ card }: { card: CatalogCard }) {
     <Link
       to="/cards/$cardId"
       params={{ cardId: card.id }}
-      className="t-resize block rounded-2xl border border-[color:var(--catalog-line)] bg-[color:var(--catalog-paper)] p-5 shadow-[0_1px_0_rgba(28,27,25,0.04)]"
+      className="t-resize vanta-card block"
     >
-      <div className="catalog-sans flex flex-wrap items-center gap-2 text-[12px] uppercase tracking-[0.12em] text-[color:var(--catalog-muted)]">
+      <div className="vanta-label flex flex-wrap items-center gap-2">
         <span>{card.kind}</span>
         <span aria-hidden="true">·</span>
-        <span>{card.status}</span>
+        <span className={`status-${card.status}`}>{card.status}</span>
         <span aria-hidden="true">·</span>
         <span>{organismLabel(card.organism)}</span>
-        {card.example ? (
-          <span className="rounded-full bg-[color:var(--catalog-example)] px-2 py-0.5 text-white">
-            example
-          </span>
-        ) : null}
+        {card.example ? <span className="vanta-mark">example</span> : null}
       </div>
-      <p className="mt-3 text-[18px] leading-snug">{card.claim}</p>
+      <p className="vanta-heading mt-3 text-lg leading-snug">{card.claim}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {card.tags.map((tag) => (
-          <span key={tag} className="catalog-chip catalog-sans">
+          <span key={tag} className="vanta-chip cursor-default">
             {tag}
           </span>
         ))}
       </div>
       {card.questions.length > 0 ? (
-        <p className="mt-4 text-[14px] text-[color:var(--catalog-muted)]">
-          {card.questions[0]}
-        </p>
+        <p className="vanta-muted mt-4 text-[14px]">{card.questions[0]}</p>
       ) : null}
     </Link>
   )
