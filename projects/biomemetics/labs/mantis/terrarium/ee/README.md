@@ -12,3 +12,7 @@ the Tachyon-side deserializer.
 `schematics/S08-electrical.svg` is a functional review diagram, not circuit
 authority. A KiCad schematic with selected protection, mate sensing, discharge,
 and connector/contact parts is a release blocker.
+
+The detailed native-source, board-partition, fixture, export, and qualification
+contract is in [`KICAD-PLAN.md`](KICAD-PLAN.md). Live execution is coordinated
+by GitHub issue #18 and bounded leaf issues #23 through #27.

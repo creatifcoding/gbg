@@ -75,13 +75,15 @@ drawings and catalog projections remain derived.
 ## Start here
 
 1. Read [`GOAL.md`](GOAL.md) for the workspace objective and first project gates.
-2. Read [`AGENTS.md`](AGENTS.md) before assigning an issue or write-set.
-3. Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for boundaries and
+2. Read [`docs/EXECUTION.md`](docs/EXECUTION.md) for the live issue DAG,
+   maturity ladder, swarm topology, and release frontier.
+3. Read [`AGENTS.md`](AGENTS.md) before assigning an issue or write-set.
+4. Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for boundaries and
    dependency direction.
-4. Read [`docs/AGENT-ALLOCATION.md`](docs/AGENT-ALLOCATION.md) before starting
+5. Read [`docs/AGENT-ALLOCATION.md`](docs/AGENT-ALLOCATION.md) before starting
    a Cursor swarm or assigning CAD/EE/simulation tools.
-5. Validate changes against the schemas in `contracts/`.
-6. Attach evidence to claims; never promote a target or simulation to a
+6. Validate changes against the schemas in `contracts/`.
+7. Attach evidence to claims; never promote a target or simulation to a
    measurement.
 
 `workspace.json` is the machine-readable workspace declaration. It records the
