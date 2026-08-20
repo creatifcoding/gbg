@@ -1,6 +1,7 @@
 /**
- * SpecimenRail — full Workbench page. List() on mount, query + status filter, Intake.
- * Layout is the Variant Workbench HTML, not a mashed two-column shell.
+ * SpecimenRail — Workbench page. IDE / CAD three-pane.
+ * Regions: icon rail, 420px card list, top drop, VIEWPORT_XZ, 340px Properties Log.
+ * Binds stay List / query / filter / Intake / Get. No sdb-shell.
  *
  * @module @tmnl/specimendb/ui
  */
@@ -45,14 +46,23 @@ const StatusMark = ({
   readonly onPromote?: (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }) => void;
 }) => (
   <span
-    className="sdb-status-dot"
+    className="sdb-w-status"
     data-status={status}
     data-testid={testId}
     {...(onPromote !== undefined ? { 'data-promote': 'true', onClick: onPromote } : {})}
   >
-    <span className="sdb-status-sq" aria-hidden="true" />
+    <span className="sdb-w-status-sq" aria-hidden="true" />
     {status}
   </span>
+);
+
+const Corners = () => (
+  <>
+    <span className="sdb-w-corner sdb-w-corner-tl" />
+    <span className="sdb-w-corner sdb-w-corner-tr" />
+    <span className="sdb-w-corner sdb-w-corner-bl" />
+    <span className="sdb-w-corner sdb-w-corner-br" />
+  </>
 );
 
 export type SpecimenRailProps = {
@@ -141,9 +151,9 @@ function SpecimenRailHeader() {
   return (
     <header className="sdb-w-rail-header">
       <h1>SpecimenDB // Core</h1>
-      <span className="sdb-w-icon" data-testid="rail-online" data-online={online ? 'true' : 'false'}>
-        <i className="ph ph-sliders" />
-        <span hidden>{online ? 'ONLINE' : 'OFFLINE'}</span>
+      <span className="sdb-w-online" data-testid="rail-online" data-online={online ? 'true' : 'false'}>
+        <span className="sdb-w-status-sq" aria-hidden="true" />
+        {online ? 'ONLINE' : 'OFFLINE'}
       </span>
     </header>
   );
@@ -174,11 +184,8 @@ function SpecimenRailIntake() {
         onDragLeave={bind.onDragLeave}
         onDrop={bind.onDrop}
       >
-        <span className="sdb-w-corner sdb-w-corner-tl" />
-        <span className="sdb-w-corner sdb-w-corner-tr" />
-        <span className="sdb-w-corner sdb-w-corner-bl" />
-        <span className="sdb-w-corner sdb-w-corner-br" />
-        <i className="ph ph-upload-simple sdb-t-upload" />
+        <Corners />
+        <i className="ph ph-upload-simple sdb-w-upload" />
         <span className="sdb-w-zone-copy">
           {intakeStatus === 'dropping'
             ? 'INTAKE_IN_FLIGHT'
@@ -186,7 +193,7 @@ function SpecimenRailIntake() {
         </span>
       </button>
       {intakeError !== null ? (
-        <p className="sdb-error" data-testid="intake-error">
+        <p className="sdb-w-error" data-testid="intake-error">
           {intakeError}
         </p>
       ) : null}
@@ -224,8 +231,8 @@ function WorkbenchCardChrome() {
     <article className="sdb-w-card" data-empty="true" data-testid="card-chrome">
       <div className="sdb-w-idrow">
         <span className="sdb-w-id" />
-        <span className="sdb-status-dot" data-status="raw">
-          <span className="sdb-status-sq" aria-hidden="true" />
+        <span className="sdb-w-status" data-status="raw">
+          <span className="sdb-w-status-sq" aria-hidden="true" />
           raw
         </span>
       </div>
@@ -329,20 +336,24 @@ function SpecimenRailDetail() {
           ) : null}
         </div>
         <div className="sdb-w-actions">
-          <button type="button">EXPORT DB</button>
-          <button type="button">RUN SIM</button>
+          <button type="button">
+            <i className="ph ph-export" />
+            EXPORT DB
+          </button>
+          <button type="button">
+            <i className="ph ph-play" />
+            RUN SIM
+          </button>
         </div>
       </div>
       <div className="sdb-w-viewport">
-        <span className="sdb-w-corner sdb-w-corner-tl" />
-        <span className="sdb-w-corner sdb-w-corner-tr" />
-        <span className="sdb-w-corner sdb-w-corner-bl" />
-        <span className="sdb-w-corner sdb-w-corner-br" />
+        <Corners />
         <div className="sdb-w-viewport-head">
           <span>VIEWPORT_XZ</span>
           <span>MAG</span>
         </div>
         <div className="sdb-w-viewport-stage">
+          <span className="sdb-w-viewport-grid" />
           <ViewportMark />
         </div>
         <div className="sdb-w-viewport-foot">

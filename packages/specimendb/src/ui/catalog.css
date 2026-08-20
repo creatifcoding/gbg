@@ -1,66 +1,50 @@
-/* Terminal (/intake) and Workbench (/rail) are separate HTML pages.
-   No shared Inter/IBM Plex/charcoal token sheet. */
+/* Two named pages. Not a shared shell. Regions, then type, then density, then color. */
 
 .sdb-file-input {
   display: none;
 }
 
-/* Terminal 4px scrollbar chrome. Visible on every overflow. Do not hide. */
+/* -------------------------------------------------------------------------- */
+/* Terminal /intake — console + index                                         */
+/* 4px scrollbar chrome. Visible on every overflow. Do not hide.              */
+/* -------------------------------------------------------------------------- */
+
 .sdb-terminal,
-.sdb-workbench,
-.sdb-terminal *,
-.sdb-workbench * {
+.sdb-terminal * {
   scrollbar-width: thin;
   scrollbar-color: #333333 #000000;
 }
 
 .sdb-terminal::-webkit-scrollbar,
-.sdb-workbench::-webkit-scrollbar,
-.sdb-terminal *::-webkit-scrollbar,
-.sdb-workbench *::-webkit-scrollbar {
+.sdb-terminal *::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 
 .sdb-terminal::-webkit-scrollbar-track,
-.sdb-workbench::-webkit-scrollbar-track,
-.sdb-terminal *::-webkit-scrollbar-track,
-.sdb-workbench *::-webkit-scrollbar-track {
+.sdb-terminal *::-webkit-scrollbar-track {
   background: #000000;
   border-left: 1px solid #1a1a1a;
 }
 
 .sdb-terminal::-webkit-scrollbar-thumb,
-.sdb-workbench::-webkit-scrollbar-thumb,
-.sdb-terminal *::-webkit-scrollbar-thumb,
-.sdb-workbench *::-webkit-scrollbar-thumb {
+.sdb-terminal *::-webkit-scrollbar-thumb {
   background: #333333;
 }
 
 .sdb-terminal::-webkit-scrollbar-thumb:hover,
-.sdb-workbench::-webkit-scrollbar-thumb:hover,
-.sdb-terminal *::-webkit-scrollbar-thumb:hover,
-.sdb-workbench *::-webkit-scrollbar-thumb:hover {
+.sdb-terminal *::-webkit-scrollbar-thumb:hover {
   background: #555555;
 }
 
-.tech-grid {
-  background-color: #000;
+.sdb-t-tech-grid {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
-.sdb-error {
-  margin: 0;
-  color: #fb7185;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-/* --- Terminal page: Inter body + ui-monospace chrome --- */
+/* regions */
 
 .sdb-terminal {
   box-sizing: border-box;
@@ -70,57 +54,12 @@
   height: 100vh;
   margin: 0;
   overflow: hidden;
-  background: #000;
-  color: #d4d4d4;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 13px;
-  line-height: 1.35;
-  -webkit-font-smoothing: antialiased;
 }
 
 .sdb-terminal *,
 .sdb-terminal *::before,
 .sdb-terminal *::after {
   box-sizing: border-box;
-}
-
-.sdb-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
-  border: 1px solid currentColor;
-  border-radius: 0;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.sdb-pill[data-status='raw'] {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.12);
-  box-shadow: 0 0 10px rgba(251, 191, 36, 0.22);
-}
-
-.sdb-pill[data-status='filed'] {
-  color: #22d3ee;
-  background: rgba(34, 211, 238, 0.12);
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.22);
-}
-
-.sdb-pill[data-status='working'] {
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.12);
-  box-shadow: 0 0 10px rgba(52, 211, 153, 0.22);
-}
-
-.sdb-pill[data-status='dead'] {
-  color: #fb7185;
-  background: rgba(251, 113, 133, 0.12);
-  box-shadow: 0 0 10px rgba(251, 113, 133, 0.22);
 }
 
 .sdb-t-rail {
@@ -130,8 +69,6 @@
   min-width: 420px;
   height: 100%;
   overflow: hidden;
-  background: #000;
-  border-right: 1px solid #333;
 }
 
 .sdb-t-rail-header {
@@ -141,26 +78,11 @@
   gap: 12px;
   height: 56px;
   padding: 0 24px;
-  border-bottom: 1px solid #333;
 }
 
 .sdb-t-rail-header h1 {
   margin: 0;
-  color: #a3a3a3;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sdb-t-mark {
-  display: block;
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
-  line-height: 1;
-  color: #737373;
+  flex: 1;
 }
 
 .sdb-t-list {
@@ -172,146 +94,6 @@
   overflow: auto;
 }
 
-.sdb-t-card {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  text-align: left;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-  background: #0a0a0a;
-  border: 1px solid #333;
-  border-radius: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-}
-
-button.sdb-t-card {
-  appearance: none;
-}
-
-.sdb-t-card:hover,
-.sdb-t-card[data-selected='true'] {
-  border-color: #525252;
-}
-
-.sdb-t-card[data-empty='true'] {
-  cursor: default;
-}
-
-.sdb-t-well {
-  position: relative;
-  height: 208px;
-  overflow: hidden;
-  background: #0a0a0a;
-}
-
-.sdb-t-well-grid,
-.sdb-t-zone-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-color: transparent;
-}
-
-.sdb-t-well img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.85;
-}
-
-.sdb-t-crosshair {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 48px;
-  height: 48px;
-  font-size: 48px;
-  line-height: 1;
-  color: #525252;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.sdb-t-imgsrc {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #737373;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 8px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sdb-t-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-}
-
-.sdb-t-card-meta {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.sdb-t-locality {
-  color: #737373;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
-
-.sdb-t-claim {
-  min-height: 2.4em;
-  margin: 0;
-  color: #d4d4d4;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-}
-
-.sdb-t-id {
-  color: #737373;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  word-break: break-all;
-}
-
-.sdb-t-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.sdb-t-tag {
-  min-width: 48px;
-  min-height: 16px;
-  padding: 2px 6px;
-  background: #000;
-  border: 1px solid #222;
-  color: #888;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .sdb-t-main {
   display: flex;
   flex: 1;
@@ -319,7 +101,6 @@ button.sdb-t-card {
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  background: #000;
 }
 
 .sdb-t-status {
@@ -329,35 +110,6 @@ button.sdb-t-card {
   justify-content: space-between;
   height: 48px;
   padding: 0 24px;
-  border-bottom: 1px solid #333;
-}
-
-.sdb-t-brand {
-  color: #d4d4d4;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-}
-
-.sdb-t-sys {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #34d399;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-}
-
-.sdb-t-sys[data-online='false'] {
-  color: #fb7185;
-}
-
-.sdb-t-sys-sq {
-  width: 8px;
-  height: 8px;
-  background: currentColor;
 }
 
 .sdb-t-stage {
@@ -381,29 +133,115 @@ button.sdb-t-card {
   margin: 0;
   padding: 0;
   cursor: pointer;
-  color: inherit;
+  overflow: hidden;
+}
+
+.sdb-t-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.sdb-t-card,
+button.sdb-t-zone {
+  appearance: none;
   font: inherit;
-  background-color: #000;
-  border: 1px dashed #333;
-  border-radius: 0;
+  color: inherit;
 }
 
-.sdb-t-zone[data-active='true'] {
-  border-color: #525252;
+.sdb-t-card[data-empty='true'] {
+  cursor: default;
 }
 
-.sdb-t-upload {
-  width: 28px;
-  height: 28px;
-  font-size: 28px;
-  line-height: 1;
-  color: #737373;
+.sdb-t-well {
+  position: relative;
+  height: 208px;
+  overflow: hidden;
+}
+
+.sdb-t-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.sdb-t-split {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  min-height: 240px;
+}
+
+.sdb-t-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* type */
+
+.sdb-terminal {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sdb-t-rail-header h1 {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-t-vol,
+.sdb-t-brand,
+.sdb-t-sys,
+.sdb-t-protocol,
+.sdb-t-sub,
+.sdb-t-imgsrc,
+.sdb-t-locality,
+.sdb-t-id,
+.sdb-t-tag,
+.sdb-t-pill,
+.sdb-t-kicker,
+.sdb-t-cell-value,
+.sdb-t-panel-head,
+.sdb-t-live-feed,
+.sdb-t-detail-id,
+.sdb-t-error {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.sdb-t-vol {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.sdb-t-brand {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.sdb-t-brand-slash {
+  opacity: 0.45;
+}
+
+.sdb-t-sys {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
 }
 
 .sdb-t-protocol {
   position: relative;
-  color: #d4d4d4;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.2em;
@@ -412,18 +250,189 @@ button.sdb-t-card {
 
 .sdb-t-sub {
   position: relative;
-  color: #737373;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
-.sdb-t-detail {
+.sdb-t-claim {
+  min-height: 2.4em;
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.sdb-t-id {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+}
+
+.sdb-t-locality {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.sdb-t-tag {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-t-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.sdb-t-kicker,
+.sdb-t-panel-head {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-t-panel-head {
+  letter-spacing: 0.2em;
+}
+
+.sdb-t-cell-value {
+  min-height: 1.2em;
+  font-size: 13px;
+}
+
+.sdb-t-detail-id {
+  min-height: 1em;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
+
+.sdb-t-live-feed {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.sdb-t-error {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.sdb-t-imgsrc {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-t-log-body {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+/* density */
+
+.sdb-t-mark {
+  display: block;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sdb-t-sys-sq {
+  width: 8px;
+  height: 8px;
+}
+
+.sdb-t-upload {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.sdb-t-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sdb-t-card-body {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  border: 1px solid #333;
+  gap: 12px;
+  padding: 16px;
+}
+
+.sdb-t-idrow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sdb-t-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sdb-t-tag {
+  min-width: 48px;
+  min-height: 16px;
+  padding: 2px 6px;
+}
+
+.sdb-t-imgsrc {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 2px 6px;
+}
+
+.sdb-t-well .sdb-t-pill {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.sdb-t-well-grid,
+.sdb-t-zone-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sdb-t-well img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sdb-t-detail-head {
@@ -433,18 +442,6 @@ button.sdb-t-card {
   gap: 12px;
   min-height: 48px;
   padding: 12px 16px;
-  border-bottom: 1px solid #333;
-}
-
-.sdb-t-detail-id {
-  min-height: 1em;
-  margin: 0;
-  color: #d4d4d4;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  word-break: break-all;
 }
 
 .sdb-t-live {
@@ -453,49 +450,13 @@ button.sdb-t-card {
   gap: 16px;
 }
 
-.sdb-t-live-feed {
-  color: #34d399;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-}
-
-.sdb-t-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
 .sdb-t-cell {
   min-height: 76px;
   padding: 16px;
-  border-right: 1px solid #333;
-  border-bottom: 1px solid #333;
-}
-
-.sdb-t-cell:nth-child(3n) {
-  border-right: 0;
 }
 
 .sdb-t-kicker {
   margin-bottom: 8px;
-  color: #737373;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sdb-t-cell-value {
-  min-height: 1.2em;
-  color: #d4d4d4;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 13px;
-}
-
-.sdb-t-split {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  min-height: 240px;
 }
 
 .sdb-t-wave,
@@ -505,18 +466,8 @@ button.sdb-t-card {
   min-height: 240px;
 }
 
-.sdb-t-wave {
-  border-right: 1px solid #333;
-}
-
 .sdb-t-panel-head {
   padding: 8px 16px;
-  border-bottom: 1px solid #333;
-  color: #a3a3a3;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
 }
 
 .sdb-t-wave-grid {
@@ -529,12 +480,222 @@ button.sdb-t-card {
   min-height: 192px;
   padding: 16px;
   overflow: auto;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  line-height: 1.7;
 }
 
-/* --- Workbench page: IBM Plex Mono chrome + Inter claim line --- */
+/* color last */
+
+.sdb-terminal {
+  background: #000;
+  color: #d4d4d4;
+}
+
+.sdb-t-rail {
+  background: #000;
+  border-right: 1px solid #333;
+}
+
+.sdb-t-rail-header {
+  border-bottom: 1px solid #333;
+}
+
+.sdb-t-rail-header h1 {
+  color: #a3a3a3;
+}
+
+.sdb-t-mark,
+.sdb-t-vol,
+.sdb-t-locality,
+.sdb-t-upload,
+.sdb-t-sub,
+.sdb-t-kicker {
+  color: #737373;
+}
+
+.sdb-t-status {
+  border-bottom: 1px solid #333;
+}
+
+.sdb-t-brand,
+.sdb-t-protocol,
+.sdb-t-claim,
+.sdb-t-id,
+.sdb-t-cell-value,
+.sdb-t-detail-id {
+  color: #d4d4d4;
+}
+
+.sdb-t-sys {
+  color: #34d399;
+}
+
+.sdb-t-sys[data-online='false'] {
+  color: #fb7185;
+}
+
+.sdb-t-sys-sq {
+  background: currentColor;
+}
+
+.sdb-t-zone {
+  background-color: #1a1a1a;
+  border: 1px dashed #333;
+  border-radius: 0;
+}
+
+.sdb-t-zone[data-active='true'] {
+  border-color: #22d3ee;
+}
+
+.sdb-t-zone-grid {
+  background-color: transparent;
+}
+
+.sdb-t-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sdb-t-card:hover {
+    border-color: #525252;
+  }
+}
+
+.sdb-t-card[data-selected='true'] {
+  border-color: #22d3ee;
+}
+
+.sdb-t-well {
+  background: #0a0a0a;
+}
+
+.sdb-t-well img {
+  opacity: 0.85;
+}
+
+.sdb-t-crosshair {
+  color: #525252;
+}
+
+.sdb-t-imgsrc {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #737373;
+}
+
+.sdb-t-tag {
+  background: #000;
+  border: 1px solid #222;
+  color: #888;
+}
+
+.sdb-t-pill {
+  border: 1px solid currentColor;
+  border-radius: 0;
+}
+
+.sdb-t-pill[data-status='raw'] {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.22);
+}
+
+.sdb-t-pill[data-status='filed'] {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.12);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.22);
+}
+
+.sdb-t-pill[data-status='working'] {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.12);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.22);
+}
+
+.sdb-t-pill[data-status='dead'] {
+  color: #fb7185;
+  background: rgba(251, 113, 133, 0.12);
+  box-shadow: 0 0 10px rgba(251, 113, 133, 0.22);
+}
+
+.sdb-t-detail {
+  border: 1px solid #333;
+}
+
+.sdb-t-detail-head,
+.sdb-t-cell,
+.sdb-t-panel-head {
+  border-bottom: 1px solid #333;
+}
+
+.sdb-t-cell {
+  border-right: 1px solid #333;
+}
+
+.sdb-t-cell:nth-child(3n) {
+  border-right: 0;
+}
+
+.sdb-t-wave {
+  border-right: 1px solid #333;
+}
+
+.sdb-t-panel-head {
+  color: #a3a3a3;
+}
+
+.sdb-t-live-feed {
+  color: #34d399;
+}
+
+.sdb-t-error {
+  color: #fb7185;
+}
+
+.sdb-t-zone:active {
+  transform: scale(0.99);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+[data-promote] {
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Workbench /rail — IDE / CAD three-pane                                     */
+/* -------------------------------------------------------------------------- */
+
+.sdb-workbench,
+.sdb-workbench * {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #000000;
+}
+
+.sdb-workbench::-webkit-scrollbar,
+.sdb-workbench *::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.sdb-workbench::-webkit-scrollbar-track,
+.sdb-workbench *::-webkit-scrollbar-track {
+  background: #000000;
+  border-left: 1px solid #1a1a1a;
+}
+
+.sdb-workbench::-webkit-scrollbar-thumb,
+.sdb-workbench *::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+
+.sdb-workbench::-webkit-scrollbar-thumb:hover,
+.sdb-workbench *::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* regions */
 
 .sdb-workbench {
   box-sizing: border-box;
@@ -544,93 +705,12 @@ button.sdb-t-card {
   height: 100vh;
   margin: 0;
   overflow: hidden;
-  background: #000;
-  color: #d4d4d4;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 12px;
-  line-height: 1.35;
-  -webkit-font-smoothing: antialiased;
 }
 
 .sdb-workbench *,
 .sdb-workbench *::before,
 .sdb-workbench *::after {
   box-sizing: border-box;
-}
-
-.sdb-query {
-  width: 100%;
-  margin: 0;
-  padding: 10px 16px;
-  border: 0;
-  border-bottom: 1px solid #333;
-  background: #000;
-  color: #d4d4d4;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sdb-query::placeholder {
-  color: #737373;
-}
-
-.sdb-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #333;
-}
-
-.sdb-filters button {
-  margin: 0;
-  padding: 4px 8px;
-  border: 1px solid #333;
-  background: transparent;
-  color: #737373;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-radius: 0;
-}
-
-.sdb-filters button[data-active='true'] {
-  color: #d4d4d4;
-  border-color: #525252;
-}
-
-.sdb-status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sdb-status-dot[data-status='raw'] {
-  color: #fbbf24;
-}
-.sdb-status-dot[data-status='filed'] {
-  color: #22d3ee;
-}
-.sdb-status-dot[data-status='working'] {
-  color: #34d399;
-}
-.sdb-status-dot[data-status='dead'] {
-  color: #fb7185;
-}
-
-/* Tailwind w-1.5 / h-1.5 = 6px. Not 1.5px. */
-.sdb-status-sq {
-  width: 6px;
-  height: 6px;
-  background: currentColor;
 }
 
 .sdb-w-strip {
@@ -642,36 +722,6 @@ button.sdb-t-card {
   min-width: 64px;
   height: 100%;
   padding: 24px 0;
-  background: #000;
-  border-right: 1px solid #333;
-}
-
-.sdb-w-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  cursor: pointer;
-  color: #737373;
-  background: transparent;
-  border: 0;
-  font-size: 20px;
-  line-height: 1;
-}
-
-.sdb-w-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.sdb-w-icon[data-active='true'] {
-  color: #d4d4d4;
-}
-
-.sdb-w-icon-spacer {
-  flex: 1;
 }
 
 .sdb-w-rail {
@@ -681,8 +731,6 @@ button.sdb-t-card {
   min-width: 420px;
   height: 100%;
   overflow: hidden;
-  background: #000;
-  border-right: 1px solid #525252;
 }
 
 .sdb-w-rail-header {
@@ -692,17 +740,6 @@ button.sdb-t-card {
   justify-content: space-between;
   height: 48px;
   padding: 0 24px;
-  border-bottom: 1px solid #333;
-}
-
-.sdb-w-rail-header h1 {
-  margin: 0;
-  color: #a3a3a3;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .sdb-w-list {
@@ -714,143 +751,6 @@ button.sdb-t-card {
   overflow: auto;
 }
 
-.sdb-w-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  margin: 0;
-  padding: 12px;
-  overflow: hidden;
-  text-align: left;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-  background: #0a0a0a;
-  border: 1px solid #525252;
-  border-radius: 0;
-}
-
-button.sdb-w-card {
-  appearance: none;
-}
-
-.sdb-w-card:hover,
-.sdb-w-card[data-selected='true'] {
-  border-color: #d4d4d4;
-}
-
-.sdb-w-card[data-empty='true'] {
-  cursor: default;
-}
-
-.sdb-w-idrow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0;
-  border: 0;
-}
-
-.sdb-w-id {
-  min-height: 1em;
-  color: #d4d4d4;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  word-break: break-all;
-}
-
-.sdb-w-well {
-  position: relative;
-  height: 160px;
-  overflow: hidden;
-  background: #000;
-  border: 1px solid #333;
-}
-
-.sdb-w-well img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.8;
-}
-
-.sdb-w-shutter {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 56px;
-  height: 56px;
-  font-size: 56px;
-  line-height: 1;
-  color: #2a2a2a;
-  transform: translate(-50%, -50%);
-}
-
-.sdb-w-well-cap {
-  position: absolute;
-  bottom: 12px;
-  left: 16px;
-  color: #737373;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.sdb-w-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0;
-}
-
-.sdb-w-claim {
-  min-height: 1.4em;
-  margin: 0;
-  color: #d4d4d4;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 12px;
-  letter-spacing: -0.025em;
-  line-height: 1.5;
-}
-
-.sdb-w-locality {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: #737373;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-}
-
-.sdb-w-locality svg,
-.sdb-w-locality .ph {
-  width: 12px;
-  height: 12px;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.sdb-w-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sdb-w-tag {
-  min-width: 32px;
-  min-height: 14px;
-  color: #525252;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-}
-
 .sdb-w-main {
   display: flex;
   flex: 1;
@@ -858,7 +758,6 @@ button.sdb-w-card {
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  background: #000;
 }
 
 .sdb-w-zone-wrap {
@@ -878,58 +777,6 @@ button.sdb-w-card {
   margin: 0;
   padding: 0;
   cursor: pointer;
-  color: inherit;
-  font: inherit;
-  background: transparent;
-  border: 1px dashed #333;
-  border-radius: 0;
-}
-
-.sdb-w-zone[data-active='true'] {
-  border-color: #525252;
-}
-
-.sdb-w-corner {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  pointer-events: none;
-}
-
-.sdb-w-corner-tl {
-  top: -1px;
-  left: -1px;
-  border-top: 1px solid #737373;
-  border-left: 1px solid #737373;
-}
-
-.sdb-w-corner-tr {
-  top: -1px;
-  right: -1px;
-  border-top: 1px solid #737373;
-  border-right: 1px solid #737373;
-}
-
-.sdb-w-corner-bl {
-  bottom: -1px;
-  left: -1px;
-  border-bottom: 1px solid #737373;
-  border-left: 1px solid #737373;
-}
-
-.sdb-w-corner-br {
-  right: -1px;
-  bottom: -1px;
-  border-right: 1px solid #737373;
-  border-bottom: 1px solid #737373;
-}
-
-.sdb-w-zone-copy {
-  color: #d4d4d4;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .sdb-w-body {
@@ -947,19 +794,161 @@ button.sdb-w-card {
   overflow: auto;
 }
 
-.sdb-w-detail-head {
+.sdb-w-props {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  width: 340px;
+  min-width: 340px;
+  height: 100%;
+  overflow: auto;
+}
+
+.sdb-w-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.sdb-w-card,
+button.sdb-w-zone,
+.sdb-w-icon {
+  appearance: none;
+  font: inherit;
+  color: inherit;
+}
+
+.sdb-w-card[data-empty='true'] {
+  cursor: default;
+}
+
+.sdb-w-well {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+}
+
+.sdb-w-viewport {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 360px;
+}
+
+/* type */
+
+.sdb-workbench {
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sdb-w-rail-header h1,
+.sdb-w-query,
+.sdb-w-filters button,
+.sdb-w-status,
+.sdb-w-online,
+.sdb-w-id,
+.sdb-w-locality,
+.sdb-w-tag,
+.sdb-w-zone-copy,
+.sdb-w-detail-id,
+.sdb-w-actions button,
+.sdb-w-viewport-head,
+.sdb-w-viewport-foot,
+.sdb-w-props-header,
+.sdb-w-prop-head,
+.sdb-w-row,
+.sdb-w-obs,
+.sdb-w-updated,
+.sdb-w-error,
+.sdb-w-well-cap {
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.sdb-w-rail-header h1 {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-w-query {
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-w-filters button {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sdb-w-status,
+.sdb-w-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-w-id {
+  min-height: 1em;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
+
+.sdb-w-claim {
+  min-height: 1.4em;
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  letter-spacing: -0.025em;
+  line-height: 1.5;
+}
+
+.sdb-w-locality {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 10px;
+}
+
+.sdb-w-tag {
+  min-width: 32px;
+  min-height: 14px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.sdb-w-zone-copy {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .sdb-w-detail-id {
   min-height: 1.1em;
   margin: 0 0 8px;
-  color: #d4d4d4;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 28px;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -969,35 +958,199 @@ button.sdb-w-card {
 .sdb-w-detail-claim {
   min-height: 1.2em;
   margin: 0;
-  color: #737373;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 13px;
+}
+
+.sdb-w-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.sdb-w-viewport-head,
+.sdb-w-viewport-foot,
+.sdb-w-props-header,
+.sdb-w-prop-head,
+.sdb-w-updated,
+.sdb-w-well-cap {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.sdb-w-viewport-head,
+.sdb-w-viewport-foot {
+  font-size: 9px;
+}
+
+.sdb-w-props-header {
+  font-size: 10px;
+}
+
+.sdb-w-prop-head {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.sdb-w-row {
+  font-size: 11px;
+}
+
+.sdb-w-obs {
+  min-height: 4.5em;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.sdb-w-updated {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.sdb-w-error {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.sdb-w-well-cap {
+  font-size: 9px;
+}
+
+/* density */
+
+.sdb-w-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sdb-w-icon svg,
+.sdb-w-icon .ph {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.sdb-w-icon-spacer {
+  flex: 1;
+}
+
+.sdb-w-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.sdb-w-status-sq {
+  width: 6px;
+  height: 6px;
+}
+
+.sdb-w-idrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sdb-w-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+.sdb-w-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sdb-w-shutter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 56px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.sdb-w-well-cap {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+}
+
+.sdb-w-locality .ph {
+  width: 12px;
+  height: 12px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.sdb-w-upload {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.sdb-w-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.sdb-w-corner-tl {
+  top: -1px;
+  left: -1px;
+}
+
+.sdb-w-corner-tr {
+  top: -1px;
+  right: -1px;
+}
+
+.sdb-w-corner-bl {
+  bottom: -1px;
+  left: -1px;
+}
+
+.sdb-w-corner-br {
+  right: -1px;
+  bottom: -1px;
+}
+
+.sdb-w-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .sdb-w-actions {
   display: flex;
   gap: 8px;
-}
-
-.sdb-w-actions button {
-  padding: 6px 10px;
-  color: #a3a3a3;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: default;
-  background: transparent;
-  border: 1px solid #333;
-}
-
-.sdb-w-viewport {
-  position: relative;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 360px;
-  border: 1px solid #333;
 }
 
 .sdb-w-viewport-head,
@@ -1006,10 +1159,6 @@ button.sdb-w-card {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  color: #a3a3a3;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.2em;
 }
 
 .sdb-w-viewport-stage {
@@ -1022,24 +1171,20 @@ button.sdb-w-card {
 }
 
 .sdb-w-viewport-stage svg {
+  position: relative;
+  z-index: 1;
   width: min(320px, 70%);
   height: auto;
-  color: #3a3a3a;
 }
 
-.sdb-w-active {
-  color: #34d399;
-}
-
-.sdb-w-props {
-  display: flex;
-  flex-direction: column;
-  width: 340px;
-  min-width: 340px;
-  height: 100%;
-  overflow: auto;
-  background: #000;
-  border-left: 1px solid #333;
+.sdb-w-viewport-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .sdb-w-props-header {
@@ -1048,17 +1193,10 @@ button.sdb-w-card {
   align-items: center;
   height: 48px;
   padding: 0 16px;
-  border-bottom: 1px solid #333;
-  color: #a3a3a3;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
 }
 
 .sdb-w-prop {
   padding: 16px;
-  border-bottom: 1px solid #333;
 }
 
 .sdb-w-prop-head {
@@ -1066,20 +1204,13 @@ button.sdb-w-card {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  color: #a3a3a3;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
-.sdb-w-prop-head svg,
 .sdb-w-prop-head .ph {
   width: 14px;
   height: 14px;
   font-size: 14px;
   line-height: 1;
-  color: #737373;
 }
 
 .sdb-w-row {
@@ -1087,9 +1218,6 @@ button.sdb-w-card {
   justify-content: space-between;
   gap: 12px;
   padding: 6px 0;
-  color: #737373;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 11px;
 }
 
 .sdb-w-row dt {
@@ -1102,29 +1230,214 @@ button.sdb-w-card {
   min-height: 1em;
   min-width: 48px;
   margin: 0;
-  color: #d4d4d4;
   text-align: right;
-}
-
-.sdb-w-obs {
-  min-height: 4.5em;
-  margin: 0;
-  color: #737373;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 11px;
-  line-height: 1.6;
 }
 
 .sdb-w-updated {
   margin-top: auto;
   padding: 16px;
-  color: #737373;
-  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
-[data-promote] {
-  cursor: pointer;
+/* color last — Workbench charcoal-600/500/300/200 as paint, not a token sheet */
+
+.sdb-workbench {
+  background: #000;
+  color: #d4d4d4;
+}
+
+.sdb-w-strip {
+  background: #000;
+  border-right: 1px solid #333;
+}
+
+.sdb-w-icon {
+  color: #737373;
+}
+
+.sdb-w-icon[data-active='true'] {
+  color: #d4d4d4;
+}
+
+.sdb-w-rail {
+  background: #000;
+  border-right: 1px solid #525252;
+}
+
+.sdb-w-rail-header {
+  border-bottom: 1px solid #333;
+}
+
+.sdb-w-rail-header h1,
+.sdb-w-actions button,
+.sdb-w-viewport-head,
+.sdb-w-viewport-foot,
+.sdb-w-props-header,
+.sdb-w-prop-head {
+  color: #a3a3a3;
+}
+
+.sdb-w-query {
+  border: 0;
+  border-bottom: 1px solid #333;
+  background: #000;
+  color: #d4d4d4;
+}
+
+.sdb-w-query::placeholder {
+  color: #737373;
+}
+
+.sdb-w-filters {
+  border-bottom: 1px solid #333;
+}
+
+.sdb-w-filters button {
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 0;
+  color: #737373;
+}
+
+.sdb-w-filters button[data-active='true'] {
+  color: #d4d4d4;
+  border-color: #525252;
+}
+
+.sdb-w-status[data-status='raw'] {
+  color: #fbbf24;
+}
+
+.sdb-w-status[data-status='filed'] {
+  color: #22d3ee;
+}
+
+.sdb-w-status[data-status='working'],
+.sdb-w-online[data-online='true'],
+.sdb-w-active {
+  color: #34d399;
+}
+
+.sdb-w-status[data-status='dead'],
+.sdb-w-online[data-online='false'],
+.sdb-w-error {
+  color: #fb7185;
+}
+
+.sdb-w-status-sq {
+  background: currentColor;
+  color: inherit;
+}
+
+.sdb-w-card {
+  background: #1a1a1a;
+  border: 1px solid #525252;
+  border-radius: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sdb-w-card:hover {
+    border-color: #d4d4d4;
+  }
+}
+
+.sdb-w-card[data-selected='true'] {
+  border-color: #22d3ee;
+}
+
+.sdb-w-id,
+.sdb-w-claim,
+.sdb-w-zone-copy,
+.sdb-w-detail-id,
+.sdb-w-row dd {
+  color: #d4d4d4;
+}
+
+.sdb-w-well {
+  background: #000;
+  border: 1px solid #333;
+}
+
+.sdb-w-shutter {
+  color: #2a2a2a;
+}
+
+.sdb-w-well-cap,
+.sdb-w-locality,
+.sdb-w-obs,
+.sdb-w-updated,
+.sdb-w-row,
+.sdb-w-upload,
+.sdb-w-prop-head .ph {
+  color: #737373;
+}
+
+.sdb-w-tag {
+  color: #525252;
+}
+
+.sdb-w-zone {
+  background: #1a1a1a;
+  border: 1px dashed #333;
+  border-radius: 0;
+}
+
+.sdb-w-zone[data-active='true'] {
+  border-color: #22d3ee;
+}
+
+.sdb-w-corner-tl {
+  border-top: 1px solid #a3a3a3;
+  border-left: 1px solid #a3a3a3;
+}
+
+.sdb-w-corner-tr {
+  border-top: 1px solid #a3a3a3;
+  border-right: 1px solid #a3a3a3;
+}
+
+.sdb-w-corner-bl {
+  border-bottom: 1px solid #a3a3a3;
+  border-left: 1px solid #a3a3a3;
+}
+
+.sdb-w-corner-br {
+  border-right: 1px solid #a3a3a3;
+  border-bottom: 1px solid #a3a3a3;
+}
+
+.sdb-w-actions button {
+  background: transparent;
+  border: 1px solid #333;
+}
+
+.sdb-w-actions button:active {
+  transform: scale(0.97);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.sdb-w-viewport {
+  border: 1px solid #333;
+}
+
+.sdb-w-viewport-stage {
+  color: #3a3a3a;
+}
+
+.sdb-w-props {
+  background: #000;
+  border-left: 1px solid #333;
+}
+
+.sdb-w-props-header,
+.sdb-w-prop {
+  border-bottom: 1px solid #333;
+}
+
+.sdb-w-detail-claim {
+  color: #737373;
+}
+
+.sdb-w-zone:active {
+  transform: scale(0.99);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }

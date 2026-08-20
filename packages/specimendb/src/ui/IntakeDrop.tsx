@@ -1,6 +1,7 @@
 /**
- * IntakeDrop — full Terminal page. Calls SpecimenRpcs.Intake.
- * Layout is the Variant Terminal HTML, not a mashed two-column shell.
+ * IntakeDrop — Terminal page. Console + index.
+ * Regions: 420px Local Catalog rail, card stack, dashed intake well, process log.
+ * Binds stay Intake / List / Get. No sdb-shell.
  *
  * @module @tmnl/specimendb/ui
  */
@@ -49,7 +50,7 @@ const StatusPill = ({
   readonly onPromote?: (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }) => void;
 }) => (
   <span
-    className="sdb-pill"
+    className="sdb-t-pill"
     data-status={status}
     data-testid={testId}
     {...(onPromote !== undefined ? { 'data-promote': 'true', onClick: onPromote } : {})}
@@ -107,6 +108,7 @@ function IntakeDropHeader() {
     <header className="sdb-t-rail-header">
       <i className="ph ph-database sdb-t-mark" />
       <h1>Local Catalog</h1>
+      <span className="sdb-t-vol">VOL</span>
     </header>
   );
 }
@@ -116,7 +118,9 @@ function IntakeDropStatusBar() {
   const online = useFocus(catalog.store, at<CatalogState['online']>(catalog.store.lens.online));
   return (
     <header className="sdb-t-status">
-      <span className="sdb-t-brand">SPECIMEN_DB</span>
+      <span className="sdb-t-brand">
+        SPECIMEN_DB <span className="sdb-t-brand-slash">/</span>
+      </span>
       <span className="sdb-t-sys" data-online={online ? 'true' : 'false'} data-testid="rail-online">
         <span className="sdb-t-sys-sq" />
         {online ? 'SYS_ONLINE' : 'SYS_OFFLINE'}
@@ -150,7 +154,7 @@ function IntakeDropZone() {
         onDragLeave={bind.onDragLeave}
         onDrop={bind.onDrop}
       >
-        <span className="sdb-t-zone-grid tech-grid" />
+        <span className="sdb-t-zone-grid sdb-t-tech-grid" />
         <i className="ph ph-upload-simple sdb-t-upload" />
         <span className="sdb-t-protocol">
           {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'Initiate_Intake_Protocol'}
@@ -158,7 +162,7 @@ function IntakeDropZone() {
         <span className="sdb-t-sub">DROP FIELD MEDIA / RAW TELEMETRY HERE</span>
       </button>
       {intakeError !== null ? (
-        <p className="sdb-error" data-testid="intake-error">
+        <p className="sdb-t-error" data-testid="intake-error">
           {intakeError}
         </p>
       ) : null}
@@ -185,15 +189,18 @@ function IntakeDropList() {
 function TerminalWell({
   preview,
   caption,
+  pill,
 }: {
   readonly preview?: string;
   readonly caption: string;
+  readonly pill: ReactNode;
 }) {
   return (
     <div className="sdb-t-well">
-      <span className="sdb-t-well-grid tech-grid" />
+      <span className="sdb-t-well-grid sdb-t-tech-grid" />
       {preview !== undefined ? <img src={preview} alt="" data-testid="media-bytes" /> : null}
-      <i className="ph ph-crosshair sdb-t-crosshair" />
+      {preview === undefined ? <i className="ph ph-crosshair sdb-t-crosshair" /> : null}
+      {pill}
       <span className="sdb-t-imgsrc">{caption}</span>
     </div>
   );
@@ -202,12 +209,17 @@ function TerminalWell({
 function TerminalCardChrome() {
   return (
     <article className="sdb-t-card" data-empty="true" data-testid="card-chrome">
-      <TerminalWell caption="IMG_SRC" />
-      <div className="sdb-t-card-body">
-        <div className="sdb-t-card-meta">
-          <span className="sdb-pill" data-status="raw">
+      <TerminalWell
+        caption="IMG_SRC"
+        pill={
+          <span className="sdb-t-pill" data-status="raw">
             raw
           </span>
+        }
+      />
+      <div className="sdb-t-card-body">
+        <div className="sdb-t-idrow">
+          <span className="sdb-t-id" />
           <span className="sdb-t-locality" data-testid="locality">
             unknown
           </span>
@@ -243,14 +255,22 @@ function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
       data-selected={selectedId === specimen.id ? 'true' : 'false'}
       onClick={() => void catalog.select(specimen.id)}
     >
-      <TerminalWell preview={previews[specimen.id]} caption={imgSrcLabel(specimen)} />
-      <div className="sdb-t-card-body">
-        <div className="sdb-t-card-meta">
+      <TerminalWell
+        preview={previews[specimen.id]}
+        caption={imgSrcLabel(specimen)}
+        pill={
           <StatusPill
             status={status}
             testId="status-pill"
             onPromote={onStatusPromote(catalog, specimen.id)}
           />
+        }
+      />
+      <div className="sdb-t-card-body">
+        <div className="sdb-t-idrow">
+          <span className="sdb-t-id" data-testid="specimen-id">
+            {specimen.id}
+          </span>
           <span className="sdb-t-locality" data-testid="locality">
             {localityLabel(specimen)}
           </span>
@@ -258,9 +278,6 @@ function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
         <p className="sdb-t-claim" data-testid="claim">
           {claimLine(specimen)}
         </p>
-        <span className="sdb-t-id" data-testid="specimen-id">
-          {specimen.id}
-        </span>
         <div className="sdb-t-tags">
           {tagSlots(specimen).map((tag, index) => (
             <span className="sdb-t-tag" key={`${specimen.id}:tag:${index}`}>
@@ -299,7 +316,7 @@ function IntakeDropDetail() {
               onPromote={onStatusPromote(catalog, selected.id)}
             />
           ) : null}
-          <span className="sdb-pill" data-status="working">
+          <span className="sdb-t-pill" data-status="working">
             ANALYSIS_ACTIVE
           </span>
           <span className="sdb-t-live-feed">_ LIVE_FEED</span>
@@ -318,7 +335,7 @@ function IntakeDropDetail() {
       <div className="sdb-t-split">
         <div className="sdb-t-wave">
           <div className="sdb-t-panel-head">WAVEFORM_ANALYSIS // CHROMATOPHORE_REACTIVITY</div>
-          <div className="sdb-t-wave-grid tech-grid" />
+          <div className="sdb-t-wave-grid sdb-t-tech-grid" />
         </div>
         <div className="sdb-t-log">
           <div className="sdb-t-panel-head">PROCESS LOG</div>
@@ -338,7 +355,7 @@ function IntakeDropDetail() {
                 ) : null}
               </>
             ) : null}
-            {intakeError !== null ? <p className="sdb-error">{intakeError}</p> : null}
+            {intakeError !== null ? <p className="sdb-t-error">{intakeError}</p> : null}
           </div>
         </div>
       </div>

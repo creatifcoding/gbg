@@ -13,7 +13,7 @@ export function AccessionQuery({ catalog }: { readonly catalog: CatalogSurface }
   const { value, set } = useStx(catalog.store);
   return (
     <input
-      className="sdb-query"
+      className="sdb-w-query"
       data-testid="rail-query"
       value={value.query}
       placeholder="Q QUERY ACCESSION ID..."
@@ -30,7 +30,7 @@ export function StatusFilters({ catalog }: { readonly catalog: CatalogSurface })
   );
   const { value, set } = useStx(catalog.store);
   return (
-    <div className="sdb-filters" data-testid="rail-filters">
+    <div className="sdb-w-filters" data-testid="rail-filters">
       {FILTERS.map((filter) => (
         <button
           key={filter.id}
