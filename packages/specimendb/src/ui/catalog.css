@@ -991,6 +991,10 @@ button.sdb-w-card {
   border: 1px solid #333;
 }
 
+.sdb-w-actions button[data-export] {
+  cursor: pointer;
+}
+
 .sdb-w-viewport {
   position: relative;
   display: flex;

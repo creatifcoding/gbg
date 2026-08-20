@@ -11,7 +11,7 @@ import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
-import { claimLine, imgSrcLabel, mediaLabel, tagSlots } from './catalog-view.js';
+import { claimLine, exifLogLines, imgSrcLabel, mediaLabel, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import './catalog.css';
 
@@ -311,7 +311,12 @@ function IntakeDropDetail() {
             <div className="sdb-t-kicker" data-testid="kicker">
               {kicker}
             </div>
-            <div className="sdb-t-cell-value" />
+            <div
+              className="sdb-t-cell-value"
+              {...(kicker === 'PROTOCOL ID' ? { 'data-testid': 'protocol-id' } : {})}
+            >
+              {kicker === 'PROTOCOL ID' && selected !== null ? selected.id : ''}
+            </div>
           </div>
         ))}
       </div>
@@ -336,6 +341,11 @@ function IntakeDropDetail() {
                     {mediaLabel(selected)}
                   </p>
                 ) : null}
+                {exifLogLines(selected).map((line) => (
+                  <p className="sdb-t-locality" key={line} data-testid="detail-exif">
+                    {line}
+                  </p>
+                ))}
               </>
             ) : null}
             {intakeError !== null ? <p className="sdb-error">{intakeError}</p> : null}
