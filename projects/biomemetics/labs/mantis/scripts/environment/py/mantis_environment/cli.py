@@ -112,6 +112,16 @@ def cmd_evidence(lab_root: Path, target: str) -> int:
     return 0 if not failures else 1
 
 
+def emit_summary(report: dict, destination: Path) -> None:
+    print(destination)
+    print(json.dumps({"ok": report["ok"], "failed": report["failed"], "blockers": report["blockers"]}, indent=2))
+    for check in report.get("checks") or []:
+        if check.get("id") in (report.get("failed") or []):
+            print(f"FAIL {check['id']}: {check.get('detail')}", file=sys.stderr)
+            if check.get("command"):
+                print(f"  command: {check['command']}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     if argv is None and len(sys.argv) > 1 and sys.argv[1] in {"-h", "--help", "help"}:
         print(HELP)
@@ -126,8 +136,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "doctor":
         report, destination, code = run_doctor(lab_root, output=args.output)
-        print(destination)
-        print(json.dumps({"ok": report["ok"], "failed": report["failed"], "blockers": report["blockers"]}, indent=2))
+        emit_summary(report, destination)
         return code
 
     if args.command == "check":
@@ -143,8 +152,7 @@ def main(argv: list[str] | None = None) -> int:
             output=args.output,
             command=f"mantis check {workstream}",
         )
-        print(destination)
-        print(json.dumps({"ok": report["ok"], "failed": report["failed"], "blockers": report["blockers"]}, indent=2))
+        emit_summary(report, destination)
         return code
 
     if args.command == "export":

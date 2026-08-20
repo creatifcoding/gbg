@@ -35,6 +35,7 @@ in
       tools.pythonCore
       pkgs.nodejs_22
       pkgs.rustc
+      pkgs.stdenv.cc
       pkgs.jq
       pkgs.git
       pkgs.coreutils

@@ -71,8 +71,11 @@ def git_state(lab_root: Path) -> dict[str, object]:
             check=False,
         )
 
-    sha_proc = git("rev-parse", "HEAD")
-    dirty_proc = git("status", "--porcelain")
+    try:
+        sha_proc = git("rev-parse", "HEAD")
+        dirty_proc = git("status", "--porcelain")
+    except FileNotFoundError:
+        return {"sha": None, "dirty": True, "available": False}
     return {
         "sha": sha_proc.stdout.strip() if sha_proc.returncode == 0 else None,
         "dirty": bool(dirty_proc.stdout.strip()) if dirty_proc.returncode == 0 else True,
@@ -115,21 +118,25 @@ def flake_lock_record(lab_root: Path) -> dict[str, object]:
 def nix_record() -> dict[str, object]:
     system = os.environ.get("NIX_CURRENT_SYSTEM") or platform.machine()
     current = None
-    proc = subprocess.run(
-        ["nix", "--version"],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    version = proc.stdout.strip().splitlines()[0] if proc.returncode == 0 and proc.stdout else None
-    eval_proc = subprocess.run(
-        ["nix", "eval", "--raw", "--impure", "--expr", "builtins.currentSystem"],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if eval_proc.returncode == 0:
-        current = eval_proc.stdout.strip()
+    version = None
+    try:
+        proc = subprocess.run(
+            ["nix", "--version"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        version = proc.stdout.strip().splitlines()[0] if proc.returncode == 0 and proc.stdout else None
+        eval_proc = subprocess.run(
+            ["nix", "eval", "--raw", "--impure", "--expr", "builtins.currentSystem"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if eval_proc.returncode == 0:
+            current = eval_proc.stdout.strip()
+    except FileNotFoundError:
+        version = None
     return {
         "nixVersion": version,
         "currentSystem": current,

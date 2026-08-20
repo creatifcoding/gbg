@@ -36,7 +36,23 @@ class CheckResult:
 
 
 def which(name: str) -> str | None:
-    return shutil.which(name)
+    """Prefer a Nix-store tool so a hidden user profile is not authority."""
+    found: str | None = None
+    for directory in os.environ.get("PATH", "").split(os.pathsep):
+        if not directory:
+            continue
+        candidate = Path(directory) / name
+        try:
+            if not candidate.is_file() or not os.access(candidate, os.X_OK):
+                continue
+        except OSError:
+            continue
+        real = os.path.realpath(candidate)
+        if real.startswith("/nix/store/"):
+            return str(candidate)
+        if found is None:
+            found = str(candidate)
+    return found
 
 
 def rel(lab_root: Path, path: Path) -> str:
@@ -60,15 +76,18 @@ def run_cmd(
     merged = os.environ.copy()
     if env:
         merged.update(env)
-    return subprocess.run(
-        list(command),
-        cwd=cwd,
-        env=merged,
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-        check=False,
-    )
+    try:
+        return subprocess.run(
+            list(command),
+            cwd=cwd,
+            env=merged,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        return subprocess.CompletedProcess(list(command), 127, "", f"not found: {exc.filename}")
 
 
 def tool_version(binary: str) -> str | None:
