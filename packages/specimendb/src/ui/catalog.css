@@ -1,0 +1,297 @@
+/* Near-black void + charcoal cards. Pill paint only. No VANTA_* tokens. */
+
+.sdb-shell {
+  --sdb-void: #000000;
+  --sdb-charcoal: #141414;
+  --sdb-charcoal-2: #1c1c1c;
+  --sdb-ink: #e8e8e8;
+  --sdb-mute: #8a8a8a;
+  --sdb-line: #2a2a2a;
+  --sdb-dash: #3a3a3a;
+  --sdb-raw: #fbbf24;
+  --sdb-filed: #22d3ee;
+  --sdb-working: #34d399;
+  --sdb-dead: #fb7185;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 100vh;
+  margin: 0;
+  padding: 12px;
+  background: var(--sdb-void);
+  color: var(--sdb-ink);
+  font-family: ui-monospace, 'IBM Plex Mono', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.sdb-shell *,
+.sdb-shell *::before,
+.sdb-shell *::after {
+  box-sizing: border-box;
+}
+
+.sdb-rail,
+.sdb-stage,
+.sdb-intake,
+.sdb-detail,
+.sdb-card {
+  background: var(--sdb-charcoal);
+  border: 1px solid var(--sdb-line);
+}
+
+.sdb-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+}
+
+.sdb-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.sdb-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  color: var(--sdb-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sdb-kicker-title {
+  color: var(--sdb-ink);
+}
+
+.sdb-query {
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  width: calc(100% - 24px);
+  border: 1px solid var(--sdb-line);
+  background: var(--sdb-void);
+  color: var(--sdb-ink);
+  font: inherit;
+  text-transform: uppercase;
+}
+
+.sdb-query::placeholder {
+  color: var(--sdb-mute);
+}
+
+.sdb-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+
+.sdb-filters button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--sdb-line);
+  background: transparent;
+  color: var(--sdb-mute);
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.sdb-filters button[data-active='true'] {
+  color: var(--sdb-ink);
+  border-color: var(--sdb-ink);
+}
+
+.sdb-list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sdb-card {
+  position: relative;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+}
+
+.sdb-card[data-selected='true'] {
+  border-color: var(--sdb-ink);
+}
+
+.sdb-card-media {
+  position: relative;
+  min-height: 140px;
+  background: var(--sdb-void);
+  border-bottom: 1px solid var(--sdb-line);
+}
+
+.sdb-card-media img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.sdb-card-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sdb-card-meta,
+.sdb-detail-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.sdb-id {
+  color: var(--sdb-ink);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.sdb-locality {
+  color: var(--sdb-mute);
+  text-transform: lowercase;
+}
+
+.sdb-claim {
+  color: var(--sdb-ink);
+  margin: 0;
+}
+
+.sdb-empty {
+  color: var(--sdb-mute);
+  padding: 12px;
+}
+
+.sdb-pill {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sdb-pill[data-status='raw'] {
+  color: var(--sdb-raw);
+}
+
+.sdb-pill[data-status='filed'] {
+  color: var(--sdb-filed);
+}
+
+.sdb-pill[data-status='working'] {
+  color: var(--sdb-working);
+}
+
+.sdb-pill[data-status='dead'] {
+  color: var(--sdb-dead);
+}
+
+.sdb-card .sdb-pill {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--sdb-charcoal);
+}
+
+.sdb-online {
+  color: var(--sdb-working);
+}
+
+.sdb-offline {
+  color: var(--sdb-dead);
+}
+
+.sdb-intake {
+  padding: 10px 12px 12px;
+}
+
+.sdb-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 180px;
+  margin-top: 8px;
+  border: 1px dashed var(--sdb-dash);
+  background: var(--sdb-void);
+  color: var(--sdb-ink);
+  cursor: pointer;
+}
+
+.sdb-zone[data-active='true'] {
+  border-color: var(--sdb-ink);
+}
+
+.sdb-zone-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sdb-hint {
+  margin: 8px 0 0;
+  color: var(--sdb-mute);
+}
+
+.sdb-error {
+  margin: 8px 0 0;
+  color: var(--sdb-dead);
+}
+
+.sdb-detail {
+  padding: 12px;
+  min-height: 160px;
+}
+
+.sdb-detail-id {
+  margin: 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+  word-break: break-all;
+}
+
+.sdb-file-input {
+  display: none;
+}
+
+.sdb-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sdb-tag {
+  padding: 2px 6px;
+  border: 1px solid var(--sdb-line);
+  color: var(--sdb-mute);
+  text-transform: uppercase;
+}

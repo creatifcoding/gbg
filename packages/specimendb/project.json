@@ -34,7 +34,13 @@
       "cache": true,
       "inputs": ["default", "^default"]
     },
-    "clean": {
+    "testbed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run testbed",
+        "cwd": "packages/specimendb"
+      }
+    },
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run clean",

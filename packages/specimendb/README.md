@@ -18,6 +18,30 @@ None are required at birth. Intake attaches Status (`raw`), Media, Exif (sidecar
 
 Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag, Question, Observation.
 
+## Surfaces
+
+`IntakeDrop` and `SpecimenRail` in [`src/ui/`](./src/ui/) are compound React components driven by `@tmnl/stx` (`stx` / autoLens / `useStx` / `useFocus`). They call the existing `SpecimenRpcs`:
+
+| Component | RPC |
+|---|---|
+| `IntakeDrop` | `Intake` (drop or pick a real file). New records land as Status `raw`. |
+| `SpecimenRail` | `List()` on mount, `Get()` on select. |
+
+Locality in the rail is the word `unknown` unless the file actually had EXIF GPS. The UI does not invent coordinates, elevation, temperature, taxon, ML confidence, or accession strings.
+
+Status pills: `raw` amber, `filed` cyan, `working` emerald, `dead` rose. Machine is `raw → filed → working → dead`.
+
+## Testbed
+
+In-memory Intake/Get/List client (same EXIF/locality rules, no PGlite rewrite):
+
+```sh
+cd packages/specimendb
+bun run testbed
+```
+
+Opens Vite at `http://localhost:4177`. Drop a JPEG onto the intake zone. A file without GPS should show `raw` and `unknown`.
+
 ## Field capture
 
 Static page in [`capture/`](./capture/): stamp GPS + DateTimeOriginal into a JPEG in the browser and download it. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to PGlite or RPC.
