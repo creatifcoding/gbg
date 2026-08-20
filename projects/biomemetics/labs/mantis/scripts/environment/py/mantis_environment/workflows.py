@@ -93,10 +93,15 @@ def tool_version(binary: str) -> str | None:
     path = which(binary)
     if not path:
         return None
+    # CalculiX treats argv[1] as a job name and writes into cwd. Always probe
+    # from an isolated temp directory so the repository is not mutated.
+    cwd = Path(os.environ.get("MANTIS_SOLVER_TEMP") or os.environ.get("TMPDIR") or "/tmp")
+    cwd.mkdir(parents=True, exist_ok=True)
     for args in ([binary, "--version"], [binary, "-v"], [binary, "-V"], [binary, "version"]):
         try:
             proc = subprocess.run(
                 args,
+                cwd=cwd,
                 text=True,
                 capture_output=True,
                 timeout=30,
@@ -632,9 +637,9 @@ except ImportError:
     print("MISSING_SKRF")
     raise SystemExit(69)
 net = skrf.Network(str(path))
-s21 = abs(net.s[0, 1, 0])
+s21 = float(abs(net.s[0, 1, 0]))
 ok = abs(s21 - 0.99) < 0.02
-print(json.dumps({"s21": s21, "ok": ok, "nfreqs": int(net.frequency.npoints)}))
+print(json.dumps({"s21": s21, "ok": bool(ok), "nfreqs": int(net.frequency.npoints)}))
 raise SystemExit(0 if ok else 1)
 """
     probe = iso / "build" / "touchstone_probe.py"
