@@ -1,0 +1,5 @@
+dist/
+reports/
+*.local
+specimendb-capture.zip
+.data/

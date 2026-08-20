@@ -1,12 +1,14 @@
 # @gbg/catalog
 
-Biomimetic research catalog. Dump a picture, dossier, artifact, or note and file it as a Specimen in one screen. A Specimen is a particular sample in hand or on record: this leaf, this foot, this slide, this photo. Organism, structure, mechanism, function, and analog stay optional later links. The package is not a generic biomedical file cabinet.
+TanStack Start UI for biomimetic intake. Domain, DuckDB, and Effect v4 RPC now live in `@tmnl/specimendb`. This app still files locally to JSON. Point new work at specimendb.
+
+Dump a picture, dossier, artifact, or note and file it as a Specimen in one screen. A Specimen is a particular sample in hand or on record: this leaf, this foot, this slide, this photo. Organism, structure, mechanism, function, and analog stay optional later links. The package is not a generic biomedical file cabinet.
 
 Empty catalog is valid. The default data dir files `20260819-001` on first boot. The app does not invent citations or papers.
 
 ## Why this name
 
-`packages/catalog` / `@gbg/catalog` was free. Nothing else in the workspace owns that name. Kept it.
+`packages/catalog` / `@gbg/catalog` was free. Effect v4 libs use `@tmnl/*`, which is why the store is `@tmnl/specimendb` rather than `@gbg/specimendb`.
 
 ## Product invariant
 
