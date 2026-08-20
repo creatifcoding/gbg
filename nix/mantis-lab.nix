@@ -110,7 +110,7 @@
         with pkgs;
         [
           gmsh
-          calculix
+          calculix-ccx
           # openEMS intentionally omitted until a headless smoke test qualifies it.
         ]
       );
