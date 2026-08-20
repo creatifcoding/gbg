@@ -1,0 +1,81 @@
+{
+  "schema": "mantis.ee.power-control.params.sweep.v1",
+  "issue": 24,
+  "status": "UNVERIFIED",
+  "note": "No S1/S2/Q1/F1/TVS/ISO MPN is selected. Values are parameter sweeps for ngspice screening. They are not datasheet limits and do not qualify hardware. #23 library parts remain UNVERIFIED envelopes.",
+  "locks": {
+    "p08SafetyAuthority": false,
+    "rawMipiOnPogos": false,
+    "hardwareInterlock": "S1-AND-S2-series-break-before-move-and-break-before-binder-release"
+  },
+  "parameters": {
+    "v_in": {
+      "unit": "V",
+      "default": 12.0,
+      "sweep": [9.0, 12.0, 14.0],
+      "status": "target",
+      "source": "terrarium/PARAMS.md nominal rail VIN 12 V DC TARGET"
+    },
+    "i_fuse_f1": {
+      "unit": "A",
+      "default": 2.0,
+      "sweep": [2.0],
+      "status": "target",
+      "source": "BOM B44 2 A TARGET; MPN UNVERIFIED"
+    },
+    "i_lim": {
+      "unit": "A",
+      "default": 1.0,
+      "sweep": [0.5, 1.0, 1.5],
+      "status": "UNVERIFIED",
+      "note": "Local eFuse/current-limit not selected. Sweep must stay below F1 2 A TARGET."
+    },
+    "v_uvlo": {
+      "unit": "V",
+      "default": 8.0,
+      "sweep": [7.0, 8.0, 9.0],
+      "status": "UNVERIFIED"
+    },
+    "v_safe": {
+      "unit": "V",
+      "default": 1.0,
+      "sweep": [0.5, 1.0, 2.0],
+      "status": "UNVERIFIED",
+      "note": "Discharge-before-move threshold is not a selected-part value."
+    },
+    "r_contact": {
+      "unit": "ohm",
+      "default": 0.05,
+      "sweep": [0.01, 0.05, 0.1],
+      "status": "UNVERIFIED"
+    },
+    "r_fuse": {
+      "unit": "ohm",
+      "default": 0.02,
+      "status": "UNVERIFIED"
+    },
+    "c_load": {
+      "unit": "F",
+      "default": 4.7e-5,
+      "sweep": [1.0e-5, 4.7e-5, 1.0e-4],
+      "status": "UNVERIFIED"
+    },
+    "r_load": {
+      "unit": "ohm",
+      "default": 24.0,
+      "status": "UNVERIFIED",
+      "note": "12 V / 24 ohm ~ 0.5 A load placeholder. No camera/SerDes budget."
+    },
+    "r_discharge": {
+      "unit": "ohm",
+      "default": 10.0,
+      "sweep": [5.0, 10.0, 22.0],
+      "status": "UNVERIFIED"
+    },
+    "r_on_q1": {
+      "unit": "ohm",
+      "default": 0.05,
+      "status": "UNVERIFIED"
+    }
+  }
+}

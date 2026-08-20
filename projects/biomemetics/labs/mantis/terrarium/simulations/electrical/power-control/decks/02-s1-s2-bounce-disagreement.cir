@@ -1,0 +1,28 @@
+* 02-s1-s2-bounce-disagreement: S1/S2 bounce and disagreement
+* Issue 24 UNVERIFIED screening deck. Not qualification.
+.title 02-s1-s2-bounce-disagreement
+.include models/power_control.inc
+V_VIN vin_src 0 DC {v_in}
+V_Q1A_SHORT q1a_short 0 DC 0.0
+V_Q1B_SHORT q1b_short 0 DC 0.0
+V_Q1_OPEN q1_open 0 DC 0.0
+V_DCHG_OPEN dchg_open 0 DC 0.0
+V_P08_FORCE p08_force 0 DC 0.0
+V_LOAD_SHORT load_short 0 DC 0.0
+V_S1_CTRL s1_ctrl 0 PWL(0 0.0 0.005 0.0 0.0052 3.3 0.0054 0.0 0.0056 3.3 0.0058 0.0 0.006 3.3 0.012 3.3 0.0122 0.0 0.025 0.0)
+V_S2_CTRL s2_ctrl 0 PWL(0.0 0.0 0.00398 0.0 0.004 3.3 0.01798 3.3 0.018 0.0 0.04 0.0)
+V_P03_MAKE p03_make 0 PWL(0.0 0.0 0.00198 0.0 0.002 3.3 0.04 3.3)
+V_P04_MAKE p04_make 0 PWL(0.0 0.0 0.00198 0.0 0.002 3.3 0.04 3.3)
+V_P01_MAKE p01_make 0 PWL(0.0 0.0 0.00298 0.0 0.003 3.3 0.04 3.3)
+V_P02_MAKE p02_make 0 PWL(0.0 0.0 0.00298 0.0 0.003 3.3 0.04 3.3)
+V_B50_GND_MAKE b50_gnd_make 0 PWL(0.0 0.0 0.00198 0.0 0.002 3.3 0.04 3.3)
+V_B50_VIN_MAKE b50_vin_make 0 PWL(0.0 0.0 0.00298 0.0 0.003 3.3 0.04 3.3)
+.tran 20u 0.025
+.control
+run
+set wr_singlescale
+set wr_vecnames
+wrdata results/02-s1-s2-bounce-disagreement.dat v(q1_en) v(v_branch) v(interlock_ok) v(remate_req) v(latch) v(iso_en) v(p08_diag) v(sda_rail) v(sda_br) v(vin_shared) v(s1_ctrl) v(s2_ctrl) v(i_sns) v(oc)
+quit
+.endc
+.end

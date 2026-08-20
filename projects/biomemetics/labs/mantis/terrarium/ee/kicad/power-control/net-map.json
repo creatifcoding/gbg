@@ -1,0 +1,40 @@
+{
+  "schema": "mantis.ee.power-control.net-map.v1",
+  "issue": 24,
+  "status": "UNVERIFIED",
+  "library": "terrarium/ee/kicad/libs (EE-01, unadmitted envelopes)",
+  "p08SafetyAuthority": false,
+  "rawMipiOnPogos": false,
+  "nodes": {
+    "VIN_RAIL": "guarded external supply; may remain energized",
+    "VIN_FUSED": "after F1",
+    "VIN_SHARED": "after P01||P02",
+    "GND": "after P03||P04",
+    "INTERLOCK_MID": "S1 NO / S2 COM",
+    "INTERLOCK_OK": "S1 AND S2 hardware series-NO",
+    "Q1_EN": "Q1A and Q1B enable; never driven by P08",
+    "Q1_EN_N": "discharge enable, inverse of Q1_EN",
+    "Q1_MID": "between Q1A and Q1B",
+    "V_BRANCH": "carriage load branch",
+    "ISO_EN": "follows Q1_EN",
+    "FAULT_N": "P08 rail net, diagnostic only",
+    "P08_DIAG": "hardware latch observer",
+    "GMSL_P": "B27 P10 / B50 C10; not MIPI; #25 owns the channel",
+    "GMSL_N": "B27 P11 / B50 C11; not MIPI; #25 owns the channel"
+  },
+  "states": {
+    "absent": { "Q1_EN": "off", "V_BRANCH": "below v_safe", "ISO_EN": "off" },
+    "mechanically-seated": { "Q1_EN": "off", "S1": "open", "S2": "open" },
+    "power-mated": { "S1": "closed", "S2": "closed", "Q1_EN": "still off until UVLO/OC allow" },
+    "training-window": { "Q1_EN": "on", "ISO_EN": "on", "P08": "diagnostic only" },
+    "link-trained": { "Q1_EN": "on", "note": "video admit is not this board" },
+    "fault-latched": { "Q1_EN": "off", "P08_DIAG": "low", "ISO_EN": "off" },
+    "pinch-safe": { "S1": "open", "Q1_EN": "off", "V_BRANCH": "below v_safe before lift" },
+    "lifted": { "Q1_EN": "off", "ISO_EN": "off", "B27": "open" }
+  },
+  "transitions": {
+    "t07-pinch-safe": ["S1 opens", "Q1_EN falls", "discharge", "ISO_EN falls", "V_BRANCH < v_safe"],
+    "t08-lift": ["permit only if V_BRANCH < v_safe and ISO_EN off"],
+    "t10-interrupted-pinch": ["S1 re-closes without B27 VIN open", "remate_req holds Q1_EN off"]
+  }
+}

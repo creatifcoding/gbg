@@ -1,0 +1,16 @@
+{
+  "board": { "design_settings": {} },
+  "meta": { "filename": "power-control.kicad_pro", "version": 1 },
+  "sheets": [
+    ["power-control.kicad_sch", "100afa22-2abc-521d-a75c-556095db857e"],
+    ["sheets/01-source-b27-b50.kicad_sch", "a74baeba-4340-5948-a088-29c60a42d4c1"],
+    ["sheets/02-s1-s2-q1.kicad_sch", "b952bc76-6601-589b-9708-a55b86060ca8"],
+    ["sheets/03-lowspeed-iso-p08.kicad_sch", "b607a62e-00d8-509c-a1ac-38e98d688cfe"],
+    ["sheets/04-esd-sense-tp.kicad_sch", "f6e7c635-84c9-5be9-bb0f-70840cf9fa46"]
+  ],
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": ["mantis-ee"],
+    "pinned_fp_libs": ["mantis-ee"]
+  }
+}

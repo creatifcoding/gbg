@@ -1,0 +1,406 @@
+{
+  "schema": "mantis.ee.power-control.sim-summary.v1",
+  "issue": 24,
+  "status": "UNVERIFIED",
+  "solver": "ngspice",
+  "qualification": false,
+  "cases": [
+    {
+      "id": "00-nominal-seat-train-admit",
+      "title": "Nominal seat / train / admit then pinch-safe lift",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.001,
+          "note": "absent: branch off",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0,
+          "v(v_branch)": 4.24579999e-07
+        },
+        {
+          "t": 0.004,
+          "note": "contacts making, S1/S2 still open",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0
+        },
+        {
+          "t": 0.012,
+          "note": "seated train window",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3002106021621,
+          "v(v_branch)": 11.9274408,
+          "v(iso_en)": 3.3
+        },
+        {
+          "t": 0.016,
+          "note": "S1 opened: Q1 forced off before lift",
+          "expect_hazard": false,
+          "v(q1_en)": 1.7993329841058609e-10,
+          "v(iso_en)": 0.0
+        },
+        {
+          "t": 0.019,
+          "note": "discharged before B27 contact lift",
+          "expect_hazard": false,
+          "v(v_branch)": 6.80803572149283e-05
+        },
+        {
+          "t": 0.022,
+          "note": "rolling: branch off",
+          "expect_hazard": false,
+          "v(q1_en)": 2.9926152901248583e-15,
+          "v(v_branch)": 2.6333849826337564e-08
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "01-slow-partial-interrupted-pinch",
+      "title": "Slow/partial mate and interrupted pinch (no lift)",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.005,
+          "note": "partial/slow mate, S1 still open",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0
+        },
+        {
+          "t": 0.012,
+          "note": "S1 and S2 closed; one of P01/P04 open is not a software waiver",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3000007522774
+        },
+        {
+          "t": 0.016,
+          "note": "first pinch travel opens S1",
+          "expect_hazard": false,
+          "v(q1_en)": -1.5117263613823144e-05
+        },
+        {
+          "t": 0.02,
+          "note": "interrupted pinch: S1 re-closed without contact lift; remate required",
+          "expect_hazard": false,
+          "v(q1_en)": -3.133269999999852e-12
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "02-s1-s2-bounce-disagreement",
+      "title": "S1/S2 bounce and disagreement",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.0054,
+          "note": "bounce low: S1 open keeps EN off",
+          "expect_hazard": false,
+          "v(q1_en)": -0.00606772109,
+          "v(s1_ctrl)": 1.43114687e-14
+        },
+        {
+          "t": 0.01,
+          "note": "S2 closed while S1 bouncing/settling",
+          "expect_hazard": false,
+          "v(s2_ctrl)": 3.3
+        },
+        {
+          "t": 0.016,
+          "note": "S1 open S2 closed: AND off",
+          "expect_hazard": false,
+          "v(q1_en)": -6.3417999999995975e-19,
+          "v(s1_ctrl)": 0.0,
+          "v(s2_ctrl)": 3.3
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "03-brownout-recovery",
+      "title": "VIN brownout and recovery with mates held",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.008,
+          "note": "pre-brownout enabled",
+          "expect_hazard": false,
+          "v(q1_en)": 3.30046870624372,
+          "v(vin_shared)": 11.9776355
+        },
+        {
+          "t": 0.015,
+          "note": "UVLO inhibits EN during brownout",
+          "expect_hazard": false,
+          "v(q1_en)": 7.62461648363081e-06
+        },
+        {
+          "t": 0.025,
+          "note": "VIN recover, mates still closed, no OC latch",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "04-stuck-switch",
+      "title": "S1/S2 stuck-open (safe) and S1 stuck-closed during pinch (hazard)",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.012,
+          "note": "stuck-closed S1 still enables with S2",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3000911215538
+        },
+        {
+          "t": 0.0179,
+          "note": "HAZARD: S1 welded, Q1 still enabled at commanded B27 lift; single NO S1 cannot break-before-move",
+          "expect_hazard": true,
+          "v(q1_en)": 3.29997200222735,
+          "disposition": "hazard-demonstrated"
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": true
+    },
+    {
+      "id": "04b-s1-stuck-open",
+      "title": "S1 stuck-open remains branch-off",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.01,
+          "note": "stuck-open S1: no enable",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0,
+          "v(v_branch)": 8.47058665e-07
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "05-q1-open-short",
+      "title": "Q1A short (Q1B isolates) and Q1 open",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.012,
+          "note": "Q1A shorted; Q1B still follows EN",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3000000352944,
+          "v(v_branch)": 11.9517044
+        },
+        {
+          "t": 0.019,
+          "note": "Q1B still isolates after S1 opens",
+          "expect_hazard": false,
+          "v(v_branch)": 6.906410030262404e-05
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "05b-q1-open",
+      "title": "Q1 open stays unavailable/safe",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.012,
+          "note": "q1_open inhibits EN",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0,
+          "v(v_branch)": 8.47058665e-07
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "05c-q1-assembly-short",
+      "title": "Both Q1 channels shorted (dual-fault hazard)",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.019,
+          "note": "HAZARD: both isolation channels shorted; dual fault, not a single-fault PASS",
+          "expect_hazard": true,
+          "v(v_branch)": 11.9189506,
+          "disposition": "hazard-demonstrated"
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": true
+    },
+    {
+      "id": "06-output-short-oc",
+      "title": "Output short / overcurrent latches off",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.008,
+          "note": "enabled before short",
+          "expect_hazard": false,
+          "v(q1_en)": 3.30046870624372
+        },
+        {
+          "t": 0.016,
+          "note": "OC fault latch forces Q1 off",
+          "expect_hazard": false,
+          "v(q1_en)": 6.418582855411263e-29,
+          "v(latch)": 3.3
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "08-unpowered-backfeed",
+      "title": "Unpowered low-speed backfeed isolation; P08 cannot enable",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.01,
+          "note": "unpowered, isolated",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0,
+          "v(iso_en)": 0.0
+        },
+        {
+          "t": 0.01,
+          "note": "backfeed on branch does not appear on rail",
+          "expect_hazard": false,
+          "v(sda_rail)": 0.0032967033,
+          "v(sda_br)": 3.3
+        },
+        {
+          "t": 0.01,
+          "note": "P08 force cannot turn Q1 on",
+          "expect_hazard": false,
+          "v(q1_en)": 0.0
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "09-repeated-detach-remate",
+      "title": "Repeated detach / remate stays branch-off while moving",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.01,
+          "note": "first seat",
+          "expect_hazard": false,
+          "v(q1_en)": 3.299999845
+        },
+        {
+          "t": 0.014,
+          "note": "first pinch",
+          "expect_hazard": false,
+          "v(q1_en)": -1.2969840522921931e-05
+        },
+        {
+          "t": 0.018,
+          "note": "first lift discharged",
+          "expect_hazard": false,
+          "v(v_branch)": 2.439587621268352e-07
+        },
+        {
+          "t": 0.026,
+          "note": "second seat after lift",
+          "expect_hazard": false,
+          "v(q1_en)": 3.299999845
+        },
+        {
+          "t": 0.032,
+          "note": "second pinch / binder release starts",
+          "expect_hazard": false,
+          "v(q1_en)": -5.180024999101459e-12
+        },
+        {
+          "t": 0.038,
+          "note": "detached: off",
+          "expect_hazard": false,
+          "v(q1_en)": -2.8619181701840036e-18,
+          "v(v_branch)": 4.24165176417975e-07
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "07b-s2-binder-release",
+      "title": "S2 opens before B50 contact move (break-before-binder-release)",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.012,
+          "note": "seated, binder mated",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3002106021621
+        },
+        {
+          "t": 0.015,
+          "note": "S2 open: Q1 off before B50 move",
+          "expect_hazard": false,
+          "v(q1_en)": 1.7945859974334931e-10,
+          "v(iso_en)": 0.0
+        },
+        {
+          "t": 0.017,
+          "note": "discharged before binder contacts move",
+          "expect_hazard": false,
+          "v(v_branch)": 0.001371807675306747
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": false
+    },
+    {
+      "id": "07c-discharge-open-blocks-lift",
+      "title": "Open discharge: V_BRANCH still above v_safe so lift predicate is false",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.012,
+          "note": "enabled",
+          "expect_hazard": false,
+          "v(q1_en)": 3.3002721218728
+        },
+        {
+          "t": 0.019,
+          "note": "HAZARD if lift proceeds: discharge open leaves branch charged; permit-lift must stay false",
+          "expect_hazard": true,
+          "v(v_branch)": 11.998953755292,
+          "v(q1_en)": 9.874939691328935e-11,
+          "disposition": "hazard-demonstrated"
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": true
+    },
+    {
+      "id": "04c-s2-welded-binder",
+      "title": "S2 welded during binder contact move (hazard)",
+      "ngspice_rc": 0,
+      "asserts": [
+        {
+          "t": 0.018,
+          "note": "HAZARD: S2 welded, B50 already moving, Q1 still on; single NO S2 cannot break-before-binder-release",
+          "expect_hazard": true,
+          "v(q1_en)": 3.3000000021446,
+          "disposition": "hazard-demonstrated"
+        }
+      ],
+      "ok": true,
+      "hazard_demonstrated": true
+    }
+  ]
+}
