@@ -1,0 +1,63 @@
+{
+  "name": "@tmnl/specimendb",
+  "version": "0.0.1",
+  "description": "ECS specimen catalog — Intake/Get/List over a DuckDB file database (Effect v4)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./schemas": {
+      "import": "./dist/schemas/index.js",
+      "types": "./dist/schemas/index.d.ts"
+    },
+    "./rpc": {
+      "import": "./dist/rpc/index.js",
+      "types": "./dist/rpc/index.d.ts"
+    },
+    "./repos": {
+      "import": "./dist/repos/index.js",
+      "types": "./dist/repos/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "1.5.5-r.4",
+    "effect": "4.0.0-beta.93"
+  },
+  "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.93",
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "GBG",
+  "keywords": [
+    "effect-ts",
+    "effect-v4",
+    "ecs",
+    "specimen",
+    "duckdb",
+    "catalog"
+  ]
+}

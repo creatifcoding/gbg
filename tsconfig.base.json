@@ -31,7 +31,9 @@
       "@tmnl/effect-sui": ["packages/effect-sui/src/index.ts"],
       "@tmnl/effect-sui/*": ["packages/effect-sui/src/*"],
       "@tmnl/msh": ["packages/msh/src/index.ts"],
-      "@tmnl/msh/*": ["packages/msh/src/*"]
+      "@tmnl/msh/*": ["packages/msh/src/*"],
+      "@tmnl/specimendb": ["packages/specimendb/src/index.ts"],
+      "@tmnl/specimendb/*": ["packages/specimendb/src/*"]
     }
   },
   "exclude": ["node_modules", "tmp", "submodules", "receipts"]
