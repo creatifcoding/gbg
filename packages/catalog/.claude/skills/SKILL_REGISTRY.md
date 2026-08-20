@@ -40,6 +40,7 @@ triggers:
 | `react-compound-components` | VantaCard Object.assign slots | VantaCard, compound |
 | `grounded-research` | Verify tmnl tokens and catalog schema first | research, verify |
 | `catalog-intake` | 10-second dump then file a Specimen | intake, fileSpecimen, dump |
+| `catalog-capture` | Static camera page for Cloudflare Drop | capture, Drop, getUserMedia |
 
 ## Subsystem map
 

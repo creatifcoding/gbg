@@ -46,6 +46,7 @@ packages/catalog/
 │   ├── ui/                  Shell, CatalogIndex, IntakeDrop, ContextCard, SpecimenDetail
 │   ├── routes/              index, intake, specimens.$specimenId, testbed.vanta
 │   └── styles/              app.css, transitions.css
+├── capture/                 static camera page for Cloudflare Drop
 ├── .claude/skills/
 └── README.md
 ```
@@ -64,6 +65,7 @@ v1 RPCs are Start server functions, not Effect Cluster actors.
 | Status machines | `src/lib/catalog/entity/` |
 | JSON snapshot | `src/lib/catalog/models/catalog-snapshot.ts` (v4) |
 | Picture originals | `packages/catalog/assets/specimens/<id>/` |
+| Capture (Drop) | `packages/catalog/capture/` |
 | Status accents | `src/lib/catalog/registry.ts` |
 | VANTA tokens | `src/components/portal/tokens.ts` (copy of tmnl portal tokens) |
 | VantaCard | `src/components/portal/VantaCard.tsx` |

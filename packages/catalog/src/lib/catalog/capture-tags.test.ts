@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest'
+import {
+  captureFilename,
+  tagsFromCapture,
+} from '../../../capture/tags.js'
+
+describe('capture tags', () => {
+  it('writes GPS tags when a fix exists', () => {
+    const capturedAt = new Date(Date.UTC(2026, 7, 20, 15, 4, 11))
+    const tags = tagsFromCapture({
+      capturedAt,
+      coords: { latitude: 32.2217, longitude: -110.9265 },
+    })
+    expect(tags.GPSLatitude).toBe('32.2217')
+    expect(tags.GPSLatitudeRef).toBe('N')
+    expect(tags.GPSLongitude).toBe('110.9265')
+    expect(tags.GPSLongitudeRef).toBe('W')
+    expect(tags.GPSDateTime).toBe('2026:08:20 15:04:11')
+    expect(tags.DateTimeOriginal).toMatch(/^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/)
+  })
+
+  it('omits GPS when location is denied and does not invent coords', () => {
+    const tags = tagsFromCapture({
+      capturedAt: new Date('2026-08-20T12:00:00'),
+      coords: null,
+    })
+    expect(tags.GPSLatitude).toBeUndefined()
+    expect(tags.GPSLongitude).toBeUndefined()
+    expect(tags.GPSLatitudeRef).toBeUndefined()
+    expect(tags.GPSLongitudeRef).toBeUndefined()
+    expect(tags.GPSDateTime).toBeUndefined()
+    expect(tags.DateTimeOriginal).toBeTruthy()
+    expect(JSON.stringify(tags)).not.toMatch(/32\.|Tucson|city/i)
+  })
+
+  it('names the download from the capture clock', () => {
+    const capturedAt = new Date(2026, 7, 20, 9, 5, 7)
+    expect(captureFilename(capturedAt)).toBe('specimen-20260820-090507.jpg')
+  })
+})

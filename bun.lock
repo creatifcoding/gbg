@@ -98,12 +98,14 @@
       "name": "@gbg/catalog",
       "version": "0.0.1",
       "dependencies": {
+        "@6over3/zeroperl-ts": "1.0.10",
         "@radix-ui/react-label": "^2.1.1",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-separator": "^1.1.8",
         "@tanstack/react-router": "^1.168.0",
         "@tanstack/react-router-devtools": "^1.167.0",
         "@tanstack/react-start": "^1.168.0",
+        "@uswriting/exiftool": "1.0.9",
         "effect": "4.0.0-beta.93",
         "exifr": "^7.1.3",
         "nanoid": "^5.1.6",
@@ -869,6 +871,8 @@
     "@0no-co/graphql.web": ["@0no-co/graphql.web@1.2.0", "", { "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0" }, "optionalPeers": ["graphql"] }, "sha512-/1iHy9TTr63gE1YcR5idjx8UREz1s0kFhydf3bBLCXyqjhkIc6igAzTOx3zPifCwFR87tsh/4Pa9cNts6d2otw=="],
 
     "@0no-co/graphqlsp": ["@0no-co/graphqlsp@1.15.4", "", { "dependencies": { "@gql.tada/internal": "^1.0.0", "graphql": "^15.5.0 || ^16.0.0 || ^17.0.0" }, "peerDependencies": { "typescript": "^5.0.0 || ^6.0.0" } }, "sha512-Nt1DVHcZ08lKRKwhiU0amXH77fSdrO6DzyjLE0DkCxfbM/N1SAs32d76y1xtCzM5H9eT0iDS7SdksgRXWJu05g=="],
+
+    "@6over3/zeroperl-ts": ["@6over3/zeroperl-ts@1.0.10", "", {}, "sha512-d7fBgN1UaP9BR6kZMyNsjIrxPd0QLqqx29VSprhK66m1csm/7E/anr+rEfp3gJDSne5FfDpM6aKtDGHyXG/vYQ=="],
 
     "@acemir/cssom": ["@acemir/cssom@0.9.31", "", {}, "sha512-ZnR3GSaH+/vJ0YlHau21FjfLYjMpYVIzTD8M8vIEQvIGxeOXyXdzCI140rrCY862p/C/BbzWsjc1dgnM9mkoTA=="],
 
@@ -3779,6 +3783,8 @@
     "@use-gesture/core": ["@use-gesture/core@10.3.1", "", {}, "sha512-WcINiDt8WjqBdUXye25anHiNxPc0VOrlT8F6LLkU6cycrOGUDyY/yyFmsg3k8i5OLvv25llc0QC45GhR/C8llw=="],
 
     "@use-gesture/react": ["@use-gesture/react@10.3.1", "", { "dependencies": { "@use-gesture/core": "10.3.1" }, "peerDependencies": { "react": ">= 16.8.0" } }, "sha512-Yy19y6O2GJq8f7CHf7L0nxL8bf4PZCPaVOCgJrusOeFHY1LvHgYXnmnXg6N5iwAnbgbZCDjo60SiM6IPJi9C5g=="],
+
+    "@uswriting/exiftool": ["@uswriting/exiftool@1.0.9", "", { "dependencies": { "@6over3/zeroperl-ts": "1.0.10" } }, "sha512-tziE5oH/Wf4gJ/g/ZVGBxCjnoHz27SxXRZ4KoFa4c0qN/6uBfvBFEQ272dq7LxbzhXkvGqHdmDyNJe/WUZCV5A=="],
 
     "@veramo/core-types": ["@veramo/core-types@6.0.2", "", { "dependencies": { "credential-status": "^3.0.0", "debug": "^4.3.3", "did-jwt-vc": "^4.0.0", "did-resolver": "^4.1.0" } }, "sha512-Y31auRK9i7QCd/MmfmGahN5p6hMD2nCo8iQvKa3wSEP58HnPWvcWAxE3mQppFNz+qc0AxTRMz+iarWGLWfmvJA=="],
 

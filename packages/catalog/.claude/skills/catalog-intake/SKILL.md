@@ -49,6 +49,8 @@ One screen. No wizard. No step 2.
 
 Status starts `raw`. Intake also writes a CRUD Observation (`observation-of` the specimen) and hangs the original on that observation. Body is `''`.
 
+Intake still owns filing. A JPEG from `capture/` is the preferred picture dump: GPS already in the file, or unknown if location was denied.
+
 `fileSpecimen` is the record gate. `ingestPicture` is how a picture Specimen is born. If the dump cannot make that Specimen, throw `IntakeError`. Do not save a partial.
 
 `20260819-001` is the first real specimen (elongate arthropod in a Taco Bell cup). EXIF was stripped. Status `raw`. Original not in this clone. Sidecar records empty tags.

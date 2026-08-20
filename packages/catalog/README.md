@@ -25,8 +25,6 @@ Intake is one screen, no wizard. Filing produces a Specimen first:
 
 Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxonomy does not block intake.
 
-Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxonomy does not block intake.
-
 Analog is a separate event-sourced aggregate (`raw` → `working` → `tested` → `dead`). Organism, Structure, Mechanism, Function, Attachment, Tag, Question, and Observation are not event sourced. Edges are first-class (`observation-of`, `same-lot`, `derived-from`, `identified-as`, `exhibits`, `performs`, `via`, `inspires`, `contained-in`, `depicts`, `contradicts`).
 
 Deferred: Collection, kingdom/clade tree, Material separate from Structure, citations, Preparation unless it stays cheap.
@@ -59,6 +57,17 @@ bun run start   # production server, http://127.0.0.1:3000
 
 No cloud secrets. Auth is deferred.
 
+## Capture page (Cloudflare Drop)
+
+`packages/catalog/capture/` is a static folder. Rear camera, on-device ExifTool WASM, download. No upload, no Worker, no R2.
+
+```bash
+cd packages/catalog
+bun run capture:zip
+```
+
+Open https://www.cloudflare.com/drop/, drag `catalog-capture.zip` or the `capture/` folder, and claim the `workers.dev` URL within 60 minutes if you want to keep it. Details: `capture/README.md`.
+
 ## Persistence
 
 Local JSON at `packages/catalog/.data/catalog.json` (snapshot version 4). Version 1, 2, and 3 files migrate on read. Blobs for non-picture attachments go in `.data/blobs/`. Picture originals live in `packages/catalog/assets/specimens/<SpecimenId>/original.<ext>` with a sidecar `exif.json`. Override data with `CATALOG_DATA_DIR` and assets with `CATALOG_ASSETS_DIR`.
@@ -79,6 +88,7 @@ The schema does not mention Notion. A Notion adapter can sit later without chang
 | Effect Schema | Domain types and intake validation. Already in the monorepo. |
 | nanoid | Attachment ids. |
 | exifr | GPS-capable EXIF reader when `exiftool` is not on PATH. |
+| `@uswriting/exiftool` | Vendored into `capture/` for in-browser EXIF writes (ExifTool 13.42 via zeroperl). |
 
 React is the only UI framework. Motion is CSS from Transitions.dev. No Framer Motion, GSAP, or anime.js in this package.
 
@@ -112,7 +122,7 @@ Each recipe keeps its `prefers-reduced-motion` guard.
 packages/catalog/
   src/lib/catalog/
     schemas/     branded IDs, Specimen, Observation, Analog, reference graph, edges
-    models/      snapshot v3, SpecimenView
+    models/          snapshot v4, SpecimenView
     repos/       JSON document + find/upsert
     entity/      Specimen/Analog status machines (no Cluster)
     intake.ts    10-second fileSpecimen
@@ -125,6 +135,7 @@ packages/catalog/
   src/ui/                    catalog screens
   src/routes/                Start file routes
   src/styles/                VANTA CSS variables + transitions.dev recipes
+  capture/                   static camera page for Cloudflare Drop
   .claude/skills/            catalog-scoped skills mined from tmnl
 ```
 
