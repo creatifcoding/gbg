@@ -80,7 +80,7 @@ function EmptyCatalog({ onLoadExamples }: { onLoadExamples: () => Promise<void> 
     <div className="vanta-empty">
       <p className="vanta-heading text-xl">Empty catalog. That is valid.</p>
       <p className="vanta-muted mt-2 max-w-xl text-[16px]">
-        Intake is one screen. A dump becomes a Specimen: this leaf, this foot, this slide, this photo. Raw is complete. Taxon, GPS, mechanism, and analog can wait. Open questions are enough. Body waits until after the specimen exists.
+        Intake spawns a Specimen entity and attaches what is in hand. Raw is complete. Taxon, GPS, mechanism, and analog can stay absent. Open questions are enough. Body waits until after the specimen exists.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link to="/intake" className="vanta-btn-primary">

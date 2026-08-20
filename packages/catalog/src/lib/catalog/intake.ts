@@ -9,7 +9,6 @@ import type { Specimen } from './schemas/specimen'
 import type { SpecimenEvent } from './schemas/events/specimen-events'
 import type { Question } from './schemas/question'
 import type { Tag } from './schemas/tag'
-import { Tags } from './schemas/tag'
 import type { Edge } from './schemas/edge'
 import {
   ObservationId,
@@ -23,21 +22,21 @@ import {
 } from './specimen-id'
 
 /**
- * Dump gate. Required: kind, claim, 3+ tags.
- * Taxon, GPS, mechanism, and analog do not block filing.
- * Open questions are enough for later understanding. No identification wizard.
+ * Intake system. Required: entity kind.
+ * Attaches Status(raw) plus whatever components the drop has.
+ * Claim, tags, taxon, GPS, mechanism, and analog are not gates.
  */
 export const IntakeInput = Schema.Struct({
   kind: EvidenceKind,
-  claim: Schema.NonEmptyString,
-  tags: Tags,
+  claim: Schema.optional(Schema.NonEmptyString),
+  tags: Schema.optional(Schema.Array(Schema.NonEmptyString)),
   organismGuess: Schema.optional(Schema.NullOr(Guess)),
   structureGuess: Schema.optional(Schema.NullOr(Guess)),
   locality: Schema.optional(Locality),
   observedAt: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
   cameraMake: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
   cameraModel: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
-  questions: Schema.Array(Schema.NonEmptyString),
+  questions: Schema.optional(Schema.Array(Schema.NonEmptyString)),
   id: Schema.optional(SpecimenId),
   dayStamp: Schema.optional(Schema.NonEmptyString),
   takenIds: Schema.optional(Schema.Array(Schema.String)),
@@ -85,11 +84,11 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
   const observationId = Schema.decodeUnknownSync(ObservationId)(
     `obs_${specimenId}`,
   )
-  const tags: Tag[] = intake.tags.map((slug) => ({
+  const tags: Tag[] = (intake.tags ?? []).map((slug) => ({
     id: Schema.decodeUnknownSync(TagId)(`tag_${slug}`),
     slug,
   }))
-  const questions: Question[] = intake.questions.map((text, index) => ({
+  const questions: Question[] = (intake.questions ?? []).map((text, index) => ({
     id: Schema.decodeUnknownSync(QuestionId)(`q_${specimenId}_${index}`),
     specimenId,
     text,
@@ -100,12 +99,12 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
       id: specimenId,
       kind: intake.kind,
       claim: intake.claim,
-      organismGuess: intake.organismGuess ?? null,
-      structureGuess: intake.structureGuess ?? null,
-      locality: intake.locality ?? UNKNOWN_LOCALITY,
-      observedAt: intake.observedAt ?? null,
-      cameraMake: intake.cameraMake ?? null,
-      cameraModel: intake.cameraModel ?? null,
+      organismGuess: intake.organismGuess,
+      structureGuess: intake.structureGuess,
+      locality: intake.locality,
+      observedAt: intake.observedAt,
+      cameraMake: intake.cameraMake,
+      cameraModel: intake.cameraModel,
       tagIds: tags.map((tag) => tag.id),
       questionIds: questions.map((question) => question.id),
       observationIds: [observationId],
@@ -144,7 +143,7 @@ export { guessFromInput, namedLocality, UNKNOWN_LOCALITY }
 
 function issuesFromUnknown(error: unknown): string[] {
   if (error instanceof Error && error.message.length > 0) {
-    return ['Need a type, a one-line claim, and 3+ tags.', error.message]
+    return ['Need a type. Attach whatever is in hand.', error.message]
   }
-  return ['Need a type, a one-line claim, and 3+ tags.']
+  return ['Need a type. Attach whatever is in hand.']
 }

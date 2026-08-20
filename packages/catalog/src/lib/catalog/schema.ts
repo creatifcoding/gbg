@@ -1,6 +1,7 @@
 export * from './schemas'
 export * from './models'
 export * from './entity'
+export * from './ecs'
 
 export {
   decodeSpecimenView as decodeSpecimen,

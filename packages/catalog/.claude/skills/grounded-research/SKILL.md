@@ -62,7 +62,7 @@ Confirm against packages/catalog/src/lib/catalog/schema.ts.
 
 ## Product facts that still need a file check
 
-- Intake is one screen. `fileSpecimen` throws `IntakeError` if type, claim, or 3+ tags are missing. Taxon, GPS, mechanism, and analog are not gates. Open questions are enough. Raw is complete. No identification wizard.
+- Intake is one screen. `fileSpecimen` needs a type. Pictures need a file. Taxon, GPS, mechanism, analog, claim, and tags are optional components. Raw is complete. Identify is later. No identification wizard.
 - Notes stay empty until the card exists.
 - Empty catalog is valid.
 - Example cards are opt-in and labeled.
@@ -85,5 +85,6 @@ This workspace uses `effect@4.0.0-beta.93`. Verify Schema APIs in catalog tests.
 ## Related
 
 - `catalog-intake`
+- `catalog-ecs`
 - `catalog-design-tokens`
 - `catalog-file-organization`

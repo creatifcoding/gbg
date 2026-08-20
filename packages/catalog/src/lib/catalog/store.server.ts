@@ -109,7 +109,7 @@ export class CatalogStore {
   insertIntake(result: IntakeResult): SpecimenView {
     const snapshot = this.json.mutate((current) => {
       let next = current
-      const tagIds = result.specimen.tagIds.map((id) => {
+      const tagIds = (result.specimen.tagIds ?? []).map((id) => {
         const draft = result.tags.find((tag) => tag.id === id)
         if (!draft) return id
         const existing = findTagBySlug(next, draft.slug)
@@ -122,7 +122,7 @@ export class CatalogStore {
       }
       next = upsertSpecimen(next, {
         ...result.specimen,
-        tagIds,
+        ...(tagIds.length > 0 ? { tagIds } : { tagIds: undefined }),
       })
       next = upsertObservation(next, result.observation)
       next = insertEdge(next, result.observationEdge)
@@ -193,14 +193,14 @@ export class CatalogStore {
         {
           id: specimenId,
           kind: 'picture',
-          claim: input.claim,
-          tags: input.tags,
+          ...(input.claim.trim() ? { claim: input.claim.trim() } : {}),
+          ...(input.tags.length > 0 ? { tags: [...input.tags] } : {}),
           organismGuess: input.organismGuess,
           structureGuess: input.structureGuess,
-          locality,
-          observedAt,
-          cameraMake: camera.make,
-          cameraModel: camera.model,
+          ...(locality._tag === 'gps' ? { locality } : {}),
+          ...(observedAt ? { observedAt } : {}),
+          ...(camera.make ? { cameraMake: camera.make } : {}),
+          ...(camera.model ? { cameraModel: camera.model } : {}),
           questions: [...input.questions],
         },
         now,
@@ -235,7 +235,7 @@ export class CatalogStore {
 
     const dump =
       observationsForSpecimen(current, specimen.id)[0] ??
-      findObservation(current, specimen.observationIds[0] ?? '')
+      findObservation(current, specimen.observationIds?.[0] ?? '')
 
     const attachment = decodeAttachment({
       id: nanoid(),

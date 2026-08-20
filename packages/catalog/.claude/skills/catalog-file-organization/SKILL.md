@@ -13,9 +13,9 @@ triggers:
 
 Catalog follows TMNL's iiot *layout* (`schemas` → `models` → `repos` → `entity`) without copying plant, line, sensor, Cluster actors, or shells.
 
-This package is biomimetic. The primary aggregate is Specimen. Observation, Attachment, Tag, and Question hang off it. Organism, Structure, Mechanism, Function, and Analog are optional reference-graph records.
+The mental model is ECS. Entity = branded id. Components attach over time. Specimen is not a Card row.
 
-- `src/lib/` logic (schemas, models, repos, entity, intake, registry)
+- `src/lib/` logic (schemas, models, repos, entity, ecs, intake, registry)
 - `src/components/` portal, primitives, testbeds
 - `src/ui/` catalog screens
 - `src/routes/` TanStack Start file routes
@@ -31,7 +31,8 @@ packages/catalog/
 │   │   ├── models/          JSON snapshot v4, SpecimenView
 │   │   ├── repos/           json-catalog, specimen/observation/analog/edge
 │   │   ├── entity/          Specimen/Analog status machines (no Cluster)
-│   │   ├── intake.ts        10-second fileSpecimen
+│   │   ├── ecs.ts           entity / component / system vocabulary
+│   │   ├── intake.ts        Intake system. Spawn + attach what is in hand
 │   │   ├── exif.ts          GPS-first locality from raw tags
 │   │   ├── assets.ts        original + sidecar, never overwrite
 │   │   ├── registry.ts      VANTA status → accent
@@ -102,7 +103,11 @@ That barrel is the whole tmnl app. Copy tokens. Clone VantaCard into this packag
 
 ### Copying ISA-95 names
 
-Mine iiot for branded IDs, Effect Schema, polymorphic kind, status machines, and first-class edges. Do not copy plant/line/sensor vocabulary.
+Mine iiot for branded IDs, Effect Schema, polymorphic kind, status machines, and first-class edges. Do not copy plant/line/sensor vocabulary. Do not copy the ISA-95 entity contract.
+
+### Fat aggregates
+
+Do not put taxon, GPS, mechanism, and analog on Specimen as required columns. Attach components. Identify is later.
 
 ### Putting skills only in the repo root
 
@@ -113,3 +118,4 @@ Catalog skills belong in `packages/catalog/.claude/skills/` so they travel with 
 - `catalog-component-tiers`
 - `catalog-testbed-patterns`
 - `catalog-intake`
+- `catalog-ecs`

@@ -66,30 +66,44 @@ export function getValidNextSpecimenStates(
   return specimenTransitions[current]
 }
 
+/**
+ * Specimen is an entity: branded id plus arrival kind.
+ * Status is attached at birth (`raw`). Every other field is an optional
+ * component and may stay absent forever. This is not a Card row.
+ */
 export const Specimen = Schema.Struct({
   _tag: Schema.Literal('Specimen'),
   id: SpecimenId,
   kind: EvidenceKind,
   status: SpecimenStatus,
-  claim: Schema.NonEmptyString,
-  body: Schema.String,
-  organismGuess: Schema.NullOr(Guess),
-  structureGuess: Schema.NullOr(Guess),
-  locality: Locality,
-  observedAt: Schema.NullOr(Schema.NonEmptyString),
-  cameraMake: Schema.NullOr(Schema.NonEmptyString),
-  cameraModel: Schema.NullOr(Schema.NonEmptyString),
-  tagIds: Schema.Array(TagId),
-  questionIds: Schema.Array(QuestionId),
-  observationIds: Schema.Array(ObservationId),
-  attachmentIds: Schema.Array(AttachmentId),
   example: Schema.Boolean,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
+  claim: Schema.optional(Schema.NonEmptyString),
+  body: Schema.optional(Schema.String),
+  organismGuess: Schema.optional(Schema.NullOr(Guess)),
+  structureGuess: Schema.optional(Schema.NullOr(Guess)),
+  locality: Schema.optional(Locality),
+  observedAt: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  cameraMake: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  cameraModel: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  tagIds: Schema.optional(Schema.Array(TagId)),
+  questionIds: Schema.optional(Schema.Array(QuestionId)),
+  observationIds: Schema.optional(Schema.Array(ObservationId)),
+  attachmentIds: Schema.optional(Schema.Array(AttachmentId)),
 })
 export type Specimen = typeof Specimen.Type
 
-export const decodeStoredSpecimen = Schema.decodeUnknownSync(Specimen)
+function omitAbsent<T extends object>(value: T): T {
+  const next = { ...value }
+  for (const key of Object.keys(next) as Array<keyof T>) {
+    if (next[key] === undefined) delete next[key]
+  }
+  return next
+}
+
+export const decodeStoredSpecimen = (input: unknown): Specimen =>
+  omitAbsent(Schema.decodeUnknownSync(Specimen)(input))
 
 export function isEvidenceKind(value: string): value is EvidenceKind {
   return (EVIDENCE_KINDS as readonly string[]).includes(value)

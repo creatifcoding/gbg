@@ -49,7 +49,7 @@ export function SpecimenDetail({ specimen }: { specimen: SpecimenView }) {
           <span className={`status-${specimen.status}`}>{status}</span>
           {meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
         </p>
-        <h2 className="vanta-heading text-3xl leading-tight">{specimen.claim}</h2>
+        <h2 className="vanta-heading text-3xl leading-tight">{specimen.claim || specimen.id}</h2>
         <div className="flex flex-wrap gap-2">
           {specimen.tags.map((tag) => (
             <span key={tag} className="vanta-chip cursor-default">

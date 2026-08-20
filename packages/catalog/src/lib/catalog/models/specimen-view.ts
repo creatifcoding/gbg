@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { Attachment } from '../schemas/attachment'
 import { Guess } from '../schemas/guess'
-import { Locality } from '../schemas/locality'
+import { Locality, UNKNOWN_LOCALITY } from '../schemas/locality'
 import { SpecimenId } from '../schemas/identifiers'
 import { Observation } from '../schemas/observation'
 import {
@@ -15,7 +15,7 @@ export const SpecimenView = Schema.Struct({
   id: SpecimenId,
   kind: EvidenceKind,
   status: SpecimenStatus,
-  claim: Schema.NonEmptyString,
+  claim: Schema.String,
   body: Schema.String,
   organismGuess: Schema.NullOr(Guess),
   structureGuess: Schema.NullOr(Guess),
@@ -62,18 +62,18 @@ export function hydrateSpecimen(
     id: specimen.id,
     kind: specimen.kind,
     status: specimen.status,
-    claim: specimen.claim,
-    body: specimen.body,
-    organismGuess: specimen.organismGuess,
-    structureGuess: specimen.structureGuess,
-    locality: specimen.locality,
-    observedAt: specimen.observedAt,
-    cameraMake: specimen.cameraMake,
-    cameraModel: specimen.cameraModel,
-    tags: specimen.tagIds
+    claim: specimen.claim ?? '',
+    body: specimen.body ?? '',
+    organismGuess: specimen.organismGuess ?? null,
+    structureGuess: specimen.structureGuess ?? null,
+    locality: specimen.locality ?? UNKNOWN_LOCALITY,
+    observedAt: specimen.observedAt ?? null,
+    cameraMake: specimen.cameraMake ?? null,
+    cameraModel: specimen.cameraModel ?? null,
+    tags: (specimen.tagIds ?? [])
       .map((id) => tagsById.get(id)?.slug)
       .filter((slug): slug is string => Boolean(slug)),
-    questions: specimen.questionIds
+    questions: (specimen.questionIds ?? [])
       .map((id) => questionsById.get(id)?.text)
       .filter((text): text is string => Boolean(text)),
     observations,

@@ -80,7 +80,7 @@ export function IntakeDrop() {
       >
         <p className="vanta-heading text-base">Drop a picture, dossier, or artifact</p>
         <p className="vanta-muted mt-2 text-[14px]">
-          Picture intake copies the original into package assets and reads EXIF. GPS tags become locality. Missing GPS still files as unknown. Taxon, mechanism, and analog are not gates. Notes still file without a file.
+          Intake creates a Specimen entity and attaches what is in hand. Pictures attach Media plus EXIF. GPS tags become Locality. Missing GPS, taxon, mechanism, and analog stay off the entity. Notes file without a file.
         </p>
         <label className="vanta-chip mt-3 cursor-pointer">
           Choose file
@@ -108,17 +108,15 @@ export function IntakeDrop() {
       <Field
         id={claimId}
         name="claim"
-        label="One-line claim"
+        label="Claim (if you have one)"
         placeholder="What is this specimen, in one sentence?"
-        required
         error={error}
       />
       <Field
         id={tagsId}
         name="tags"
-        label="Tags (at least 3, comma-separated)"
+        label="Tags (optional, comma-separated)"
         placeholder="adhesion, setae, dump"
-        required
       />
       <Field
         id={organismId}

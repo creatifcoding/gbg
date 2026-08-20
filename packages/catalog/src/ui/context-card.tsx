@@ -32,7 +32,7 @@ export function ContextCard({ specimen }: { specimen: SpecimenView }) {
             .filter((item): item is string => Boolean(item))
             .join(' · ')}
         </VantaCard.Subtitle>
-        <VantaCard.Body>{specimen.claim}</VantaCard.Body>
+        <VantaCard.Body>{specimen.claim || specimen.id}</VantaCard.Body>
         <div className="mt-4 flex flex-wrap gap-2">
           {specimen.tags.map((tag) => (
             <span key={tag} className="vanta-chip cursor-default">

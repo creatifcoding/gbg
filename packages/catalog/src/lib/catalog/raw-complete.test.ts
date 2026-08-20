@@ -44,8 +44,8 @@ describe('raw specimens are complete', () => {
       questions: ['What is this?', 'Where did the cup sit?'],
     })
     expect(filed.specimen.status).toBe('raw')
-    expect(filed.specimen.organismGuess).toBeNull()
-    expect(filed.specimen.locality._tag).toBe('unknown')
+    expect(filed.specimen.organismGuess).toBeUndefined()
+    expect(filed.specimen.locality).toBeUndefined()
     expect(filed.questions).toHaveLength(2)
   })
 

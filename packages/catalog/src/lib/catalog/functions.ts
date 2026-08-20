@@ -63,13 +63,16 @@ export const createSpecimen = createServerFn({ method: 'POST' })
         })
       }
 
+      const claim = optionalText(String(data.get('claim') ?? ''))
+      const tags = parseTags(String(data.get('tags') ?? ''))
+      const locality = namedLocality(optionalText(String(data.get('locality') ?? '')))
       const filed = fileSpecimen({
         kind: kindRaw,
-        claim: String(data.get('claim') ?? '').trim(),
-        tags: parseTags(String(data.get('tags') ?? '')),
+        ...(claim ? { claim } : {}),
+        ...(tags.length > 0 ? { tags } : {}),
         organismGuess: guessFromInput(String(data.get('organism') ?? '')),
         structureGuess: guessFromInput(String(data.get('part') ?? '')),
-        locality: namedLocality(optionalText(String(data.get('locality') ?? ''))),
+        ...(locality._tag === 'named' ? { locality } : {}),
         observedAt: optionalText(String(data.get('observedAt') ?? '')),
         questions: parseQuestions(String(data.get('questions') ?? '')),
         takenIds: getCatalogStore().takenSpecimenIds(),
@@ -93,7 +96,7 @@ export const createSpecimen = createServerFn({ method: 'POST' })
       if (error instanceof AssetExistsError) {
         throw new IntakeError([error.message])
       }
-      throw new IntakeError(['Need a type, a one-line claim, and 3+ tags.'])
+      throw new IntakeError(['Need a type. Picture intake needs a dropped file.'])
     }
   })
 

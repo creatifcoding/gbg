@@ -10,20 +10,21 @@ Empty catalog is valid. The default data dir files `20260819-001` on first boot.
 
 ## Product invariant
 
-Intake is one screen, no identification wizard. Filing produces a complete raw Specimen:
+Intake is one screen, no identification wizard. Filing spawns a Specimen entity (ECS, not a Card row):
 
+- entity: branded `SpecimenId`. AnalogId and the reference-graph ids are also entities
+- components attach over time and may stay absent: Status, Claim, Media, Exif, Locality, Taxon, Structure, Mechanism, Function, AnalogLink, Tag, Question, Observation
+- systems: Intake (spawn + attach what is in hand), Capture (geo API + WASM ExifTool), File (promote Status), Identify (later), Relate (edges)
+- Intake requires the entity plus Status(`raw`). Pictures also attach Media. Taxon, GPS, mechanism, and analog are not gates
+- status machine: `raw` → `filed` → `working` → `dead` (dead is deaccessioned; skip-to-dead allowed; do not skip `filed`). `raw` is a complete dump, not a draft
 - first evidence: `picture` | `dossier` | `artifact` | `note`
-- status machine: `raw` → `filed` → `working` → `dead` (dead is deaccessioned; skip-to-dead allowed; do not skip `filed`). `raw` is a complete dump, not a draft.
-- one-line claim
-- 3 or more tags
-- taxon / part guesses optional and marked `guess: true`
 - picture intake copies the original into `assets/specimens/<id>/` (never overwrite) and writes `exif.json`
-- locality is EXIF-first on pictures: `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime` when present, otherwise `unknown`. No geocoding. Missing GPS does not block filing.
-- `DateTimeOriginal`, `Make`, and `Model` are pulled when present
-- open questions are enough for later understanding (may be empty)
+- locality is an optional component from EXIF GPS tags. Absent GPS is not a column of `unknown` on the entity. The view shows unknown. No geocoding
+- `DateTimeOriginal`, `Make`, and `Model` attach when present
+- open questions are enough for later understanding
 - filed ids look like `20260819-001`
 
-Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxon, GPS, mechanism, and analog do not block intake. Do not build an identification wizard.
+Intake also attaches a CRUD Observation (`observation-of` the specimen). Body waits. Do not build an identification wizard.
 
 Analog is a separate event-sourced aggregate (`raw` → `working` → `tested` → `dead`). Organism, Structure, Mechanism, Function, Attachment, Tag, Question, and Observation are not event sourced. Edges are first-class (`observation-of`, `same-lot`, `derived-from`, `identified-as`, `exhibits`, `performs`, `via`, `inspires`, `contained-in`, `depicts`, `contradicts`).
 
@@ -125,7 +126,8 @@ packages/catalog/
     models/          snapshot v4, SpecimenView
     repos/       JSON document + find/upsert
     entity/      Specimen/Analog status machines (no Cluster)
-    intake.ts    10-second fileSpecimen
+    ecs.ts       entity / component / system vocabulary
+    intake.ts    Intake system. Spawn + attach what is in hand
     exif.ts      GPS-first locality from raw tags
     assets.ts    original + sidecar, never overwrite
     functions.ts Start server functions
@@ -139,7 +141,7 @@ packages/catalog/
   .claude/skills/            catalog-scoped skills mined from tmnl
 ```
 
-Layout is mined from `packages/tmnl/src/lib/iiot` (how to make an app). Names are biomimetic, not ISA-95.
+Layout is mined from `packages/tmnl/src/lib/iiot` (how to make an app). The mental model is ECS, not ISA-95.
 
 `src/index.ts` re-exports schema, intake, portal tokens, VantaCard, and screens.
 
@@ -159,7 +161,7 @@ Testbed: http://127.0.0.1:3007/testbed/vanta
 
 ## Skills
 
-Package-local skills live in `.claude/skills/`. Registry: `.claude/skills/SKILL_REGISTRY.md`. They rewrite tmnl color, token, tier, type, file, testbed, registry, compound-component, and grounded-research skills for catalog, plus `catalog-intake`.
+Package-local skills live in `.claude/skills/`. Registry: `.claude/skills/SKILL_REGISTRY.md`. They rewrite tmnl color, token, tier, type, file, testbed, registry, compound-component, and grounded-research skills for catalog, plus `catalog-intake`, `catalog-capture`, and `catalog-ecs`.
 
 ## Example cards
 

@@ -9,7 +9,7 @@ export const SpecimenCreated = Schema.Struct({
   occurredAt: Schema.Number,
   payload: Schema.Struct({
     kind: EvidenceKind,
-    claim: Schema.NonEmptyString,
+    claim: Schema.optional(Schema.NonEmptyString),
   }),
 })
 export type SpecimenCreated = typeof SpecimenCreated.Type

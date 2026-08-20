@@ -39,7 +39,8 @@ triggers:
 | `catalog-registry-patterns` | STATUS_VISUAL, EVIDENCE_KINDS | registry, status |
 | `react-compound-components` | VantaCard Object.assign slots | VantaCard, compound |
 | `grounded-research` | Verify tmnl tokens and catalog schema first | research, verify |
-| `catalog-intake` | 10-second dump then file a Specimen | intake, fileSpecimen, dump |
+| `catalog-intake` | Intake system. Spawn entity, attach what is in hand | intake, fileSpecimen, dump |
+| `catalog-ecs` | Entities, optional components, systems. Not a Card row | ECS, entity, component, aggregate |
 | `catalog-capture` | Static camera page for Cloudflare Drop | capture, Drop, getUserMedia |
 
 ## Subsystem map
@@ -65,6 +66,7 @@ catalog-design-tokens --> catalog-color-system
 react-compound-components --> catalog-testbed-patterns
 catalog-registry-patterns
 catalog-intake
+catalog-ecs
 grounded-research (before non-trivial changes)
 ```
 

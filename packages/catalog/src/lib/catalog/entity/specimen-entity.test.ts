@@ -17,12 +17,11 @@ describe('SpecimenEntity status machine', () => {
     const { specimen, event } = createSpecimen({
       id: Schema.decodeUnknownSync(SpecimenId)('sp_1'),
       kind: 'note',
-      claim: 'Dump first.',
-      organismGuess: null,
-      tagIds: [],
-      questionIds: [],
     })
     expect(specimen.status).toBe('raw')
+    expect(specimen.claim).toBeUndefined()
+    expect(specimen.organismGuess).toBeUndefined()
+    expect(specimen.locality).toBeUndefined()
     expect(event.type).toBe('SpecimenCreated')
   })
 
@@ -30,10 +29,6 @@ describe('SpecimenEntity status machine', () => {
     const { specimen } = createSpecimen({
       id: Schema.decodeUnknownSync(SpecimenId)('sp_2'),
       kind: 'picture',
-      claim: 'Raw picture of this leaf.',
-      organismGuess: null,
-      tagIds: [],
-      questionIds: [],
     })
     const filed = transitionSpecimen(specimen, 'filed')
     expect(filed.specimen.status).toBe('filed')

@@ -6,6 +6,7 @@ import {
   organismLabel,
   parseTags,
 } from './schema'
+import { UNKNOWN_LOCALITY } from './schemas/locality'
 
 describe('intake invariant', () => {
   it('files a complete raw specimen without taxon, GPS, mechanism, or analog', () => {
@@ -20,12 +21,12 @@ describe('intake invariant', () => {
     )
 
     expect(filed.specimen.status).toBe('raw')
-    expect(filed.specimen.body).toBe('')
+    expect(filed.specimen.body).toBeUndefined()
     expect(filed.specimen.example).toBe(false)
-    expect(filed.specimen.organismGuess).toBeNull()
-    expect(filed.specimen.structureGuess).toBeNull()
-    expect(filed.specimen.locality).toEqual({ _tag: 'unknown' })
-    expect(filed.specimen.cameraMake).toBeNull()
+    expect(filed.specimen.organismGuess).toBeUndefined()
+    expect(filed.specimen.structureGuess).toBeUndefined()
+    expect(filed.specimen.locality).toBeUndefined()
+    expect(filed.specimen.cameraMake).toBeUndefined()
     expect(filed.questions.map((question) => question.text)).toEqual([
       'What surface was the toe on?',
     ])
@@ -39,6 +40,16 @@ describe('intake invariant', () => {
     expect(filed.observationEdge.kind).toBe('observation-of')
   })
 
+  it('files an entity with only kind, attaching Status(raw)', () => {
+    const filed = fileSpecimen({ kind: 'note' })
+    expect(filed.specimen.status).toBe('raw')
+    expect(filed.specimen.claim).toBeUndefined()
+    expect(filed.specimen.tagIds).toBeUndefined()
+    expect(filed.specimen.organismGuess).toBeUndefined()
+    expect(filed.specimen.locality).toBeUndefined()
+    expect(filed.questions).toEqual([])
+  })
+
   it('still files when open questions are empty', () => {
     const filed = fileSpecimen({
       kind: 'note',
@@ -48,8 +59,8 @@ describe('intake invariant', () => {
     })
     expect(filed.specimen.status).toBe('raw')
     expect(filed.questions).toEqual([])
-    expect(filed.specimen.organismGuess).toBeNull()
-    expect(filed.specimen.locality).toEqual({ _tag: 'unknown' })
+    expect(filed.specimen.organismGuess).toBeUndefined()
+    expect(filed.specimen.locality).toBeUndefined()
   })
 
   it('marks a provided taxon as a guess, not a required Organism record', () => {
@@ -79,35 +90,19 @@ describe('intake invariant', () => {
     expect(filed.specimen.observedAt).toBe('June dump')
   })
 
-  it('rejects fewer than 3 tags', () => {
-    expect(() =>
-      decodeIntake({
-        kind: 'note',
-        claim: 'Too thin',
-        tags: ['one', 'two'],
-        questions: [],
-      }),
-    ).toThrow()
-
-    expect(() =>
-      fileSpecimen({
-        kind: 'note',
-        claim: 'Too thin',
-        tags: ['one', 'two'],
-        questions: [],
-      }),
-    ).toThrow(IntakeError)
+  it('attaches two tags when that is what is in hand', () => {
+    const filed = fileSpecimen({
+      kind: 'note',
+      claim: 'Thin dump.',
+      tags: ['one', 'two'],
+    })
+    expect(filed.specimen.status).toBe('raw')
+    expect(filed.tags).toHaveLength(2)
   })
 
-  it('rejects an empty claim', () => {
-    expect(() =>
-      fileSpecimen({
-        kind: 'note',
-        claim: '',
-        tags: ['a', 'b', 'c'],
-        questions: [],
-      }),
-    ).toThrow(IntakeError)
+  it('rejects a missing type', () => {
+    expect(() => decodeIntake({})).toThrow()
+    expect(() => fileSpecimen({})).toThrow(IntakeError)
   })
 
   it('treats blank taxon input as no guess', () => {
@@ -137,14 +132,14 @@ describe('intake invariant', () => {
       id: filed.specimen.id,
       kind: filed.specimen.kind,
       status: filed.specimen.status,
-      claim: filed.specimen.claim,
-      body: filed.specimen.body,
-      organismGuess: filed.specimen.organismGuess,
-      structureGuess: filed.specimen.structureGuess,
-      locality: filed.specimen.locality,
-      observedAt: filed.specimen.observedAt,
-      cameraMake: filed.specimen.cameraMake,
-      cameraModel: filed.specimen.cameraModel,
+      claim: filed.specimen.claim ?? '',
+      body: filed.specimen.body ?? '',
+      organismGuess: filed.specimen.organismGuess ?? null,
+      structureGuess: filed.specimen.structureGuess ?? null,
+      locality: filed.specimen.locality ?? UNKNOWN_LOCALITY,
+      observedAt: filed.specimen.observedAt ?? null,
+      cameraMake: filed.specimen.cameraMake ?? null,
+      cameraModel: filed.specimen.cameraModel ?? null,
       tags: filed.tags.map((tag) => tag.slug),
       questions: filed.questions.map((question) => question.text),
       observations: [filed.observation],

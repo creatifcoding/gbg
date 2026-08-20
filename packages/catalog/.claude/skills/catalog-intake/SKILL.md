@@ -1,6 +1,6 @@
 ---
 name: catalog-intake
-description: Catalog 10-second intake. Type, claim, 3+ tags. Raw is complete. Do not block on taxon, GPS, mechanism, or analog. No identification wizard.
+description: Catalog 10-second intake. ECS system. Spawn entity, attach Status(raw), attach what is in hand. Do not block on taxon, GPS, mechanism, or analog. No identification wizard.
 model_invoked: true
 triggers:
   - "intake"
@@ -16,10 +16,11 @@ triggers:
 
 Dump first. File in one screen. Body waits. Raw is complete.
 
-This package is biomimetic and specimen-first. A picture dump becomes a Specimen by copying the original into package assets and reading EXIF. Taxon, GPS, mechanism, and analog do not block filing. Open questions are enough for later understanding. The app does not invent citations, geocode from pixels, or run an identification wizard.
+Intake is an ECS system. It spawns a Specimen entity, attaches Status(raw), and attaches whatever the drop actually has. Pictures usually attach Media plus EXIF. Taxon, GPS, mechanism, and analog do not block filing and may stay absent forever. Open questions are enough for later understanding. The app does not invent citations, geocode from pixels, or run an identification wizard.
 
 ## Canonical sources
 
+- Vocabulary: `src/lib/catalog/ecs.ts`
 - Schemas: `src/lib/catalog/schemas/` (`specimen.ts`, `locality.ts`, `observation.ts`, `guess.ts`)
 - Invariant: `src/lib/catalog/intake.ts` (`fileSpecimen`, `IntakeError`)
 - Picture birth: `src/lib/catalog/store.server.ts` (`ingestPicture`), `exif.ts`, `exif.server.ts`, `assets.ts`
@@ -28,26 +29,30 @@ This package is biomimetic and specimen-first. A picture dump becomes a Specimen
 - Screen: `src/ui/intake-drop.tsx`, `src/routes/intake.tsx`
 - Persistence: `src/lib/catalog/repos/json-catalog.ts`, `src/lib/catalog/store.server.ts`
 
-## First pass (required)
+## First pass
 
 One screen. No wizard. No step 2.
 
+Intake requires the entity kind. Picture dumps also need the file (Media). Everything else is a component in hand.
+
 | Field | Rule |
 | --- | --- |
+| entity | branded `SpecimenId`. Spawned at dump. |
+| status | `raw` attached at birth. Complete, not a draft. |
 | first evidence | `picture` \| `dossier` \| `artifact` \| `note` |
-| dropped file | required for `picture`. Copied to `assets/specimens/<id>/original.<ext>`. Never overwrite. |
-| exif sidecar | `assets/specimens/<id>/exif.json`. Raw tags from `exiftool -j -n -a`, or `exifr` if exiftool is missing. |
-| claim | one line, required |
-| tags | at least 3 |
+| dropped file | required for `picture` (Media). Copied to `assets/specimens/<id>/original.<ext>`. Never overwrite. |
+| exif sidecar | `assets/specimens/<id>/exif.json` when a picture was dropped. |
+| claim | optional component |
+| tags | optional component |
 | taxon guess | optional. Marked `{ label, guess: true }` if present |
 | part / structure | optional guess |
-| locality | pictures: EXIF `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime`, or `unknown`. Capture JPEGs get those tags from `navigator.geolocation` at shoot. Never IP, Cloudflare country, pixels, or a geocoded city. Other kinds may take a named string. |
-| collected / observed | pictures: `DateTimeOriginal` when present. Other kinds optional. |
-| camera | `Make` / `Model` when present |
-| open questions | enough for later understanding. Zero or more, already in hand |
+| locality | optional. Pictures: EXIF GPS tags, else absent (view shows unknown). Never IP, Cloudflare country, pixels, or a geocoded city. |
+| collected / observed | optional. Pictures: `DateTimeOriginal` when present. |
+| camera | optional. `Make` / `Model` when present |
+| open questions | optional. Enough for later understanding |
 | id | `YYYYMMDD-NNN` from DateTimeOriginal or the filing day |
 
-Status starts `raw`. That is a complete dump, not a draft. Intake also writes a CRUD Observation (`observation-of` the specimen) and hangs the original on that observation. Body is `''`.
+Status starts `raw`. Intake also attaches an Observation (`observation-of`) when filing. Body stays off the entity until someone writes it.
 
 Intake still owns filing. A JPEG from `capture/` is the preferred picture dump: browser geo written into GPS tags on the device, or unknown if location was denied. `ingestPicture` ignores form locality.
 
@@ -75,7 +80,7 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
 
 ### Pattern 2: One form
 
-`IntakeDrop` is drop zone plus type tabs plus claim, tags, optional taxon/part, questions, submit. Pictures hide the locality field. GPS is EXIF-only and never a filing gate. No mechanism or analog fields. No identification step.
+`IntakeDrop` is drop zone plus type tabs plus optional claim, tags, taxon/part, questions, submit. Pictures hide the locality field. GPS is EXIF-only and never a filing gate. No mechanism or analog fields. No identification step.
 
 ### Pattern 3: Empty is valid
 
@@ -142,12 +147,13 @@ Allocate the next `YYYYMMDD-NNN` instead. `wx` or throw `AssetExistsError`.
 
 Do not generate PMIDs, DOIs, or fake papers to fill a specimen.
 
-### Soft save
+### Soft save of identification
 
-Do not write a specimen with two tags and a blank claim "to come back later." The invariant is the product.
+Do not invent taxon, GPS, mechanism, or analog to fatten the row. File the entity. Attach what is in hand.
 
 ## Related
 
+- `catalog-ecs`
 - `catalog-registry-patterns`
 - `catalog-file-organization`
 - `catalog-testbed-patterns`
