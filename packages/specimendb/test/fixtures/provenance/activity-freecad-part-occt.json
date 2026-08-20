@@ -1,0 +1,37 @@
+{
+  "_tag": "LabEntity",
+  "ref": "gbg:activity:freecad-part-occt@fe8f875a",
+  "kind": "activity",
+  "label": "CAD-01 STEP export (PR 34)",
+  "class": "draft-measured",
+  "bytes": {
+    "gitSha": "fe8f875a80b37a1003f05f3a0190fbe2f0417842"
+  },
+  "who": [
+    {
+      "_tag": "Agent",
+      "agentType": "software",
+      "label": "freecad-part-occt"
+    }
+  ],
+  "what": {
+    "used": [],
+    "generated": ["gbg:step:B01@fe8f875a"]
+  },
+  "when": {
+    "startedAt": "2026-08-20T10:05:07Z",
+    "gitSha": "fe8f875a80b37a1003f05f3a0190fbe2f0417842"
+  },
+  "where": "unknown",
+  "why": "#28",
+  "how": "freecad-part-occt",
+  "used": [],
+  "generated": ["gbg:step:B01@fe8f875a"],
+  "wasAssociatedWith": [
+    {
+      "_tag": "Agent",
+      "agentType": "software",
+      "label": "freecad-part-occt"
+    }
+  ]
+}
