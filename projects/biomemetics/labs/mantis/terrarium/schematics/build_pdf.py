@@ -91,11 +91,11 @@ def build() -> Path:
 
     writer.add_metadata(
         {
-            "/Title": "Particle-base mantis terrarium — theoretical schematics",
+            "/Title": "Particle-base mantis terrarium — draft CAD schematics",
             "/Author": "Mantis Lab",
-            "/Subject": "Working draft B / NTS concept; verify against STEP and first article",
+            "/Subject": "Working draft B projected CAD; not shop-release; verify against first article",
             "/Creator": "terrarium/schematics/build_pdf.py (Inkscape + pypdf)",
-            "/Keywords": "gbg#41 theoretical S00-S11 NTS B-41",
+            "/Keywords": "gbg#41 draft-cad S00-S11 HLR B-41P",
         }
     )
     temporary_output = OUTPUT.with_suffix(".pdf.tmp")

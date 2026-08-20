@@ -10,7 +10,7 @@
     .thin { stroke:#15171a; stroke-width:.28; fill:none; }
     .med { stroke:#15171a; stroke-width:.55; fill:none; }
     .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
-    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.22; stroke-dasharray:1.6 1.1; fill:none; }
     .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
     .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
@@ -19,101 +19,720 @@
     .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
     .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .hlr { stroke:#15171a; stroke-width:.45; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .hlr-keep { stroke:#c63333; stroke-width:.4; fill:none; stroke-dasharray:3.5 2; }
     .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
     .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
 <rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
-<text x="17" y="16" font-size="3.2" font-weight="bold" text-anchor="start">FRONT ELEVATION</text>
-<text x="17" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="35" y="30" width="50" height="100" rx="0" class="heavy"/>
-<rect x="35" y="30" width="4" height="100" rx="0" class="plastic"/>
-<rect x="81" y="30" width="4" height="100" rx="0" class="plastic"/>
-<rect x="35" y="30" width="50" height="4" rx="0" class="plastic"/>
-<rect x="35" y="126" width="50" height="4" rx="0" class="plastic"/>
-<rect x="41" y="36" width="38" height="88" rx="0" class="thin" fill="#ffffff"/>
-<line x1="60.0" y1="36" x2="60.0" y2="124" class="med"/>
-<circle cx="75" cy="80.0" r="1.5" class="med"/>
-<rect x="41" y="36" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="31" y="25" width="58" height="3" rx="0" class="med" fill="#ffffff"/>
-<rect x="29" y="24" width="14" height="6" rx="0" class="heavy" fill="#ffffff"/>
-<line x1="35" y1="130" x2="35" y2="140" class="thin"/>
-<line x1="85" y1="130" x2="85" y2="140" class="thin"/>
-<line x1="35" y1="140" x2="85" y2="140" class="dim"/>
-<text x="60.0" y="138.6" font-size="2.7" font-weight="normal" text-anchor="middle">250 LOCK</text>
-<line x1="35" y1="30" x2="24" y2="30" class="thin"/>
-<line x1="35" y1="130" x2="24" y2="130" class="thin"/>
-<line x1="24" y1="30" x2="24" y2="130" class="dim"/>
-<text x="22.3" y="80.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 22.3 80.0)">500 LOCK</text>
-<line x1="35" y1="80" x2="85" y2="80" class="center"/>
-<text x="88" y="82" font-size="2.5" font-weight="bold" text-anchor="start">250 GRID</text>
-<text x="118" y="16" font-size="3.2" font-weight="bold" text-anchor="start">RIGHT ELEVATION</text>
-<text x="118" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="132" y="30" width="50" height="100" rx="0" class="heavy"/>
-<rect x="132" y="30" width="4" height="100" rx="0" class="plastic"/>
-<rect x="178" y="30" width="4" height="100" rx="0" class="plastic"/>
-<rect x="132" y="30" width="50" height="4" rx="0" class="plastic"/>
-<rect x="132" y="126" width="50" height="4" rx="0" class="plastic"/>
-<rect x="138" y="36" width="38" height="88" rx="0" class="thin" fill="#ffffff"/>
-<rect x="138" y="36" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="128" y="25" width="58" height="3" rx="0" class="med" fill="#ffffff"/>
-<line x1="132" y1="130" x2="132" y2="140" class="thin"/>
-<line x1="182" y1="130" x2="182" y2="140" class="thin"/>
-<line x1="132" y1="140" x2="182" y2="140" class="dim"/>
-<text x="157.0" y="138.6" font-size="2.7" font-weight="normal" text-anchor="middle">250 LOCK</text>
-<text x="215" y="16" font-size="3.2" font-weight="bold" text-anchor="start">TOP PLAN</text>
-<text x="215" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="230" y="43" width="50" height="50" rx="0" class="heavy"/>
-<rect x="234" y="47" width="42" height="42" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="226" y="38" width="58" height="3" rx="0" class="med" fill="#ffffff"/>
-<rect x="224" y="37" width="14" height="6" rx="0" class="heavy" fill="#ffffff"/>
-<line x1="230" y1="93" x2="230" y2="103" class="thin"/>
-<line x1="280" y1="93" x2="280" y2="103" class="thin"/>
-<line x1="230" y1="103" x2="280" y2="103" class="dim"/>
-<text x="255.0" y="101.6" font-size="2.7" font-weight="normal" text-anchor="middle">250 LOCK</text>
-<line x1="230" y1="43" x2="219" y2="43" class="thin"/>
-<line x1="230" y1="93" x2="219" y2="93" class="thin"/>
-<line x1="219" y1="43" x2="219" y2="93" class="dim"/>
-<text x="217.3" y="68.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 217.3 68.0)">250 LOCK</text>
-<text x="311" y="16" font-size="3.2" font-weight="bold" text-anchor="start">DATUM / KEEP-OUT</text>
-<text x="311" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="326" y="30" width="50" height="100" rx="0" class="heavy"/>
-<rect x="326" y="30" width="4" height="100" rx="0" class="plastic"/>
-<rect x="372" y="30" width="4" height="100" rx="0" class="plastic"/>
-<rect x="326" y="30" width="50" height="4" rx="0" class="plastic"/>
-<rect x="326" y="126" width="50" height="4" rx="0" class="plastic"/>
-<rect x="332" y="36" width="38" height="88" rx="0" class="thin" fill="#ffffff"/>
-<line x1="351.0" y1="36" x2="351.0" y2="124" class="med"/>
-<circle cx="366" cy="80.0" r="1.5" class="med"/>
-<rect x="332" y="36" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="332" y="66" width="38" height="50" rx="0" class="keepout"/>
-<text x="351" y="89" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">UPPER 1/3</text>
-<text x="351" y="94" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">CLEAR</text>
-<line x1="326" y1="63" x2="376" y2="63" class="phantom"/>
-<text x="380" y="65" font-size="2.3" font-weight="bold" text-anchor="start">MOLT DATUM</text>
-<rect x="18" y="166" width="115" height="27.0" rx="0" class="med" fill="#ffffff"/>
-<text x="21" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED ENVELOPE</text>
-<text x="21" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Exterior: 250 W x 250 D x 500 H LOCK.</text>
-<text x="21" y="179" font-size="2.45" font-weight="normal" text-anchor="start">Module datum repeats at 250 mm.</text>
-<text x="21" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Nominal clear: 202 x 202 x 427 CALCULATED.</text>
-<text x="21" y="187" font-size="2.45" font-weight="normal" text-anchor="start">CAD-01 assembly bbox: -43..258 X,</text>
-<text x="21" y="191" font-size="2.45" font-weight="normal" text-anchor="start">-43..250 Y, -8..508 Z REF.</text>
-<rect x="151" y="166" width="115" height="23.0" rx="0" class="med" fill="#ffffff"/>
-<text x="154" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">PROJECTION</text>
-<text x="154" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Third-angle arrangement shown.</text>
-<text x="154" y="179" font-size="2.45" font-weight="normal" text-anchor="start">Front is the door/view cassette face.</text>
-<text x="154" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Rail offset 5 mm REF outside frame.</text>
-<text x="154" y="187" font-size="2.45" font-weight="normal" text-anchor="start">B20 starts at Y/X = -8 REF (offset+wall).</text>
-<rect x="284" y="166" width="115" height="27.0" rx="0" class="med" fill="#ffffff"/>
-<text x="287" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">INTERFACE DATUMS</text>
-<text x="287" y="175" font-size="2.45" font-weight="normal" text-anchor="start">A: exterior block face (frame.world origin).</text>
-<text x="287" y="179" font-size="2.45" font-weight="normal" text-anchor="start">B: cassette seat plane.</text>
-<text x="287" y="183" font-size="2.45" font-weight="normal" text-anchor="start">C: rail conductor centerline (external).</text>
-<text x="287" y="187" font-size="2.45" font-weight="normal" text-anchor="start">D: false-bottom tray 25 mm REF.</text>
-<text x="287" y="191" font-size="2.45" font-weight="normal" text-anchor="start">Molt datum: 142 mm CALCULATED.</text>
-<rect x="18" y="232" width="58" height="8" rx="0" class="unverified" fill="#ffffff"/>
-<text x="47" y="237.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<text x="18" y="14" font-size="3.2" font-weight="bold" text-anchor="start">TOP PLAN</text>
+<text x="18" y="17.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:5  |  OCCT HLR</text>
+<text x="18" y="21.4" font-size="2.0" font-weight="normal" text-anchor="start">DRAFT-MEASURED PR 34</text>
+<path d="M18.000 82.600 L18.000 75.000" class="hidden"/>
+<path d="M18.000 82.600 L18.000 75.000" class="hidden"/>
+<path d="M18.000 82.600 L18.776 82.600" class="hidden"/>
+<path d="M18.000 82.600 L18.776 82.600" class="hidden"/>
+<path d="M18.000 75.000 L18.776 75.000" class="hidden"/>
+<path d="M18.000 75.000 L18.776 75.000" class="hidden"/>
+<path d="M18.000 82.600 L18.000 75.000" class="hidden"/>
+<path d="M18.000 82.600 L25.600 82.600" class="hidden"/>
+<path d="M18.776 82.600 L24.824 82.600" class="hidden"/>
+<path d="M24.824 82.600 L25.600 82.600" class="hidden"/>
+<path d="M18.776 82.600 L24.824 82.600" class="hidden"/>
+<path d="M25.000 82.600 L25.600 82.600" class="hidden"/>
+<path d="M24.824 82.600 L25.000 82.600" class="hidden"/>
+<path d="M25.000 75.000 L25.600 75.000" class="hidden"/>
+<path d="M24.824 75.000 L25.000 75.000" class="hidden"/>
+<path d="M18.776 75.000 L24.824 75.000" class="hidden"/>
+<path d="M18.000 75.000 L25.600 75.000" class="hidden"/>
+<path d="M18.776 75.000 L24.824 75.000" class="hidden"/>
+<path d="M24.824 75.000 L25.000 75.000" class="hidden"/>
+<path d="M25.000 75.000 L25.600 75.000" class="hidden"/>
+<path d="M25.600 82.600 L25.600 75.000" class="hidden"/>
+<path d="M25.600 75.600 L25.600 75.000" class="hidden"/>
+<path d="M25.600 82.600 L25.600 75.600" class="hidden"/>
+<path d="M25.000 82.600 L25.600 82.600" class="hidden"/>
+<path d="M25.000 82.600 L25.600 82.600" class="hidden"/>
+<path d="M25.600 82.600 L25.600 75.000" class="hidden"/>
+<path d="M25.000 75.000 L25.600 75.000" class="hidden"/>
+<path d="M25.000 75.000 L25.000 74.000" class="hidden"/>
+<path d="M25.600 75.600 L26.600 75.600" class="hidden"/>
+<path d="M25.600 75.600 L25.600 82.600" class="hidden"/>
+<path d="M25.600 82.600 L26.600 82.600" class="hidden"/>
+<path d="M25.600 75.000 L26.600 75.000" class="hidden"/>
+<path d="M25.000 74.000 L25.000 72.000" class="hidden"/>
+<path d="M26.600 75.600 L28.600 75.600" class="hidden"/>
+<path d="M26.600 75.600 L25.600 75.600" class="hidden"/>
+<path d="M26.600 82.600 L76.600 82.600" class="hidden"/>
+<path d="M26.600 82.600 L76.600 82.600" class="hidden"/>
+<path d="M26.600 81.824 L26.600 75.776" class="hidden"/>
+<path d="M26.600 75.000 L28.600 75.000" class="hidden"/>
+<path d="M28.600 75.000 L76.600 75.000" class="hidden"/>
+<path d="M25.000 24.000 L26.600 24.000" class="hidden"/>
+<path d="M25.000 72.000 L25.000 24.000" class="hidden"/>
+<path d="M28.600 75.600 L76.600 75.600" class="hidden"/>
+<path d="M76.600 75.600 L76.600 74.000" class="hidden"/>
+<path d="M28.600 75.600 L26.600 75.600" class="hidden"/>
+<path d="M76.600 75.600 L28.600 75.600" class="hidden"/>
+<path d="M76.600 82.600 L78.200 82.600" class="hidden"/>
+<path d="M26.600 75.776 L76.600 75.776" class="hidden"/>
+<path d="M26.600 81.824 L76.600 81.824" class="hidden"/>
+<path d="M76.600 81.824 L76.600 75.776" class="hidden"/>
+<path d="M76.600 75.000 L78.200 75.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M76.600 75.600 L76.600 75.000" class="hidden"/>
+<path d="M78.200 82.600 L78.200 75.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M31.400 69.200 L31.400 28.800" class="hidden"/>
+<path d="M31.400 69.200 L71.800 69.200" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hidden"/>
+<path d="M31.400 28.800 L71.800 28.800" class="hidden"/>
+<path d="M31.400 24.000 L71.800 24.000" class="hidden"/>
+<path d="M31.400 69.200 L31.400 28.800" class="hidden"/>
+<path d="M31.400 69.200 L71.800 69.200" class="hidden"/>
+<path d="M71.800 69.200 L71.800 28.800" class="hidden"/>
+<path d="M76.600 69.200 L76.600 28.800" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hidden"/>
+<path d="M31.400 69.200 L71.800 69.200" class="hidden"/>
+<path d="M31.400 69.200 L31.400 28.800" class="hidden"/>
+<path d="M31.400 24.000 L71.800 24.000" class="hidden"/>
+<path d="M31.400 28.800 L31.400 24.000" class="hidden"/>
+<path d="M31.400 28.800 L31.400 24.000" class="hidden"/>
+<path d="M31.400 28.800 L31.400 24.000" class="hidden"/>
+<path d="M31.400 28.800 L31.400 24.000" class="hidden"/>
+<path d="M31.400 28.800 L31.400 24.000" class="hidden"/>
+<path d="M31.400 28.800 L31.400 24.000" class="hidden"/>
+<path d="M31.400 24.000 L71.800 24.000" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M31.400 28.800 L71.800 28.800" class="hidden"/>
+<path d="M28.600 69.200 L28.600 28.800" class="hidden"/>
+<path d="M28.600 69.200 L31.400 69.200" class="hidden"/>
+<path d="M28.600 28.800 L31.400 28.800" class="hidden"/>
+<path d="M71.800 69.200 L71.800 28.800" class="hidden"/>
+<path d="M31.400 72.000 L31.400 69.200" class="hidden"/>
+<path d="M71.800 72.000 L31.400 72.000" class="hidden"/>
+<path d="M71.800 72.000 L71.800 69.200" class="hidden"/>
+<path d="M76.600 69.200 L76.600 28.800" class="hidden"/>
+<path d="M76.600 69.200 L76.600 28.800" class="hidden"/>
+<path d="M71.800 69.200 L76.600 69.200" class="hidden"/>
+<path d="M71.800 69.200 L76.600 69.200" class="hidden"/>
+<path d="M71.800 69.200 L76.600 69.200" class="hidden"/>
+<path d="M71.800 69.200 L76.600 69.200" class="hidden"/>
+<path d="M71.800 69.200 L76.600 69.200" class="hidden"/>
+<path d="M71.800 69.200 L76.600 69.200" class="hidden"/>
+<path d="M31.400 72.000 L31.400 69.200" class="hidden"/>
+<path d="M71.800 72.000 L31.400 72.000" class="hidden"/>
+<path d="M71.800 72.000 L71.800 69.200" class="hidden"/>
+<path d="M71.800 69.200 L71.800 28.800" class="hidden"/>
+<path d="M31.400 28.800 L71.800 28.800" class="hidden"/>
+<path d="M28.600 69.200 L28.600 28.800" class="hidden"/>
+<path d="M28.600 69.200 L31.400 69.200" class="hidden"/>
+<path d="M28.600 28.800 L31.400 28.800" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L71.800 24.000" class="hidden"/>
+<path d="M28.600 28.800 L31.400 28.800" class="hidden"/>
+<path d="M28.600 28.800 L31.400 28.800" class="hidden"/>
+<path d="M28.600 28.800 L31.400 28.800" class="hidden"/>
+<path d="M28.600 28.800 L31.400 28.800" class="hidden"/>
+<path d="M71.800 28.800 L71.800 24.000" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M28.600 69.200 L31.400 69.200" class="hidden"/>
+<path d="M71.800 28.800 L76.600 28.800" class="hidden"/>
+<path d="M31.400 72.000 L31.400 69.200" class="hidden"/>
+<path d="M71.800 72.000 L71.800 69.200" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L76.600 28.800" class="hidden"/>
+<path d="M71.800 72.000 L71.800 69.200" class="hidden"/>
+<path d="M71.800 72.000 L71.800 69.200" class="hidden"/>
+<path d="M71.800 72.000 L71.800 69.200" class="hidden"/>
+<path d="M31.400 72.000 L31.400 69.200" class="hidden"/>
+<path d="M28.600 69.200 L31.400 69.200" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L71.800 24.000" class="hidden"/>
+<path d="M71.800 28.800 L71.800 24.000" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M28.600 69.200 L31.400 69.200" class="hidden"/>
+<path d="M28.600 69.200 L31.400 69.200" class="hidden"/>
+<path d="M71.800 28.800 L76.600 28.800" class="hidden"/>
+<path d="M31.400 72.000 L31.400 69.200" class="hidden"/>
+<path d="M31.400 72.000 L31.400 69.200" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L76.600 28.800" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L71.800 24.000" class="hidden"/>
+<path d="M71.800 28.800 L71.800 24.000" class="hidden"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L76.600 28.800" class="hidden"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hidden"/>
+<path d="M71.800 28.800 L76.600 28.800" class="hidden"/>
+<path d="M18.000 82.600 L18.000 75.000" class="hlr"/>
+<path d="M18.000 82.600 L25.600 82.600" class="hlr"/>
+<path d="M25.600 82.600 L25.600 75.000" class="hlr"/>
+<path d="M18.000 75.000 L25.600 75.000" class="hlr"/>
+<path d="M25.600 82.600 L26.600 82.600" class="hlr"/>
+<path d="M26.600 81.824 L26.600 75.776" class="hlr"/>
+<path d="M25.600 75.000 L26.600 75.000" class="hlr"/>
+<path d="M25.000 75.000 L25.000 74.000" class="hlr"/>
+<path d="M26.600 82.600 L76.600 82.600" class="hlr"/>
+<path d="M26.600 75.776 L76.600 75.776" class="hlr"/>
+<path d="M26.600 75.000 L76.600 75.000" class="hlr"/>
+<path d="M26.600 81.824 L76.600 81.824" class="hlr"/>
+<path d="M25.000 74.000 L25.000 72.000" class="hlr"/>
+<path d="M76.600 82.600 L78.200 82.600" class="hlr"/>
+<path d="M78.200 82.600 L78.200 75.000" class="hlr"/>
+<path d="M76.600 75.000 L78.200 75.000" class="hlr"/>
+<path d="M76.600 81.824 L76.600 75.776" class="hlr"/>
+<path d="M25.000 72.000 L25.000 24.000" class="hlr"/>
+<path d="M76.600 75.000 L76.600 74.000" class="hlr"/>
+<path d="M25.000 24.000 L26.600 24.000" class="hlr"/>
+<path d="M76.600 74.000 L76.600 72.000" class="hlr"/>
+<path d="M26.600 24.000 L28.600 24.000" class="hlr"/>
+<path d="M31.400 69.200 L71.800 69.200" class="hlr"/>
+<path d="M76.600 72.000 L76.600 69.200" class="hlr"/>
+<path d="M28.600 24.000 L31.400 24.000" class="hlr"/>
+<path d="M31.400 69.200 L31.400 28.800" class="hlr"/>
+<path d="M71.800 69.200 L71.800 28.800" class="hlr"/>
+<path d="M76.600 69.200 L76.600 28.800" class="hlr"/>
+<path d="M31.400 28.800 L71.800 28.800" class="hlr"/>
+<path d="M31.400 24.000 L71.800 24.000" class="hlr"/>
+<path d="M76.600 28.800 L76.600 24.000" class="hlr"/>
+<path d="M71.800 24.000 L76.600 24.000" class="hlr"/>
+<text x="18" y="84.6" font-size="3.2" font-weight="bold" text-anchor="start">FRONT ELEVATION</text>
+<text x="18" y="88.39999999999999" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:5  |  OCCT HLR</text>
+<path d="M18.000 196.200 L18.000 96.200" class="hidden"/>
+<path d="M18.000 96.200 L18.000 94.600" class="hidden"/>
+<path d="M18.000 197.800 L18.000 196.200" class="hidden"/>
+<path d="M18.000 94.600 L25.600 94.600" class="hidden"/>
+<path d="M25.600 95.900 L25.600 94.600" class="hidden"/>
+<path d="M18.000 197.800 L25.600 197.800" class="hidden"/>
+<path d="M25.000 196.200 L25.600 196.200" class="hidden"/>
+<path d="M25.600 197.800 L25.600 196.200" class="hidden"/>
+<path d="M25.000 99.400 L25.000 96.200" class="hidden"/>
+<path d="M25.000 99.400 L25.000 196.200" class="hidden"/>
+<path d="M25.000 96.200 L25.600 96.200" class="hidden"/>
+<path d="M25.000 196.200 L26.600 196.200" class="hidden"/>
+<path d="M25.600 196.200 L25.600 99.400" class="hidden"/>
+<path d="M25.600 95.900 L26.600 95.900" class="hidden"/>
+<path d="M25.000 196.200 L25.000 96.200" class="hidden"/>
+<path d="M25.600 96.200 L26.600 96.200" class="hidden"/>
+<path d="M25.000 96.200 L26.600 96.200" class="hidden"/>
+<path d="M25.000 196.200 L26.600 196.200" class="hidden"/>
+<path d="M26.600 196.200 L28.600 196.200" class="hidden"/>
+<path d="M26.600 99.400 L25.600 99.400" class="hidden"/>
+<path d="M26.600 95.900 L76.600 95.900" class="hidden"/>
+<path d="M26.600 95.900 L76.600 95.900" class="hidden"/>
+<path d="M26.600 96.200 L26.600 95.900" class="hidden"/>
+<path d="M26.600 96.200 L26.600 95.900" class="hidden"/>
+<path d="M26.600 95.900 L76.600 95.900" class="hidden"/>
+<path d="M25.000 196.200 L25.000 96.200" class="hidden"/>
+<path d="M26.600 96.200 L28.600 96.200" class="hidden"/>
+<path d="M28.600 96.200 L76.600 96.200" class="hidden"/>
+<path d="M25.000 96.200 L26.600 96.200" class="hidden"/>
+<path d="M26.600 96.200 L28.600 96.200" class="hidden"/>
+<path d="M25.000 196.200 L26.600 196.200" class="hidden"/>
+<path d="M26.600 196.200 L28.600 196.200" class="hidden"/>
+<path d="M71.800 196.200 L76.600 196.200" class="hidden"/>
+<path d="M31.400 196.200 L71.800 196.200" class="hidden"/>
+<path d="M28.600 196.200 L31.400 196.200" class="hidden"/>
+<path d="M28.600 99.400 L26.600 99.400" class="hidden"/>
+<path d="M76.600 99.400 L28.600 99.400" class="hidden"/>
+<path d="M76.600 95.900 L78.200 95.900" class="hidden"/>
+<path d="M26.600 96.200 L76.600 96.200" class="hidden"/>
+<path d="M76.600 96.200 L76.600 95.900" class="hidden"/>
+<path d="M26.600 96.200 L76.600 96.200" class="hidden"/>
+<path d="M76.600 96.200 L76.600 95.900" class="hidden"/>
+<path d="M25.000 196.200 L25.000 96.200" class="hidden"/>
+<path d="M71.800 96.200 L76.600 96.200" class="hidden"/>
+<path d="M31.400 96.200 L71.800 96.200" class="hidden"/>
+<path d="M28.600 96.200 L31.400 96.200" class="hidden"/>
+<path d="M76.600 99.400 L78.200 99.400" class="hidden"/>
+<path d="M76.600 99.400 L76.600 96.200" class="hidden"/>
+<path d="M78.200 99.400 L78.200 95.900" class="hidden"/>
+<path d="M25.000 96.200 L26.600 96.200" class="hidden"/>
+<path d="M26.600 96.200 L28.600 96.200" class="hidden"/>
+<path d="M26.600 196.200 L28.600 196.200" class="hidden"/>
+<path d="M26.600 196.200 L28.600 196.200" class="hidden"/>
+<path d="M26.600 196.200 L28.600 196.200" class="hidden"/>
+<path d="M28.600 196.200 L31.400 196.200" class="hidden"/>
+<path d="M31.400 196.200 L71.800 196.200" class="hidden"/>
+<path d="M71.800 196.200 L76.600 196.200" class="hidden"/>
+<path d="M76.600 196.200 L76.600 191.400" class="hidden"/>
+<path d="M76.600 191.400 L76.600 148.400" class="hidden"/>
+<path d="M76.600 148.400 L76.600 146.200" class="hidden"/>
+<path d="M76.600 146.200 L76.600 144.000" class="hidden"/>
+<path d="M76.600 144.000 L76.600 141.400" class="hidden"/>
+<path d="M76.600 141.400 L76.600 101.000" class="hidden"/>
+<path d="M76.600 101.000 L76.600 96.200" class="hidden"/>
+<path d="M28.600 96.200 L31.400 96.200" class="hidden"/>
+<path d="M31.400 96.200 L71.800 96.200" class="hidden"/>
+<path d="M71.800 96.200 L76.600 96.200" class="hidden"/>
+<path d="M26.600 96.200 L28.600 96.200" class="hidden"/>
+<path d="M26.600 96.200 L28.600 96.200" class="hidden"/>
+<path d="M26.600 96.200 L28.600 96.200" class="hidden"/>
+<path d="M28.600 196.200 L31.400 196.200" class="hidden"/>
+<path d="M28.600 196.200 L31.400 196.200" class="hidden"/>
+<path d="M28.600 196.200 L31.400 196.200" class="hidden"/>
+<path d="M31.400 196.200 L71.800 196.200" class="hidden"/>
+<path d="M71.800 196.200 L76.600 196.200" class="hidden"/>
+<path d="M76.600 196.200 L76.600 191.400" class="hidden"/>
+<path d="M76.600 101.000 L76.600 96.200" class="hidden"/>
+<path d="M76.600 141.400 L76.600 101.000" class="hidden"/>
+<path d="M76.600 144.000 L76.600 141.400" class="hidden"/>
+<path d="M76.600 146.200 L76.600 144.000" class="hidden"/>
+<path d="M76.600 148.400 L76.600 146.200" class="hidden"/>
+<path d="M76.600 191.400 L76.600 148.400" class="hidden"/>
+<path d="M28.600 96.200 L31.400 96.200" class="hidden"/>
+<path d="M31.400 96.200 L71.800 96.200" class="hidden"/>
+<path d="M71.800 96.200 L76.600 96.200" class="hidden"/>
+<path d="M28.600 96.200 L31.400 96.200" class="hidden"/>
+<path d="M28.600 96.200 L31.400 96.200" class="hidden"/>
+<path d="M31.400 191.400 L31.400 148.400" class="hidden"/>
+<path d="M31.400 148.400 L31.400 146.200" class="hidden"/>
+<path d="M31.400 146.200 L31.400 144.000" class="hidden"/>
+<path d="M31.400 144.000 L31.400 141.400" class="hidden"/>
+<path d="M31.400 141.400 L31.400 101.000" class="hidden"/>
+<path d="M31.400 196.200 L71.800 196.200" class="hidden"/>
+<path d="M31.400 196.200 L71.800 196.200" class="hidden"/>
+<path d="M31.400 196.200 L31.400 191.400" class="hidden"/>
+<path d="M31.400 196.200 L31.400 191.400" class="hidden"/>
+<path d="M31.400 191.400 L71.800 191.400" class="hidden"/>
+<path d="M71.800 196.200 L71.800 191.400" class="hidden"/>
+<path d="M71.800 196.200 L76.600 196.200" class="hidden"/>
+<path d="M76.600 196.200 L76.600 191.400" class="hidden"/>
+<path d="M76.600 101.000 L76.600 96.200" class="hidden"/>
+<path d="M76.600 141.400 L76.600 101.000" class="hidden"/>
+<path d="M76.600 144.000 L76.600 141.400" class="hidden"/>
+<path d="M76.600 146.200 L76.600 144.000" class="hidden"/>
+<path d="M76.600 148.400 L76.600 146.200" class="hidden"/>
+<path d="M76.600 191.400 L76.600 148.400" class="hidden"/>
+<path d="M31.400 101.000 L71.800 101.000" class="hidden"/>
+<path d="M31.400 101.000 L31.400 96.200" class="hidden"/>
+<path d="M71.800 101.000 L71.800 96.200" class="hidden"/>
+<path d="M71.800 96.200 L76.600 96.200" class="hidden"/>
+<path d="M31.400 96.200 L71.800 96.200" class="hidden"/>
+<path d="M31.400 96.200 L71.800 96.200" class="hidden"/>
+<path d="M31.400 101.000 L31.400 96.200" class="hidden"/>
+<path d="M31.400 191.400 L71.800 191.400" class="hidden"/>
+<path d="M31.400 191.400 L31.400 148.400" class="hidden"/>
+<path d="M31.400 148.400 L31.400 146.200" class="hidden"/>
+<path d="M31.400 146.200 L31.400 144.000" class="hidden"/>
+<path d="M31.400 144.000 L31.400 141.400" class="hidden"/>
+<path d="M31.400 141.400 L31.400 101.000" class="hidden"/>
+<path d="M31.400 101.000 L71.800 101.000" class="hidden"/>
+<path d="M71.800 196.200 L76.600 196.200" class="hidden"/>
+<path d="M31.400 191.400 L71.800 191.400" class="hidden"/>
+<path d="M71.800 196.200 L71.800 191.400" class="hidden"/>
+<path d="M28.600 191.400 L31.400 191.400" class="hidden"/>
+<path d="M28.600 191.400 L31.400 191.400" class="hidden"/>
+<path d="M71.800 191.400 L31.400 191.400" class="hidden"/>
+<path d="M76.600 196.200 L76.600 191.400" class="hidden"/>
+<path d="M76.600 101.000 L76.600 96.200" class="hidden"/>
+<path d="M71.800 141.400 L71.800 101.000" class="hidden"/>
+<path d="M71.800 101.000 L76.600 101.000" class="hidden"/>
+<path d="M71.800 144.000 L71.800 141.400" class="hidden"/>
+<path d="M71.800 146.200 L71.800 144.000" class="hidden"/>
+<path d="M71.800 148.400 L71.800 146.200" class="hidden"/>
+<path d="M71.800 191.400 L76.600 191.400" class="hidden"/>
+<path d="M71.800 191.400 L71.800 148.400" class="hidden"/>
+<path d="M71.800 101.000 L31.400 101.000" class="hidden"/>
+<path d="M71.800 101.000 L71.800 96.200" class="hidden"/>
+<path d="M71.800 96.200 L76.600 96.200" class="hidden"/>
+<path d="M31.400 101.000 L71.800 101.000" class="hidden"/>
+<path d="M28.600 101.000 L31.400 101.000" class="hidden"/>
+<path d="M28.600 101.000 L31.400 101.000" class="hidden"/>
+<path d="M76.600 196.200 L76.600 191.400" class="hidden"/>
+<path d="M28.600 148.400 L28.600 191.400" class="hidden"/>
+<path d="M28.600 146.200 L28.600 148.400" class="hidden"/>
+<path d="M28.600 144.000 L28.600 146.200" class="hidden"/>
+<path d="M28.600 141.400 L28.600 144.000" class="hidden"/>
+<path d="M28.600 101.000 L28.600 141.400" class="hidden"/>
+<path d="M76.600 101.000 L76.600 96.200" class="hidden"/>
+<path d="M28.600 148.400 L28.600 191.400" class="hidden"/>
+<path d="M28.600 101.000 L28.600 141.400" class="hidden"/>
+<path d="M28.600 141.400 L28.600 144.000" class="hidden"/>
+<path d="M28.600 144.000 L28.600 146.200" class="hidden"/>
+<path d="M28.600 146.200 L28.600 148.400" class="hidden"/>
+<path d="M31.400 191.400 L31.400 148.400" class="hidden"/>
+<path d="M71.800 191.400 L76.600 191.400" class="hidden"/>
+<path d="M31.400 191.400 L31.400 148.400" class="hidden"/>
+<path d="M71.800 191.400 L71.800 148.400" class="hidden"/>
+<path d="M31.400 148.400 L31.400 146.200" class="hidden"/>
+<path d="M31.400 146.200 L31.400 144.000" class="hidden"/>
+<path d="M31.400 144.000 L31.400 141.400" class="hidden"/>
+<path d="M31.400 141.400 L31.400 101.000" class="hidden"/>
+<path d="M71.800 141.400 L71.800 101.000" class="hidden"/>
+<path d="M71.800 144.000 L71.800 141.400" class="hidden"/>
+<path d="M71.800 146.200 L71.800 144.000" class="hidden"/>
+<path d="M71.800 148.400 L71.800 146.200" class="hidden"/>
+<path d="M71.800 101.000 L76.600 101.000" class="hidden"/>
+<path d="M31.400 141.400 L31.400 101.000" class="hidden"/>
+<path d="M71.800 191.400 L71.800 148.400" class="hidden"/>
+<path d="M76.600 191.400 L76.600 148.400" class="hidden"/>
+<path d="M71.800 191.400 L71.800 148.400" class="hidden"/>
+<path d="M71.800 141.400 L71.800 101.000" class="hidden"/>
+<path d="M71.800 141.400 L71.800 101.000" class="hidden"/>
+<path d="M76.600 141.400 L76.600 101.000" class="hidden"/>
+<path d="M76.600 191.400 L76.600 148.400" class="hidden"/>
+<path d="M31.400 148.400 L31.400 146.200" class="hidden"/>
+<path d="M31.400 146.200 L31.400 144.000" class="hidden"/>
+<path d="M31.400 144.000 L31.400 141.400" class="hidden"/>
+<path d="M76.600 141.400 L76.600 101.000" class="hidden"/>
+<path d="M71.800 148.400 L71.800 146.200" class="hidden"/>
+<path d="M76.600 148.400 L76.600 146.200" class="hidden"/>
+<path d="M71.800 148.400 L71.800 146.200" class="hidden"/>
+<path d="M71.800 144.000 L71.800 141.400" class="hidden"/>
+<path d="M71.800 144.000 L71.800 141.400" class="hidden"/>
+<path d="M76.600 144.000 L76.600 141.400" class="hidden"/>
+<path d="M76.600 148.400 L76.600 146.200" class="hidden"/>
+<path d="M76.600 144.000 L76.600 141.400" class="hidden"/>
+<path d="M71.800 146.200 L71.800 144.000" class="hidden"/>
+<path d="M76.600 146.200 L76.600 144.000" class="hidden"/>
+<path d="M71.800 146.200 L71.800 144.000" class="hidden"/>
+<path d="M76.600 146.200 L76.600 144.000" class="hidden"/>
+<path d="M18.000 196.200 L18.000 96.200" class="hlr"/>
+<path d="M18.000 96.200 L18.000 94.600" class="hlr"/>
+<path d="M18.000 197.800 L18.000 196.200" class="hlr"/>
+<path d="M18.000 197.800 L25.600 197.800" class="hlr"/>
+<path d="M25.600 197.800 L25.600 196.200" class="hlr"/>
+<path d="M18.000 94.600 L25.600 94.600" class="hlr"/>
+<path d="M25.600 95.900 L25.600 94.600" class="hlr"/>
+<path d="M25.600 196.200 L25.600 99.400" class="hlr"/>
+<path d="M25.600 196.200 L26.600 196.200" class="hlr"/>
+<path d="M25.600 99.400 L26.600 99.400" class="hlr"/>
+<path d="M25.600 95.900 L26.600 95.900" class="hlr"/>
+<path d="M26.600 196.200 L28.600 196.200" class="hlr"/>
+<path d="M26.600 99.400 L76.600 99.400" class="hlr"/>
+<path d="M26.600 95.900 L76.600 95.900" class="hlr"/>
+<path d="M28.600 196.200 L76.600 196.200" class="hlr"/>
+<path d="M76.600 99.400 L78.200 99.400" class="hlr"/>
+<path d="M76.600 95.900 L78.200 95.900" class="hlr"/>
+<path d="M78.200 99.400 L78.200 95.900" class="hlr"/>
+<path d="M76.600 196.200 L76.600 99.400" class="hlr"/>
+<text x="86.2" y="84.6" font-size="3.2" font-weight="bold" text-anchor="start">RIGHT ELEVATION</text>
+<text x="86.2" y="88.39999999999999" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:5  |  OCCT HLR</text>
+<path d="M86.200 196.200 L86.200 96.200" class="hidden"/>
+<path d="M93.800 196.200 L93.800 96.200" class="hidden"/>
+<path d="M86.200 196.200 L86.200 96.200" class="hidden"/>
+<path d="M86.200 96.200 L86.200 94.600" class="hidden"/>
+<path d="M93.800 96.200 L93.800 94.600" class="hidden"/>
+<path d="M86.200 94.600 L93.800 94.600" class="hidden"/>
+<path d="M93.800 196.200 L93.800 96.200" class="hidden"/>
+<path d="M86.200 197.800 L86.200 196.200" class="hidden"/>
+<path d="M86.200 197.800 L93.800 197.800" class="hidden"/>
+<path d="M93.800 197.800 L93.800 196.200" class="hidden"/>
+<path d="M86.200 196.200 L86.200 96.200" class="hidden"/>
+<path d="M86.200 96.200 L86.200 95.900" class="hidden"/>
+<path d="M93.800 96.200 L93.800 95.900" class="hidden"/>
+<path d="M93.800 196.200 L93.800 96.200" class="hidden"/>
+<path d="M93.200 196.200 L93.800 196.200" class="hidden"/>
+<path d="M86.200 99.400 L86.200 96.200" class="hidden"/>
+<path d="M86.200 96.200 L86.200 95.900" class="hidden"/>
+<path d="M86.200 95.900 L93.800 95.900" class="hidden"/>
+<path d="M93.800 99.400 L93.800 96.200" class="hidden"/>
+<path d="M93.800 99.400 L93.800 196.200" class="hidden"/>
+<path d="M93.800 96.200 L93.800 95.900" class="hidden"/>
+<path d="M93.800 196.200 L94.800 196.200" class="hidden"/>
+<path d="M93.200 196.200 L94.800 196.200" class="hidden"/>
+<path d="M93.200 196.200 L93.200 99.400" class="hidden"/>
+<path d="M93.200 99.400 L86.200 99.400" class="hidden"/>
+<path d="M86.200 99.400 L86.200 96.200" class="hidden"/>
+<path d="M86.200 96.200 L86.200 95.900" class="hidden"/>
+<path d="M86.200 99.400 L86.200 96.200" class="hidden"/>
+<path d="M86.200 95.900 L86.976 95.900" class="hidden"/>
+<path d="M86.976 95.900 L93.024 95.900" class="hidden"/>
+<path d="M93.024 95.900 L93.800 95.900" class="hidden"/>
+<path d="M93.800 96.200 L94.800 96.200" class="hidden"/>
+<path d="M93.800 96.200 L93.800 95.900" class="hidden"/>
+<path d="M93.800 96.200 L94.800 96.200" class="hidden"/>
+<path d="M94.800 196.200 L96.800 196.200" class="hidden"/>
+<path d="M94.800 196.200 L96.800 196.200" class="hidden"/>
+<path d="M93.200 196.200 L94.800 196.200" class="hidden"/>
+<path d="M93.200 196.200 L93.200 99.400" class="hidden"/>
+<path d="M86.200 99.400 L93.200 99.400" class="hidden"/>
+<path d="M86.200 99.400 L86.200 96.200" class="hidden"/>
+<path d="M86.200 96.200 L86.200 95.900" class="hidden"/>
+<path d="M93.024 95.900 L93.800 95.900" class="hidden"/>
+<path d="M86.976 96.200 L86.976 95.900" class="hidden"/>
+<path d="M86.976 96.200 L93.024 96.200" class="hidden"/>
+<path d="M93.024 96.200 L93.024 95.900" class="hidden"/>
+<path d="M86.200 95.900 L86.976 95.900" class="hidden"/>
+<path d="M94.800 96.200 L96.800 96.200" class="hidden"/>
+<path d="M93.800 96.200 L93.800 95.900" class="hidden"/>
+<path d="M94.800 96.200 L96.800 96.200" class="hidden"/>
+<path d="M93.800 96.200 L94.800 96.200" class="hidden"/>
+<path d="M96.800 196.200 L99.600 196.200" class="hidden"/>
+<path d="M99.600 196.200 L140.000 196.200" class="hidden"/>
+<path d="M140.000 196.200 L144.800 196.200" class="hidden"/>
+<path d="M96.800 196.200 L144.800 196.200" class="hidden"/>
+<path d="M94.800 196.200 L96.800 196.200" class="hidden"/>
+<path d="M93.200 196.200 L93.200 99.400" class="hidden"/>
+<path d="M86.200 99.400 L93.200 99.400" class="hidden"/>
+<path d="M86.976 95.900 L93.024 95.900" class="hidden"/>
+<path d="M93.024 96.200 L93.024 95.900" class="hidden"/>
+<path d="M86.976 96.200 L86.976 95.900" class="hidden"/>
+<path d="M86.976 96.200 L93.024 96.200" class="hidden"/>
+<path d="M144.800 196.200 L144.800 96.200" class="hidden"/>
+<path d="M96.800 96.200 L144.800 96.200" class="hidden"/>
+<path d="M93.800 99.400 L93.800 96.200" class="hidden"/>
+<path d="M96.800 96.200 L99.600 96.200" class="hidden"/>
+<path d="M99.600 96.200 L140.000 96.200" class="hidden"/>
+<path d="M140.000 96.200 L144.800 96.200" class="hidden"/>
+<path d="M94.800 96.200 L96.800 96.200" class="hidden"/>
+<path d="M144.800 101.000 L144.800 96.200" class="hidden"/>
+<path d="M144.800 141.400 L144.800 101.000" class="hidden"/>
+<path d="M144.800 144.000 L144.800 141.400" class="hidden"/>
+<path d="M144.800 146.200 L144.800 144.000" class="hidden"/>
+<path d="M144.800 148.400 L144.800 146.200" class="hidden"/>
+<path d="M144.800 191.400 L144.800 148.400" class="hidden"/>
+<path d="M144.800 196.200 L144.800 191.400" class="hidden"/>
+<path d="M140.000 196.200 L144.800 196.200" class="hidden"/>
+<path d="M99.600 196.200 L140.000 196.200" class="hidden"/>
+<path d="M96.800 196.200 L99.600 196.200" class="hidden"/>
+<path d="M94.800 196.200 L96.800 196.200" class="hidden"/>
+<path d="M94.800 196.200 L96.800 196.200" class="hidden"/>
+<path d="M93.200 99.400 L93.800 99.400" class="hidden"/>
+<path d="M94.800 96.200 L96.800 96.200" class="hidden"/>
+<path d="M94.800 96.200 L96.800 96.200" class="hidden"/>
+<path d="M140.000 96.200 L144.800 96.200" class="hidden"/>
+<path d="M99.600 96.200 L140.000 96.200" class="hidden"/>
+<path d="M96.800 96.200 L99.600 96.200" class="hidden"/>
+<path d="M144.800 196.200 L144.800 191.400" class="hidden"/>
+<path d="M144.800 191.400 L144.800 148.400" class="hidden"/>
+<path d="M144.800 148.400 L144.800 146.200" class="hidden"/>
+<path d="M144.800 146.200 L144.800 144.000" class="hidden"/>
+<path d="M144.800 144.000 L144.800 141.400" class="hidden"/>
+<path d="M144.800 141.400 L144.800 101.000" class="hidden"/>
+<path d="M144.800 101.000 L144.800 96.200" class="hidden"/>
+<path d="M140.000 196.200 L144.800 196.200" class="hidden"/>
+<path d="M99.600 196.200 L140.000 196.200" class="hidden"/>
+<path d="M96.800 196.200 L99.600 196.200" class="hidden"/>
+<path d="M96.800 196.200 L99.600 196.200" class="hidden"/>
+<path d="M96.800 96.200 L99.600 96.200" class="hidden"/>
+<path d="M96.800 96.200 L99.600 96.200" class="hidden"/>
+<path d="M140.000 96.200 L144.800 96.200" class="hidden"/>
+<path d="M99.600 96.200 L140.000 96.200" class="hidden"/>
+<path d="M144.800 196.200 L144.800 191.400" class="hidden"/>
+<path d="M144.800 191.400 L144.800 148.400" class="hidden"/>
+<path d="M144.800 148.400 L144.800 146.200" class="hidden"/>
+<path d="M144.800 146.200 L144.800 144.000" class="hidden"/>
+<path d="M144.800 144.000 L144.800 141.400" class="hidden"/>
+<path d="M144.800 141.400 L144.800 101.000" class="hidden"/>
+<path d="M144.800 101.000 L144.800 96.200" class="hidden"/>
+<path d="M140.000 196.200 L144.800 196.200" class="hidden"/>
+<path d="M99.600 196.200 L99.600 191.400" class="hidden"/>
+<path d="M140.000 196.200 L140.000 191.400" class="hidden"/>
+<path d="M99.600 191.400 L140.000 191.400" class="hidden"/>
+<path d="M99.600 196.200 L99.600 191.400" class="hidden"/>
+<path d="M99.600 196.200 L140.000 196.200" class="hidden"/>
+<path d="M99.600 101.000 L99.600 96.200" class="hidden"/>
+<path d="M99.600 101.000 L99.600 96.200" class="hidden"/>
+<path d="M99.600 96.200 L140.000 96.200" class="hidden"/>
+<path d="M140.000 96.200 L144.800 96.200" class="hidden"/>
+<path d="M99.600 101.000 L140.000 101.000" class="hidden"/>
+<path d="M140.000 101.000 L140.000 96.200" class="hidden"/>
+<path d="M144.800 196.200 L144.800 191.400" class="hidden"/>
+<path d="M140.000 191.400 L140.000 148.400" class="hidden"/>
+<path d="M140.000 191.400 L144.800 191.400" class="hidden"/>
+<path d="M140.000 148.400 L140.000 146.200" class="hidden"/>
+<path d="M140.000 146.200 L140.000 144.000" class="hidden"/>
+<path d="M140.000 144.000 L140.000 141.400" class="hidden"/>
+<path d="M140.000 141.400 L140.000 101.000" class="hidden"/>
+<path d="M140.000 101.000 L144.800 101.000" class="hidden"/>
+<path d="M144.800 101.000 L144.800 96.200" class="hidden"/>
+<path d="M140.000 196.200 L140.000 191.400" class="hidden"/>
+<path d="M99.600 191.400 L140.000 191.400" class="hidden"/>
+<path d="M99.600 191.400 L140.000 191.400" class="hidden"/>
+<path d="M96.800 191.400 L99.600 191.400" class="hidden"/>
+<path d="M96.800 191.400 L99.600 191.400" class="hidden"/>
+<path d="M99.600 141.400 L99.600 101.000" class="hidden"/>
+<path d="M99.600 144.000 L99.600 141.400" class="hidden"/>
+<path d="M99.600 146.200 L99.600 144.000" class="hidden"/>
+<path d="M99.600 148.400 L99.600 146.200" class="hidden"/>
+<path d="M99.600 191.400 L99.600 148.400" class="hidden"/>
+<path d="M96.800 101.000 L99.600 101.000" class="hidden"/>
+<path d="M96.800 101.000 L99.600 101.000" class="hidden"/>
+<path d="M99.600 101.000 L140.000 101.000" class="hidden"/>
+<path d="M140.000 101.000 L140.000 96.200" class="hidden"/>
+<path d="M99.600 101.000 L140.000 101.000" class="hidden"/>
+<path d="M140.000 191.400 L144.800 191.400" class="hidden"/>
+<path d="M140.000 148.400 L140.000 191.400" class="hidden"/>
+<path d="M140.000 146.200 L140.000 148.400" class="hidden"/>
+<path d="M140.000 144.000 L140.000 146.200" class="hidden"/>
+<path d="M140.000 141.400 L140.000 144.000" class="hidden"/>
+<path d="M140.000 101.000 L140.000 141.400" class="hidden"/>
+<path d="M140.000 101.000 L144.800 101.000" class="hidden"/>
+<path d="M99.600 148.400 L99.600 191.400" class="hidden"/>
+<path d="M99.600 101.000 L99.600 141.400" class="hidden"/>
+<path d="M99.600 141.400 L99.600 144.000" class="hidden"/>
+<path d="M99.600 144.000 L99.600 146.200" class="hidden"/>
+<path d="M99.600 146.200 L99.600 148.400" class="hidden"/>
+<path d="M99.600 191.400 L99.600 148.400" class="hidden"/>
+<path d="M96.800 191.400 L96.800 148.400" class="hidden"/>
+<path d="M96.800 191.400 L96.800 148.400" class="hidden"/>
+<path d="M96.800 148.400 L96.800 146.200" class="hidden"/>
+<path d="M96.800 146.200 L96.800 144.000" class="hidden"/>
+<path d="M96.800 144.000 L96.800 141.400" class="hidden"/>
+<path d="M96.800 141.400 L96.800 101.000" class="hidden"/>
+<path d="M96.800 141.400 L96.800 101.000" class="hidden"/>
+<path d="M96.800 144.000 L96.800 141.400" class="hidden"/>
+<path d="M96.800 146.200 L96.800 144.000" class="hidden"/>
+<path d="M96.800 148.400 L96.800 146.200" class="hidden"/>
+<path d="M99.600 141.400 L99.600 101.000" class="hidden"/>
+<path d="M144.800 191.400 L144.800 148.400" class="hidden"/>
+<path d="M140.000 191.400 L140.000 148.400" class="hidden"/>
+<path d="M140.000 141.400 L140.000 101.000" class="hidden"/>
+<path d="M144.800 141.400 L144.800 101.000" class="hidden"/>
+<path d="M99.600 148.400 L99.600 146.200" class="hidden"/>
+<path d="M99.600 146.200 L99.600 144.000" class="hidden"/>
+<path d="M99.600 144.000 L99.600 141.400" class="hidden"/>
+<path d="M144.800 148.400 L144.800 146.200" class="hidden"/>
+<path d="M140.000 148.400 L140.000 146.200" class="hidden"/>
+<path d="M140.000 144.000 L140.000 141.400" class="hidden"/>
+<path d="M144.800 144.000 L144.800 141.400" class="hidden"/>
+<path d="M144.800 146.200 L144.800 144.000" class="hidden"/>
+<path d="M140.000 146.200 L140.000 144.000" class="hidden"/>
+<path d="M86.200 197.800 L86.200 196.200" class="hlr"/>
+<path d="M86.200 95.900 L86.200 94.600" class="hlr"/>
+<path d="M86.200 94.600 L93.800 94.600" class="hlr"/>
+<path d="M93.800 95.900 L93.800 94.600" class="hlr"/>
+<path d="M93.800 197.800 L93.800 196.200" class="hlr"/>
+<path d="M86.200 197.800 L93.800 197.800" class="hlr"/>
+<path d="M86.200 196.200 L86.200 99.400" class="hlr"/>
+<path d="M93.200 196.200 L94.800 196.200" class="hlr"/>
+<path d="M86.200 99.400 L86.200 95.900" class="hlr"/>
+<path d="M86.200 95.900 L93.800 95.900" class="hlr"/>
+<path d="M93.800 96.200 L94.800 96.200" class="hlr"/>
+<path d="M93.800 99.400 L93.800 95.900" class="hlr"/>
+<path d="M94.800 196.200 L96.800 196.200" class="hlr"/>
+<path d="M93.200 196.200 L93.200 99.400" class="hlr"/>
+<path d="M86.200 99.400 L93.800 99.400" class="hlr"/>
+<path d="M94.800 96.200 L96.800 96.200" class="hlr"/>
+<path d="M96.800 196.200 L99.600 196.200" class="hlr"/>
+<path d="M96.800 96.200 L99.600 96.200" class="hlr"/>
+<path d="M99.600 196.200 L140.000 196.200" class="hlr"/>
+<path d="M99.600 141.400 L99.600 101.000" class="hlr"/>
+<path d="M99.600 144.000 L99.600 141.400" class="hlr"/>
+<path d="M99.600 146.200 L99.600 144.000" class="hlr"/>
+<path d="M99.600 148.400 L99.600 146.200" class="hlr"/>
+<path d="M99.600 191.400 L99.600 148.400" class="hlr"/>
+<path d="M99.600 96.200 L140.000 96.200" class="hlr"/>
+<path d="M140.000 196.200 L144.800 196.200" class="hlr"/>
+<path d="M99.600 191.400 L140.000 191.400" class="hlr"/>
+<path d="M99.600 101.000 L140.000 101.000" class="hlr"/>
+<path d="M140.000 96.200 L144.800 96.200" class="hlr"/>
+<path d="M144.800 196.200 L144.800 191.400" class="hlr"/>
+<path d="M144.800 101.000 L144.800 96.200" class="hlr"/>
+<path d="M144.800 191.400 L144.800 148.400" class="hlr"/>
+<path d="M144.800 141.400 L144.800 101.000" class="hlr"/>
+<path d="M140.000 191.400 L140.000 148.400" class="hlr"/>
+<path d="M140.000 141.400 L140.000 101.000" class="hlr"/>
+<path d="M144.800 148.400 L144.800 146.200" class="hlr"/>
+<path d="M144.800 144.000 L144.800 141.400" class="hlr"/>
+<path d="M140.000 148.400 L140.000 146.200" class="hlr"/>
+<path d="M140.000 144.000 L140.000 141.400" class="hlr"/>
+<path d="M144.800 146.200 L144.800 144.000" class="hlr"/>
+<path d="M140.000 146.200 L140.000 144.000" class="hlr"/>
+<text x="152.8" y="84.6" font-size="3.2" font-weight="bold" text-anchor="start">B20 BARRIER</text>
+<text x="152.8" y="88.39999999999999" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:5  |  OCCT HLR</text>
+<text x="152.8" y="92.0" font-size="2.0" font-weight="normal" text-anchor="start">KEEP-OUT</text>
+<path d="M154.400 94.600 L156.400 94.600" class="hidden"/>
+<path d="M152.800 94.600 L154.400 94.600" class="hidden"/>
+<path d="M154.400 94.600 L156.400 94.600" class="hidden"/>
+<path d="M156.400 94.600 L204.400 94.600" class="hidden"/>
+<path d="M152.800 194.600 L152.800 94.600" class="hidden"/>
+<path d="M152.800 94.600 L154.400 94.600" class="hidden"/>
+<path d="M152.800 94.600 L156.400 94.600" class="hidden"/>
+<path d="M156.400 194.600 L204.400 194.600" class="hidden"/>
+<path d="M156.400 94.600 L156.400 194.600" class="hidden"/>
+<path d="M204.400 194.600 L204.400 94.600" class="hidden"/>
+<path d="M154.400 194.600 L156.400 194.600" class="hidden"/>
+<path d="M152.800 194.600 L152.800 94.600" class="hidden"/>
+<path d="M152.800 194.600 L154.400 194.600" class="hidden"/>
+<path d="M156.400 194.600 L156.400 94.600" class="hidden"/>
+<path d="M152.800 194.600 L152.800 94.600" class="hidden"/>
+<path d="M152.800 194.600 L156.400 194.600" class="hidden"/>
+<path d="M154.400 194.600 L156.400 194.600" class="hidden"/>
+<path d="M152.800 194.600 L154.400 194.600" class="hidden"/>
+<path d="M154.400 94.600 L156.400 94.600" class="hlr-keep"/>
+<path d="M152.800 94.600 L154.400 94.600" class="hlr-keep"/>
+<path d="M156.400 94.600 L204.400 94.600" class="hlr-keep"/>
+<path d="M154.400 194.600 L156.400 194.600" class="hlr-keep"/>
+<path d="M152.800 194.600 L152.800 94.600" class="hlr-keep"/>
+<path d="M152.800 194.600 L154.400 194.600" class="hlr-keep"/>
+<path d="M204.400 194.600 L204.400 94.600" class="hlr-keep"/>
+<path d="M156.400 194.600 L204.400 194.600" class="hlr-keep"/>
+<line x1="18" y1="197.8" x2="18" y2="203.8" class="thin"/>
+<line x1="78.2" y1="197.8" x2="78.2" y2="203.8" class="thin"/>
+<line x1="18" y1="203.8" x2="78.2" y2="203.8" class="dim"/>
+<text x="48.1" y="202.4" font-size="2.7" font-weight="normal" text-anchor="middle">301 CAD-01 BBOX</text>
+<line x1="18" y1="94.6" x2="12" y2="94.6" class="thin"/>
+<line x1="18" y1="197.8" x2="12" y2="197.8" class="thin"/>
+<line x1="12" y1="94.6" x2="12" y2="197.8" class="dim"/>
+<text x="10.3" y="146.2" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 10.3 146.2)">516 CAD-01 BBOX</text>
+<rect x="250" y="16" width="152" height="27.0" rx="0" class="med" fill="#ffffff"/>
+<text x="253" y="20.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED ENVELOPE</text>
+<text x="253" y="25" font-size="2.45" font-weight="normal" text-anchor="start">Exterior: 250 W x 250 D x 500 H LOCK.</text>
+<text x="253" y="29" font-size="2.45" font-weight="normal" text-anchor="start">Module datum repeats at 250 mm.</text>
+<text x="253" y="33" font-size="2.45" font-weight="normal" text-anchor="start">Nominal clear: 202 x 202 x 427 CALCULATED.</text>
+<text x="253" y="37" font-size="2.45" font-weight="normal" text-anchor="start">HLR bbox X -43..258,</text>
+<text x="253" y="41" font-size="2.45" font-weight="normal" text-anchor="start">Y -43..250, Z -8..508.</text>
+<rect x="250" y="64" width="152" height="23.0" rx="0" class="med" fill="#ffffff"/>
+<text x="253" y="68.4" font-size="2.8" font-weight="bold" text-anchor="start">PROJECTION</text>
+<text x="253" y="73" font-size="2.45" font-weight="normal" text-anchor="start">Third-angle from PR 34 assembly STEP.</text>
+<text x="253" y="77" font-size="2.45" font-weight="normal" text-anchor="start">Front is the door/view cassette face (Y=0).</text>
+<text x="253" y="81" font-size="2.45" font-weight="normal" text-anchor="start">Rail offset 5 mm REF outside frame.</text>
+<text x="253" y="85" font-size="2.45" font-weight="normal" text-anchor="start">Hidden lines: OCCT HLRBRep. CAD-02 not parent.</text>
+<rect x="250" y="108" width="152" height="27.0" rx="0" class="med" fill="#ffffff"/>
+<text x="253" y="112.4" font-size="2.8" font-weight="bold" text-anchor="start">INTERFACE DATUMS</text>
+<text x="253" y="117" font-size="2.45" font-weight="normal" text-anchor="start">A: exterior block face (frame.world origin).</text>
+<text x="253" y="121" font-size="2.45" font-weight="normal" text-anchor="start">B: cassette seat plane.</text>
+<text x="253" y="125" font-size="2.45" font-weight="normal" text-anchor="start">C: rail conductor centerline (external).</text>
+<text x="253" y="129" font-size="2.45" font-weight="normal" text-anchor="start">D: false-bottom tray 25 mm REF.</text>
+<text x="253" y="133" font-size="2.45" font-weight="normal" text-anchor="start">Molt datum: 142 mm CALCULATED.</text>
+<line x1="18" y1="241" x2="28.0" y2="241" class="heavy"/>
+<line x1="18.0" y1="239.2" x2="18.0" y2="242.8" class="med"/>
+<text x="18.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">0</text>
+<line x1="20.0" y1="239.2" x2="20.0" y2="242.8" class="med"/>
+<text x="20.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">10</text>
+<line x1="22.0" y1="239.2" x2="22.0" y2="242.8" class="med"/>
+<text x="22.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">20</text>
+<line x1="24.0" y1="239.2" x2="24.0" y2="242.8" class="med"/>
+<text x="24.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">30</text>
+<line x1="26.0" y1="239.2" x2="26.0" y2="242.8" class="med"/>
+<text x="26.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">40</text>
+<line x1="28.0" y1="239.2" x2="28.0" y2="242.8" class="med"/>
+<text x="28.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">50</text>
+<text x="31.0" y="241.6" font-size="2.1" font-weight="normal" text-anchor="start">mm  @ 1:5</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -123,18 +742,18 @@
 <line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">ORTHOGRAPHIC ASSEMBLY</text>
-<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="280.0" font-size="2.8" font-weight="bold" text-anchor="start" fill="#ba3d3d">DRAFT CAD - NOT SHOP-RELEASE (#31) / NOT FIRST ARTICLE</text>
 <text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
-<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">1:5</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41P</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">02 OF 12 / S01</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">DRAFT CAD</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
 <text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
@@ -146,8 +765,8 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
-<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="ref"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle">TRUE-SCALE HLR</text>
 <line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
 <text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
 <line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>

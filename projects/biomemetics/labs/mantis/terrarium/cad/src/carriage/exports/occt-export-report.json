@@ -1,0 +1,233 @@
+{
+  "maturity": "DRAFT",
+  "authority": "occt-ocp",
+  "freecadcmd": false,
+  "openscadAuthority": false,
+  "evidenceClass": "theoretical/UNVERIFIED",
+  "parentFrameAdmitted": false,
+  "parts": [
+    {
+      "solidId": "B22-carriage-outer-shell",
+      "bomId": "B22",
+      "status": "ref",
+      "bboxMm": [
+        -1.5e-07,
+        -1.5e-07,
+        1.99999985,
+        60.00000015,
+        42.00000015,
+        28.00000015
+      ],
+      "step": "B22-carriage-outer-shell.step"
+    },
+    {
+      "solidId": "B23-pinch-lever",
+      "bomId": "B23",
+      "status": "ref",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        8.0000001,
+        12.0000001,
+        22.0000001
+      ],
+      "step": "B23-pinch-lever.step"
+    },
+    {
+      "solidId": "B24-contact-carrier",
+      "bomId": "B24",
+      "status": "ref",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        36.0000001,
+        32.0000001,
+        6.0000001
+      ],
+      "step": "B24-contact-carrier.step"
+    },
+    {
+      "solidId": "B25-spring-pocket",
+      "bomId": "B25",
+      "status": "unverified",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        10.0000001,
+        10.0000001,
+        16.0000001
+      ],
+      "step": "B25-spring-pocket.step"
+    },
+    {
+      "solidId": "B26-roller",
+      "bomId": "B26",
+      "status": "unverified",
+      "bboxMm": [
+        -4.0000001,
+        -4.0000001,
+        -1e-07,
+        4.0000001,
+        4.0000001,
+        6.0000001
+      ],
+      "step": "B26-roller.step"
+    },
+    {
+      "solidId": "B27-contact-array-proxy",
+      "bomId": "B27",
+      "status": "unverified",
+      "bboxMm": [
+        -0.5000001,
+        -0.5000001,
+        -1e-07,
+        28.440000100000002,
+        0.5000001,
+        6.0000001
+      ],
+      "step": "B27-contact-array-proxy.step"
+    },
+    {
+      "solidId": "B23-lift-pawl",
+      "bomId": "B23",
+      "status": "target",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        4.0000001,
+        10.0000001,
+        5.0000001
+      ],
+      "step": "B23-lift-pawl.step"
+    },
+    {
+      "solidId": "B23-translation-pawl",
+      "bomId": "B23",
+      "status": "target",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        4.0000001,
+        8.0000001,
+        6.0000001
+      ],
+      "step": "B23-translation-pawl.step"
+    },
+    {
+      "solidId": "B28-universal-latch-shoe",
+      "bomId": "B28",
+      "status": "ref",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        24.0000001,
+        22.0000001,
+        10.0000001
+      ],
+      "step": "B28-universal-latch-shoe.step"
+    },
+    {
+      "solidId": "B29-camera-binder-housing",
+      "bomId": "B29",
+      "status": "ref",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        40.0000001,
+        36.0000001,
+        22.0000001
+      ],
+      "step": "B29-camera-binder-housing.step"
+    },
+    {
+      "solidId": "B34-fpc-clamp",
+      "bomId": "B34",
+      "status": "ref",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        16.0000001,
+        8.0000001,
+        3.0000001
+      ],
+      "step": "B34-fpc-clamp.step"
+    },
+    {
+      "solidId": "B50-carriage-half-proxy",
+      "bomId": "B50",
+      "status": "unverified",
+      "bboxMm": [
+        -1e-07,
+        -1e-07,
+        -1e-07,
+        21.0000001,
+        28.0000001,
+        4.0000001
+      ],
+      "step": "B50-carriage-half-proxy.step"
+    },
+    {
+      "solidId": "B50-binder-half-proxy",
+      "bomId": "B50",
+      "status": "unverified",
+      "bboxMm": [
+        -3.0000001,
+        -1e-07,
+        -1e-07,
+        18.0000001,
+        28.0000001,
+        4.0000001
+      ],
+      "step": "B50-binder-half-proxy.step"
+    }
+  ],
+  "assemblyLocked": {
+    "step": "MANTIS-TERRARIUM-CARRIAGE-BINDER-DRAFT.step",
+    "bboxMm": [
+      -2.0000001,
+      -1e-07,
+      -0.20000010000000001,
+      104.0000001,
+      42.0000001,
+      28.0000001
+    ],
+    "solidCount": 15,
+    "coordinateFrame": "carriage.local",
+    "maturity": "DRAFT",
+    "parentFrameAdmitted": false,
+    "authority": "occt-ocp-hlr"
+  },
+  "assemblyRolling": {
+    "step": "MANTIS-TERRARIUM-CARRIAGE-BINDER-Q5-DRAFT.step",
+    "bboxMm": [
+      -2.0000001,
+      -1e-07,
+      -6.0000001,
+      104.0000001,
+      42.0000001,
+      28.0000001
+    ],
+    "solidCount": 15,
+    "coordinateFrame": "carriage.local",
+    "maturity": "DRAFT",
+    "parentFrameAdmitted": false,
+    "authority": "occt-ocp-hlr"
+  },
+  "paramsSha256": "12f9dd48bdc336686a67aef73df817fe95ffdd8cd984b46c08d953b670c70848",
+  "busSha256": "4ad0160164e1070b4fbf543a4321574210daa09fc81c9f00dbdd52f6a0ebb28f",
+  "electrical": {
+    "S1": "UNVERIFIED",
+    "S2": "UNVERIFIED",
+    "Q1": "UNVERIFIED",
+    "issue24": "unmet",
+    "note": "Mechanical envelopes only. Do not invent nets or switch/Q1 parts."
+  }
+}

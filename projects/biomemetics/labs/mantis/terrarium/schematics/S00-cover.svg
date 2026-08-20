@@ -10,7 +10,7 @@
     .thin { stroke:#15171a; stroke-width:.28; fill:none; }
     .med { stroke:#15171a; stroke-width:.55; fill:none; }
     .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
-    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.22; stroke-dasharray:1.6 1.1; fill:none; }
     .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
     .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
@@ -19,6 +19,8 @@
     .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
     .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .hlr { stroke:#15171a; stroke-width:.45; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .hlr-keep { stroke:#c63333; stroke-width:.4; fill:none; stroke-dasharray:3.5 2; }
     .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
     .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
@@ -26,72 +28,292 @@
 </defs>
 <rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
 <text x="12" y="17" font-size="8" font-weight="bold" text-anchor="start">READABLE THEORY OF THE MACHINE</text>
-<text x="12" y="24" font-size="3.6" font-weight="normal" text-anchor="start">Exterior electrification; interior remains plastic, screened, and animal-safe.</text>
-<polygon points="48,220 148,220 148,50 48,50" class="heavy" fill="#ffffff"/>
-<polygon points="48,50 148,50 170.5,36.0 70.5,36.0" class="heavy" fill="#ffffff"/>
-<polygon points="148,220 170.5,206.0 170.5,36.0 148,50" class="heavy" fill="#ffffff"/>
-<rect x="45" y="50" width="6" height="170" rx="1" class="plastic"/>
-<rect x="145" y="50" width="6" height="170" rx="1" class="plastic"/>
-<rect x="48" y="47" width="100" height="6" rx="1" class="plastic"/>
-<rect x="48" y="217" width="100" height="6" rx="1" class="plastic"/>
-<rect x="58" y="68" width="80" height="138" rx="1" class="thin" fill="#ffffff"/>
-<line x1="98" y1="68" x2="98" y2="206" class="thin"/>
-<circle cx="132" cy="137" r="2" class="med" fill="#ffffff"/>
-<rect x="58" y="49" width="80" height="12" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="43" y="43" width="110" height="5" rx="1" class="med" fill="#ffffff"/>
-<rect x="42" y="42" width="25" height="9" rx="0" class="heavy" fill="#ffffff"/>
-<text x="54.5" y="39" font-size="2.4" font-weight="bold" text-anchor="middle">PINCH CARRIAGE</text>
-<rect x="31" y="48" width="18" height="16" rx="0" class="med" fill="#ffffff"/>
-<circle cx="40" cy="56" r="4" class="heavy" fill="#ffffff"/>
-<path d="M40 64 C25 100, 22 160, 188 195" class="phantom"/>
-<rect x="183" y="170" width="54" height="78" rx="0" class="heavy" fill="#ffffff"/>
-<text x="210" y="183" font-size="3.2" font-weight="bold" text-anchor="middle">M1 / TACHYON</text>
-<text x="210" y="189" font-size="2.6" font-weight="bold" text-anchor="middle">OUTSIDE CAGE</text>
-<rect x="195" y="200" width="30" height="17" rx="0" class="med" fill="#ffffff"/>
-<text x="210" y="210" font-size="2.1" font-weight="middle" text-anchor="start">85 x 56 DATASHEET</text>
-<rect x="60" y="78" width="76" height="116" rx="0" class="keepout"/>
-<text x="98" y="132" font-size="4" font-weight="bold" text-anchor="middle" fill="#b52d2d">ANIMAL VOLUME</text>
-<text x="98" y="138" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">NO METAL / COPPER / POGOS</text>
-<text x="98" y="144" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#b52d2d">B20 WET-SIDE BARRIER</text>
-<rect x="260" y="18" width="145" height="31.0" rx="0" class="med" fill="#ffffff"/>
-<text x="263" y="22.4" font-size="2.8" font-weight="bold" text-anchor="start">SYSTEM THEORY</text>
-<text x="263" y="27" font-size="2.45" font-weight="normal" text-anchor="start">250 mm block perimeter; 500 mm first tower.</text>
-<text x="263" y="31" font-size="2.45" font-weight="normal" text-anchor="start">P01-P08: protected continuous VIN/GND/I2C/UID/P08.</text>
-<text x="263" y="35" font-size="2.45" font-weight="normal" text-anchor="start">P09-P12: indexed GMSL2 only while stationary.</text>
-<text x="263" y="39" font-size="2.45" font-weight="normal" text-anchor="start">Raw MIPI stays binder-local and Tachyon-local.</text>
-<text x="263" y="43" font-size="2.45" font-weight="normal" text-anchor="start">Pinch is break-before-move; video off while rolling.</text>
-<text x="263" y="47" font-size="2.45" font-weight="normal" text-anchor="start">M1/Tachyon brick never enters the animal cage.</text>
-<rect x="260" y="70" width="145" height="27.0" rx="0" class="unverified" fill="#ffffff"/>
-<text x="263" y="74.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED SAFETY BOUNDARY</text>
-<text x="263" y="79" font-size="2.45" font-weight="normal" text-anchor="start">Upper-third molt keep-out 142 mm CALCULATED.</text>
-<text x="263" y="83" font-size="2.45" font-weight="normal" text-anchor="start">Ceiling/vents: &lt;= 0.8 mm non-metal LOCK.</text>
-<text x="263" y="87" font-size="2.45" font-weight="normal" text-anchor="start">B20 is the continuous wet-side barrier (CAD-01 bbox).</text>
-<text x="263" y="91" font-size="2.45" font-weight="normal" text-anchor="start">Door front/side; nymph-visible gap &lt;=0.50 TARGET.</text>
-<text x="263" y="95" font-size="2.45" font-weight="normal" text-anchor="start">No taxon inferred: no live-mantis photo supplied.</text>
-<rect x="260" y="122" width="145" height="27.0" rx="0" class="med" fill="#ffffff"/>
-<text x="263" y="126.4" font-size="2.8" font-weight="bold" text-anchor="start">MEASURED THIS RUN (DRAFT CAD/EE)</text>
-<text x="263" y="131" font-size="2.45" font-weight="normal" text-anchor="start">Base cursor/mantis-cad-02-carriage-9635</text>
-<text x="263" y="135" font-size="2.45" font-weight="normal" text-anchor="start">cdd523c55a63  CAD-02/#29</text>
-<text x="263" y="139" font-size="2.45" font-weight="normal" text-anchor="start">CAD-01/#28  fe8f875a80b3  PR 34</text>
-<text x="263" y="143" font-size="2.45" font-weight="normal" text-anchor="start">EE-23..26  PRs 37-40  (read-only)</text>
-<text x="263" y="147" font-size="2.45" font-weight="normal" text-anchor="start">No Particle camera SKU or CSI pin table drawn.</text>
-<rect x="260" y="178" width="145" height="23.0" rx="0" class="med" fill="#ffffff"/>
-<text x="263" y="182.4" font-size="2.8" font-weight="bold" text-anchor="start">DRAWING STATUS</text>
-<text x="263" y="187" font-size="2.45" font-weight="normal" text-anchor="start">Views are NTS until released STEP drives scale.</text>
-<text x="263" y="191" font-size="2.45" font-weight="normal" text-anchor="start">OCCT bboxes from CAD-01 unique parts; kinematics from CAD-02.</text>
-<text x="263" y="195" font-size="2.45" font-weight="normal" text-anchor="start">S08 follows EE-24 net-map; KiCad is circuit authority.</text>
-<text x="263" y="199" font-size="2.45" font-weight="normal" text-anchor="start">docs/variant screenshots: none on PRs 32-40 this run.</text>
-<rect x="12" y="232" width="58" height="8" rx="0" class="unverified" fill="#ffffff"/>
-<text x="41" y="237.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
-<text x="74" y="232" font-size="2.2" font-weight="bold" text-anchor="start">COLOR KEY (SHOP LINE ART)</text>
-<line x1="74" y1="236" x2="84" y2="236" class="heavy"/>
-<text x="86" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">geometry</text>
-<line x1="116" y1="236" x2="126" y2="236" class="motion"/>
-<text x="128" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">motion</text>
-<rect x="156" y="233.2" width="10" height="5" rx="0" class="keepout"/>
-<text x="168" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">keep-out</text>
-<line x1="202" y1="236" x2="212" y2="236" class="med" stroke="#0a7891"/>
-<text x="214" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">electrical net</text>
+<text x="12" y="24" font-size="3.2" font-weight="normal" text-anchor="start">HLR of PR 34 assembly STEP. Interior remains plastic, screened, animal-safe.</text>
+<text x="12" y="32" font-size="3.2" font-weight="bold" text-anchor="start">ISOMETRIC ASSEMBLY</text>
+<text x="12" y="35.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:8  |  OCCT HLR</text>
+<text x="12" y="39.4" font-size="2.0" font-weight="normal" text-anchor="start">DRAFT-MEASURED  fe8f875a80b3  PR 34</text>
+<path d="M21.359 104.258 L21.359 53.227" class="hidden"/>
+<path d="M21.359 53.227 L21.359 52.410" class="hidden"/>
+<path d="M18.000 107.014 L21.359 105.074" class="hidden"/>
+<path d="M21.359 105.074 L21.359 104.258" class="hidden"/>
+<path d="M21.359 105.074 L24.718 107.014" class="hidden"/>
+<path d="M24.452 106.044 L24.718 106.197" class="hidden"/>
+<path d="M24.718 106.503 L24.718 106.197" class="hidden"/>
+<path d="M24.452 106.350 L24.718 106.197" class="hidden"/>
+<path d="M24.452 56.646 L24.452 55.013" class="hidden"/>
+<path d="M24.452 56.646 L24.452 106.044" class="hidden"/>
+<path d="M24.452 55.013 L24.718 55.166" class="hidden"/>
+<path d="M24.452 106.044 L24.894 105.789" class="hidden"/>
+<path d="M24.452 60.524 L24.452 56.952" class="hidden"/>
+<path d="M24.452 56.952 L21.359 58.738" class="hidden"/>
+<path d="M24.452 55.013 L24.718 54.860" class="hidden"/>
+<path d="M24.718 55.166 L25.159 55.421" class="hidden"/>
+<path d="M24.894 105.789 L25.778 105.278" class="hidden"/>
+<path d="M24.894 57.207 L24.452 56.952" class="hidden"/>
+<path d="M22.144 57.162 L22.144 57.009" class="hidden"/>
+<path d="M22.144 57.162 L22.276 57.086" class="hidden"/>
+<path d="M25.159 55.421 L26.043 55.931" class="hidden"/>
+<path d="M26.043 55.931 L47.257 68.179" class="hidden"/>
+<path d="M46.991 93.031 L47.698 93.439" class="hidden"/>
+<path d="M25.778 105.278 L46.991 93.031" class="hidden"/>
+<path d="M25.778 57.718 L24.894 57.207" class="hidden"/>
+<path d="M46.991 69.965 L25.778 57.718" class="hidden"/>
+<path d="M46.781 68.300 L46.914 68.377" class="hidden"/>
+<path d="M46.914 68.377 L46.914 68.224" class="hidden"/>
+<path d="M22.144 57.162 L44.241 69.920" class="hidden"/>
+<path d="M44.241 69.920 L44.241 69.767" class="hidden"/>
+<path d="M44.241 69.920 L46.914 68.377" class="hidden"/>
+<path d="M46.991 93.031 L46.991 42.000" class="hidden"/>
+<path d="M47.257 68.179 L47.389 68.102" class="hidden"/>
+<path d="M47.257 69.812 L47.964 70.220" class="hidden"/>
+<path d="M47.257 69.812 L47.257 68.179" class="hidden"/>
+<path d="M47.698 93.439 L48.582 93.950" class="hidden"/>
+<path d="M46.991 70.781 L46.991 69.965" class="hidden"/>
+<path d="M46.991 69.965 L47.257 69.812" class="hidden"/>
+<path d="M48.582 93.950 L49.820 94.664" class="hidden"/>
+<path d="M29.844 106.197 L47.698 95.889" class="hidden"/>
+<path d="M29.844 106.197 L47.698 116.505" class="hidden"/>
+<path d="M49.820 92.215 L49.820 70.271" class="hidden"/>
+<path d="M49.820 70.271 L49.820 69.148" class="hidden"/>
+<path d="M49.820 69.148 L49.820 68.026" class="hidden"/>
+<path d="M49.820 68.026 L49.820 66.699" class="hidden"/>
+<path d="M49.820 66.699 L49.820 64.250" class="hidden"/>
+<path d="M49.820 48.532 L49.820 46.082" class="hidden"/>
+<path d="M47.698 95.889 L49.820 97.114" class="hidden"/>
+<path d="M63.432 104.972 L65.553 106.197" class="hidden"/>
+<path d="M49.820 94.664 L67.674 104.972" class="hidden"/>
+<path d="M29.844 106.197 L29.844 103.748" class="hidden"/>
+<path d="M47.698 95.889 L47.698 93.439" class="hidden"/>
+<path d="M29.844 103.748 L47.698 93.439" class="hidden"/>
+<path d="M29.844 103.748 L47.698 114.056" class="hidden"/>
+<path d="M47.698 116.505 L47.698 114.056" class="hidden"/>
+<path d="M47.698 116.505 L65.553 106.197" class="hidden"/>
+<path d="M29.844 57.615 L47.698 67.924" class="hidden"/>
+<path d="M29.844 57.615 L29.844 55.166" class="hidden"/>
+<path d="M47.698 67.924 L47.698 65.474" class="hidden"/>
+<path d="M29.844 57.615 L31.965 56.391" class="hidden"/>
+<path d="M65.553 101.298 L67.674 102.523" class="hidden"/>
+<path d="M47.698 93.439 L47.698 71.496" class="hidden"/>
+<path d="M47.698 93.439 L49.820 92.215" class="hidden"/>
+<path d="M47.698 71.496 L47.698 70.373" class="hidden"/>
+<path d="M47.698 70.373 L47.698 69.251" class="hidden"/>
+<path d="M47.698 69.251 L47.698 67.924" class="hidden"/>
+<path d="M47.698 67.924 L47.698 65.474" class="hidden"/>
+<path d="M47.698 47.307 L49.820 46.082" class="hidden"/>
+<path d="M49.820 46.082 L67.674 56.391" class="hidden"/>
+<path d="M67.674 104.972 L69.796 106.197" class="hidden"/>
+<path d="M47.698 93.439 L49.820 94.664" class="hidden"/>
+<path d="M65.553 106.197 L65.553 103.748" class="hidden"/>
+<path d="M28.607 103.033 L46.461 92.725" class="hidden"/>
+<path d="M28.607 103.033 L29.844 103.748" class="hidden"/>
+<path d="M46.461 92.725 L47.698 93.439" class="hidden"/>
+<path d="M47.698 114.056 L49.820 112.831" class="hidden"/>
+<path d="M28.607 104.462 L29.844 103.748" class="hidden"/>
+<path d="M46.461 114.770 L28.607 104.462" class="hidden"/>
+<path d="M46.461 114.770 L47.698 114.056" class="hidden"/>
+<path d="M47.698 88.540 L47.698 67.924" class="hidden"/>
+<path d="M47.698 67.924 L49.820 69.148" class="hidden"/>
+<path d="M47.698 89.867 L47.698 88.540" class="hidden"/>
+<path d="M47.698 90.990 L47.698 89.867" class="hidden"/>
+<path d="M47.698 92.112 L47.698 90.990" class="hidden"/>
+<path d="M47.698 114.056 L49.820 115.281" class="hidden"/>
+<path d="M47.698 114.056 L47.698 92.112" class="hidden"/>
+<path d="M28.607 58.330 L29.844 57.615" class="hidden"/>
+<path d="M46.461 68.638 L28.607 58.330" class="hidden"/>
+<path d="M46.461 68.638 L47.698 67.924" class="hidden"/>
+<path d="M47.698 67.924 L65.553 57.615" class="hidden"/>
+<path d="M65.553 57.615 L65.553 55.166" class="hidden"/>
+<path d="M63.432 56.391 L65.553 57.615" class="hidden"/>
+<path d="M28.607 56.901 L46.461 46.593" class="hidden"/>
+<path d="M28.607 56.901 L29.844 57.615" class="hidden"/>
+<path d="M46.461 46.593 L47.698 47.307" class="hidden"/>
+<path d="M65.553 103.748 L67.674 102.523" class="hidden"/>
+<path d="M46.461 70.781 L46.461 92.725" class="hidden"/>
+<path d="M46.461 69.659 L46.461 70.781" class="hidden"/>
+<path d="M46.461 68.536 L46.461 69.659" class="hidden"/>
+<path d="M46.461 67.209 L46.461 68.536" class="hidden"/>
+<path d="M46.461 46.593 L46.461 48.022" class="hidden"/>
+<path d="M46.461 64.760 L46.461 67.209" class="hidden"/>
+<path d="M65.553 57.615 L67.674 56.391" class="hidden"/>
+<path d="M28.607 81.090 L28.607 103.033" class="hidden"/>
+<path d="M28.607 56.901 L28.607 77.518" class="hidden"/>
+<path d="M28.607 77.518 L28.607 78.844" class="hidden"/>
+<path d="M28.607 78.844 L28.607 79.967" class="hidden"/>
+<path d="M28.607 79.967 L28.607 81.090" class="hidden"/>
+<path d="M29.844 103.748 L29.844 81.804" class="hidden"/>
+<path d="M28.607 104.462 L28.607 82.519" class="hidden"/>
+<path d="M46.461 114.770 L46.461 92.827" class="hidden"/>
+<path d="M28.607 82.519 L28.607 81.396" class="hidden"/>
+<path d="M28.607 81.396 L28.607 80.273" class="hidden"/>
+<path d="M28.607 80.273 L28.607 78.946" class="hidden"/>
+<path d="M28.607 78.946 L28.607 58.330" class="hidden"/>
+<path d="M46.461 89.255 L46.461 68.638" class="hidden"/>
+<path d="M46.461 90.582 L46.461 89.255" class="hidden"/>
+<path d="M46.461 91.704 L46.461 90.582" class="hidden"/>
+<path d="M46.461 92.827 L46.461 91.704" class="hidden"/>
+<path d="M65.553 57.615 L67.674 58.840" class="hidden"/>
+<path d="M29.844 78.232 L29.844 57.615" class="hidden"/>
+<path d="M67.674 102.523 L67.674 80.579" class="hidden"/>
+<path d="M65.553 60.065 L65.553 57.615" class="hidden"/>
+<path d="M67.674 77.007 L67.674 56.391" class="hidden"/>
+<path d="M29.844 81.804 L29.844 80.682" class="hidden"/>
+<path d="M29.844 80.682 L29.844 79.559" class="hidden"/>
+<path d="M29.844 79.559 L29.844 78.232" class="hidden"/>
+<path d="M67.674 80.579 L67.674 79.457" class="hidden"/>
+<path d="M67.674 78.334 L67.674 77.007" class="hidden"/>
+<path d="M67.674 79.457 L67.674 78.334" class="hidden"/>
+<path d="M18.000 106.197 L18.000 55.166" class="hlr"/>
+<path d="M18.000 55.166 L18.000 54.349" class="hlr"/>
+<path d="M18.000 54.349 L21.359 52.410" class="hlr"/>
+<path d="M18.000 107.014 L18.000 106.197" class="hlr"/>
+<path d="M18.000 107.014 L21.359 108.953" class="hlr"/>
+<path d="M21.359 108.953 L21.359 108.136" class="hlr"/>
+<path d="M18.000 54.349 L21.359 56.289" class="hlr"/>
+<path d="M21.359 56.952 L21.359 56.289" class="hlr"/>
+<path d="M21.359 56.289 L24.718 54.349" class="hlr"/>
+<path d="M21.359 52.410 L24.718 54.349" class="hlr"/>
+<path d="M24.718 55.013 L24.718 54.349" class="hlr"/>
+<path d="M24.718 107.014 L24.718 106.503" class="hlr"/>
+<path d="M21.359 108.953 L24.718 107.014" class="hlr"/>
+<path d="M21.359 108.136 L21.359 58.738" class="hlr"/>
+<path d="M21.359 56.952 L24.718 55.013" class="hlr"/>
+<path d="M24.452 106.350 L24.894 106.605" class="hlr"/>
+<path d="M24.452 106.350 L24.452 60.524" class="hlr"/>
+<path d="M21.359 58.738 L21.801 58.993" class="hlr"/>
+<path d="M21.359 56.952 L21.801 57.207" class="hlr"/>
+<path d="M22.144 57.009 L24.817 55.466" class="hlr"/>
+<path d="M24.718 55.013 L25.159 55.268" class="hlr"/>
+<path d="M24.718 54.860 L24.894 54.758" class="hlr"/>
+<path d="M24.894 106.605 L25.778 107.116" class="hlr"/>
+<path d="M21.801 58.993 L43.898 71.751" class="hlr"/>
+<path d="M21.801 57.207 L43.898 69.965" class="hlr"/>
+<path d="M24.817 55.466 L46.914 68.224" class="hlr"/>
+<path d="M25.159 55.268 L47.257 68.026" class="hlr"/>
+<path d="M22.276 57.086 L24.817 55.619" class="hlr"/>
+<path d="M24.817 55.619 L24.817 55.466" class="hlr"/>
+<path d="M22.144 57.009 L44.241 69.767" class="hlr"/>
+<path d="M24.894 54.758 L25.778 54.247" class="hlr"/>
+<path d="M25.778 107.116 L46.991 119.363" class="hlr"/>
+<path d="M46.991 119.363 L47.698 118.955" class="hlr"/>
+<path d="M43.898 71.751 L44.605 72.159" class="hlr"/>
+<path d="M43.898 69.965 L44.605 70.373" class="hlr"/>
+<path d="M44.605 72.159 L44.605 70.373" class="hlr"/>
+<path d="M44.605 70.373 L47.964 68.434" class="hlr"/>
+<path d="M47.257 68.026 L47.964 68.434" class="hlr"/>
+<path d="M44.241 69.767 L46.914 68.224" class="hlr"/>
+<path d="M24.817 55.619 L46.781 68.300" class="hlr"/>
+<path d="M25.778 54.247 L46.991 42.000" class="hlr"/>
+<path d="M47.389 68.102 L47.698 67.924" class="hlr"/>
+<path d="M47.964 70.220 L47.964 68.434" class="hlr"/>
+<path d="M46.991 42.000 L47.698 42.408" class="hlr"/>
+<path d="M47.698 118.955 L48.582 118.444" class="hlr"/>
+<path d="M46.991 119.363 L46.991 70.781" class="hlr"/>
+<path d="M44.605 72.159 L47.964 70.220" class="hlr"/>
+<path d="M47.698 67.924 L48.582 67.413" class="hlr"/>
+<path d="M47.698 42.408 L48.582 42.919" class="hlr"/>
+<path d="M48.582 118.444 L49.820 117.730" class="hlr"/>
+<path d="M29.844 55.166 L47.698 65.474" class="hlr"/>
+<path d="M48.582 67.413 L49.820 66.699" class="hlr"/>
+<path d="M48.582 42.919 L49.820 43.633" class="hlr"/>
+<path d="M29.844 55.166 L47.698 44.858" class="hlr"/>
+<path d="M49.820 64.250 L49.820 48.532" class="hlr"/>
+<path d="M49.820 97.114 L63.432 104.972" class="hlr"/>
+<path d="M49.820 117.730 L67.674 107.422" class="hlr"/>
+<path d="M49.820 89.765 L49.820 69.148" class="hlr"/>
+<path d="M49.820 91.092 L49.820 89.765" class="hlr"/>
+<path d="M49.820 92.215 L49.820 91.092" class="hlr"/>
+<path d="M49.820 93.337 L49.820 92.215" class="hlr"/>
+<path d="M49.820 115.281 L49.820 93.337" class="hlr"/>
+<path d="M47.698 65.474 L65.553 55.166" class="hlr"/>
+<path d="M49.820 66.699 L67.674 56.391" class="hlr"/>
+<path d="M47.698 44.858 L65.553 55.166" class="hlr"/>
+<path d="M49.820 43.633 L67.674 53.941" class="hlr"/>
+<path d="M31.965 56.391 L47.698 47.307" class="hlr"/>
+<path d="M47.698 47.307 L47.698 44.858" class="hlr"/>
+<path d="M49.820 92.215 L65.553 101.298" class="hlr"/>
+<path d="M47.698 65.474 L47.698 47.307" class="hlr"/>
+<path d="M67.674 107.422 L69.796 106.197" class="hlr"/>
+<path d="M49.820 94.664 L65.553 103.748" class="hlr"/>
+<path d="M49.820 112.831 L65.553 103.748" class="hlr"/>
+<path d="M49.820 115.281 L67.674 104.972" class="hlr"/>
+<path d="M49.820 69.148 L67.674 58.840" class="hlr"/>
+<path d="M67.674 56.391 L69.796 55.166" class="hlr"/>
+<path d="M67.674 53.941 L69.796 55.166" class="hlr"/>
+<path d="M47.698 47.307 L63.432 56.391" class="hlr"/>
+<path d="M69.796 106.197 L69.796 103.748" class="hlr"/>
+<path d="M46.461 48.022 L46.461 64.760" class="hlr"/>
+<path d="M69.796 57.615 L69.796 55.166" class="hlr"/>
+<path d="M65.553 103.748 L67.674 104.972" class="hlr"/>
+<path d="M69.796 103.748 L69.796 81.804" class="hlr"/>
+<path d="M65.553 103.748 L65.553 81.804" class="hlr"/>
+<path d="M65.553 78.232 L65.553 60.065" class="hlr"/>
+<path d="M69.796 78.232 L69.796 57.615" class="hlr"/>
+<path d="M67.674 104.972 L67.674 83.029" class="hlr"/>
+<path d="M67.674 79.457 L67.674 58.840" class="hlr"/>
+<path d="M69.796 81.804 L69.796 80.682" class="hlr"/>
+<path d="M65.553 81.804 L65.553 80.682" class="hlr"/>
+<path d="M65.553 79.559 L65.553 78.232" class="hlr"/>
+<path d="M69.796 79.559 L69.796 78.232" class="hlr"/>
+<path d="M67.674 83.029 L67.674 81.906" class="hlr"/>
+<path d="M67.674 80.784 L67.674 79.457" class="hlr"/>
+<path d="M69.796 80.682 L69.796 79.559" class="hlr"/>
+<path d="M65.553 80.682 L65.553 79.559" class="hlr"/>
+<path d="M67.674 81.906 L67.674 80.784" class="hlr"/>
+<line x1="18" y1="119.36304999999999" x2="18" y2="127.36304999999999" class="thin"/>
+<line x1="69.795575" y1="119.36304999999999" x2="69.795575" y2="127.36304999999999" class="thin"/>
+<line x1="18" y1="127.36304999999999" x2="69.795575" y2="127.36304999999999" class="dim"/>
+<text x="43.8977875" y="125.96304999999998" font-size="2.7" font-weight="normal" text-anchor="middle">ISO BBOX 1:8</text>
+<rect x="255" y="16" width="148" height="31.0" rx="0" class="med" fill="#ffffff"/>
+<text x="258" y="20.4" font-size="2.8" font-weight="bold" text-anchor="start">SYSTEM THEORY</text>
+<text x="258" y="25" font-size="2.45" font-weight="normal" text-anchor="start">250 mm block perimeter; 500 mm first tower.</text>
+<text x="258" y="29" font-size="2.45" font-weight="normal" text-anchor="start">P01-P08: protected continuous VIN/GND/I2C/UID/P08.</text>
+<text x="258" y="33" font-size="2.45" font-weight="normal" text-anchor="start">P09-P12: indexed GMSL2 only while stationary.</text>
+<text x="258" y="37" font-size="2.45" font-weight="normal" text-anchor="start">Raw MIPI stays binder-local and Tachyon-local.</text>
+<text x="258" y="41" font-size="2.45" font-weight="normal" text-anchor="start">Pinch is break-before-move; video off while rolling.</text>
+<text x="258" y="45" font-size="2.45" font-weight="normal" text-anchor="start">M1/Tachyon brick never enters the animal cage.</text>
+<rect x="255" y="68" width="148" height="27.0" rx="0" class="unverified" fill="#ffffff"/>
+<text x="258" y="72.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED SAFETY BOUNDARY</text>
+<text x="258" y="77" font-size="2.45" font-weight="normal" text-anchor="start">Upper-third molt keep-out 142 mm CALCULATED.</text>
+<text x="258" y="81" font-size="2.45" font-weight="normal" text-anchor="start">Ceiling/vents: &lt;= 0.8 mm non-metal LOCK.</text>
+<text x="258" y="85" font-size="2.45" font-weight="normal" text-anchor="start">B20 is the continuous wet-side barrier (PR 34 STEP).</text>
+<text x="258" y="89" font-size="2.45" font-weight="normal" text-anchor="start">Door front/side; nymph-visible gap &lt;=0.50 TARGET.</text>
+<text x="258" y="93" font-size="2.45" font-weight="normal" text-anchor="start">No taxon inferred: no live-mantis photo supplied.</text>
+<rect x="255" y="120" width="148" height="27.0" rx="0" class="med" fill="#ffffff"/>
+<text x="258" y="124.4" font-size="2.8" font-weight="bold" text-anchor="start">MEASURED THIS RUN (DRAFT CAD/EE)</text>
+<text x="258" y="129" font-size="2.45" font-weight="normal" text-anchor="start">CAD-01/#28  fe8f875a80b3  PR 34 STEP (read-only)</text>
+<text x="258" y="133" font-size="2.45" font-weight="normal" text-anchor="start">CAD-02/#29  cdd523c55a63  OCCT carriage STEP</text>
+<text x="258" y="137" font-size="2.45" font-weight="normal" text-anchor="start">CAD-02 does not admit PR 34 as released parent.</text>
+<text x="258" y="141" font-size="2.45" font-weight="normal" text-anchor="start">EE-23..26  PRs 37-40  (read-only)</text>
+<text x="258" y="145" font-size="2.45" font-weight="normal" text-anchor="start">No Particle camera SKU or CSI pin table drawn.</text>
+<rect x="255" y="176" width="148" height="23.0" rx="0" class="med" fill="#ffffff"/>
+<text x="258" y="180.4" font-size="2.8" font-weight="bold" text-anchor="start">DRAWING STATUS</text>
+<text x="258" y="185" font-size="2.45" font-weight="normal" text-anchor="start">Projected views: OCCT HLRBRep of STEP solids.</text>
+<text x="258" y="189" font-size="2.45" font-weight="normal" text-anchor="start">S08 is a review diagram; KiCad is circuit authority.</text>
+<text x="258" y="193" font-size="2.45" font-weight="normal" text-anchor="start">S09 uses datasheet envelopes, not a brick STEP.</text>
+<text x="258" y="197" font-size="2.45" font-weight="normal" text-anchor="start">Not #31 shop-release. Not first-article.</text>
+<line x1="12" y1="237" x2="22.0" y2="237" class="heavy"/>
+<line x1="12.0" y1="235.2" x2="12.0" y2="238.8" class="med"/>
+<text x="12.0" y="234.4" font-size="1.8" font-weight="normal" text-anchor="middle">0</text>
+<line x1="14.0" y1="235.2" x2="14.0" y2="238.8" class="med"/>
+<text x="14.0" y="234.4" font-size="1.8" font-weight="normal" text-anchor="middle">16</text>
+<line x1="16.0" y1="235.2" x2="16.0" y2="238.8" class="med"/>
+<text x="16.0" y="234.4" font-size="1.8" font-weight="normal" text-anchor="middle">32</text>
+<line x1="18.0" y1="235.2" x2="18.0" y2="238.8" class="med"/>
+<text x="18.0" y="234.4" font-size="1.8" font-weight="normal" text-anchor="middle">48</text>
+<line x1="20.0" y1="235.2" x2="20.0" y2="238.8" class="med"/>
+<text x="20.0" y="234.4" font-size="1.8" font-weight="normal" text-anchor="middle">64</text>
+<line x1="22.0" y1="235.2" x2="22.0" y2="238.8" class="med"/>
+<text x="22.0" y="234.4" font-size="1.8" font-weight="normal" text-anchor="middle">80</text>
+<text x="25.0" y="237.6" font-size="2.1" font-weight="normal" text-anchor="start">mm  @ 1:8</text>
+<text x="78" y="232" font-size="2.2" font-weight="bold" text-anchor="start">COLOR KEY (SHOP LINE ART)</text>
+<line x1="78" y1="236" x2="88" y2="236" class="heavy"/>
+<text x="90" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">geometry</text>
+<line x1="120" y1="236" x2="130" y2="236" class="motion"/>
+<text x="132" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">motion</text>
+<rect x="160" y="233.2" width="10" height="5" rx="0" class="keepout"/>
+<text x="172" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="206" y1="236" x2="216" y2="236" class="med" stroke="#0a7891"/>
+<text x="218" y="237.2" font-size="2.1" font-weight="normal" text-anchor="start">electrical net</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -101,18 +323,18 @@
 <line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">COVER / THEORY</text>
-<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="280.0" font-size="2.8" font-weight="bold" text-anchor="start" fill="#ba3d3d">DRAFT CAD - NOT SHOP-RELEASE (#31) / NOT FIRST ARTICLE</text>
 <text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
-<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">1:8</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41P</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">01 OF 12 / S00</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">DRAFT CAD</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
 <text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
@@ -124,8 +346,8 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
-<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="ref"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle">TRUE-SCALE HLR</text>
 <line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
 <text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
 <line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>

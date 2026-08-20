@@ -10,7 +10,7 @@
     .thin { stroke:#15171a; stroke-width:.28; fill:none; }
     .med { stroke:#15171a; stroke-width:.55; fill:none; }
     .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
-    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.22; stroke-dasharray:1.6 1.1; fill:none; }
     .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
     .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
@@ -19,77 +19,154 @@
     .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
     .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .hlr { stroke:#15171a; stroke-width:.45; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .hlr-keep { stroke:#c63333; stroke-width:.4; fill:none; stroke-dasharray:3.5 2; }
     .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
     .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
 <rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
-<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">UNIVERSAL SHOE - FREE</text>
-<text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="28" y="38" width="80" height="50" rx="0" class="heavy" fill="#ffffff"/>
-<path d="M45 42 L55 52 L82 52 L92 42" class="med"/>
-<path d="M52 78 L62 68 L75 68 L85 78" class="med"/>
-<rect x="58" y="57" width="22" height="7" rx="1" class="metal"/>
-<text x="68" y="96" font-size="2.3" font-weight="bold" text-anchor="middle">B28 SHOE 24x14x10 CAD-02</text>
-<circle cx="118" cy="45" r="4.0" class="med" fill="#ffffff"/>
-<text x="118" y="46.2" font-size="2.6" font-weight="bold" text-anchor="middle">B28</text>
-<line x1="118" y1="49" x2="92" y2="47" class="leader"/>
-<text x="145" y="15" font-size="3.2" font-weight="bold" text-anchor="start">BINDER - MATING</text>
-<text x="145" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="162" y="31" width="62" height="65" rx="0" class="heavy" fill="#ffffff"/>
-<path d="M174 78 L184 68 L202 68 L212 78" class="heavy"/>
-<path d="M180 61 L190 54 L206 61" class="med"/>
-<line x1="193" y1="109" x2="193" y2="87" class="motion"/>
-<text x="193" y="116" font-size="2.3" font-weight="bold" text-anchor="middle">B29 HOUSING 40x36x22</text>
-<circle cx="234" cy="42" r="4.0" class="med" fill="#ffffff"/>
-<text x="234" y="43.2" font-size="2.6" font-weight="bold" text-anchor="middle">B29</text>
-<line x1="234" y1="46" x2="224" y2="45" class="leader"/>
-<text x="260" y="15" font-size="3.2" font-weight="bold" text-anchor="start">MATED / LOAD PATH</text>
-<text x="260" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="280" y="38" width="80" height="50" rx="0" class="heavy" fill="#ffffff"/>
-<rect x="289" y="25" width="62" height="55" rx="0" class="heavy" fill="#ffffff"/>
-<path d="M297 72 L307 62 L331 62 L341 72" class="heavy"/>
-<line x1="320" y1="30" x2="320" y2="78" class="motion"/>
-<path d="M320 30 C350 42 352 75 338 87" class="phantom"/>
-<text x="322" y="101" font-size="2.4" font-weight="bold" text-anchor="middle">MOMENT -&gt; HOOK SHOULDERS -&gt; SHOE -&gt; RAIL</text>
-<text x="12" y="126" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL G - CLICK LATCH SECTION</text>
-<text x="12" y="129.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="30" y="145" width="85" height="46" rx="0" class="cut"/>
-<path d="M49 145 L60 155 L88 155 L99 145" class="heavy"/>
-<path d="M57 155 L57 176 Q70 190 83 176 L83 155" class="med"/>
-<path d="M63 168 L70 177 L77 168" class="heavy"/>
-<line x1="70" y1="197" x2="70" y2="180" class="motion"/>
-<text x="124" y="151" font-size="2.5" font-weight="bold" text-anchor="start">SPRING TONGUE DEFLECTION 1.2 TARGET</text>
-<text x="124" y="159" font-size="2.5" font-weight="normal" text-anchor="start">PULL-OFF &gt;=40 N TARGET</text>
-<text x="124" y="167" font-size="2.5" font-weight="normal" text-anchor="start">SIDE PLAY &lt;=0.20 TARGET</text>
-<text x="124" y="175" font-size="2.5" font-weight="normal" text-anchor="start">MATERIAL: PETG/ASA BODY + POM WEAR KEY REF</text>
-<text x="124" y="183" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">FAILURE: CRACK / PARTIAL ENGAGEMENT -&gt; RETENTION WITNESS MARK</text>
-<text x="260" y="126" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL H - BINDER-LOCAL FPC + B50 FACE</text>
-<text x="260" y="129.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="280" y="143" width="88" height="52" rx="0" class="heavy" fill="#ffffff"/>
-<circle cx="305" cy="165" r="12" class="heavy" fill="#ffffff"/>
-<rect x="325" y="153" width="12" height="30" rx="0" class="thin" fill="#ffffff"/>
-<path d="M317 166 C321 153 326 156 331 168" class="phantom"/>
-<rect x="354" y="155" width="6" height="20" rx="0" class="metal"/>
-<line x1="360" y1="165" x2="366" y2="165" class="thin"/>
-<text x="350" y="183" font-size="1.8" font-weight="bold" text-anchor="middle" fill="#b52d2d">S2 PLUNGER TARGET</text>
-<text x="334" y="205" font-size="2.15" font-weight="bold" text-anchor="middle">LOCAL CSI KEEPOUT 12 UNVERIFIED; MIPI STAYS IN BINDER</text>
-<text x="334" y="211" font-size="2.15" font-weight="bold" text-anchor="middle">B50 18x28x4 KEY OFFSET 4 TARGET</text>
-<circle cx="387" cy="153" r="4.0" class="med" fill="#ffffff"/>
-<text x="387" y="154.2" font-size="2.6" font-weight="bold" text-anchor="middle">B50</text>
-<line x1="387" y1="157" x2="357" y2="164" class="leader"/>
-<rect x="12" y="215" width="190" height="23.0" rx="0" class="med" fill="#ffffff"/>
-<text x="15" y="219.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - BIND-LATCH</text>
-<text x="15" y="224" font-size="2.45" font-weight="normal" text-anchor="start">States: BLOCKED until pinch q&gt;=2.2; then r=1/2/3.5 TARGET.</text>
-<text x="15" y="228" font-size="2.45" font-weight="normal" text-anchor="start">Binder housing moves; B28 shoe stays on carriage. Load path bypasses B50.</text>
-<text x="15" y="232" font-size="2.45" font-weight="normal" text-anchor="start">First r opens S2 envelope while B50 stays keyed/seated (BRANCH_SAFE dwell).</text>
-<text x="15" y="236" font-size="2.45" font-weight="normal" text-anchor="start">Release pin retracts only at PINCH_SAFE. Firmware cannot move that pin.</text>
-<rect x="215" y="215" width="190" height="19.0" rx="0" class="unverified" fill="#ffffff"/>
-<text x="218" y="219.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / CLEARANCE</text>
-<text x="218" y="224" font-size="2.45" font-weight="normal" text-anchor="start">Partial click: S2 stays open; Q1 remains off. Key blocks 180 reverse mate.</text>
-<text x="218" y="228" font-size="2.45" font-weight="normal" text-anchor="start">B50 series/pinout/SI launch UNVERIFIED (#23). Do not invent a connector.</text>
-<text x="218" y="232" font-size="2.45" font-weight="normal" text-anchor="start">Camera keep-out 32 is not a sourced module outline.</text>
+<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">UNIVERSAL SHOE B28</text>
+<text x="12" y="18.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 2:1  |  OCCT HLR</text>
+<path d="M24.000 48.000 L24.000 28.000" class="hidden"/>
+<path d="M24.000 28.000 L72.000 28.000" class="hidden"/>
+<path d="M24.000 48.000 L72.000 48.000" class="hidden"/>
+<path d="M72.000 48.000 L72.000 28.000" class="hidden"/>
+<path d="M36.000 32.000 L60.000 32.000" class="hidden"/>
+<path d="M36.000 44.000 L36.000 32.000" class="hidden"/>
+<path d="M36.000 44.000 L60.000 44.000" class="hidden"/>
+<path d="M60.000 44.000 L60.000 32.000" class="hidden"/>
+<path d="M36.000 32.000 L60.000 32.000" class="hidden"/>
+<path d="M60.000 44.000 L60.000 32.000" class="hidden"/>
+<path d="M36.000 44.000 L60.000 44.000" class="hidden"/>
+<path d="M36.000 44.000 L36.000 32.000" class="hidden"/>
+<path d="M24.000 48.000 L24.000 28.000" class="hlr"/>
+<path d="M24.000 48.000 L72.000 48.000" class="hlr"/>
+<path d="M24.000 28.000 L72.000 28.000" class="hlr"/>
+<path d="M72.000 48.000 L72.000 28.000" class="hlr"/>
+<path d="M90.000 28.000 L90.000 48.000" class="hidden"/>
+<path d="M90.000 48.000 L118.000 48.000" class="hidden"/>
+<path d="M118.000 28.000 L118.000 48.000" class="hidden"/>
+<path d="M118.000 32.000 L118.000 44.000" class="hidden"/>
+<path d="M118.000 32.000 L118.000 44.000" class="hidden"/>
+<path d="M90.000 28.000 L118.000 28.000" class="hidden"/>
+<path d="M118.000 44.000 L134.000 44.000" class="hidden"/>
+<path d="M118.000 32.000 L134.000 32.000" class="hidden"/>
+<path d="M134.000 32.000 L134.000 44.000" class="hidden"/>
+<path d="M90.000 28.000 L90.000 48.000" class="hlr"/>
+<path d="M90.000 28.000 L118.000 28.000" class="hlr"/>
+<path d="M118.000 28.000 L118.000 48.000" class="hlr"/>
+<path d="M90.000 48.000 L118.000 48.000" class="hlr"/>
+<path d="M118.000 44.000 L134.000 44.000" class="hlr"/>
+<path d="M118.000 32.000 L134.000 32.000" class="hlr"/>
+<path d="M134.000 32.000 L134.000 44.000" class="hlr"/>
+<circle cx="150" cy="36" r="4.0" class="med" fill="#ffffff"/>
+<text x="150" y="37.2" font-size="2.6" font-weight="bold" text-anchor="middle">B28</text>
+<line x1="150" y1="40" x2="134" y2="36" class="leader"/>
+<text x="70" y="58" font-size="2.2" font-weight="bold" text-anchor="middle">B28 SHOE 24x14x10 CAD-02</text>
+<text x="165" y="15" font-size="3.2" font-weight="bold" text-anchor="start">BINDER HOUSING B29</text>
+<text x="165" y="18.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 2:1  |  OCCT HLR</text>
+<path d="M170.000 72.000 L170.000 28.000" class="hidden"/>
+<path d="M170.000 28.000 L250.000 28.000" class="hidden"/>
+<path d="M176.000 28.000 L244.000 28.000" class="hidden"/>
+<path d="M176.000 28.000 L244.000 28.000" class="hidden"/>
+<path d="M170.000 72.000 L250.000 72.000" class="hidden"/>
+<path d="M250.000 72.000 L250.000 28.000" class="hidden"/>
+<path d="M176.000 66.000 L176.000 28.000" class="hidden"/>
+<path d="M176.000 66.000 L176.000 28.000" class="hidden"/>
+<path d="M176.000 66.000 L244.000 66.000" class="hidden"/>
+<path d="M244.000 66.000 L244.000 28.000" class="hidden"/>
+<path d="M244.000 66.000 L244.000 28.000" class="hidden"/>
+<path d="M176.000 66.000 L244.000 66.000" class="hidden"/>
+<path d="M170.000 72.000 L170.000 28.000" class="hlr"/>
+<path d="M170.000 72.000 L250.000 72.000" class="hlr"/>
+<path d="M170.000 28.000 L250.000 28.000" class="hlr"/>
+<path d="M250.000 72.000 L250.000 28.000" class="hlr"/>
+<path d="M260.000 28.000 L260.000 72.000" class="hidden"/>
+<path d="M260.000 72.000 L332.000 72.000" class="hidden"/>
+<path d="M266.000 72.000 L326.000 72.000" class="hidden"/>
+<path d="M266.000 72.000 L326.000 72.000" class="hidden"/>
+<path d="M332.000 28.000 L332.000 72.000" class="hidden"/>
+<path d="M260.000 28.000 L332.000 28.000" class="hidden"/>
+<path d="M266.000 34.000 L266.000 72.000" class="hidden"/>
+<path d="M266.000 34.000 L326.000 34.000" class="hidden"/>
+<path d="M326.000 34.000 L326.000 72.000" class="hidden"/>
+<path d="M266.000 34.000 L266.000 72.000" class="hidden"/>
+<path d="M266.000 34.000 L326.000 34.000" class="hidden"/>
+<path d="M326.000 34.000 L326.000 72.000" class="hidden"/>
+<path d="M260.000 28.000 L260.000 72.000" class="hlr"/>
+<path d="M260.000 28.000 L332.000 28.000" class="hlr"/>
+<path d="M332.000 28.000 L332.000 72.000" class="hlr"/>
+<path d="M260.000 72.000 L332.000 72.000" class="hlr"/>
+<circle cx="348" cy="40" r="4.0" class="med" fill="#ffffff"/>
+<text x="348" y="41.2" font-size="2.6" font-weight="bold" text-anchor="middle">B29</text>
+<line x1="348" y1="44" x2="332" y2="40" class="leader"/>
+<text x="230" y="80" font-size="2.2" font-weight="bold" text-anchor="middle">B29 HOUSING 40x36x22</text>
+<text x="12" y="92" font-size="3.2" font-weight="bold" text-anchor="start">B50 KEYED HALF PROXY</text>
+<text x="12" y="95.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1  |  OCCT HLR</text>
+<text x="12" y="99.4" font-size="2.0" font-weight="normal" text-anchor="start">UNVERIFIED series / pinout / SI launch</text>
+<path d="M20.000 128.000 L20.000 108.000" class="hidden"/>
+<path d="M20.000 108.000 L110.000 108.000" class="hidden"/>
+<path d="M20.000 128.000 L110.000 128.000" class="hidden"/>
+<path d="M110.000 128.000 L110.000 108.000" class="hidden"/>
+<path d="M110.000 128.000 L110.000 108.000" class="hidden"/>
+<path d="M110.000 108.000 L125.000 108.000" class="hidden"/>
+<path d="M110.000 128.000 L110.000 108.000" class="hidden"/>
+<path d="M110.000 128.000 L125.000 128.000" class="hidden"/>
+<path d="M125.000 128.000 L125.000 108.000" class="hidden"/>
+<path d="M20.000 128.000 L20.000 108.000" class="hlr"/>
+<path d="M20.000 128.000 L110.000 128.000" class="hlr"/>
+<path d="M20.000 108.000 L110.000 108.000" class="hlr"/>
+<path d="M110.000 128.000 L110.000 108.000" class="hlr"/>
+<path d="M110.000 108.000 L125.000 108.000" class="hlr"/>
+<path d="M110.000 128.000 L125.000 128.000" class="hlr"/>
+<path d="M125.000 128.000 L125.000 108.000" class="hlr"/>
+<circle cx="150" cy="112" r="4.0" class="med" fill="#ffffff"/>
+<text x="150" y="113.2" font-size="2.6" font-weight="bold" text-anchor="middle">B50</text>
+<line x1="150" y1="116" x2="125" y2="112" class="leader"/>
+<text x="20" y="140" font-size="2.2" font-weight="bold" text-anchor="start">B50 18x28x4 KEY OFFSET 4 TARGET</text>
+<text x="175" y="92" font-size="3.2" font-weight="bold" text-anchor="start">B34 FPC CLAMP (LOCAL CSI)</text>
+<text x="175" y="95.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1  |  OCCT HLR</text>
+<path d="M180.000 123.000 L180.000 108.000" class="hidden"/>
+<path d="M260.000 123.000 L260.000 108.000" class="hidden"/>
+<path d="M180.000 123.000 L260.000 123.000" class="hidden"/>
+<path d="M180.000 108.000 L260.000 108.000" class="hidden"/>
+<path d="M180.000 123.000 L180.000 108.000" class="hlr"/>
+<path d="M260.000 123.000 L260.000 108.000" class="hlr"/>
+<path d="M180.000 123.000 L260.000 123.000" class="hlr"/>
+<path d="M180.000 108.000 L260.000 108.000" class="hlr"/>
+<circle cx="280" cy="112" r="4.0" class="med" fill="#ffffff"/>
+<text x="280" y="113.2" font-size="2.6" font-weight="bold" text-anchor="middle">B34</text>
+<line x1="280" y1="116" x2="260" y2="112" class="leader"/>
+<text x="180" y="140" font-size="2.1" font-weight="bold" text-anchor="start" fill="#ba3d3d">LOCAL CSI KEEPOUT 12 UNVERIFIED; MIPI STAYS IN BINDER</text>
+<rect x="12" y="160" width="190" height="27.0" rx="0" class="med" fill="#ffffff"/>
+<text x="15" y="164.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - BIND-LATCH</text>
+<text x="15" y="169" font-size="2.45" font-weight="normal" text-anchor="start">States: BLOCKED until pinch q&gt;=2.2; then r=1/2/3.5 TARGET.</text>
+<text x="15" y="173" font-size="2.45" font-weight="normal" text-anchor="start">Binder housing moves; B28 shoe stays on carriage. Load path bypasses B50.</text>
+<text x="15" y="177" font-size="2.45" font-weight="normal" text-anchor="start">First r opens S2 envelope while B50 stays keyed/seated (BRANCH_SAFE dwell).</text>
+<text x="15" y="181" font-size="2.45" font-weight="normal" text-anchor="start">Release pin retracts only at PINCH_SAFE. Firmware cannot move that pin.</text>
+<text x="15" y="185" font-size="2.45" font-weight="normal" text-anchor="start">Click-latch section has no sourced tongue STEP; deflection 1.2 TARGET stays a note.</text>
+<rect x="215" y="160" width="190" height="23.0" rx="0" class="unverified" fill="#ffffff"/>
+<text x="218" y="164.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / CLEARANCE</text>
+<text x="218" y="169" font-size="2.45" font-weight="normal" text-anchor="start">Partial click: S2 stays open; Q1 remains off. Key blocks 180 reverse mate.</text>
+<text x="218" y="173" font-size="2.45" font-weight="normal" text-anchor="start">B50 series/pinout/SI launch UNVERIFIED (#23). Do not invent a connector.</text>
+<text x="218" y="177" font-size="2.45" font-weight="normal" text-anchor="start">Camera keep-out 32 is not a sourced module outline.</text>
+<text x="218" y="181" font-size="2.45" font-weight="normal" text-anchor="start">PULL-OFF &gt;=40 N TARGET. Side play &lt;=0.20 TARGET.</text>
+<line x1="12" y1="241" x2="52.0" y2="241" class="heavy"/>
+<line x1="12.0" y1="239.2" x2="12.0" y2="242.8" class="med"/>
+<text x="12.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">0</text>
+<line x1="20.0" y1="239.2" x2="20.0" y2="242.8" class="med"/>
+<text x="20.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">4</text>
+<line x1="28.0" y1="239.2" x2="28.0" y2="242.8" class="med"/>
+<text x="28.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">8</text>
+<line x1="36.0" y1="239.2" x2="36.0" y2="242.8" class="med"/>
+<text x="36.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">12</text>
+<line x1="44.0" y1="239.2" x2="44.0" y2="242.8" class="med"/>
+<text x="44.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">16</text>
+<line x1="52.0" y1="239.2" x2="52.0" y2="242.8" class="med"/>
+<text x="52.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">20</text>
+<text x="55.0" y="241.6" font-size="2.1" font-weight="normal" text-anchor="start">mm  @ 2:1</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -99,18 +176,18 @@
 <line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">UNIVERSAL LATCH + BINDER</text>
-<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="280.0" font-size="2.8" font-weight="bold" text-anchor="start" fill="#ba3d3d">DRAFT CAD - NOT SHOP-RELEASE (#31) / NOT FIRST ARTICLE</text>
 <text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
-<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2:1 / 5:1</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41P</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">07 OF 12 / S06</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">DRAFT CAD</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
 <text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
@@ -122,8 +199,8 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
-<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="ref"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle">TRUE-SCALE HLR</text>
 <line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
 <text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
 <line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
