@@ -18,6 +18,10 @@ None are required at birth. Intake attaches Status (`raw`), Media, and Exif tags
 
 Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag, Question, Observation.
 
+## Field capture
+
+Static page in [`capture/`](./capture/): stamp GPS + DateTimeOriginal into a JPEG in the browser and download it. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to DuckDB or RPC.
+
 ## Versions
 
 Effect pin matches `@tmnl/msh` / effect-smol: `effect@4.0.0-beta.93`. DuckDB is `@duckdb/node-api` behind a repository — there is no `@effect/sql-duckdb`.
