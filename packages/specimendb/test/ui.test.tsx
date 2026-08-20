@@ -10,8 +10,12 @@ import { trustSpecimenId } from '../src/schemas/identifiers.js';
 import { localityOf, statusOf } from '../src/schemas/specimen.js';
 import type { Specimen } from '../src/schemas/specimen.js';
 import { createCatalog, type SpecimenRpcClient } from '../src/ui/catalog-stx.js';
+import { AnalogCard } from '../src/ui/AnalogCard.js';
+import { AppShell } from '../src/ui/AppShell.js';
+import { DossierView } from '../src/ui/DossierView.js';
 import { IntakeDrop } from '../src/ui/IntakeDrop.js';
 import { SpecimenRail } from '../src/ui/SpecimenRail.js';
+import { WorkingPanel } from '../src/ui/WorkingPanel.js';
 import { jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { MemoryCatalogLive } from '../testbed/memory-rpc.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
@@ -41,6 +45,7 @@ const BANISHED = [
   'PX-',
   'BOT-',
   'COL-',
+  'GEK-',
 ];
 
 function TerminalPage({ client }: { readonly client: SpecimenRpcClient }) {
@@ -51,6 +56,26 @@ function TerminalPage({ client }: { readonly client: SpecimenRpcClient }) {
 function WorkbenchPage({ client }: { readonly client: SpecimenRpcClient }) {
   const catalog = useMemo(() => createCatalog(client), [client]);
   return React.createElement(SpecimenRail, { catalog });
+}
+
+function CatalogPage({ client }: { readonly client: SpecimenRpcClient }) {
+  const catalog = useMemo(() => createCatalog(client), [client]);
+  return React.createElement(AppShell, { catalog });
+}
+
+function AssayPage({ client }: { readonly client: SpecimenRpcClient }) {
+  const catalog = useMemo(() => createCatalog(client), [client]);
+  return React.createElement(WorkingPanel, { catalog });
+}
+
+function DactylPage({ client }: { readonly client: SpecimenRpcClient }) {
+  const catalog = useMemo(() => createCatalog(client), [client]);
+  return React.createElement(AnalogCard, { catalog });
+}
+
+function AccessionPage({ client }: { readonly client: SpecimenRpcClient }) {
+  const catalog = useMemo(() => createCatalog(client), [client]);
+  return React.createElement(DossierView, { catalog });
 }
 
 const emptyClient = (): SpecimenRpcClient => ({
@@ -430,5 +455,193 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(css).toContain('border: 1px dashed #333');
     expect(css).toContain('color: #888');
     expect(css).toContain('border: 1px solid #222');
+  });
+});
+
+describe('six full pages', () => {
+  const pages: ReadonlyArray<{
+    readonly name: string;
+    readonly Page: (props: { readonly client: SpecimenRpcClient }) => React.ReactElement;
+    readonly testId: string;
+    readonly copy: ReadonlyArray<string>;
+  }> = [
+    {
+      name: 'Terminal',
+      Page: TerminalPage,
+      testId: 'intake-drop',
+      copy: ['Initiate_Intake_Protocol', 'Local Catalog', 'SYS_ONLINE'],
+    },
+    {
+      name: 'Workbench',
+      Page: WorkbenchPage,
+      testId: 'specimen-rail',
+      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'PROPERTIES LOG'],
+    },
+    {
+      name: 'Assay',
+      Page: AssayPage,
+      testId: 'working-panel',
+      copy: ['INITIATE_INTAKE_PROTOCOL', 'CURRENT_FOCUS_RECORD', 'WORKING SET', 'CH-01'],
+    },
+    {
+      name: 'Dactyl',
+      Page: DactylPage,
+      testId: 'dactyl-grid',
+      copy: ['DACTYL // ANALOG CARD', 'ACTIVE QUEUE', 'DROP_FIELD_MEDIA'],
+    },
+    {
+      name: 'Catalog',
+      Page: CatalogPage,
+      testId: 'app-shell',
+      copy: ['SPECIMEN_DB / CATALOG', 'Drop specimen media', 'Catalog'],
+    },
+    {
+      name: 'Accession',
+      Page: AccessionPage,
+      testId: 'dossier-view',
+      copy: ['PHOTO RAIL', 'Taxonomy', 'Field metrics', 'Spectral grid', 'Observer log'],
+    },
+  ];
+
+  for (const page of pages) {
+    it(`${page.name} is a full page with empty card chrome and no fake ids`, async () => {
+      const view = render(React.createElement(page.Page, { client: emptyClient() }));
+      await waitFor(() => {
+        expect(view.getByTestId(page.testId)).toBeTruthy();
+      });
+      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      const html = view.container.textContent ?? '';
+      for (const snippet of page.copy) {
+        expect(html).toContain(snippet);
+      }
+      for (const banned of BANISHED) {
+        expect(html).not.toContain(banned);
+      }
+      view.unmount();
+    });
+  }
+
+  it('Assay/Dactyl/Catalog/Accession now-rows file a no-GPS JPEG as raw + unknown', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+    };
+    const makeClient = (): SpecimenRpcClient => {
+      let items: Specimen[] = [];
+      return {
+        List: () => Effect.succeed(items),
+        Get: (payload) => {
+          const hit = items.find((row) => row.id === payload.specimenId);
+          if (hit === undefined) return Effect.succeed(specimen);
+          return Effect.succeed(hit);
+        },
+        Intake: ({ filename }) => {
+          const next: Specimen = {
+            ...specimen,
+            components: [
+              ...specimen.components,
+              {
+                _tag: 'Media' as const,
+                kind: 'jpeg' as const,
+                filename,
+                assetPath: `memory://${id}/${filename}`,
+                mediaType: 'image/jpeg',
+                byteLength: 1,
+              },
+            ],
+          };
+          items = [next];
+          return Effect.succeed({ specimenId: id, components: next.components });
+        },
+      };
+    };
+
+    const surfaces = [AssayPage, DactylPage, CatalogPage, AccessionPage];
+    for (const Page of surfaces) {
+      const view = render(React.createElement(Page, { client: makeClient() }));
+      await waitFor(() => {
+        expect(view.getByTestId('card-chrome')).toBeTruthy();
+      });
+      const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
+      await act(async () => {
+        fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
+      });
+      await waitFor(() => {
+        expect(view.getByTestId('specimen-id').textContent).toBe(id);
+      });
+      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+      expect(view.getByTestId('locality').textContent).toBe('unknown');
+      expect(view.getByTestId('claim').textContent).toBe('');
+      view.unmount();
+    }
+  });
+
+  it('keeps Assay 4px rail scrollbars and Dactyl 6px scrollbars', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const assay = readFileSync(resolve(process.cwd(), 'src/ui/assay.css'), 'utf8');
+    expect(assay).toContain('--bg-void: #000');
+    expect(assay).toContain('--bg-charcoal: #0a0a0a');
+    expect(assay).toContain('--bg-charcoal-elevated: #111');
+    expect(assay).toContain('--border-dim: #1a1a1a');
+    expect(assay).toContain('--text-primary: #a1a1aa');
+    expect(assay).toContain('--raw: #f59e0b');
+    expect(assay).toContain('--filed: #06b6d4');
+    expect(assay).toContain('--working: #10b981');
+    expect(assay).toContain('--dead: #f43f5e');
+    expect(assay).toContain('width: 440px');
+    expect(assay).toContain('height: 112px');
+    expect(assay).toContain('width: 4px');
+    const dactyl = readFileSync(resolve(process.cwd(), 'src/ui/dactyl.css'), 'utf8');
+    expect(dactyl).toContain('background: #020202');
+    expect(dactyl).toContain('width: 6px');
+    expect(dactyl).toContain('background: #1a1a1a');
+    expect(dactyl).toContain('#083344');
+    expect(dactyl).toContain('#06b6d4');
+    expect(dactyl).toContain('width: 320px');
+  });
+
+  it('commits the functionalization journal as SoT with the now-rows', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const journal = readFileSync(resolve(process.cwd(), 'docs/functionalization-journal.md'), 'utf8');
+    for (const id of [
+      'F-001',
+      'F-002',
+      'F-003',
+      'F-004',
+      'F-005',
+      'F-006',
+      'F-009',
+      'F-027',
+      'F-028',
+      'F-030',
+      'F-032',
+      'F-035',
+      'F-047',
+      'F-048',
+      'F-051',
+      'F-052',
+      'F-062',
+      'F-063',
+      'F-068',
+      'F-069',
+      'F-074',
+      'F-076',
+      'F-078',
+      'F-079',
+      'F-098',
+      'F-100',
+      'F-101',
+      'F-102',
+      'F-105',
+    ]) {
+      expect(journal).toContain(id);
+    }
+    expect(journal).toContain('never');
+    expect(journal).toContain('F-091');
+    expect(journal).toContain('Specimen is the only type');
   });
 });

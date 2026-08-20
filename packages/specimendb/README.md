@@ -20,16 +20,22 @@ Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag,
 
 ## Surfaces
 
-`IntakeDrop` and `SpecimenRail` in [`src/ui/`](./src/ui/) are compound React components driven by `@tmnl/stx` (`stx` / autoLens / `useStx` / `useFocus`). They call the existing `SpecimenRpcs`:
+Compound React components in [`src/ui/`](./src/ui/), driven by `@tmnl/stx`. Journal: [`docs/functionalization-journal.md`](./docs/functionalization-journal.md). Specimen is the only type.
 
-| Component | RPC |
-|---|---|
-| `IntakeDrop` | `Intake` (drop or pick a real file). `List` fills Local Catalog. `Get` on select. New records land as Status `raw`. |
-| `SpecimenRail` | `List()` on mount, query/filter, `Get()` on select, `Intake` from the top well. |
+| Route | Component | Page |
+|---|---|---|
+| `/intake` | `IntakeDrop` | Terminal |
+| `/rail` | `SpecimenRail` | Workbench |
+| `/assay` | `WorkingPanel` | Assay |
+| `/dactyl` | `AnalogCard` | Dactyl card grid (template, not a type) |
+| `/catalog` | `AppShell` | Catalog |
+| `/accession` | `DossierView` | Accession dossier |
 
-Locality in the rail is the word `unknown` unless the file actually had EXIF GPS. The UI does not invent coordinates, elevation, temperature, taxon, ML confidence, or accession strings.
+Now-rows on every page: Intake, List, Get on select, Status, Claim, Media bytes where that page owns the well, locality `unknown` unless EXIF GPS. Empty card/dossier chrome stays.
 
-Status pills: `raw` amber, `filed` cyan, `working` emerald, `dead` rose. Machine is `raw → filed → working → dead`.
+Locality is the word `unknown` unless the file actually had EXIF GPS. The UI does not invent coordinates, elevation, temperature, taxon, ML confidence, or accession strings.
+
+Status pills: `raw` amber, `filed` cyan, `working` emerald, `dead` rose. Assay uses `#f59e0b` / `#06b6d4` / `#10b981` / `#f43f5e`. Machine is `raw → filed → working → dead`.
 
 ## Testbed
 
@@ -40,7 +46,7 @@ cd packages/specimendb
 bun run testbed
 ```
 
-Opens Vite at `http://localhost:4177`. Drop a JPEG onto the intake zone. A file without GPS should show `raw` and `unknown`.
+Opens Vite at `http://localhost:4177`. Routes: `/intake`, `/rail`, `/assay`, `/dactyl`, `/catalog`, `/accession`. Drop a JPEG onto an intake zone. A file without GPS should show `raw` and `unknown`.
 
 ## Field capture
 
