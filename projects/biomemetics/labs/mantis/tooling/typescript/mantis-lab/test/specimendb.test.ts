@@ -9,11 +9,18 @@ import type {
 } from '../src/domain.ts';
 import * as specimenDbBridge from '../src/specimendb.ts';
 import {
+  AttachRefused,
+  AttachRpcContract,
   EVIDENCE_SCHEMA_PATH,
+  LOCAL_EVIDENCE_RUN,
+  attachEvidence,
+  createStubAttachPort,
+  isLocalEvidenceRecordRef,
   loadEvidenceRuntimeValidator,
   planAttachment,
   projectComponents,
   type EvidenceRuntimeValidator,
+  type GovernedAttachInput,
 } from '../src/specimendb.ts';
 
 interface RecordChanges {
@@ -24,6 +31,9 @@ interface RecordChanges {
   readonly review?: ValidatedEvidenceRecord['review'];
   readonly admissions?: ValidatedEvidenceRecord['admissions'];
 }
+
+const LOCAL_RECORD_REF =
+  'evidence/runs/mantis-01/1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3/coupon-01/evidence-record.json';
 
 const evidenceRecord = (changes: RecordChanges = {}): ValidatedEvidenceRecord => ({
   schemaVersion: '1.0.0',
@@ -111,6 +121,18 @@ const artifact = (
     },
   ],
 });
+
+const localArtifact = (
+  record: unknown = evidenceRecord(),
+  options: {
+    readonly status?: ArtifactStatus;
+    readonly basis?: EvidenceBasis;
+    readonly claimRef?: string;
+  } = {},
+): LabArtifact =>
+  artifact(record, { ...options, recordRef: LOCAL_RECORD_REF });
+
+const existingSpecimenId = 'real-caller-supplied-id';
 
 test('projects only accepted, schema-validated, supporting evidence', () => {
   const projection = projectComponents(artifact(), validator);
@@ -321,7 +343,8 @@ test('an injected arbitrary write method cannot make a plan executable', async (
   assert.equal(plan.executable, false);
   assert.deepEqual(plan.blockers, ['specimendb-attach-unavailable']);
   assert.equal(writes, 0);
-  assert.equal('attachEvidence' in specimenDbBridge, false);
+  assert.equal('attachEvidence' in specimenDbBridge, true);
+  assert.equal(AttachRpcContract.name, 'Attach');
 });
 
 test('reports admission and API blockers when no projections survive', async () => {
@@ -344,4 +367,245 @@ test('never accepts an absent specimen id', async () => {
     () => planAttachment(port, ' ', artifact(), validator),
     TypeError,
   );
+});
+
+test('local evidence-record refs follow the run layout', () => {
+  assert.deepEqual(LOCAL_EVIDENCE_RUN.layout, [
+    'run.json',
+    'inputs/',
+    'raw/',
+    'derived/',
+    'report.json',
+    'evidence-record.json',
+  ]);
+  assert.equal(isLocalEvidenceRecordRef(LOCAL_RECORD_REF), true);
+  assert.equal(
+    isLocalEvidenceRecordRef('evidence/coupon-measurement.json'),
+    false,
+  );
+});
+
+test('stub attach sends only the reviewed claim-bound payload and does not write a store', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+  const receipts = await attachEvidence(
+    port,
+    { specimenId: existingSpecimenId, artifact: localArtifact() },
+    validator,
+  );
+  assert.equal(receipts.length, 1);
+  assert.deepEqual(receipts[0], {
+    specimenId: existingSpecimenId,
+    evidenceId: 'coupon-contact-count',
+    claimRefs: ['claim:rail:contact-count'],
+    localityMutated: false,
+    taxonMutated: false,
+    storeWrite: false,
+    mode: 'stub',
+  });
+  assert.equal(port.calls.length, 1);
+  assert.deepEqual(port.calls[0]?.component, {
+    _tag: 'Structure',
+    text: 'Coupon exposes twelve contacts.',
+  });
+  assert.equal(port.calls[0]?.provenance.evidenceId, 'coupon-contact-count');
+  assert.equal(port.calls[0]?.provenance.evidenceRef, LOCAL_RECORD_REF);
+  assert.equal('intake' in port, false);
+  assert.equal('insert' in port, false);
+});
+
+test('refuses invented locality and never calls attach', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+  const input = {
+    specimenId: existingSpecimenId,
+    artifact: localArtifact(),
+    locality: { state: 'fixed', latitude: 51.5, longitude: -0.1 },
+    gps: { latitude: 51.5, longitude: -0.1 },
+  } as GovernedAttachInput;
+  await assert.rejects(
+    () => attachEvidence(port, input, validator),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('invented-locality'),
+  );
+  assert.equal(port.calls.length, 0);
+});
+
+test('refuses invented taxon', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+  const input = {
+    specimenId: existingSpecimenId,
+    artifact: localArtifact(),
+    taxon: { scientificName: 'Mantis religiosa' },
+  } as GovernedAttachInput;
+  await assert.rejects(
+    () => attachEvidence(port, input, validator),
+    (error: unknown) =>
+      error instanceof AttachRefused && error.reasons.includes('invented-taxon'),
+  );
+  assert.equal(port.calls.length, 0);
+});
+
+test('refuses unverified evidence', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        {
+          specimenId: existingSpecimenId,
+          artifact: localArtifact(
+            evidenceRecord({ review: { status: 'pending' } }),
+          ),
+        },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('unverified-evidence') &&
+      error.reasons.includes('review-not-accepted'),
+  );
+  assert.equal(port.calls.length, 0);
+});
+
+test('refuses inconclusive, ambiguous, and forged evidence', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        {
+          specimenId: existingSpecimenId,
+          artifact: localArtifact(
+            evidenceRecord({ disposition: 'inconclusive' }),
+          ),
+        },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('result-does-not-support'),
+  );
+
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        {
+          specimenId: existingSpecimenId,
+          artifact: localArtifact(
+            evidenceRecord({
+              admissions: [
+                {
+                  claimRef: 'claim:rail:contact-count',
+                  kind: 'structure',
+                  text: 'First reviewed payload.',
+                },
+                {
+                  claimRef: 'claim:rail:contact-count',
+                  kind: 'function',
+                  text: 'Second reviewed payload.',
+                },
+              ],
+            }),
+          ),
+        },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('admission-ambiguous'),
+  );
+
+  const forgedValidator = {
+    schemaPath: EVIDENCE_SCHEMA_PATH,
+    schemaSha256: validator.schemaSha256,
+    validate: () => ({ valid: true, value: evidenceRecord() }),
+  } as unknown as EvidenceRuntimeValidator;
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        { specimenId: existingSpecimenId, artifact: localArtifact() },
+        forgedValidator,
+      ),
+    TypeError,
+  );
+  assert.equal(port.calls.length, 0);
+});
+
+test('simulation stays simulated and cannot attach as measured', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+  const simulated = evidenceRecord({ sourceClass: 'simulated' });
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        {
+          specimenId: existingSpecimenId,
+          artifact: localArtifact(simulated, { basis: 'simulated' }),
+        },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('source-class-not-admitted'),
+  );
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        {
+          specimenId: existingSpecimenId,
+          artifact: localArtifact(simulated, { basis: 'measured' }),
+        },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('source-class-relabeled'),
+  );
+  assert.equal(port.calls.length, 0);
+});
+
+test('refuses treating the lab as a Specimen', async () => {
+  const port = createStubAttachPort([{ id: 'biomemetics.mantis' }]);
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        { specimenId: 'biomemetics.mantis', artifact: localArtifact() },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused && error.reasons.includes('lab-as-specimen'),
+  );
+  assert.equal(port.calls.length, 0);
+});
+
+test('refuses caller component prose and non-local evidence refs', async () => {
+  const port = createStubAttachPort([{ id: existingSpecimenId }]);
+  const withProse = {
+    specimenId: existingSpecimenId,
+    artifact: localArtifact(),
+    component: { _tag: 'Structure', text: 'Caller-invented prose.' },
+  } as GovernedAttachInput;
+  await assert.rejects(
+    () => attachEvidence(port, withProse, validator),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('caller-component-prose'),
+  );
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        { specimenId: existingSpecimenId, artifact: artifact() },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('evidence-not-local-run'),
+  );
+  assert.equal(port.calls.length, 0);
 });
