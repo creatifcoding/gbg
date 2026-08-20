@@ -89,8 +89,8 @@
 <rect x="13" y="215" width="187" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
 <text x="16" y="219.4" font-size="2.8" font-weight="bold" text-anchor="start">EXPLOSION RULE</text>
 <text x="16" y="224" font-size="2.45" font-weight="normal" text-anchor="start">Subassemblies remain grouped; trail lines follow service axes.</text>
-<text x="16" y="228" font-size="2.45" font-weight="normal" text-anchor="start">Rail, carriage, binder and compute brick are removable externally.</text>
-<text x="16" y="232" font-size="2.45" font-weight="normal" text-anchor="start">No service operation opens a path from rail metal into wet volume.</text>
+<text x="16" y="228" font-size="2.45" font-weight="normal" text-anchor="start">CAD-01 unique parts: B01-B04, B10, B18/B51/B52, B05-B07, B12-B14, B20.</text>
+<text x="16" y="232" font-size="2.45" font-weight="normal" text-anchor="start">CAD-02 grouped: B22-B27 pinch, B28/B29/B50 binder. No animal-side metal.</text>
 <rect x="215" y="215" width="190" height="19.0" rx="1.2" class="med" fill="#fff6d9"/>
 <text x="218" y="219.4" font-size="2.8" font-weight="bold" text-anchor="start">INSTALL ORDER</text>
 <text x="218" y="224" font-size="2.45" font-weight="normal" text-anchor="start">1 perimeter -&gt; 2 faces -&gt; 3 ceiling -&gt; 4 false bottom.</text>
@@ -112,13 +112,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">03 OF 12 / S02</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S02</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

@@ -34,21 +34,24 @@
 <line x1="81" y1="99" x2="81" y2="181" class="thin"/>
 <path d="M60 130 C75 115 90 145 105 126" class="med"/>
 <rect x="47" y="184" width="68" height="9" rx="0" class="med" fill="#e6ecef"/>
-<text x="81" y="213" font-size="2.4" font-weight="bold" text-anchor="middle">FALSE BOTTOM + 20-30 TRAY</text>
+<text x="81" y="213" font-size="2.4" font-weight="bold" text-anchor="middle">FALSE BOTTOM + 25 TRAY REF</text>
 <rect x="31" y="27" width="100" height="4" rx="0" class="med" fill="#dce2e6"/>
 <rect x="25" y="25" width="20" height="8" rx="2" class="heavy" fill="#fff"/>
+<rect x="34" y="31" width="6" height="172" rx="0" class="keepout"/>
+<text x="37" y="118" font-size="2.6" font-weight="bold" text-anchor="start" fill="#b52d2d" transform="rotate(-90 37 118)">B20</text>
 <line x1="34" y1="31" x2="34" y2="203" class="phantom"/>
-<text x="24" y="118" font-size="2.4" font-weight="bold" text-anchor="start" transform="rotate(-90 24 118)">EXTERNAL RAIL</text>
-<line x1="38" y1="31" x2="16" y2="31" class="thin"/>
-<line x1="38" y1="203" x2="16" y2="203" class="thin"/>
-<line x1="16" y1="31" x2="16" y2="203" class="dim"/>
-<text x="14.3" y="117.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 14.3 117.0)">500 LOCK</text>
+<text x="22" y="90" font-size="2.2" font-weight="bold" text-anchor="start" transform="rotate(-90 22 90)">EXTERNAL RAIL</text>
+<text x="22" y="150" font-size="2.2" font-weight="bold" text-anchor="start" fill="#b52d2d" transform="rotate(-90 22 150)">NO METAL IN</text>
+<line x1="38" y1="31" x2="10" y2="31" class="thin"/>
+<line x1="38" y1="203" x2="10" y2="203" class="thin"/>
+<line x1="10" y1="31" x2="10" y2="203" class="dim"/>
+<text x="8.3" y="117.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 8.3 117.0)">500 LOCK</text>
 <rect x="44" y="166" width="5" height="18" rx="0" class="thin" fill="url(#screen)"/>
 <rect x="113" y="62" width="5" height="18" rx="0" class="thin" fill="url(#screen)"/>
 <path d="M28 177 C55 177 66 165 72 151" class="motion"/>
 <path d="M85 90 C100 78 110 71 132 70" class="motion"/>
 <text x="51" y="224" font-size="2.5" font-weight="bold" text-anchor="start">LOW INTAKE -&gt; HIGH EXHAUST</text>
-<text x="81" y="232" font-size="2.3" font-weight="bold" text-anchor="middle">NOMINAL CLEAR 202 W x 202 D x 427 H REF</text>
+<text x="81" y="232" font-size="2.2" font-weight="bold" text-anchor="middle">NOMINAL CLEAR 202 W x 202 D x 427 H CALCULATED</text>
 <text x="161" y="15" font-size="3.2" font-weight="bold" text-anchor="start">DOOR SWING / SERVICE ENVELOPE</text>
 <text x="161" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
 <rect x="180" y="45" width="50" height="100" rx="0" class="heavy"/>
@@ -70,19 +73,19 @@
 <text x="340.5" y="123.6" font-size="2.7" font-weight="normal" text-anchor="middle">&lt;=0.50 TARGET</text>
 <text x="340" y="137" font-size="2.5" font-weight="bold" text-anchor="middle">LABYRINTH + COMPRESSIBLE WIPER</text>
 <text x="340" y="145" font-size="2.5" font-weight="bold" text-anchor="middle">SCREEN APERTURE &lt;=0.8 LOCK</text>
-<rect x="161" y="179" width="116" height="27.0" rx="1.2" class="med" fill="#f7f8fa"/>
-<text x="164" y="183.4" font-size="2.8" font-weight="bold" text-anchor="start">ANIMAL CHECK</text>
-<text x="164" y="188" font-size="2.45" font-weight="normal" text-anchor="start">Solo animal only.</text>
-<text x="164" y="192" font-size="2.45" font-weight="normal" text-anchor="start">No taxon inferred: no photo.</text>
-<text x="164" y="196" font-size="2.45" font-weight="normal" text-anchor="start">Default adult envelope: 80 mm.</text>
-<text x="164" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Interior height must be &gt;=240 mm.</text>
-<text x="164" y="204" font-size="2.45" font-weight="normal" text-anchor="start">Ceiling must be textured screen.</text>
+<rect x="161" y="179" width="116" height="27.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="164" y="183.4" font-size="2.8" font-weight="bold" text-anchor="start">B20 KEEP-OUT (CAD-01)</text>
+<text x="164" y="188" font-size="2.45" font-weight="normal" text-anchor="start">Barrier bbox -8..250 X,</text>
+<text x="164" y="192" font-size="2.45" font-weight="normal" text-anchor="start">-8..250 Y, 0..500 Z REF.</text>
+<text x="164" y="196" font-size="2.45" font-weight="normal" text-anchor="start">Fused across front+left joints/splices/door.</text>
+<text x="164" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Not a film over contacts.</text>
+<text x="164" y="204" font-size="2.45" font-weight="normal" text-anchor="start">Molt keep-out 142 CALCULATED.</text>
 <rect x="289" y="179" width="116" height="27.0" rx="1.2" class="med" fill="#fff0f0"/>
 <text x="292" y="183.4" font-size="2.8" font-weight="bold" text-anchor="start">WET-VOLUME RULE</text>
-<text x="292" y="188" font-size="2.45" font-weight="normal" text-anchor="start">No metal mesh.</text>
-<text x="292" y="192" font-size="2.45" font-weight="normal" text-anchor="start">No copper / strip / pogo.</text>
-<text x="292" y="196" font-size="2.45" font-weight="normal" text-anchor="start">PETG or ASA wet parts.</text>
-<text x="292" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Every gland and seam checked.</text>
+<text x="292" y="188" font-size="2.45" font-weight="normal" text-anchor="start">No metal mesh / copper / pogo.</text>
+<text x="292" y="192" font-size="2.45" font-weight="normal" text-anchor="start">PETG or ASA wet parts.</text>
+<text x="292" y="196" font-size="2.45" font-weight="normal" text-anchor="start">Nymph gap &lt;=0.50 TARGET.</text>
+<text x="292" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Solo animal. No taxon inferred.</text>
 <text x="292" y="204" font-size="2.45" font-weight="normal" text-anchor="start">Heat-mat pass only; no mains.</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
@@ -100,13 +103,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">11 OF 12 / S10</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S10</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

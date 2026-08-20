@@ -29,8 +29,8 @@
 <rect x="28" y="32" width="126" height="84" rx="6" class="heavy" fill="#eef1f4"/>
 <rect x="42" y="48" width="50" height="48" rx="0" class="med" fill="#d8e2e7"/>
 <circle cx="67" cy="72" r="13" class="heavy" fill="#eef3f5"/>
-<text x="67" y="102" font-size="2.3" font-weight="bold" text-anchor="middle">B36 IMX519 MODULE</text>
-<text x="67" y="107" font-size="2.0" font-weight="middle" text-anchor="start" fill="#b52d2d">OUTLINE 25 x 24 REF - VERIFY SKU</text>
+<text x="67" y="102" font-size="2.3" font-weight="bold" text-anchor="middle">B36 CAMERA MODULE</text>
+<text x="67" y="107" font-size="2.0" font-weight="middle" text-anchor="start" fill="#b52d2d">SKU / OUTLINE UNVERIFIED - NOT A SOURCED STEP</text>
 <rect x="103" y="46" width="36" height="52" rx="2" class="med" fill="#f8f3df"/>
 <text x="121" y="61" font-size="2.5" font-weight="bold" text-anchor="middle">B45</text>
 <text x="121" y="68" font-size="2.6" font-weight="bold" text-anchor="middle">MAX96717</text>
@@ -105,8 +105,8 @@
 <text x="12" y="145" font-size="3.2" font-weight="bold" text-anchor="start">VIDEO PATH - NO TETHER TO MOVING CARRIAGE</text>
 <text x="12" y="148.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
 <rect x="16" y="165" width="52" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="42.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">IMX519</text>
-<text x="42.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">SKU TBD</text>
+<text x="42.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">CAMERA</text>
+<text x="42.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">SKU UNVER</text>
 <rect x="78" y="165" width="60" height="34" rx="2" class="med" fill="#f7f8f9"/>
 <text x="108.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">MAX96717</text>
 <text x="108.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI -&gt; GMSL2</text>
@@ -121,7 +121,7 @@
 <text x="289.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">4-PORT DES</text>
 <rect x="330" y="165" width="72" height="34" rx="2" class="med" fill="#f7f8f9"/>
 <text x="366.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">TACHYON</text>
-<text x="366.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI</text>
+<text x="366.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI1</text>
 <line x1="68" y1="182" x2="78" y2="182" class="motion"/>
 <line x1="138" y1="182" x2="148" y2="182" class="motion"/>
 <line x1="190" y1="182" x2="200" y2="182" class="motion"/>
@@ -132,13 +132,13 @@
 <rect x="12" y="224" width="190" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
 <text x="15" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - CAMERA VIDEO DOCK</text>
 <text x="15" y="233" font-size="2.45" font-weight="normal" text-anchor="start">States: free / S1+S2 power-mated / training / link-trained / pinch-safe.</text>
-<text x="15" y="237" font-size="2.45" font-weight="normal" text-anchor="start">Binder moves; V-dock and deserializer are fixed to the rail/brick.</text>
-<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">S1 or S2 opening mutes link and turns local Q1 off before contact motion.</text>
+<text x="15" y="237" font-size="2.45" font-weight="normal" text-anchor="start">What moves: binder. V-dock and MAX96724 stay on rail/brick. No tether.</text>
+<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Raw MIPI never rides B50, B27, or the continuous strip (EE-23/25 lock).</text>
 <rect x="215" y="224" width="190" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
-<text x="218" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / WHY</text>
-<text x="218" y="233" font-size="2.45" font-weight="normal" text-anchor="start">Partial dock or bent HSD pin -&gt; bounded training timeout; Q1 latches off.</text>
-<text x="218" y="237" font-size="2.45" font-weight="normal" text-anchor="start">Chosen over a CSI tether so the carriage remains genuinely repositionable.</text>
-<text x="218" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Coupon and eye/BER tests must include both B27 and B50 interfaces.</text>
+<text x="218" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / WHY / EE-25</text>
+<text x="218" y="233" font-size="2.45" font-weight="normal" text-anchor="start">Partial dock or bent HSD: training timeout; Q1 latches off.</text>
+<text x="218" y="237" font-size="2.45" font-weight="normal" text-anchor="start">Particle lists IMX519 AF and S5K3P9SX sensors; no orderable SKU drawn.</text>
+<text x="218" y="241" font-size="2.45" font-weight="normal" text-anchor="start">EE-26 coupons: 2x-thru, B27-only, B50-only, full channel. Not animal-use.</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -155,13 +155,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">08 OF 12 / S07</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S07</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

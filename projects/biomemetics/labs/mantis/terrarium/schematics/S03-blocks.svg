@@ -28,15 +28,15 @@
 <text x="14" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
 <path d="M30 40 L80 40 L80 90 L68 90 L68 53 L30 53 Z" class="heavy" fill="#f5f7f8"/>
 <path d="M43 53 L43 76 L68 76" class="hidden"/>
-<text x="55" y="99" font-size="2.5" font-weight="bold" text-anchor="middle">CASSETTE POCKET 3.20 REF</text>
+<text x="55" y="99" font-size="2.2" font-weight="bold" text-anchor="middle">CASSETTE POCKET 3.20 TARGET (3.00 LOCK + 0.20)</text>
 <line x1="30" y1="90" x2="30" y2="110" class="thin"/>
 <line x1="80" y1="90" x2="80" y2="110" class="thin"/>
 <line x1="30" y1="110" x2="80" y2="110" class="dim"/>
-<text x="55.0" y="108.6" font-size="2.7" font-weight="normal" text-anchor="middle">24 REF</text>
+<text x="55.0" y="108.6" font-size="2.7" font-weight="normal" text-anchor="middle">24 CAD-01 BBOX</text>
 <line x1="30" y1="40" x2="20" y2="40" class="thin"/>
 <line x1="30" y1="90" x2="20" y2="90" class="thin"/>
 <line x1="20" y1="40" x2="20" y2="90" class="dim"/>
-<text x="18.3" y="65.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 18.3 65.0)">24 REF</text>
+<text x="18.3" y="65.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 18.3 65.0)">24 CUBE REF</text>
 <circle cx="92" cy="52" r="4.0" class="med" fill="#ffffff"/>
 <text x="92" y="53.2" font-size="2.6" font-weight="bold" text-anchor="middle">B01</text>
 <line x1="92" y1="56" x2="80" y2="52" class="leader"/>
@@ -84,8 +84,8 @@
 <line x1="88" y1="176" x2="88" y2="195" class="thin"/>
 <line x1="132" y1="176" x2="132" y2="195" class="thin"/>
 <line x1="88" y1="195" x2="132" y2="195" class="dim"/>
-<text x="110.0" y="193.6" font-size="2.7" font-weight="normal" text-anchor="middle">22 REF COUPLER</text>
-<text x="110" y="207" font-size="2.6" font-weight="bold" text-anchor="middle">M3 HEAT-SET + CROSS DOWEL; SHEAR CARRIED BY TONGUE</text>
+<text x="110.0" y="193.6" font-size="2.7" font-weight="normal" text-anchor="middle">22 CAD-01 BBOX</text>
+<text x="110" y="207" font-size="2.5" font-weight="bold" text-anchor="middle">SHEAR BY TONGUE; B21 IS NOT A CORNER ROLL SOLID</text>
 <circle cx="205" cy="158" r="4.0" class="med" fill="#ffffff"/>
 <text x="205" y="159.2" font-size="2.6" font-weight="bold" text-anchor="middle">B03</text>
 <line x1="205" y1="162" x2="132" y2="160" class="leader"/>
@@ -98,21 +98,22 @@
 <line x1="270" y1="194" x2="270" y2="213" class="thin"/>
 <line x1="276" y1="194" x2="276" y2="213" class="thin"/>
 <line x1="270" y1="213" x2="276" y2="213" class="dim"/>
-<text x="273.0" y="211.6" font-size="2.7" font-weight="normal" text-anchor="middle">3.20 REF</text>
-<text x="292" y="162" font-size="2.5" font-weight="bold" text-anchor="start">3.00 PANEL</text>
+<text x="273.0" y="211.6" font-size="2.7" font-weight="normal" text-anchor="middle">3.20 TARGET</text>
+<text x="292" y="162" font-size="2.5" font-weight="bold" text-anchor="start">3.00 PANEL LOCK</text>
 <text x="292" y="168" font-size="2.5" font-weight="normal" text-anchor="start">0.20 TARGET CLEARANCE</text>
-<text x="292" y="176" font-size="2.5" font-weight="normal" text-anchor="start">TPU GASKET 1.0 REF</text>
+<text x="292" y="176" font-size="2.5" font-weight="normal" text-anchor="start">POCKET INSET 10 / Z 8 REF</text>
 <text x="292" y="184" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">NYMPH GAP &lt;=0.50 TARGET</text>
+<text x="292" y="192" font-size="2.2" font-weight="normal" text-anchor="start">B04 RETAINER 250 x 5.2 x 12 CAD-01</text>
 <rect x="14" y="222" width="180" height="15.0" rx="1.2" class="med" fill="#fff6d9"/>
-<text x="17" y="226.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANICAL STATUS</text>
-<text x="17" y="231" font-size="2.45" font-weight="normal" text-anchor="start">Block cross-sections are REF: no commercial-frame photo supplied.</text>
-<text x="17" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Coupon the cassette pocket at 3.10 / 3.20 / 3.30 before release.</text>
+<text x="17" y="226.4" font-size="2.8" font-weight="bold" text-anchor="start">CAD-01 MEASURED UNIQUE PARTS</text>
+<text x="17" y="231" font-size="2.45" font-weight="normal" text-anchor="start">B01 24 cube; B02 250 x 24 x 24; B03 22 x 24 x 24; B10 250 x 250 x 6.</text>
+<text x="17" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Kerf 0.15 REF on B05/B06 cut profiles. Coupon 3.10/3.20/3.30.</text>
 <rect x="214" y="222" width="190" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
-<text x="217" y="226.4" font-size="2.8" font-weight="bold" text-anchor="start">LOAD PATH</text>
-<text x="217" y="231" font-size="2.45" font-weight="normal" text-anchor="start">Panel pressure -&gt; gasket -&gt; pocket wall -&gt; perimeter block.</text>
-<text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">500 span bending crosses the internal coupler, not the face cassette.</text>
-<text x="217" y="239" font-size="2.45" font-weight="normal" text-anchor="start">V1 rail corners are electrical junctions; carriage does not roll around 90 deg.</text>
-<text x="217" y="243" font-size="2.45" font-weight="normal" text-anchor="start">B51 positively retains each route; removal needs deliberate M3 service.</text>
+<text x="217" y="226.4" font-size="2.8" font-weight="bold" text-anchor="start">LOAD PATH / ROUTES</text>
+<text x="217" y="231" font-size="2.45" font-weight="normal" text-anchor="start">Panel -&gt; gasket -&gt; pocket wall -&gt; perimeter block.</text>
+<text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">500 span bending crosses B03 coupler, not the face cassette.</text>
+<text x="217" y="239" font-size="2.45" font-weight="normal" text-anchor="start">B21: top-front and vertical routes are independent; no corner roll.</text>
+<text x="217" y="243" font-size="2.45" font-weight="normal" text-anchor="start">B51 8 x 38 x 17.5; bore 3.4 UNVERIFIED PN.</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -129,13 +130,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">04 OF 12 / S03</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S03</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

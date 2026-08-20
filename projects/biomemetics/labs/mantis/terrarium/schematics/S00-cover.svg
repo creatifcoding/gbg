@@ -47,34 +47,41 @@
 <text x="210" y="183" font-size="3.2" font-weight="bold" text-anchor="middle">M1 / TACHYON</text>
 <text x="210" y="189" font-size="2.6" font-weight="bold" text-anchor="middle">OUTSIDE CAGE</text>
 <rect x="195" y="200" width="30" height="17" rx="0" class="med" fill="#ffffff"/>
-<text x="210" y="210" font-size="2.3" font-weight="middle" text-anchor="start">85 x 56 PCB</text>
+<text x="210" y="210" font-size="2.1" font-weight="middle" text-anchor="start">85 x 56 DATASHEET</text>
 <rect x="60" y="78" width="76" height="116" rx="2" class="keepout"/>
 <text x="98" y="132" font-size="4" font-weight="bold" text-anchor="middle" fill="#b52d2d">ANIMAL VOLUME</text>
 <text x="98" y="138" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">NO METAL / COPPER / POGOS</text>
-<rect x="260" y="38" width="145" height="31.0" rx="1.2" class="med" fill="#f7f8fa"/>
-<text x="263" y="42.4" font-size="2.8" font-weight="bold" text-anchor="start">SYSTEM THEORY</text>
-<text x="263" y="47" font-size="2.45" font-weight="normal" text-anchor="start">250 mm block perimeter; 500 mm first tower.</text>
-<text x="263" y="51" font-size="2.45" font-weight="normal" text-anchor="start">External rail carries fused VIN + I2C + ID.</text>
-<text x="263" y="55" font-size="2.45" font-weight="normal" text-anchor="start">Pinch lifts contacts before the carriage rolls.</text>
-<text x="263" y="59" font-size="2.45" font-weight="normal" text-anchor="start">One latch receives camera, sensor, LED, or mist binders.</text>
-<text x="263" y="63" font-size="2.45" font-weight="normal" text-anchor="start">Camera binder serializes CSI; GMSL2 video crosses locked pogo docks.</text>
-<text x="263" y="67" font-size="2.45" font-weight="normal" text-anchor="start">The M1 is a compute brick, never the animal cage.</text>
-<rect x="260" y="91" width="145" height="27.0" rx="1.2" class="med" fill="#fff0f0"/>
-<text x="263" y="95.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED SAFETY BOUNDARY</text>
-<text x="263" y="100" font-size="2.45" font-weight="normal" text-anchor="start">Upper third remains free for hang-molt clearance.</text>
-<text x="263" y="104" font-size="2.45" font-weight="normal" text-anchor="start">Ceiling and vents use &lt;=0.8 mm non-metal screen.</text>
-<text x="263" y="108" font-size="2.45" font-weight="normal" text-anchor="start">B20 separates the guarded rail channel from the wet volume.</text>
-<text x="263" y="112" font-size="2.45" font-weight="normal" text-anchor="start">Door opens front/side; all gaps receive nymph check.</text>
-<text x="263" y="116" font-size="2.45" font-weight="normal" text-anchor="start">No taxonomy inferred: no live-mantis photo supplied.</text>
-<rect x="260" y="138" width="145" height="27.0" rx="1.2" class="med" fill="#fff6d9"/>
-<text x="263" y="142.4" font-size="2.8" font-weight="bold" text-anchor="start">DRAWING STATUS</text>
-<text x="263" y="147" font-size="2.45" font-weight="normal" text-anchor="start">Pitch / span / bus topology are source locks.</text>
-<text x="263" y="151" font-size="2.45" font-weight="normal" text-anchor="start">Named vendor capabilities are checked against primary docs.</text>
-<text x="263" y="155" font-size="2.45" font-weight="normal" text-anchor="start">Custom rail dimensions are REF/TARGET until tested.</text>
-<text x="263" y="159" font-size="2.45" font-weight="normal" text-anchor="start">Pogo series, strip stack and latch force UNVERIFIED.</text>
-<text x="263" y="163" font-size="2.45" font-weight="normal" text-anchor="start">Fabricate coupons before a live-animal first article.</text>
-<rect x="268" y="222" width="58" height="8" rx="1" class="unverified" fill="#fff0f0"/>
-<text x="297" y="227.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<text x="98" y="144" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#b52d2d">B20 WET-SIDE BARRIER</text>
+<rect x="260" y="18" width="145" height="31.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="263" y="22.4" font-size="2.8" font-weight="bold" text-anchor="start">SYSTEM THEORY</text>
+<text x="263" y="27" font-size="2.45" font-weight="normal" text-anchor="start">250 mm block perimeter; 500 mm first tower.</text>
+<text x="263" y="31" font-size="2.45" font-weight="normal" text-anchor="start">P01-P08: protected continuous VIN/GND/I2C/UID/P08.</text>
+<text x="263" y="35" font-size="2.45" font-weight="normal" text-anchor="start">P09-P12: indexed GMSL2 only while stationary.</text>
+<text x="263" y="39" font-size="2.45" font-weight="normal" text-anchor="start">Raw MIPI stays binder-local and Tachyon-local.</text>
+<text x="263" y="43" font-size="2.45" font-weight="normal" text-anchor="start">Pinch is break-before-move; video off while rolling.</text>
+<text x="263" y="47" font-size="2.45" font-weight="normal" text-anchor="start">M1/Tachyon brick never enters the animal cage.</text>
+<rect x="260" y="70" width="145" height="27.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="263" y="74.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED SAFETY BOUNDARY</text>
+<text x="263" y="79" font-size="2.45" font-weight="normal" text-anchor="start">Upper-third molt keep-out 142 mm CALCULATED.</text>
+<text x="263" y="83" font-size="2.45" font-weight="normal" text-anchor="start">Ceiling/vents: &lt;= 0.8 mm non-metal LOCK.</text>
+<text x="263" y="87" font-size="2.45" font-weight="normal" text-anchor="start">B20 is the continuous wet-side barrier (CAD-01 bbox).</text>
+<text x="263" y="91" font-size="2.45" font-weight="normal" text-anchor="start">Door front/side; nymph-visible gap &lt;=0.50 TARGET.</text>
+<text x="263" y="95" font-size="2.45" font-weight="normal" text-anchor="start">No taxon inferred: no live-mantis photo supplied.</text>
+<rect x="260" y="122" width="145" height="27.0" rx="1.2" class="med" fill="#fff6d9"/>
+<text x="263" y="126.4" font-size="2.8" font-weight="bold" text-anchor="start">MEASURED THIS RUN (DRAFT CAD/EE)</text>
+<text x="263" y="131" font-size="2.45" font-weight="normal" text-anchor="start">Base cursor/mantis-cad-02-carriage-9635</text>
+<text x="263" y="135" font-size="2.45" font-weight="normal" text-anchor="start">cdd523c55a63  CAD-02/#29</text>
+<text x="263" y="139" font-size="2.45" font-weight="normal" text-anchor="start">CAD-01/#28  fe8f875a80b3  PR 34</text>
+<text x="263" y="143" font-size="2.45" font-weight="normal" text-anchor="start">EE-23..26  PRs 37-40  (read-only)</text>
+<text x="263" y="147" font-size="2.45" font-weight="normal" text-anchor="start">No Particle camera SKU or CSI pin table drawn.</text>
+<rect x="260" y="178" width="145" height="23.0" rx="1.2" class="med" fill="#fff6d9"/>
+<text x="263" y="182.4" font-size="2.8" font-weight="bold" text-anchor="start">DRAWING STATUS</text>
+<text x="263" y="187" font-size="2.45" font-weight="normal" text-anchor="start">Views are NTS until released STEP drives scale.</text>
+<text x="263" y="191" font-size="2.45" font-weight="normal" text-anchor="start">OCCT bboxes from CAD-01 unique parts; kinematics from CAD-02.</text>
+<text x="263" y="195" font-size="2.45" font-weight="normal" text-anchor="start">S08 follows EE-24 net-map; KiCad is circuit authority.</text>
+<text x="263" y="199" font-size="2.45" font-weight="normal" text-anchor="start">docs/variant screenshots: none on PRs 32-40 this run.</text>
+<rect x="12" y="232" width="58" height="8" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="41" y="237.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -91,13 +98,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">01 OF 12 / S00</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S00</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

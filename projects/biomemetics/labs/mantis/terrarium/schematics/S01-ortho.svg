@@ -93,23 +93,24 @@
 <text x="380" y="65" font-size="2.3" font-weight="bold" text-anchor="start">MOLT DATUM</text>
 <rect x="18" y="166" width="115" height="27.0" rx="1.2" class="med" fill="#fff6d9"/>
 <text x="21" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED ENVELOPE</text>
-<text x="21" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Exterior: 250 W x 250 D x 500 H.</text>
+<text x="21" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Exterior: 250 W x 250 D x 500 H LOCK.</text>
 <text x="21" y="179" font-size="2.45" font-weight="normal" text-anchor="start">Module datum repeats at 250 mm.</text>
-<text x="21" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Nominal clear: 202 x 202 x 427 REF.</text>
-<text x="21" y="187" font-size="2.45" font-weight="normal" text-anchor="start">Frame face dimensions REF pending first article.</text>
-<text x="21" y="191" font-size="2.45" font-weight="normal" text-anchor="start">Interior must still satisfy &gt;=240 mm height.</text>
+<text x="21" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Nominal clear: 202 x 202 x 427 CALCULATED.</text>
+<text x="21" y="187" font-size="2.45" font-weight="normal" text-anchor="start">CAD-01 assembly bbox: -43..258 X,</text>
+<text x="21" y="191" font-size="2.45" font-weight="normal" text-anchor="start">-43..250 Y, -8..508 Z REF.</text>
 <rect x="151" y="166" width="115" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
 <text x="154" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">PROJECTION</text>
 <text x="154" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Third-angle arrangement shown.</text>
 <text x="154" y="179" font-size="2.45" font-weight="normal" text-anchor="start">Front is the door/view cassette face.</text>
-<text x="154" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Top rail sits entirely outside enclosure.</text>
-<text x="154" y="187" font-size="2.45" font-weight="normal" text-anchor="start">Hidden wet-side barrier is continuous.</text>
-<rect x="284" y="166" width="115" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="154" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Rail offset 5 mm REF outside frame.</text>
+<text x="154" y="187" font-size="2.45" font-weight="normal" text-anchor="start">B20 starts at Y/X = -8 REF (offset+wall).</text>
+<rect x="284" y="166" width="115" height="27.0" rx="1.2" class="med" fill="#f7f8fa"/>
 <text x="287" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">INTERFACE DATUMS</text>
-<text x="287" y="175" font-size="2.45" font-weight="normal" text-anchor="start">A: exterior block face.</text>
+<text x="287" y="175" font-size="2.45" font-weight="normal" text-anchor="start">A: exterior block face (frame.world origin).</text>
 <text x="287" y="179" font-size="2.45" font-weight="normal" text-anchor="start">B: cassette seat plane.</text>
-<text x="287" y="183" font-size="2.45" font-weight="normal" text-anchor="start">C: rail conductor centerline.</text>
-<text x="287" y="187" font-size="2.45" font-weight="normal" text-anchor="start">D: false-bottom tray surface.</text>
+<text x="287" y="183" font-size="2.45" font-weight="normal" text-anchor="start">C: rail conductor centerline (external).</text>
+<text x="287" y="187" font-size="2.45" font-weight="normal" text-anchor="start">D: false-bottom tray 25 mm REF.</text>
+<text x="287" y="191" font-size="2.45" font-weight="normal" text-anchor="start">Molt datum: 142 mm CALCULATED.</text>
 <rect x="18" y="232" width="58" height="8" rx="1" class="unverified" fill="#fff0f0"/>
 <text x="47" y="237.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
@@ -128,13 +129,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">02 OF 12 / S01</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S01</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

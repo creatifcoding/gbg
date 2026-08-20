@@ -52,9 +52,9 @@
 <text x="199" y="66" font-size="1.8" font-weight="bold" text-anchor="middle">S2 / B50</text>
 <text x="190" y="87" font-size="2.05" font-weight="bold" text-anchor="middle" fill="#b52d2d">S1 CARRIAGE + S2 BINDER: BOTH CLOSED TO ENABLE LOCAL Q1</text>
 <rect x="18" y="104" width="64" height="60" rx="2" class="heavy" fill="#eef1f4"/>
-<text x="50" y="116" font-size="3.1" font-weight="bold" text-anchor="middle">B36 IMX519</text>
-<text x="50" y="123" font-size="2.2" font-weight="middle" text-anchor="start" fill="#b52d2d">MODULE SKU TBD</text>
-<text x="50" y="131" font-size="2.4" font-weight="bold" text-anchor="middle">MIPI CSI-2</text>
+<text x="50" y="116" font-size="3.1" font-weight="bold" text-anchor="middle">B36 CAMERA</text>
+<text x="50" y="123" font-size="2.2" font-weight="middle" text-anchor="start" fill="#b52d2d">SKU UNVERIFIED</text>
+<text x="50" y="131" font-size="2.4" font-weight="bold" text-anchor="middle">LOCAL MIPI CSI-2</text>
 <rect x="96" y="104" width="67" height="60" rx="2" class="heavy" fill="#fff8e3"/>
 <text x="129.5" y="116" font-size="3.0" font-weight="bold" text-anchor="middle">B45 MAX96717</text>
 <text x="129.5" y="124" font-size="2.3" font-weight="middle" text-anchor="start">3/6 Gbps GMSL2</text>
@@ -132,15 +132,15 @@
 <text x="220" y="174" font-size="1.8" font-weight="bold" text-anchor="middle">B50 / S2</text>
 <text x="211" y="219" font-size="2.2" font-weight="bold" text-anchor="middle">3.3 V LOGIC / 100 kHz TARGET / EXTERNAL PULL-UPS DNP-TUNE</text>
 <rect x="12" y="226" width="191" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
-<text x="15" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - PROTECTED VIDEO MATE</text>
-<text x="15" y="235" font-size="2.45" font-weight="normal" text-anchor="start">States: absent / seated / training / trained / fault / pinch-safe / lifted.</text>
-<text x="15" y="239" font-size="2.45" font-weight="normal" text-anchor="start">S1 or S2 opens first; local Q1 turns off and discharges before motion.</text>
-<text x="15" y="243" font-size="2.45" font-weight="normal" text-anchor="start">Release seats B27+B50 before a bounded, current-limited training window.</text>
+<text x="15" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - EE-24 INTERLOCK</text>
+<text x="15" y="235" font-size="2.45" font-weight="normal" text-anchor="start">EE-24 nodes: VIN_RAIL -&gt; F1 -&gt; VIN_FUSED -&gt; P01||P02 VIN_SHARED.</text>
+<text x="15" y="239" font-size="2.45" font-weight="normal" text-anchor="start">INTERLOCK_OK = S1 NO series S2 NO. Q1_EN never driven by P08.</text>
+<text x="15" y="243" font-size="2.45" font-weight="normal" text-anchor="start">S1 open: Q1 off, discharge, ISO_EN off, then B27 may lift.</text>
 <rect x="214" y="226" width="191" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
-<text x="217" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">FAULT POLICY</text>
-<text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Bent HSD pin or station skew -&gt; no lock; training times out and Q1 latches off.</text>
-<text x="217" y="239" font-size="2.45" font-weight="normal" text-anchor="start">UID identifies load, while V1-V4 deserializer port identifies position.</text>
-<text x="217" y="243" font-size="2.45" font-weight="normal" text-anchor="start">P08 is diagnostic only. B27+B50 eye/BER, ESD and timing remain gates.</text>
+<text x="217" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">FAULT POLICY / NOT A RELEASE SCHEMATIC</text>
+<text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">KiCad on #24/#25 is circuit authority; this SVG is a review diagram.</text>
+<text x="217" y="239" font-size="2.45" font-weight="normal" text-anchor="start">S1/S2/Q1/B27/B50 series UNVERIFIED (#23). No MPNs invented.</text>
+<text x="217" y="243" font-size="2.45" font-weight="normal" text-anchor="start">P08 diagnostic only. GMSL P10/P11 are not MIPI. EE-26: not animal-use.</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -157,13 +157,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">09 OF 12 / S08</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S08</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>

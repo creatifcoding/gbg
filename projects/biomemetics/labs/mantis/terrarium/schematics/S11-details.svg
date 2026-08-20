@@ -50,9 +50,9 @@
 <line x1="58" y1="90" x2="58" y2="101" class="thin"/>
 <line x1="48" y1="101" x2="58" y2="101" class="dim"/>
 <text x="53.0" y="99.6" font-size="2.7" font-weight="normal" text-anchor="middle">BORE +0.20 TARGET</text>
-<text x="75" y="48" font-size="2.15" font-weight="bold" text-anchor="start">0.60 WORK COMPRESSION TARGET</text>
-<text x="75" y="56" font-size="2.3" font-weight="normal" text-anchor="start">OVERTRAVEL UNVERIFIED</text>
-<text x="75" y="64" font-size="2.3" font-weight="bold" text-anchor="start" fill="#b52d2d">SELECT POGO SERIES</text>
+<text x="75" y="48" font-size="2.05" font-weight="bold" text-anchor="start">0.60 WORK / 1.20 LIFT TARGET</text>
+<text x="75" y="56" font-size="2.2" font-weight="normal" text-anchor="start">THROW 2.2 / NEED 1.8</text>
+<text x="75" y="64" font-size="2.2" font-weight="bold" text-anchor="start" fill="#b52d2d">POGO SERIES UNVERIFIED #23</text>
 <rect x="160" y="72" width="92" height="8" rx="0" class="metal"/>
 <path d="M170 45 Q182 35 194 45 L194 68" class="med"/>
 <circle cx="194" cy="71" r="3" class="metal"/>
@@ -73,7 +73,7 @@
 <line x1="94" y1="170" x2="105" y2="170" class="thin"/>
 <line x1="94" y1="188" x2="105" y2="188" class="thin"/>
 <line x1="105" y1="170" x2="105" y2="188" class="dim"/>
-<text x="103.3" y="179.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 103.3 179.0)">Rmin 10 TARGET</text>
+<text x="103.3" y="179.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 103.3 179.0)">CSI KO 12 UNVER</text>
 <text x="26" y="205" font-size="2.3" font-weight="bold" text-anchor="start">CLAMP FPC INSULATION, NEVER CONDUCTORS</text>
 <rect x="166" y="148" width="64" height="48" rx="0" class="cut"/>
 <rect x="184" y="160" width="28" height="22" rx="1" class="metal"/>
@@ -90,12 +90,12 @@
 <line x1="320" y1="185" x2="320" y2="207" class="thin"/>
 <line x1="355" y1="185" x2="355" y2="207" class="thin"/>
 <line x1="320" y1="207" x2="355" y2="207" class="dim"/>
-<text x="337.5" y="205.6" font-size="2.7" font-weight="normal" text-anchor="middle">22 REF</text>
+<text x="337.5" y="205.6" font-size="2.7" font-weight="normal" text-anchor="middle">22 CAD-01</text>
 <text x="338" y="217" font-size="2.2" font-weight="bold" text-anchor="middle">SHEAR KEY + TWO M3; FACE CASSETTE NOT STRUCTURAL</text>
 <rect x="12" y="232" width="393" height="15.0" rx="1.2" class="med" fill="#fff6d9"/>
 <text x="15" y="236.4" font-size="2.8" font-weight="bold" text-anchor="start">DETAIL RELEASE RULE</text>
-<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Every value marked TARGET/REF/UNVERIFIED requires coupon or vendor-drawing closure before STEP release.</text>
-<text x="15" y="245" font-size="2.45" font-weight="normal" text-anchor="start">Critical first articles: pogo bore coupon, strip wipe coupon, latch pull-off coupon, nymph-gap feeler check.</text>
+<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">TARGET/REF/UNVERIFIED values need coupon or vendor drawing before STEP release. B20 keep-out on S10 is dimensional from CAD-01 bbox, not a shop measurement.</text>
+<text x="15" y="245" font-size="2.45" font-weight="normal" text-anchor="start">First articles: pogo bore, strip wipe, latch pull-off, nymph-gap. Base cdd523c55a63. CAD-01 fe8f875a80b3. EE-23..26 PRs 37-40 read-only.</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -112,13 +112,13 @@
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">12 OF 12 / S11</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S11</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
