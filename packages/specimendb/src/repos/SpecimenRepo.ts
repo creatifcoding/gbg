@@ -39,6 +39,8 @@ import {
   IntakePayload,
   IntakeResult,
   Specimen,
+  nextStatus,
+  statusOf,
 } from '../schemas/specimen.js';
 
 export interface SpecimenRepoShape {
@@ -49,6 +51,9 @@ export interface SpecimenRepoShape {
     specimenId: SpecimenId,
   ) => Effect.Effect<typeof Specimen.Type, CatalogError | SpecimenNotFoundError>;
   readonly list: () => Effect.Effect<ReadonlyArray<typeof Specimen.Type>, CatalogError>;
+  readonly promote: (
+    specimenId: SpecimenId,
+  ) => Effect.Effect<typeof Specimen.Type, CatalogError | SpecimenNotFoundError>;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -231,7 +236,34 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
           return specimens;
         });
 
-      return SpecimenRepo.of({ intake, get, list });
+      const promote = Effect.fn('@tmnl/specimendb/SpecimenRepo.promote')(function* (
+        specimenId: SpecimenId,
+      ) {
+          const specimen = yield* get(specimenId);
+          const current = statusOf(specimen) ?? 'raw';
+          if (current === 'dead') return specimen;
+          const next = nextStatus(current);
+          const updated = new StatusComponent({ value: next });
+          const attachedAt = nowIso();
+          const existing = yield* sql<{ id: string }>`
+            SELECT id FROM components
+            WHERE specimen_id = ${specimenId} AND kind = ${'Status'}
+            LIMIT 1
+          `.pipe(Effect.mapError(catalogError('promote')));
+          const row = existing[0];
+          if (row === undefined) {
+            yield* insertComponent(specimenId, 'Status', updated, attachedAt);
+          } else {
+            yield* sql`
+              UPDATE components
+              SET payload = ${JSON.stringify(updated)}::jsonb, attached_at = ${attachedAt}
+              WHERE id = ${row.id}
+            `.pipe(Effect.asVoid, Effect.mapError(catalogError('promote')));
+          }
+          return yield* get(specimenId);
+        });
+
+      return SpecimenRepo.of({ intake, get, list, promote });
     }),
   );
 }

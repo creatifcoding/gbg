@@ -220,3 +220,7 @@ button.sdb-d-card {
   font-size: 10px;
   color: #71717a;
 }
+
+[data-promote] {
+  cursor: pointer;
+}

@@ -1,4 +1,4 @@
-export { createCatalog, formatLocality, isJpegHeic, localityLabel, visibleSpecimens } from './catalog-stx.js';
+export { createCatalog, formatLocality, isJpegHeic, localityLabel, onStatusPromote, visibleSpecimens } from './catalog-stx.js';
 export type { CatalogState, CatalogSurface, SpecimenRpcClient, StatusFilter } from './catalog-stx.js';
 export { AnalogCard } from './AnalogCard.js';
 export { AppShell } from './AppShell.js';

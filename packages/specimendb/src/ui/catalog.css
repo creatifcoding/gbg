@@ -1125,3 +1125,7 @@ button.sdb-w-card {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+[data-promote] {
+  cursor: pointer;
+}

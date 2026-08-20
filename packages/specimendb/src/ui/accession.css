@@ -278,3 +278,7 @@ button.sdb-x-thumb {
   background: #0c0a09;
   border: 1px solid #292524;
 }
+
+[data-promote] {
+  cursor: pointer;
+}

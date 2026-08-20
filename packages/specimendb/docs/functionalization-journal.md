@@ -6,7 +6,7 @@ Verdicts:
 
 | Verdict | Meaning |
 |---|---|
-| **now** | Live Intake / List / Get / Status / Claim / Media bytes / locality `unknown` (or EXIF if present) |
+| **now** | Live Intake / List / Get / Promote / Status / Claim / Media bytes / locality `unknown` (or EXIF if present) |
 | **when** | Slot exists. Render empty or `unknown`. Never a sample. |
 | **later** | Needs `working`. Keep the well. No fake assay / spectra / sim. |
 | **chrome** | Type only. No store write. |
@@ -18,10 +18,11 @@ Now-bind this cut:
 - Workbench: F-027, F-028, F-030, F-032, F-035
 - Assay: F-047, F-048, F-051, F-052
 - Dactyl: F-062, F-063, F-068, F-069, F-074
-- Catalog: F-076, F-078, F-079
+- Catalog: F-076, F-078, F-079, F-089
 - Accession: F-098, F-100, F-101, F-102, F-105
+- Capture: F-106, F-107, F-108, F-109
 
-Get on select is live on every page that lists cards (same RPC as List). A no-GPS drop must produce a branded `SpecimenId`, Status `raw`, Claim if attached, Media bytes, locality `unknown`. Every other strip stays empty / unknown / chrome.
+Get on select is live on every page that lists cards (same RPC as List). Status chrome on a real card calls Promote (`raw → filed → working → dead`). Empty card chrome does not. A no-GPS drop must produce a branded `SpecimenId`, Status `raw`, Claim if attached, Media bytes, locality `unknown`. Every other strip stays empty / unknown / chrome.
 
 Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 / F-081 / F-094 / F-104 coords, F-014 / F-029 / F-046 / F-067 / F-077 / F-092 / F-099 fake ids, F-091 seed rows.
 
@@ -34,7 +35,7 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-001 | `Initiate_Intake_Protocol` well | Media, Exif, Status=`raw` | now | Intake |
 | F-002 | Local Catalog cards | Specimen list | now | List |
 | F-003 | `SYS_ONLINE` | client health | now | List success |
-| F-004 | card Status pill | Status | now | Status |
+| F-004 | card Status pill | Status | now | Status; Promote on click |
 | F-005 | card Claim line | Claim | now | Claim or empty |
 | F-006 | card `h-52` well | Media bytes | now | object URL; `IMG_SRC` filename |
 | F-007 | 3 tag chips | Tag | when | empty unless attached |
@@ -65,7 +66,7 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-027 | `Q QUERY ACCESSION ID` | SpecimenId | now | List query |
 | F-028 | RAW/FILED/WORKING/DEAD | Status | now | List filter |
 | F-029 | fake accession strings | SpecimenId theater | never | no SP- / SEQ- |
-| F-030 | card Status | Status | now | Status |
+| F-030 | card Status | Status | now | Status; Promote on click |
 | F-031 | `[tag][tag][tag]` | Tag | when | empty unless attached |
 | F-032 | card Claim | Claim | now | Claim or empty |
 | F-033 | coordinate line | Locality numbers | never | no invented GPS |
@@ -91,7 +92,7 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-048 | 440px rail cards | Specimen list | now | List |
 | F-049 | `CURRENT_FOCUS_RECORD` | Specimen | chrome | real id after Get/select |
 | F-050 | focus coords | Locality numbers | never | no GPS theater |
-| F-051 | focus Status | Status | now | Status |
+| F-051 | focus Status | Status | now | Status; Promote on click |
 | F-052 | focus Claim | Claim | now | Claim or empty |
 | F-053 | locality | Locality | when | `unknown` unless EXIF |
 | F-054 | viewport stage | Media | later | empty unless later working view |
@@ -113,7 +114,7 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-065 | Get on card select | Specimen | now | Get |
 | F-066 | AnalogCard template | — | chrome | card chrome when empty |
 | F-067 | fake analog ids | SpecimenId theater | never | no GEK- / OD- |
-| F-068 | card Status | Status | now | Status |
+| F-068 | card Status | Status | now | Status; Promote on click |
 | F-069 | card Claim | Claim | now | Claim or empty |
 | F-070 | analog tags | Tag | when | empty |
 | F-071 | analog coords | Locality numbers | never | no GPS |
@@ -139,7 +140,7 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-086 | hosted intake copy | — | chrome | |
 | F-087 | card Media | Media | when | filename label if attached |
 | F-088 | card Claim | Claim | when | empty unless Claim |
-| F-089 | card Status | Status | when | show Status when a row exists |
+| F-089 | card Status | Status | now | Status; Promote on click |
 | F-090 | card locality | Locality | when | `unknown` unless EXIF |
 | F-091 | seed rows | — | never | no invented catalog rows |
 
@@ -155,9 +156,21 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-097 | observer log | Observation | when | empty |
 | F-098 | photo rail | Specimen list | now | List |
 | F-099 | `COL-*` / GEK-* ids | SpecimenId theater | never | keep the well |
-| F-100 | dossier Status | Status | now | Status |
+| F-100 | dossier Status | Status | now | Status; Promote on click |
 | F-101 | dossier Claim | Claim | now | Claim or empty |
 | F-102 | photo / Media bytes | Media | now | object URL when attached |
 | F-103 | Get on rail select | Specimen | now | Get |
 | F-104 | field-metric coords | Locality numbers | never | elev/temp empty; no GPS fill |
 | F-105 | field-metrics locality | Locality | now | `unknown` unless EXIF |
+
+## Capture `/capture` — static phone page
+
+Static HTML + vendored ExifTool WASM. Not a React surface. Does not call PGlite, RPC, or Intake. The photo never uploads.
+
+| ID | Strip | Component | Verdict | Bind |
+|---|---|---|---|---|
+| F-106 | download name | — | now | `specimen-YYYYMMDD-HHmmss.jpg` |
+| F-107 | denied / missing geo | Locality | now | `unknown`; GPS tags omitted; never invent coordinates |
+| F-108 | stamp + download | — | now | on-device `writeMetadata`; no upload; no Intake |
+| F-109 | ExifTool WASM | — | now | `vendor/`; no CDN at shot time |
+

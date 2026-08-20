@@ -1,7 +1,7 @@
 {
   "name": "@tmnl/specimendb",
   "version": "0.0.1",
-  "description": "ECS specimen catalog — Intake/Get/List over PGlite (Effect v4)",
+  "description": "ECS specimen catalog — Intake/Get/List/Promote over PGlite (Effect v4)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

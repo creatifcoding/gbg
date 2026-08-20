@@ -10,7 +10,7 @@ import { useFocus, useStx } from '@tmnl/stx';
 import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
-import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { claimLine, imgSrcLabel, mediaLabel, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import './catalog.css';
@@ -42,11 +42,18 @@ const METRIC_KICKERS = [
 const StatusPill = ({
   status,
   testId,
+  onPromote,
 }: {
   readonly status: SpecimenStatus;
   readonly testId?: string;
+  readonly onPromote?: (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }) => void;
 }) => (
-  <span className="sdb-pill" data-status={status} data-testid={testId}>
+  <span
+    className="sdb-pill"
+    data-status={status}
+    data-testid={testId}
+    {...(onPromote !== undefined ? { 'data-promote': 'true', onClick: onPromote } : {})}
+  >
     {status}
   </span>
 );
@@ -239,7 +246,11 @@ function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
       <TerminalWell preview={previews[specimen.id]} caption={imgSrcLabel(specimen)} />
       <div className="sdb-t-card-body">
         <div className="sdb-t-card-meta">
-          <StatusPill status={status} testId="status-pill" />
+          <StatusPill
+            status={status}
+            testId="status-pill"
+            onPromote={onStatusPromote(catalog, specimen.id)}
+          />
           <span className="sdb-t-locality" data-testid="locality">
             {localityLabel(specimen)}
           </span>
@@ -281,7 +292,13 @@ function IntakeDropDetail() {
           {selected === null ? '>>' : `>> ${selected.id}`}
         </h2>
         <div className="sdb-t-live">
-          {status !== undefined ? <StatusPill status={status} testId="detail-status" /> : null}
+          {status !== undefined && selected !== null ? (
+            <StatusPill
+              status={status}
+              testId="detail-status"
+              onPromote={onStatusPromote(catalog, selected.id)}
+            />
+          ) : null}
           <span className="sdb-pill" data-status="working">
             ANALYSIS_ACTIVE
           </span>

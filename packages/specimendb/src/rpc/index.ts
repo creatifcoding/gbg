@@ -1,1 +1,1 @@
-export { Get, Intake, List, SpecimenRpcs, SpecimenRpcsLive } from './SpecimenRpcs.js';
+export { Get, Intake, List, Promote, SpecimenRpcs, SpecimenRpcsLive } from './SpecimenRpcs.js';

@@ -10,7 +10,7 @@ import { useFocus, useStx } from '@tmnl/stx';
 import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
-import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { AccessionQuery, StatusFilters } from './catalog-controls.js';
 import { claimLine, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
@@ -38,11 +38,18 @@ const METRIC_ROWS = ['Tensile_Str', 'Density', 'Modulus'] as const;
 const StatusMark = ({
   status,
   testId,
+  onPromote,
 }: {
   readonly status: SpecimenStatus;
   readonly testId?: string;
+  readonly onPromote?: (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }) => void;
 }) => (
-  <span className="sdb-status-dot" data-status={status} data-testid={testId}>
+  <span
+    className="sdb-status-dot"
+    data-status={status}
+    data-testid={testId}
+    {...(onPromote !== undefined ? { 'data-promote': 'true', onClick: onPromote } : {})}
+  >
     <span className="sdb-status-sq" aria-hidden="true" />
     {status}
   </span>
@@ -261,7 +268,11 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
         <span className="sdb-w-id" data-testid="specimen-id">
           {specimen.id}
         </span>
-        <StatusMark status={status} testId="status-pill" />
+        <StatusMark
+          status={status}
+          testId="status-pill"
+          onPromote={onStatusPromote(catalog, specimen.id)}
+        />
       </div>
       <WorkbenchWell />
       <div className="sdb-w-card-body">
@@ -309,7 +320,13 @@ function SpecimenRailDetail() {
               <span data-testid="detail-locality">{localityLabel(selected)}</span>
             </p>
           ) : null}
-          {status !== undefined ? <StatusMark status={status} testId="detail-status" /> : null}
+          {status !== undefined && selected !== null ? (
+            <StatusMark
+              status={status}
+              testId="detail-status"
+              onPromote={onStatusPromote(catalog, selected.id)}
+            />
+          ) : null}
         </div>
         <div className="sdb-w-actions">
           <button type="button">EXPORT DB</button>

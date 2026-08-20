@@ -6,7 +6,7 @@
 
 import * as Schema from 'effect/Schema';
 import { SpecimenId } from './identifiers.js';
-import { Component, LocalityComponent } from './components.js';
+import { Component, LocalityComponent, type SpecimenStatus } from './components.js';
 
 export const CaptureGeo = Schema.Struct({
   latitude: Schema.Number,
@@ -54,9 +54,27 @@ export const localityStateOf = (specimen: ComponentBag): LocalityComponent['stat
   return locality?.state === 'fixed' ? 'fixed' : 'unknown';
 };
 
-export const statusOf = (specimen: ComponentBag): 'raw' | 'filed' | 'working' | 'dead' | undefined => {
+export const statusOf = (specimen: ComponentBag): SpecimenStatus | undefined => {
   const status = specimen.components.find((c) => c._tag === 'Status');
   return status?._tag === 'Status' ? status.value : undefined;
+};
+
+/** raw → filed → working → dead. Dead stays dead. */
+export const nextStatus = (status: SpecimenStatus): SpecimenStatus => {
+  switch (status) {
+    case 'raw':
+      return 'filed';
+    case 'filed':
+      return 'working';
+    case 'working':
+      return 'dead';
+    case 'dead':
+      return 'dead';
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
 };
 
 export const exifOf = (specimen: ComponentBag) => {

@@ -1,6 +1,6 @@
 /**
  * STX catalog surface. Atom + autoLens live on the stx() instance.
- * RPC calls stay Intake / Get / List — this module does not invent GPS or ids.
+ * RPC calls stay Intake / Get / List / Promote — this module does not invent GPS or ids.
  *
  * @module @tmnl/specimendb/ui
  */
@@ -57,12 +57,16 @@ export interface SpecimenRpcClient {
     readonly specimenId: SpecimenId;
   }) => Effect.Effect<Specimen, CatalogError | SpecimenNotFoundError>;
   readonly List: () => Effect.Effect<ReadonlyArray<Specimen>, CatalogError>;
+  readonly Promote: (payload: {
+    readonly specimenId: SpecimenId;
+  }) => Effect.Effect<Specimen, CatalogError | SpecimenNotFoundError>;
 }
 
 export type CatalogSurface = {
   readonly store: StxInstance<CatalogState>;
   readonly list: () => Promise<void>;
   readonly select: (specimenId: SpecimenId) => Promise<void>;
+  readonly promote: (specimenId: SpecimenId) => Promise<void>;
   readonly intakeFile: (file: File) => Promise<void>;
   readonly intakeFiles: (files: Iterable<File>) => Promise<void>;
 };
@@ -113,6 +117,14 @@ export const at = <A>(
   lens: unknown,
 ): { get: (s: CatalogState) => A; _optic: object } =>
   lens as { get: (s: CatalogState) => A; _optic: object };
+
+export const onStatusPromote =
+  (catalog: CatalogSurface, specimenId: SpecimenId) =>
+  (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }): void => {
+    event.stopPropagation();
+    event.preventDefault();
+    void catalog.promote(specimenId);
+  };
 
 export const createCatalog = (client: SpecimenRpcClient): CatalogSurface => {
   const store = stx<CatalogState>(initialCatalogState);
@@ -210,10 +222,22 @@ export const createCatalog = (client: SpecimenRpcClient): CatalogSurface => {
       yield* selectEffect(intakeOutcome.success.specimenId);
     });
 
+  const promoteEffect = (specimenId: SpecimenId) =>
+    Effect.gen(function* () {
+      const outcome = yield* Effect.result(client.Promote({ specimenId }));
+      if (Result.isFailure(outcome)) {
+        patch({ listError: messageOf(outcome.failure) });
+        return;
+      }
+      yield* listEffect;
+      yield* selectEffect(specimenId);
+    });
+
   return {
     store,
     list: () => Effect.runPromise(listEffect),
     select: (specimenId) => Effect.runPromise(selectEffect(specimenId)),
+    promote: (specimenId) => Effect.runPromise(promoteEffect(specimenId)),
     intakeFile: (file) => Effect.runPromise(intakeEffect(file)),
     intakeFiles: async (files) => {
       for (const file of files) {

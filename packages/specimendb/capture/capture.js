@@ -151,10 +151,10 @@ const onFile = () => {
   syncStampEnabled();
 };
 
-const stampedName = (file) => {
-  const base = file.name.replace(/\.[^/.]+$/, "");
-  const safe = base.length > 0 ? base : "specimen";
-  return `${safe}-stamped.jpg`;
+/** Local device clock: specimen-YYYYMMDD-HHmmss.jpg */
+const stampedName = (date = new Date()) => {
+  const stamp = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return `specimen-${stamp}.jpg`;
 };
 
 /**
@@ -206,7 +206,7 @@ const stamp = async () => {
       setWork("error", "stamp failed", result.error ?? "writeMetadata returned no data");
       return;
     }
-    downloadJpeg(result.data, stampedName(chosenFile));
+    downloadJpeg(result.data, stampedName());
     const gpsNote =
       geoFix === null
         ? "locality unknown — DateTimeOriginal only, no GPS tags"

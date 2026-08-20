@@ -184,3 +184,7 @@ button.sdb-c-card {
   color: #a8a29e;
   font-size: 11px;
 }
+
+[data-promote] {
+  cursor: pointer;
+}

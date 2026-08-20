@@ -1,5 +1,5 @@
 /**
- * Browser-safe in-memory Intake/Get/List client.
+ * Browser-safe in-memory Intake/Get/List/Promote client.
  * Same EXIF/locality rules as the catalog. Does not import PGlite or node:fs.
  *
  * @module
@@ -16,7 +16,7 @@ import {
 } from '../src/schemas/components.js';
 import { SpecimenNotFoundError } from '../src/schemas/errors.js';
 import { trustSpecimenId, type SpecimenId } from '../src/schemas/identifiers.js';
-import type { IntakePayload, IntakeResult, Specimen } from '../src/schemas/specimen.js';
+import { nextStatus, statusOf, type IntakePayload, type IntakeResult, type Specimen } from '../src/schemas/specimen.js';
 import { detectMediaKind, extractExifTags, gpsFromExif } from '../src/media/exif.js';
 import type { SpecimenRpcClient } from '../src/ui/catalog-stx.js';
 
@@ -103,7 +103,25 @@ export const makeMemoryRepo = () => {
   const list = () =>
     Effect.sync(() => [...rows.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
 
-  return { intake, get, list };
+  const promote = (specimenId: SpecimenId) =>
+    Effect.gen(function* () {
+      const specimen = yield* get(specimenId);
+      const current = statusOf(specimen) ?? 'raw';
+      if (current === 'dead') return specimen;
+      const next = nextStatus(current);
+      const replacement = new StatusComponent({ value: next });
+      const hasStatus = specimen.components.some((component) => component._tag === 'Status');
+      const components = hasStatus
+        ? specimen.components.map((component) =>
+            component._tag === 'Status' ? replacement : component,
+          )
+        : [replacement, ...specimen.components];
+      const updated: Specimen = { ...specimen, components };
+      rows.set(specimenId, updated);
+      return updated;
+    });
+
+  return { intake, get, list, promote };
 };
 
 export const makeMemoryClient = (): SpecimenRpcClient => {
@@ -112,5 +130,6 @@ export const makeMemoryClient = (): SpecimenRpcClient => {
     Intake: (payload) => repo.intake(payload),
     Get: (payload) => repo.get(payload.specimenId),
     List: () => repo.list(),
+    Promote: (payload) => repo.promote(payload.specimenId),
   };
 };

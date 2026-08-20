@@ -315,3 +315,7 @@ button.sdb-a-card {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
 }
+
+[data-promote] {
+  cursor: pointer;
+}

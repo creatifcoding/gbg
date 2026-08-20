@@ -10,7 +10,7 @@ import { useFocus, useStx } from '@tmnl/stx';
 import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
-import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { claimLine } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import './assay.css';
@@ -37,11 +37,18 @@ const ENV_ROWS = ['SALINITY', 'PRESSURE', 'CURRENT'] as const;
 const StatusChip = ({
   status,
   testId,
+  onPromote,
 }: {
   readonly status: SpecimenStatus;
   readonly testId?: string;
+  readonly onPromote?: (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }) => void;
 }) => (
-  <span className="sdb-a-chip" data-status={status} data-testid={testId}>
+  <span
+    className="sdb-a-chip"
+    data-status={status}
+    data-testid={testId}
+    {...(onPromote !== undefined ? { 'data-promote': 'true', onClick: onPromote } : {})}
+  >
     {status}
   </span>
 );
@@ -187,7 +194,11 @@ function WorkingPanelCard({ specimen }: { readonly specimen: Specimen }) {
         <span className="sdb-a-id" data-testid="specimen-id">
           {specimen.id}
         </span>
-        <StatusChip status={status} testId="status-pill" />
+        <StatusChip
+          status={status}
+          testId="status-pill"
+          onPromote={onStatusPromote(catalog, specimen.id)}
+        />
       </div>
       <p className="sdb-a-claim" data-testid="claim">
         {claimLine(specimen)}
@@ -223,7 +234,13 @@ function WorkingPanelFocus() {
           </p>
         ) : null}
       </div>
-      {status !== undefined ? <StatusChip status={status} testId="detail-status" /> : null}
+      {status !== undefined && selected !== null ? (
+        <StatusChip
+          status={status}
+          testId="detail-status"
+          onPromote={onStatusPromote(catalog, selected.id)}
+        />
+      ) : null}
     </header>
   );
 }

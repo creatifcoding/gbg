@@ -11,6 +11,7 @@ Understanding is attaching components later. A JPEG or HEIC with no GPS still fi
 | `Intake` | Copy the original file into catalog assets, extract EXIF sidecar tags, attach whatever arrived. Raw is enough. |
 | `Get` | Fetch one specimen by `SpecimenId`. |
 | `List` | List specimens. No required filters. |
+| `Promote` | Write Status one step: `raw → filed → working → dead`. Dead stays dead. Same Specimen type. |
 
 ## Components
 
@@ -35,22 +36,22 @@ Now-rows on every page: Intake, List, Get on select, Status, Claim, Media bytes 
 
 Locality is the word `unknown` unless the file actually had EXIF GPS. The UI does not invent coordinates, elevation, temperature, taxon, ML confidence, or accession strings.
 
-Status pills: `raw` amber, `filed` cyan, `working` emerald, `dead` rose. Assay uses `#f59e0b` / `#06b6d4` / `#10b981` / `#f43f5e`. Machine is `raw → filed → working → dead`.
+Status pills: `raw` amber, `filed` cyan, `working` emerald, `dead` rose. Assay uses `#f59e0b` / `#06b6d4` / `#10b981` / `#f43f5e`. Machine is `raw → filed → working → dead`. Clicking a real card's status chrome calls Promote. Empty card chrome does not.
 
 ## Testbed
 
-In-memory Intake/Get/List client (same EXIF/locality rules, no PGlite rewrite):
+In-memory Intake/Get/List/Promote client (same EXIF/locality rules, no PGlite rewrite):
 
 ```sh
 cd packages/specimendb
 bun run testbed
 ```
 
-Opens Vite at `http://localhost:4177`. Routes: `/intake`, `/rail`, `/assay`, `/dactyl`, `/catalog`, `/accession`. Drop a JPEG onto an intake zone. A file without GPS should show `raw` and `unknown`.
+Opens Vite at `https://localhost:4177` (self-signed). Routes: `/intake`, `/rail`, `/assay`, `/dactyl`, `/catalog`, `/accession`. Phone capture is static at `/capture/` — it is not the React SPA and does not call Intake. Drop a JPEG onto an intake zone. A file without GPS should show `raw` and `unknown`.
 
 ## Field capture
 
-Static page in [`capture/`](./capture/): stamp GPS + DateTimeOriginal into a JPEG in the browser and download it. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to PGlite or RPC.
+Static page in [`capture/`](./capture/), also served at `/capture/` on the testbed (HTTPS). Stamp GPS + DateTimeOriginal into a JPEG in the browser and download `specimen-YYYYMMDD-HHmmss.jpg`. Denied geo → locality unknown; GPS is not invented. The photo never uploads. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to PGlite or RPC.
 
 ## Versions
 

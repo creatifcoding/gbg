@@ -38,7 +38,7 @@ Runtime loads `@uswriting/exiftool` and `@6over3/zeroperl-ts` from `vendor/`. Th
 
 `capture.js` passes a custom `fetch` into `writeMetadata(file, tags, { fetch })` so `./zeroperl.wasm` resolves to `vendor/zeroperl.wasm` instead of the HTML document URL.
 
-Stamp API: `writeMetadata(file, tags)` with the browser `File` from the input — not a pre-converted `ArrayBuffer`. On success the page downloads `result.data` as a JPEG.
+Stamp API: `writeMetadata(file, tags)` with the browser `File` from the input — not a pre-converted `ArrayBuffer`. On success the page downloads `result.data` as `specimen-YYYYMMDD-HHmmss.jpg` (local device clock).
 
 ### Re-vendor
 

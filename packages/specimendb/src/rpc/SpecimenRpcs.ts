@@ -30,7 +30,13 @@ export const List = Rpc.make('List', {
   error: CatalogError,
 });
 
-export class SpecimenRpcs extends RpcGroup.make(Intake, Get, List) {}
+export const Promote = Rpc.make('Promote', {
+  payload: GetPayload,
+  success: Specimen,
+  error: Schema.Union([CatalogError, SpecimenNotFoundError]),
+});
+
+export class SpecimenRpcs extends RpcGroup.make(Intake, Get, List, Promote) {}
 
 export const SpecimenRpcsLive = SpecimenRpcs.toLayer(
   Effect.gen(function* () {
@@ -39,6 +45,7 @@ export const SpecimenRpcsLive = SpecimenRpcs.toLayer(
       Intake: (payload) => repo.intake(payload),
       Get: (payload) => repo.get(payload.specimenId),
       List: () => repo.list(),
+      Promote: (payload) => repo.promote(payload.specimenId),
     });
   }),
 );

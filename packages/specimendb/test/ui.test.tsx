@@ -7,7 +7,7 @@ import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { StatusComponent, LocalityComponent } from '../src/schemas/components.js';
 import { trustSpecimenId } from '../src/schemas/identifiers.js';
-import { localityOf, statusOf } from '../src/schemas/specimen.js';
+import { localityOf, nextStatus, statusOf } from '../src/schemas/specimen.js';
 import type { Specimen } from '../src/schemas/specimen.js';
 import { createCatalog, type SpecimenRpcClient } from '../src/ui/catalog-stx.js';
 import { AnalogCard } from '../src/ui/AnalogCard.js';
@@ -78,10 +78,34 @@ function AccessionPage({ client }: { readonly client: SpecimenRpcClient }) {
   return React.createElement(DossierView, { catalog });
 }
 
+const promotingClient = (initial: Specimen) => {
+  let specimen = initial;
+  const calls = { promote: 0 };
+  const client: SpecimenRpcClient = {
+    List: () => Effect.succeed([specimen]),
+    Get: () => Effect.succeed(specimen),
+    Intake: () => Effect.die('Intake should not run'),
+    Promote: () => {
+      calls.promote += 1;
+      const current = statusOf(specimen) ?? 'raw';
+      const next = nextStatus(current);
+      specimen = {
+        ...specimen,
+        components: specimen.components.map((component) =>
+          component._tag === 'Status' ? new StatusComponent({ value: next }) : component,
+        ),
+      };
+      return Effect.succeed(specimen);
+    },
+  };
+  return { client, calls };
+};
+
 const emptyClient = (): SpecimenRpcClient => ({
   List: () => Effect.succeed([]),
   Get: () => Effect.die('Get should not run on empty catalog'),
   Intake: () => Effect.die('Intake should not run'),
+  Promote: () => Effect.die('Promote should not run on empty catalog'),
 });
 
 describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
@@ -125,6 +149,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
         items = [next];
         return Effect.succeed({ specimenId: id, components: next.components });
       },
+      Promote: () => Effect.die('Promote should not run'),
     };
 
     const view = render(React.createElement(TerminalPage, { client }));
@@ -189,6 +214,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       },
       Get: () => Effect.die('Get should not run'),
       Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
     };
 
     const view = render(React.createElement(WorkbenchPage, { client }));
@@ -246,6 +272,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       Get: (payload) =>
         Effect.succeed(payload.specimenId === filedId ? filed : raw),
       Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
     };
 
     const view = render(React.createElement(WorkbenchPage, { client }));
@@ -292,6 +319,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
         intake += 1;
         return Effect.die('csv is later');
       },
+      Promote: () => Effect.die('Promote should not run'),
     };
     const view = render(React.createElement(TerminalPage, { client }));
     await waitFor(() => {
@@ -341,6 +369,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
         items = [next];
         return Effect.succeed({ specimenId: id, components: next.components });
       },
+      Promote: () => Effect.die('Promote should not run'),
     };
     const view = render(React.createElement(WorkbenchPage, { client }));
     await waitFor(() => {
@@ -555,6 +584,7 @@ describe('six full pages', () => {
           items = [next];
           return Effect.succeed({ specimenId: id, components: next.components });
         },
+        Promote: () => Effect.die('Promote should not run'),
       };
     };
 
@@ -603,6 +633,70 @@ describe('six full pages', () => {
     expect(dactyl).toContain('width: 320px');
   });
 
+  it('status chrome promotes raw → filed → working → dead on every page and stops', async () => {
+    const pages = [TerminalPage, WorkbenchPage, AssayPage, DactylPage, CatalogPage, AccessionPage];
+    for (const Page of pages) {
+      const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+      const { client, calls } = promotingClient({
+        id,
+        createdAt: '2026-08-20T00:00:00.000Z',
+        components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+      });
+      const view = render(React.createElement(Page, { client }));
+      await waitFor(() => {
+        expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+      });
+      for (const status of ['filed', 'working', 'dead'] as const) {
+        await act(async () => {
+          fireEvent.click(view.getByTestId('status-pill'));
+        });
+        await waitFor(() => {
+          expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(status);
+        });
+      }
+      await act(async () => {
+        fireEvent.click(view.getByTestId('status-pill'));
+      });
+      await waitFor(() => {
+        expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('dead');
+      });
+      expect(calls.promote).toBe(4);
+      view.unmount();
+    }
+  });
+
+  it('empty card chrome does not Promote', async () => {
+    let promote = 0;
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([]),
+      Get: () => Effect.die('Get should not run on empty catalog'),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => {
+        promote += 1;
+        return Effect.die('Promote should not run');
+      },
+    };
+    const view = render(React.createElement(TerminalPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('card-chrome')).toBeTruthy();
+    });
+    const chromeStatus = view.getByTestId('card-chrome').querySelector('[data-status="raw"]');
+    expect(chromeStatus).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(chromeStatus!);
+    });
+    expect(promote).toBe(0);
+    expect(view.getByTestId('card-chrome').querySelector('[data-promote]')).toBeNull();
+    const analysis = [...view.container.querySelectorAll('[data-status="working"]')].find((node) =>
+      node.textContent?.includes('ANALYSIS_ACTIVE'),
+    );
+    expect(analysis).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(analysis!);
+    });
+    expect(promote).toBe(0);
+  });
+
   it('commits the functionalization journal as SoT with the now-rows', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
@@ -643,5 +737,10 @@ describe('six full pages', () => {
     expect(journal).toContain('never');
     expect(journal).toContain('F-091');
     expect(journal).toContain('Specimen is the only type');
+    expect(journal).toContain('F-106');
+    expect(journal).toContain('F-107');
+    expect(journal).toContain('F-108');
+    expect(journal).toContain('F-109');
+    expect(journal).toContain('Promote');
   });
 });

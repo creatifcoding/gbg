@@ -11,7 +11,7 @@ import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { heicWithoutGps, jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { gpsFromExif, extractExifTags } from '../src/media/exif.js';
-import { exifOf, localityOf, localityStateOf, mediaOf, statusOf } from '../src/schemas/specimen.js';
+import { exifOf, localityOf, localityStateOf, mediaOf, nextStatus, statusOf } from '../src/schemas/specimen.js';
 import { specimenSurface } from '../src/surface.js';
 import { layer } from '../src/layers.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
@@ -38,6 +38,15 @@ const readUtf8 = (path: string) => Effect.tryPromise(() => readFile(path, 'utf8'
 const readBytes = (path: string) => Effect.tryPromise(() => readFile(path));
 const exists = (path: string) =>
   Effect.tryPromise(() => access(path)).pipe(Effect.as(true), Effect.orElseSucceed(() => false));
+
+describe('status machine', () => {
+  it('advances raw → filed → working → dead and stays dead', () => {
+    expect(nextStatus('raw')).toBe('filed');
+    expect(nextStatus('filed')).toBe('working');
+    expect(nextStatus('working')).toBe('dead');
+    expect(nextStatus('dead')).toBe('dead');
+  });
+});
 
 describe('exif gps extraction', () => {
   it('does not invent GPS for a JPEG without EXIF', () => {
@@ -112,6 +121,16 @@ describe('Intake / Get / List', () => {
         expect(statusOf(listedHit!)).toBe('raw');
         expect(localityOf(listedHit!)?.state).toBe('unknown');
         expect(exifOf(listedHit!)?.sidecarPath).toBe(exif?.sidecarPath);
+
+        const filed = yield* client.Promote({ specimenId: intake.specimenId });
+        expect(statusOf(filed)).toBe('filed');
+        const working = yield* client.Promote({ specimenId: intake.specimenId });
+        expect(statusOf(working)).toBe('working');
+        const dead = yield* client.Promote({ specimenId: intake.specimenId });
+        expect(statusOf(dead)).toBe('dead');
+        const stillDead = yield* client.Promote({ specimenId: intake.specimenId });
+        expect(statusOf(stillDead)).toBe('dead');
+        expect(localityOf(stillDead)?.state).toBe('unknown');
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });

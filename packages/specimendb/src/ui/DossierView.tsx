@@ -10,7 +10,7 @@ import { useFocus, useStx } from '@tmnl/stx';
 import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
-import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
+import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { claimLine, imgSrcLabel } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import './accession.css';
@@ -36,11 +36,18 @@ const SPECTRAL_BANDS = ['UV', 'VIOLET', 'BLUE', 'GREEN', 'RED', 'NIR'] as const;
 const StatusChip = ({
   status,
   testId,
+  onPromote,
 }: {
   readonly status: SpecimenStatus;
   readonly testId?: string;
+  readonly onPromote?: (event: { readonly stopPropagation: () => void; readonly preventDefault: () => void }) => void;
 }) => (
-  <span className="sdb-x-chip" data-status={status} data-testid={testId}>
+  <span
+    className="sdb-x-chip"
+    data-status={status}
+    data-testid={testId}
+    {...(onPromote !== undefined ? { 'data-promote': 'true', onClick: onPromote } : {})}
+  >
     {status}
   </span>
 );
@@ -181,7 +188,13 @@ function DossierThumb({
       <span className="sdb-x-id" data-testid="specimen-id">
         {specimen.id}
       </span>
-      <span className="sdb-x-chip" data-status={status} data-testid="status-pill">
+      <span
+        className="sdb-x-chip"
+        data-status={status}
+        data-testid="status-pill"
+        data-promote="true"
+        onClick={onStatusPromote(catalog, specimen.id)}
+      >
         {status}
       </span>
       <span data-testid="locality">{localityLabel(specimen)}</span>
@@ -217,7 +230,13 @@ function DossierViewBody() {
           <p className="sdb-x-claim" data-testid="detail-claim">
             {selected === null ? '' : claimLine(selected)}
           </p>
-          {status !== undefined ? <StatusChip status={status} testId="detail-status" /> : (
+          {status !== undefined && selected !== null ? (
+            <StatusChip
+              status={status}
+              testId="detail-status"
+              onPromote={onStatusPromote(catalog, selected.id)}
+            />
+          ) : (
             <span className="sdb-x-chip" data-status="raw">
               raw
             </span>
