@@ -1,0 +1,11 @@
+(kicad_sch (version 20230121) (generator mantis-ee-23)
+  (uuid 23ee0000-0000-4000-8000-000000000001)
+  (paper "A3")
+  (title_block
+    (title "Mantis EE-01 library smoke")
+    (date "2026-08-20")
+    (rev "B-draft")
+    (comment 1 "Issue 23. Theoretical. Not for fabrication.")
+    (comment 2 "ERC of unconnected pins is expected until kicad-cli is in the runtime.")
+  )
+)

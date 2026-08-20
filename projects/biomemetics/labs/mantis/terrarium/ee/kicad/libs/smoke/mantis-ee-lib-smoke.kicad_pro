@@ -1,0 +1,10 @@
+{
+  "board": { "design_settings": {} },
+  "meta": { "filename": "mantis-ee-lib-smoke.kicad_pro", "version": 1 },
+  "sheets": [ ["mantis-ee-lib-smoke.kicad_sch", "23ee0000-0000-4000-8000-000000000001"] ],
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": ["mantis-ee"],
+    "pinned_fp_libs": ["mantis-ee"]
+  }
+}
