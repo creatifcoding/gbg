@@ -39,6 +39,45 @@
   box-sizing: border-box;
 }
 
+/* Terminal 4px scrollbar chrome. Visible on every overflow. Do not hide. */
+.sdb-terminal,
+.sdb-workbench,
+.sdb-terminal *,
+.sdb-workbench * {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #000000;
+}
+
+.sdb-terminal::-webkit-scrollbar,
+.sdb-workbench::-webkit-scrollbar,
+.sdb-terminal *::-webkit-scrollbar,
+.sdb-workbench *::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.sdb-terminal::-webkit-scrollbar-track,
+.sdb-workbench::-webkit-scrollbar-track,
+.sdb-terminal *::-webkit-scrollbar-track,
+.sdb-workbench *::-webkit-scrollbar-track {
+  background: #000000;
+  border-left: 1px solid #1a1a1a;
+}
+
+.sdb-terminal::-webkit-scrollbar-thumb,
+.sdb-workbench::-webkit-scrollbar-thumb,
+.sdb-terminal *::-webkit-scrollbar-thumb,
+.sdb-workbench *::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+
+.sdb-terminal::-webkit-scrollbar-thumb:hover,
+.sdb-workbench::-webkit-scrollbar-thumb:hover,
+.sdb-terminal *::-webkit-scrollbar-thumb:hover,
+.sdb-workbench *::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
 .sdb-file-input {
   display: none;
 }
@@ -578,6 +617,7 @@ button.sdb-t-card {
   flex: 1;
   min-height: 192px;
   padding: 16px;
+  overflow: auto;
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1.7;

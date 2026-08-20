@@ -384,4 +384,21 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       ).pipe(Effect.provide(MemoryCatalogLive)) as Effect.Effect<void>,
     );
   });
+
+  it('keeps the Terminal 4px scrollbar chrome visible on both pages', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/catalog.css'), 'utf8');
+    expect(css).toContain('width: 4px');
+    expect(css).toContain('height: 4px');
+    expect(css).toContain('scrollbar-width: thin');
+    expect(css).toContain('scrollbar-color: #333333 #000000');
+    expect(css).toContain('background: #000000');
+    expect(css).toContain('border-left: 1px solid #1a1a1a');
+    expect(css).toContain('background: #333333');
+    expect(css).toContain('background: #555555');
+    expect(css).toContain('::-webkit-scrollbar');
+    expect(css).not.toContain('scrollbar-width: none');
+    expect(css).not.toMatch(/::-webkit-scrollbar\s*\{[^}]*display:\s*none/);
+  });
 });
