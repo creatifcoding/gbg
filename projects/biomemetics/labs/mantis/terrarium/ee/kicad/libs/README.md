@@ -2,6 +2,8 @@
 
 Issue 23. Theoretical. Not a shop release.
 
+Attested model slug for this leaf: `cursor-grok-4.6-high` (non-fast). Operator waived Grok 4.5 vs 4.6. Recorded in `sources.lock.json`.
+
 Native KiCad in this directory is electrical authority for the sourced
 interfaces. The SVG sheet is not.
 

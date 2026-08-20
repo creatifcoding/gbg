@@ -894,6 +894,7 @@ def write_lock() -> dict:
             "thisRun": "cursor-grok-4.6-high",
             "fast": False,
             "operatorWaiver": True,
+            "run": "bc-ff4a9f87-dde3-4d9e-bd4c-349b8dab2a5a",
         },
         "sources": [
             {
