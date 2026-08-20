@@ -1,0 +1,212 @@
+/* Vanta Black tokens — copied from packages/tmnl/src/components/portal/tokens.ts
+   Product CSS must use only these --vanta-* variables (no raw hex/rgb/rgba). */
+
+:root {
+  --font-label: "Share Tech Mono";
+  --font-heading: "Space Grotesk";
+  --font-body: "Geo";
+  --font-stats: "Geo";
+  --tmnl-text-xs: 12px;
+  --tmnl-text-sm: 14px;
+
+  --vanta-colors-surface-void: #000000;
+  --vanta-colors-surface-base: #030303;
+  --vanta-colors-surface-elevated: #0a0a0a;
+  --vanta-colors-surface-raised: #111111;
+  --vanta-colors-surface-border: #1a1a1a;
+  --vanta-colors-surface-hover: #1f1f1f;
+  --vanta-colors-surface-default: #0a0a0a;
+
+  --vanta-colors-text-primary: #e5e5e5;
+  --vanta-colors-text-secondary: #a3a3a3;
+  --vanta-colors-text-tertiary: #737373;
+  --vanta-colors-text-muted: #525252;
+  --vanta-colors-text-inverse: #000000;
+
+  --vanta-colors-accent-cyan: #22d3ee;
+  --vanta-colors-accent-cyan-muted: #0891b2;
+  --vanta-colors-accent-cyan-glow: rgba(34, 211, 238, 0.15);
+  --vanta-colors-accent-emerald: #34d399;
+  --vanta-colors-accent-emerald-muted: #059669;
+  --vanta-colors-accent-emerald-glow: rgba(52, 211, 153, 0.15);
+  --vanta-colors-accent-amber: #fbbf24;
+  --vanta-colors-accent-amber-muted: #d97706;
+  --vanta-colors-accent-amber-glow: rgba(251, 191, 36, 0.15);
+  --vanta-colors-accent-rose: #fb7185;
+  --vanta-colors-accent-rose-muted: #e11d48;
+  --vanta-colors-accent-rose-glow: rgba(251, 113, 133, 0.15);
+  --vanta-colors-accent-violet: #a78bfa;
+  --vanta-colors-accent-violet-muted: #7c3aed;
+  --vanta-colors-accent-violet-glow: rgba(167, 139, 250, 0.15);
+  --vanta-colors-accent-neutral: #a3a3a3;
+  --vanta-colors-accent-neutral-muted: #737373;
+
+  --vanta-colors-gradient-surface: linear-gradient(180deg, #050505 0%, #000000 100%);
+  --vanta-colors-gradient-depth: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+  --vanta-colors-gradient-border-glow: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --vanta-colors-gradient-scanlines: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+
+  --vanta-typography-family-mono: var(--font-label), "Share Tech Mono", monospace;
+  --vanta-typography-family-grotesk: var(--font-heading), "Space Grotesk", sans-serif;
+  --vanta-typography-family-sans: var(--font-body), "Geo", sans-serif;
+  --vanta-typography-family-data: var(--font-stats), "Geo", sans-serif;
+
+  --vanta-typography-size-2xs: 0.625rem;
+  --vanta-typography-size-xs: 0.6875rem;
+  --vanta-typography-size-sm: 0.75rem;
+  --vanta-typography-size-base: 0.8125rem;
+  --vanta-typography-size-md: 0.875rem;
+  --vanta-typography-size-lg: 1rem;
+  --vanta-typography-size-xl: 1.125rem;
+  --vanta-typography-size-2xl: 1.25rem;
+  --vanta-typography-size-3xl: 1.5rem;
+
+  --vanta-typography-weight-normal: 400;
+  --vanta-typography-weight-medium: 500;
+  --vanta-typography-weight-semibold: 600;
+  --vanta-typography-weight-bold: 700;
+
+  --vanta-typography-tracking-tight: -0.025em;
+  --vanta-typography-tracking-normal: 0;
+  --vanta-typography-tracking-wide: 0.025em;
+  --vanta-typography-tracking-wider: 0.05em;
+  --vanta-typography-tracking-widest: 0.1em;
+
+  --vanta-typography-leading-none: 1;
+  --vanta-typography-leading-tight: 1.25;
+  --vanta-typography-leading-snug: 1.375;
+  --vanta-typography-leading-normal: 1.5;
+  --vanta-typography-leading-relaxed: 1.625;
+
+  --vanta-typography-preset-card-title-font-family: var(--font-heading), "Space Grotesk", sans-serif;
+  --vanta-typography-preset-card-title-font-size: var(--tmnl-text-xs, 12px);
+  --vanta-typography-preset-card-title-font-weight: 500;
+  --vanta-typography-preset-card-title-letter-spacing: 0.1em;
+  --vanta-typography-preset-card-title-line-height: 1.25;
+  --vanta-typography-preset-card-title-text-transform: uppercase;
+
+  --vanta-typography-preset-card-subtitle-font-family: var(--font-body), "Geo", sans-serif;
+  --vanta-typography-preset-card-subtitle-font-size: var(--tmnl-text-xs, 12px);
+  --vanta-typography-preset-card-subtitle-font-weight: 400;
+  --vanta-typography-preset-card-subtitle-letter-spacing: 0.02em;
+  --vanta-typography-preset-card-subtitle-line-height: 1.5;
+
+  --vanta-typography-preset-card-body-font-family: var(--font-body), "Geo", sans-serif;
+  --vanta-typography-preset-card-body-font-size: var(--tmnl-text-sm, 14px);
+  --vanta-typography-preset-card-body-font-weight: 400;
+  --vanta-typography-preset-card-body-letter-spacing: 0.02em;
+  --vanta-typography-preset-card-body-line-height: 1.625;
+
+  --vanta-typography-preset-label-font-family: var(--font-label), "Share Tech Mono", monospace;
+  --vanta-typography-preset-label-font-size: var(--tmnl-text-xs, 12px);
+  --vanta-typography-preset-label-font-weight: 500;
+  --vanta-typography-preset-label-letter-spacing: 0.15em;
+  --vanta-typography-preset-label-line-height: 1;
+  --vanta-typography-preset-label-text-transform: uppercase;
+
+  --vanta-typography-preset-value-font-family: var(--font-stats), "Geo", sans-serif;
+  --vanta-typography-preset-value-font-size: var(--tmnl-text-sm, 14px);
+  --vanta-typography-preset-value-font-weight: 600;
+  --vanta-typography-preset-value-letter-spacing: 0.025em;
+  --vanta-typography-preset-value-line-height: 1.25;
+
+  --vanta-typography-preset-micro-font-family: var(--font-label), "Share Tech Mono", monospace;
+  --vanta-typography-preset-micro-font-size: var(--tmnl-text-xs, 12px);
+  --vanta-typography-preset-micro-font-weight: 400;
+  --vanta-typography-preset-micro-letter-spacing: 0.05em;
+  --vanta-typography-preset-micro-line-height: 1;
+
+  --vanta-spacing-unit: 4px;
+  --vanta-spacing-0: 0;
+  --vanta-spacing-px: 1px;
+  --vanta-spacing-0-5: 2px;
+  --vanta-spacing-1: 4px;
+  --vanta-spacing-1-5: 6px;
+  --vanta-spacing-2: 8px;
+  --vanta-spacing-2-5: 10px;
+  --vanta-spacing-3: 12px;
+  --vanta-spacing-4: 16px;
+  --vanta-spacing-5: 20px;
+  --vanta-spacing-6: 24px;
+  --vanta-spacing-8: 32px;
+  --vanta-spacing-10: 40px;
+  --vanta-spacing-12: 48px;
+  --vanta-spacing-16: 64px;
+  --vanta-spacing-card-padding: 16px;
+  --vanta-spacing-card-padding-compact: 12px;
+  --vanta-spacing-card-gap: 12px;
+  --vanta-spacing-card-gap-compact: 8px;
+
+  --vanta-borders-width-none: 0;
+  --vanta-borders-width-thin: 1px;
+  --vanta-borders-width-medium: 2px;
+  --vanta-borders-radius-none: 0;
+  --vanta-borders-radius-sm: 2px;
+  --vanta-borders-radius-md: 4px;
+  --vanta-borders-radius-lg: 6px;
+  --vanta-borders-style-default: 1px solid var(--vanta-colors-surface-border);
+  --vanta-borders-style-subtle: 1px solid rgba(255, 255, 255, 0.05);
+  --vanta-borders-style-hairline: 1px solid rgba(255, 255, 255, 0.12);
+  --vanta-borders-style-crisp: 1px solid rgba(255, 255, 255, 0.18);
+  --vanta-borders-style-accent: 1px solid var(--vanta-colors-accent-cyan);
+  --vanta-borders-style-dashed: 1px dashed var(--vanta-colors-surface-border);
+
+  --vanta-borders-shadow-none: none;
+  --vanta-borders-shadow-ambient: 0 0 20px rgba(0, 0, 0, 0.5);
+  --vanta-borders-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --vanta-borders-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --vanta-borders-shadow-glow-cyan: 0 0 14px var(--vanta-colors-accent-cyan-glow);
+  --vanta-borders-shadow-glow-emerald: 0 0 20px var(--vanta-colors-accent-emerald-glow);
+  --vanta-borders-shadow-glow-amber: 0 0 20px var(--vanta-colors-accent-amber-glow);
+  --vanta-borders-shadow-glow-rose: 0 0 20px var(--vanta-colors-accent-rose-glow);
+  --vanta-borders-shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  --vanta-animation-duration-instant: 0ms;
+  --vanta-animation-duration-fast: 100ms;
+  --vanta-animation-duration-normal: 200ms;
+  --vanta-animation-duration-slow: 300ms;
+  --vanta-animation-duration-slower: 500ms;
+  --vanta-animation-duration-slowest: 800ms;
+  --vanta-animation-easing-linear: linear;
+  --vanta-animation-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --vanta-animation-easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --vanta-animation-easing-out: cubic-bezier(0, 0, 0.2, 1);
+  --vanta-animation-easing-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --vanta-animation-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --vanta-animation-transition-colors: color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --vanta-animation-transition-opacity: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --vanta-animation-transition-transform: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --vanta-animation-transition-all: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --vanta-animation-transition-shadow: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --vanta-card-default-background: var(--vanta-colors-gradient-surface);
+  --vanta-card-default-border: var(--vanta-borders-style-subtle);
+  --vanta-card-default-border-radius: var(--vanta-borders-radius-sm);
+  --vanta-card-default-box-shadow: var(--vanta-borders-shadow-card);
+  --vanta-card-default-padding: var(--vanta-spacing-card-padding);
+
+  --vanta-card-elevated-background: var(--vanta-colors-gradient-surface);
+  --vanta-card-elevated-border: var(--vanta-borders-style-default);
+  --vanta-card-elevated-border-radius: var(--vanta-borders-radius-md);
+  --vanta-card-elevated-box-shadow: var(--vanta-borders-shadow-elevated);
+  --vanta-card-elevated-padding: var(--vanta-spacing-card-padding);
+
+  --vanta-card-compact-background: var(--vanta-colors-surface-base);
+  --vanta-card-compact-border: var(--vanta-borders-style-subtle);
+  --vanta-card-compact-border-radius: var(--vanta-borders-radius-none);
+  --vanta-card-compact-box-shadow: var(--vanta-borders-shadow-none);
+  --vanta-card-compact-padding: var(--vanta-spacing-card-padding-compact);
+
+  --vanta-card-ghost-background: transparent;
+  --vanta-card-ghost-border: none;
+  --vanta-card-ghost-border-radius: var(--vanta-borders-radius-none);
+  --vanta-card-ghost-box-shadow: var(--vanta-borders-shadow-none);
+  --vanta-card-ghost-padding: var(--vanta-spacing-card-padding);
+}

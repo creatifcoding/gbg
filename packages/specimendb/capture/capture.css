@@ -1,0 +1,228 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: var(--vanta-spacing-0);
+  min-height: 100%;
+  background: var(--vanta-colors-surface-void);
+  color: var(--vanta-colors-text-primary);
+  font-family: var(--vanta-typography-family-sans);
+  font-size: var(--vanta-typography-size-sm);
+  font-weight: var(--vanta-typography-weight-normal);
+  letter-spacing: var(--vanta-typography-tracking-normal);
+  line-height: var(--vanta-typography-leading-normal);
+}
+
+body {
+  background-image: var(--vanta-colors-gradient-surface);
+}
+
+.page {
+  max-width: 40rem;
+  margin: var(--vanta-spacing-0) auto;
+  padding: var(--vanta-spacing-6) var(--vanta-spacing-4) var(--vanta-spacing-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vanta-spacing-card-gap);
+}
+
+.chrome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vanta-spacing-2);
+}
+
+.title {
+  margin: var(--vanta-spacing-0);
+  font-family: var(--vanta-typography-preset-card-title-font-family);
+  font-size: var(--vanta-typography-size-lg);
+  font-weight: var(--vanta-typography-preset-card-title-font-weight);
+  letter-spacing: var(--vanta-typography-preset-card-title-letter-spacing);
+  line-height: var(--vanta-typography-preset-card-title-line-height);
+  text-transform: var(--vanta-typography-preset-card-title-text-transform);
+  color: var(--vanta-colors-text-primary);
+}
+
+.lede {
+  margin: var(--vanta-spacing-0);
+  font-family: var(--vanta-typography-preset-card-body-font-family);
+  font-size: var(--vanta-typography-preset-card-body-font-size);
+  font-weight: var(--vanta-typography-preset-card-body-font-weight);
+  letter-spacing: var(--vanta-typography-preset-card-body-letter-spacing);
+  line-height: var(--vanta-typography-preset-card-body-line-height);
+  color: var(--vanta-colors-text-secondary);
+}
+
+.card-base {
+  background: var(--vanta-card-compact-background);
+  border: var(--vanta-card-compact-border);
+  border-radius: var(--vanta-borders-radius-sm);
+  box-shadow: var(--vanta-card-default-box-shadow);
+  padding: var(--vanta-spacing-card-padding);
+}
+
+.card-elevated {
+  background: var(--vanta-card-elevated-background);
+  border: var(--vanta-card-elevated-border);
+  border-radius: var(--vanta-card-elevated-border-radius);
+  box-shadow: var(--vanta-card-elevated-box-shadow);
+  padding: var(--vanta-card-elevated-padding);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vanta-spacing-card-gap);
+}
+
+.label {
+  font-family: var(--vanta-typography-preset-label-font-family);
+  font-size: var(--vanta-typography-preset-label-font-size);
+  font-weight: var(--vanta-typography-preset-label-font-weight);
+  letter-spacing: var(--vanta-typography-preset-label-letter-spacing);
+  line-height: var(--vanta-typography-preset-label-line-height);
+  text-transform: var(--vanta-typography-preset-label-text-transform);
+  color: var(--vanta-colors-text-tertiary);
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vanta-spacing-1);
+}
+
+.status-line {
+  font-family: var(--vanta-typography-preset-value-font-family);
+  font-size: var(--vanta-typography-preset-value-font-size);
+  font-weight: var(--vanta-typography-preset-value-font-weight);
+  letter-spacing: var(--vanta-typography-preset-value-letter-spacing);
+  line-height: var(--vanta-typography-preset-value-line-height);
+}
+
+.status-detail {
+  font-family: var(--vanta-typography-preset-micro-font-family);
+  font-size: var(--vanta-typography-preset-micro-font-size);
+  font-weight: var(--vanta-typography-preset-micro-font-weight);
+  letter-spacing: var(--vanta-typography-preset-micro-letter-spacing);
+  line-height: var(--vanta-typography-leading-snug);
+  color: var(--vanta-colors-text-muted);
+  word-break: break-word;
+}
+
+.status-acquiring {
+  color: var(--vanta-colors-accent-amber);
+}
+
+.status-fixed {
+  color: var(--vanta-colors-accent-emerald);
+}
+
+.status-unknown,
+.status-error {
+  color: var(--vanta-colors-accent-rose);
+}
+
+.status-success {
+  color: var(--vanta-colors-accent-emerald);
+}
+
+.file-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vanta-spacing-2);
+}
+
+.file-name {
+  font-family: var(--vanta-typography-preset-micro-font-family);
+  font-size: var(--vanta-typography-preset-micro-font-size);
+  font-weight: var(--vanta-typography-preset-micro-font-weight);
+  letter-spacing: var(--vanta-typography-preset-micro-letter-spacing);
+  color: var(--vanta-colors-text-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vanta-spacing-2);
+}
+
+.button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--vanta-spacing-0);
+  padding: var(--vanta-spacing-3) var(--vanta-spacing-4);
+  border: var(--vanta-borders-style-accent);
+  border-radius: var(--vanta-borders-radius-sm);
+  background: var(--vanta-colors-surface-elevated);
+  color: var(--vanta-colors-accent-cyan);
+  font-family: var(--vanta-typography-preset-label-font-family);
+  font-size: var(--vanta-typography-preset-label-font-size);
+  font-weight: var(--vanta-typography-preset-label-font-weight);
+  letter-spacing: var(--vanta-typography-preset-label-letter-spacing);
+  line-height: var(--vanta-typography-preset-label-line-height);
+  text-transform: var(--vanta-typography-preset-label-text-transform);
+  cursor: pointer;
+  transition: var(--vanta-animation-transition-shadow);
+}
+
+.button:hover:not(:disabled),
+.button:focus-visible {
+  box-shadow: var(--vanta-borders-shadow-glow-cyan);
+  outline: var(--vanta-borders-width-none);
+}
+
+.button:disabled {
+  border: var(--vanta-borders-style-default);
+  color: var(--vanta-colors-text-muted);
+  cursor: not-allowed;
+  box-shadow: var(--vanta-borders-shadow-none);
+}
+
+.button-file {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-file input[type="file"] {
+  position: absolute;
+  inset: var(--vanta-spacing-0);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.preview {
+  display: none;
+  width: 100%;
+  max-height: 12rem;
+  object-fit: contain;
+  background: var(--vanta-colors-surface-base);
+  border: var(--vanta-borders-style-subtle);
+  border-radius: var(--vanta-borders-radius-sm);
+}
+
+.preview.is-on {
+  display: block;
+}
+
+.hint {
+  font-family: var(--vanta-typography-preset-card-subtitle-font-family);
+  font-size: var(--vanta-typography-preset-card-subtitle-font-size);
+  font-weight: var(--vanta-typography-preset-card-subtitle-font-weight);
+  letter-spacing: var(--vanta-typography-preset-card-subtitle-letter-spacing);
+  line-height: var(--vanta-typography-preset-card-subtitle-line-height);
+  color: var(--vanta-colors-text-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: var(--vanta-animation-duration-instant) !important;
+  }
+}
