@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
-import { fileSpecimen, IntakeError, optionalText } from './intake'
+import { fileSpecimen, IntakeError, namedLocality, optionalText } from './intake'
 import { EXAMPLE_FRAGMENT } from './seed'
 import {
   CatalogFilter,
@@ -12,6 +12,7 @@ import {
   parseTags,
 } from './schema'
 import { getCatalogStore } from './store.server'
+import { AssetExistsError } from './assets'
 import { SpecimenTransitionError } from './entity/specimen-entity'
 
 export const listSpecimens = createServerFn({ method: 'GET' })
@@ -44,15 +45,34 @@ export const createSpecimen = createServerFn({ method: 'POST' })
     }
 
     try {
+      if (kindRaw === 'picture') {
+        const file = data.get('file')
+        if (!(file instanceof File) || file.size === 0) {
+          throw new IntakeError(['Picture intake needs a dropped file.'])
+        }
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        return await getCatalogStore().ingestPicture({
+          filename: file.name || 'upload',
+          mimeType: file.type || 'application/octet-stream',
+          bytes,
+          claim: String(data.get('claim') ?? '').trim(),
+          tags: parseTags(String(data.get('tags') ?? '')),
+          organismGuess: guessFromInput(String(data.get('organism') ?? '')),
+          structureGuess: guessFromInput(String(data.get('part') ?? '')),
+          questions: parseQuestions(String(data.get('questions') ?? '')),
+        })
+      }
+
       const filed = fileSpecimen({
         kind: kindRaw,
         claim: String(data.get('claim') ?? '').trim(),
         tags: parseTags(String(data.get('tags') ?? '')),
         organismGuess: guessFromInput(String(data.get('organism') ?? '')),
         structureGuess: guessFromInput(String(data.get('part') ?? '')),
-        locality: optionalText(String(data.get('locality') ?? '')),
+        locality: namedLocality(optionalText(String(data.get('locality') ?? ''))),
         observedAt: optionalText(String(data.get('observedAt') ?? '')),
         questions: parseQuestions(String(data.get('questions') ?? '')),
+        takenIds: getCatalogStore().takenSpecimenIds(),
       })
 
       const stored = getCatalogStore().insertIntake(filed)
@@ -70,6 +90,9 @@ export const createSpecimen = createServerFn({ method: 'POST' })
       return stored
     } catch (error) {
       if (error instanceof IntakeError) throw error
+      if (error instanceof AssetExistsError) {
+        throw new IntakeError([error.message])
+      }
       throw new IntakeError(['Need a type, a one-line claim, and 3+ tags.'])
     }
   })

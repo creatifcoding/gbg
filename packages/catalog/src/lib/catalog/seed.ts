@@ -12,6 +12,8 @@ import { decodeOrganism } from './schemas/organism'
 import { decodeStructure } from './schemas/structure'
 import { decodeTag } from './schemas/tag'
 import { decodeQuestion } from './schemas/question'
+import { UNKNOWN_LOCALITY } from './schemas/locality'
+import { fileSpecimen } from './intake'
 import {
   AnalogId,
   FunctionId,
@@ -75,7 +77,7 @@ const geckoCreated = createSpecimen(
     claim: 'This gecko toe pad, dumped before the analog is designed.',
     organismGuess: { label: 'Tokay gecko', guess: true },
     structureGuess: { label: 'setae', guess: true },
-    locality: 'captive enclosure',
+    locality: { _tag: 'named', label: 'captive enclosure' },
     observedAt: 'example fixture',
     tagIds: [tagAdhesion.id, tagSetae.id, tagExample.id],
     questionIds: [
@@ -95,7 +97,7 @@ const lotusCreated = createSpecimen(
     claim: 'This lotus leaf, parked until wetting is mapped.',
     organismGuess: { label: 'Nelumbo nucifera', guess: true },
     structureGuess: { label: 'leaf surface', guess: true },
-    locality: null,
+    locality: UNKNOWN_LOCALITY,
     observedAt: null,
     tagIds: [tagWetting.id, tagLotus.id, tagExample.id],
     questionIds: [Schema.decodeUnknownSync(QuestionId)('q_ex_lotus_0')],
@@ -112,7 +114,7 @@ const scaleCreated = createSpecimen(
     claim: 'This scale photo. Drag-reduction guess only.',
     organismGuess: null,
     structureGuess: { label: 'denticle', guess: true },
-    locality: null,
+    locality: UNKNOWN_LOCALITY,
     observedAt: null,
     tagIds: [tagDenticle.id, tagDrag.id, tagExample.id],
     questionIds: [Schema.decodeUnknownSync(QuestionId)('q_ex_scale_0')],
@@ -344,3 +346,31 @@ export const EXAMPLE_SPECIMENS: ReadonlyArray<SpecimenView> = (() => {
   }
   return snapshot.specimens.map((specimen) => hydrateSpecimen(snapshot, specimen))
 })()
+
+export const FIRST_SPECIMEN_ID = Schema.decodeUnknownSync(SpecimenId)(
+  '20260819-001',
+)
+
+const firstFiledAt = Date.UTC(2026, 7, 19)
+
+const firstIntake = fileSpecimen(
+  {
+    id: FIRST_SPECIMEN_ID,
+    kind: 'picture',
+    claim: 'Elongate arthropod in a Taco Bell cup.',
+    tags: ['arthropod', 'cup', 'dump'],
+    organismGuess: { label: 'elongate arthropod', guess: true },
+    locality: UNKNOWN_LOCALITY,
+    questions: [],
+  },
+  firstFiledAt,
+)
+
+export const FIRST_SPECIMEN_FRAGMENT: ExampleFragment = {
+  tags: [...firstIntake.tags],
+  questions: [...firstIntake.questions],
+  specimens: [firstIntake.specimen],
+  observations: [firstIntake.observation],
+  edges: [firstIntake.observationEdge],
+  events: [...firstIntake.events],
+}

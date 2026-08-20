@@ -14,10 +14,13 @@ import {
 import {
   decodeV1CatalogFile,
   decodeV2CatalogFile,
+  decodeV3CatalogFile,
   migrateV1,
   migrateV2,
+  migrateV3,
   snapshotLooksLikeV1,
   snapshotLooksLikeV2,
+  snapshotLooksLikeV3,
 } from '../models/migrate'
 
 export class JsonCatalog {
@@ -44,6 +47,11 @@ export class JsonCatalog {
     }
     if (snapshotLooksLikeV2(raw)) {
       const migrated = migrateV2(decodeV2CatalogFile(raw))
+      this.write(migrated)
+      return migrated
+    }
+    if (snapshotLooksLikeV3(raw)) {
+      const migrated = migrateV3(decodeV3CatalogFile(raw))
       this.write(migrated)
       return migrated
     }

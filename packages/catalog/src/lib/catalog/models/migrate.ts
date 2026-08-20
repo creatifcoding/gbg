@@ -6,6 +6,8 @@ import { decodeStoredSpecimen } from '../schemas/specimen'
 import { decodeTag } from '../schemas/tag'
 import { decodeEdge } from '../schemas/edge'
 import { decodeCatalogEvent } from '../schemas/events'
+import { UNKNOWN_LOCALITY } from '../schemas/locality'
+import { Guess } from '../schemas/guess'
 import {
   decodeCatalogSnapshot,
   emptySnapshot,
@@ -142,6 +144,10 @@ export function snapshotLooksLikeV2(raw: unknown): boolean {
   return snapshotVersion(raw) === 2
 }
 
+export function snapshotLooksLikeV3(raw: unknown): boolean {
+  return snapshotVersion(raw) === 3
+}
+
 function cardToSpecimenBundle(input: {
   id: string
   kind: 'picture' | 'dossier' | 'artifact' | 'note'
@@ -167,8 +173,10 @@ function cardToSpecimenBundle(input: {
     body: input.body,
     organismGuess: input.organismGuess,
     structureGuess: input.structureGuess,
-    locality: null,
+    locality: UNKNOWN_LOCALITY,
     observedAt: null,
+    cameraMake: null,
+    cameraModel: null,
     tagIds: input.tagIds,
     questionIds: input.questionIds,
     observationIds: [observationId],
@@ -366,7 +374,7 @@ export function migrateV2(file: V2CatalogFile): CatalogSnapshot {
   })
 
   return decodeCatalogSnapshot({
-    version: 3,
+    version: 4,
     specimens,
     observations,
     analogs: file.analogs,
@@ -379,5 +387,76 @@ export function migrateV2(file: V2CatalogFile): CatalogSnapshot {
     questions,
     edges,
     events,
+  })
+}
+
+const V3Specimen = Schema.Struct({
+  _tag: Schema.Literal('Specimen'),
+  id: Schema.String,
+  kind: Schema.Literals(['picture', 'dossier', 'artifact', 'note'] as const),
+  status: Schema.Literals(['raw', 'filed', 'working', 'dead'] as const),
+  claim: Schema.NonEmptyString,
+  body: Schema.String,
+  organismGuess: Schema.NullOr(Guess),
+  structureGuess: Schema.NullOr(Guess),
+  locality: Schema.NullOr(Schema.NonEmptyString),
+  observedAt: Schema.NullOr(Schema.NonEmptyString),
+  tagIds: Schema.Array(Schema.String),
+  questionIds: Schema.Array(Schema.String),
+  observationIds: Schema.Array(Schema.String),
+  attachmentIds: Schema.Array(Schema.String),
+  example: Schema.Boolean,
+  createdAt: Schema.Number,
+  updatedAt: Schema.Number,
+})
+
+export const V3CatalogFile = Schema.Struct({
+  version: Schema.Literal(3),
+  specimens: Schema.Array(V3Specimen),
+  observations: Schema.Array(Schema.Unknown),
+  analogs: Schema.Array(Schema.Unknown),
+  organisms: Schema.Array(Schema.Unknown),
+  structures: Schema.Array(Schema.Unknown),
+  mechanisms: Schema.Array(Schema.Unknown),
+  functions: Schema.Array(Schema.Unknown),
+  attachments: Schema.Array(Schema.Unknown),
+  tags: Schema.Array(Schema.Unknown),
+  questions: Schema.Array(Schema.Unknown),
+  edges: Schema.Array(Schema.Unknown),
+  events: Schema.Array(Schema.Unknown),
+})
+export type V3CatalogFile = typeof V3CatalogFile.Type
+
+export const decodeV3CatalogFile = Schema.decodeUnknownSync(V3CatalogFile)
+
+function localityFromV3(raw: string | null) {
+  if (raw == null || raw.trim().length === 0 || raw.trim().toLowerCase() === 'unknown') {
+    return UNKNOWN_LOCALITY
+  }
+  return { _tag: 'named' as const, label: raw.trim() }
+}
+
+export function migrateV3(file: V3CatalogFile): CatalogSnapshot {
+  return decodeCatalogSnapshot({
+    version: 4,
+    specimens: file.specimens.map((specimen) =>
+      decodeStoredSpecimen({
+        ...specimen,
+        locality: localityFromV3(specimen.locality),
+        cameraMake: null,
+        cameraModel: null,
+      }),
+    ),
+    observations: file.observations,
+    analogs: file.analogs,
+    organisms: file.organisms,
+    structures: file.structures,
+    mechanisms: file.mechanisms,
+    functions: file.functions,
+    attachments: file.attachments,
+    tags: file.tags,
+    questions: file.questions,
+    edges: file.edges,
+    events: file.events,
   })
 }

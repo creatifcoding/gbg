@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 
 /**
- * A labeled guess on a Card. Not a reference-graph node.
+ * A labeled guess on a Specimen. Not a reference-graph node.
  * Intake may stash an organism/structure/function name without creating
  * Organism, Structure, or BioFunction records.
  */

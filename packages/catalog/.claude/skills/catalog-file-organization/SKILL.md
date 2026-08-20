@@ -28,10 +28,12 @@ packages/catalog/
 ├── src/
 │   ├── lib/catalog/
 │   │   ├── schemas/         identifiers, Specimen, Observation, Analog, edges
-│   │   ├── models/          JSON snapshot v3, SpecimenView
+│   │   ├── models/          JSON snapshot v4, SpecimenView
 │   │   ├── repos/           json-catalog, specimen/observation/analog/edge
 │   │   ├── entity/          Specimen/Analog status machines (no Cluster)
 │   │   ├── intake.ts        10-second fileSpecimen
+│   │   ├── exif.ts          GPS-first locality from raw tags
+│   │   ├── assets.ts        original + sidecar, never overwrite
 │   │   ├── registry.ts      VANTA status → accent
 │   │   ├── store.server.ts  facade over JsonCatalog
 │   │   ├── functions.ts     TanStack Start server functions
@@ -60,7 +62,8 @@ v1 RPCs are Start server functions, not Effect Cluster actors.
 | Edges | `src/lib/catalog/schemas/edge.ts` |
 | 10-second file | `src/lib/catalog/intake.ts` (`fileSpecimen`) |
 | Status machines | `src/lib/catalog/entity/` |
-| JSON snapshot | `src/lib/catalog/models/catalog-snapshot.ts` |
+| JSON snapshot | `src/lib/catalog/models/catalog-snapshot.ts` (v4) |
+| Picture originals | `packages/catalog/assets/specimens/<id>/` |
 | Status accents | `src/lib/catalog/registry.ts` |
 | VANTA tokens | `src/components/portal/tokens.ts` (copy of tmnl portal tokens) |
 | VantaCard | `src/components/portal/VantaCard.tsx` |

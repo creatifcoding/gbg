@@ -16,6 +16,7 @@ export {
   EdgeId,
   FunctionId,
   Guess,
+  Locality,
   MechanismId,
   ObservationId,
   OrganismId,
@@ -24,6 +25,7 @@ export {
   attachmentKindFromMime,
   decodeSpecimen,
   encodeSpecimen,
+  formatLocality,
   getValidNextSpecimenStates,
   guessFromInput,
   isEvidenceKind,
@@ -34,7 +36,7 @@ export {
   parseTags,
 } from './lib/catalog/schema'
 export { decodeIntake, fileSpecimen, IntakeError, type IntakeInput } from './lib/catalog/intake'
-export { EXAMPLE_SPECIMENS } from './lib/catalog/seed'
+export { EXAMPLE_SPECIMENS, FIRST_SPECIMEN_ID } from './lib/catalog/seed'
 export {
   ANALOG_STATUS_VISUAL,
   KIND_LABEL,

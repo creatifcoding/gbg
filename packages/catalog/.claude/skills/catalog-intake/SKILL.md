@@ -16,12 +16,13 @@ triggers:
 
 Dump first. File in one screen. Body waits.
 
-This package is biomimetic and specimen-first. A dump becomes a Specimen, the particular sample in hand or on record. Taxon, structure, mechanism, and analog stay optional links. The app does not invent citations.
+This package is biomimetic and specimen-first. A picture dump becomes a Specimen by copying the original into package assets and reading EXIF. Taxon, structure, mechanism, and analog stay optional links. The app does not invent citations or geocode from pixels.
 
 ## Canonical sources
 
-- Schemas: `src/lib/catalog/schemas/` (`specimen.ts`, `observation.ts`, `guess.ts`)
+- Schemas: `src/lib/catalog/schemas/` (`specimen.ts`, `locality.ts`, `observation.ts`, `guess.ts`)
 - Invariant: `src/lib/catalog/intake.ts` (`fileSpecimen`, `IntakeError`)
+- Picture birth: `src/lib/catalog/store.server.ts` (`ingestPicture`), `exif.ts`, `exif.server.ts`, `assets.ts`
 - Entity: `src/lib/catalog/entity/specimen-entity.ts` (status machine + events)
 - Server: `src/lib/catalog/functions.ts` (`createSpecimen`)
 - Screen: `src/ui/intake-drop.tsx`, `src/routes/intake.tsx`
@@ -34,17 +35,23 @@ One screen. No wizard. No step 2.
 | Field | Rule |
 | --- | --- |
 | first evidence | `picture` \| `dossier` \| `artifact` \| `note` |
+| dropped file | required for `picture`. Copied to `assets/specimens/<id>/original.<ext>`. Never overwrite. |
+| exif sidecar | `assets/specimens/<id>/exif.json`. Raw tags from `exiftool -j -n -a`, or `exifr` if exiftool is missing. |
 | claim | one line, required |
 | tags | at least 3 |
 | taxon guess | optional. Marked `{ label, guess: true }` if present |
 | part / structure | optional guess |
-| locality | optional string |
-| collected / observed | optional string |
+| locality | pictures: GPS tags or `unknown`. Never a geocoded city. Other kinds may take a named string. |
+| collected / observed | pictures: `DateTimeOriginal` when present. Other kinds optional. |
+| camera | `Make` / `Model` when present |
 | open questions | zero or more, already in hand |
+| id | `YYYYMMDD-NNN` from DateTimeOriginal or the filing day |
 
-Status starts `raw`. Intake also writes a CRUD Observation (`observation-of` the specimen) and may hang a file on that observation. Body is `''`.
+Status starts `raw`. Intake also writes a CRUD Observation (`observation-of` the specimen) and hangs the original on that observation. Body is `''`.
 
-`fileSpecimen` is the gate. If the dump cannot make that Specimen, throw `IntakeError`. Do not save a partial.
+`fileSpecimen` is the record gate. `ingestPicture` is how a picture Specimen is born. If the dump cannot make that Specimen, throw `IntakeError`. Do not save a partial.
+
+`20260819-001` is the first real specimen (elongate arthropod in a Taco Bell cup). EXIF was stripped. Status `raw`. Original not in this clone. Sidecar records empty tags.
 
 ## Then file
 
@@ -66,7 +73,7 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
 
 ### Pattern 2: One form
 
-`IntakeDrop` is drop zone plus type tabs plus claim, tags, optional taxon/part/locality/when, questions, submit.
+`IntakeDrop` is drop zone plus type tabs plus claim, tags, optional taxon/part, questions, submit. Pictures hide the locality field. GPS is EXIF-only.
 
 ### Pattern 3: Empty is valid
 
@@ -97,6 +104,24 @@ A Specimen can exist with `organismGuess: null`. Do not invent an Organism recor
 ### Keep Card as a peer aggregate
 
 Intake creates a Specimen. Do not revive Card.
+
+### Invented locality
+
+```typescript
+// BANNED
+locality: reverseGeocode(pixels) // or a guessed city name
+```
+
+Missing GPS tags file as `{ _tag: 'unknown' }`. Do not invent a place.
+
+### Overwrite the original
+
+```typescript
+// BANNED
+writeFileSync(assets/specimens/20260819-001/original.jpg, bytes)
+```
+
+Allocate the next `YYYYMMDD-NNN` instead. `wx` or throw `AssetExistsError`.
 
 ### Invented citations
 

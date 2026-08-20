@@ -2,7 +2,7 @@
 
 Biomimetic research catalog. Dump a picture, dossier, artifact, or note and file it as a Specimen in one screen. A Specimen is a particular sample in hand or on record: this leaf, this foot, this slide, this photo. Organism, structure, mechanism, function, and analog stay optional later links. The package is not a generic biomedical file cabinet.
 
-Empty catalog is valid. The app does not invent citations or papers.
+Empty catalog is valid. The default data dir files `20260819-001` on first boot. The app does not invent citations or papers.
 
 ## Why this name
 
@@ -17,8 +17,13 @@ Intake is one screen, no wizard. Filing produces a Specimen first:
 - one-line claim
 - 3 or more tags
 - taxon / part guesses optional and marked `guess: true`
-- locality and collected/observed optional
+- picture intake copies the original into `assets/specimens/<id>/` (never overwrite) and writes `exif.json`
+- locality is EXIF-first on pictures: `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime` when present, otherwise `unknown`. No geocoding.
+- `DateTimeOriginal`, `Make`, and `Model` are pulled when present
 - open questions (may be empty)
+- filed ids look like `20260819-001`
+
+Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxonomy does not block intake.
 
 Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxonomy does not block intake.
 
@@ -56,7 +61,11 @@ No cloud secrets. Auth is deferred.
 
 ## Persistence
 
-Local JSON at `packages/catalog/.data/catalog.json` (snapshot version 3). Blobs go in `.data/blobs/`. Override with `CATALOG_DATA_DIR`. Version 1 and 2 files migrate on read.
+Local JSON at `packages/catalog/.data/catalog.json` (snapshot version 4). Version 1, 2, and 3 files migrate on read. Blobs for non-picture attachments go in `.data/blobs/`. Picture originals live in `packages/catalog/assets/specimens/<SpecimenId>/original.<ext>` with a sidecar `exif.json`. Override data with `CATALOG_DATA_DIR` and assets with `CATALOG_ASSETS_DIR`.
+
+Picture intake runs `exiftool -j -n -a` when `exiftool` is on PATH, and falls back to `exifr` (GPS-capable) otherwise. Missing GPS is stored as locality `unknown`. The app does not reverse-geocode.
+
+`20260819-001` is the first real specimen: elongate arthropod in a Taco Bell cup, status `raw`, EXIF stripped. The original photo is not in this clone. The sidecar records empty tags. Example gecko/lotus/scale fixtures stay opt-in and marked `example: true`.
 
 The schema does not mention Notion. A Notion adapter can sit later without changing intake.
 
@@ -69,6 +78,7 @@ The schema does not mention Notion. A Notion adapter can sit later without chang
 | Tailwind CSS v4 + `@tailwindcss/vite` | Layout and type. Same CSS runtime as the Start example, not a second one. |
 | Effect Schema | Domain types and intake validation. Already in the monorepo. |
 | nanoid | Attachment ids. |
+| exifr | GPS-capable EXIF reader when `exiftool` is not on PATH. |
 
 React is the only UI framework. Motion is CSS from Transitions.dev. No Framer Motion, GSAP, or anime.js in this package.
 
@@ -106,6 +116,8 @@ packages/catalog/
     repos/       JSON document + find/upsert
     entity/      Specimen/Analog status machines (no Cluster)
     intake.ts    10-second fileSpecimen
+    exif.ts      GPS-first locality from raw tags
+    assets.ts    original + sidecar, never overwrite
     functions.ts Start server functions
   src/components/portal/     VANTA tokens + VantaCard (cloned from tmnl portal)
   src/components/primitives/ token-driven Badge
@@ -140,4 +152,4 @@ Package-local skills live in `.claude/skills/`. Registry: `.claude/skills/SKILL_
 
 ## Example cards
 
-The catalog boots empty. The index has a button that loads marked example specimens (gecko toe, lotus leaf, unknown scale) plus a gecko-tape Analog fixture. They are labeled as synthetic UI fixtures. They are not papers.
+The catalog files `20260819-001` on first boot of the default data dir. Example gecko/lotus/scale specimens stay behind a button and are marked `example: true`. They are not papers.

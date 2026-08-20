@@ -1,5 +1,6 @@
 export * from './identifiers'
 export * from './guess'
+export * from './locality'
 export * from './specimen'
 export * from './observation'
 export * from './analog'

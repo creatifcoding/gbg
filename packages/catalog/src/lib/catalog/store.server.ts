@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { nanoid } from 'nanoid'
 import {
@@ -37,7 +37,25 @@ import {
 import { attachmentKindFromMime, decodeAttachment } from './schemas/attachment'
 import type { SpecimenStatus } from './schemas/specimen'
 import type { CatalogEvent } from './schemas/events'
-import type { IntakeResult } from './intake'
+import { fileSpecimen, IntakeError, type IntakeResult } from './intake'
+import type { Guess } from './schemas/guess'
+import {
+  cameraFromExif,
+  filingDateFromExif,
+  localityFromExif,
+  observedAtFromExif,
+  sidecarFromTags,
+} from './exif'
+import { readExifTags } from './exif.server'
+import {
+  copyOriginal,
+  defaultCatalogAssetsDir,
+  listedSpecimenAssetIds,
+  originalPath,
+  writeSidecar,
+} from './assets'
+import { dayStampFromDate, nextFiledSpecimenId } from './specimen-id'
+import { FIRST_SPECIMEN_FRAGMENT, FIRST_SPECIMEN_ID } from './seed'
 
 export type SpecimenPatch = {
   body?: string
@@ -52,9 +70,11 @@ export type StoredAttachment = {
 
 export class CatalogStore {
   readonly json: JsonCatalog
+  readonly assetsDir: string
 
-  constructor(dataDir: string) {
+  constructor(dataDir: string, assetsDir = defaultCatalogAssetsDir()) {
     this.json = new JsonCatalog(dataDir)
+    this.assetsDir = assetsDir
   }
 
   get dataDir(): string {
@@ -116,6 +136,135 @@ export class CatalogStore {
     return hydrateSpecimen(snapshot, specimen)
   }
 
+  takenSpecimenIds(): string[] {
+    const snapshot = this.json.read()
+    return [
+      ...snapshot.specimens.map((specimen) => specimen.id),
+      ...listedSpecimenAssetIds(this.assetsDir),
+    ]
+  }
+
+  async ingestPicture(input: {
+    filename: string
+    mimeType: string
+    bytes: Uint8Array
+    claim: string
+    tags: ReadonlyArray<string>
+    organismGuess: Guess | null
+    structureGuess: Guess | null
+    questions: ReadonlyArray<string>
+  }): Promise<SpecimenView> {
+    if (input.bytes.byteLength === 0) {
+      throw new IntakeError(['Picture intake needs a dropped file.'])
+    }
+
+    const read = await readExifTags({
+      bytes: input.bytes,
+      filename: input.filename,
+    })
+    const locality = localityFromExif(read.tags)
+    const observedAt = observedAtFromExif(read.tags)
+    const camera = cameraFromExif(read.tags)
+    const now = Date.now()
+    const specimenId = nextFiledSpecimenId({
+      day: dayStampFromDate(filingDateFromExif(read.tags, new Date(now))),
+      taken: this.takenSpecimenIds(),
+    })
+
+    const paths = copyOriginal({
+      assetsDir: this.assetsDir,
+      specimenId,
+      filename: input.filename,
+      mimeType: input.mimeType,
+      bytes: input.bytes,
+    })
+
+    let recorded = false
+    try {
+      writeSidecar(
+        paths.sidecarPath,
+        sidecarFromTags({
+          tool: read.tool,
+          tags: read.tags,
+          originalPresent: true,
+        }),
+      )
+      const filed = fileSpecimen(
+        {
+          id: specimenId,
+          kind: 'picture',
+          claim: input.claim,
+          tags: input.tags,
+          organismGuess: input.organismGuess,
+          structureGuess: input.structureGuess,
+          locality,
+          observedAt,
+          cameraMake: camera.make,
+          cameraModel: camera.model,
+          questions: [...input.questions],
+        },
+        now,
+      )
+      const stored = this.insertIntake(filed)
+      recorded = true
+      return (
+        this.recordAttachment({
+          specimenId: stored.id,
+          filename: input.filename || path.basename(paths.originalPath),
+          mimeType: input.mimeType,
+          sizeBytes: input.bytes.byteLength,
+        }) ?? stored
+      )
+    } catch (error) {
+      if (!recorded) {
+        rmSync(path.dirname(paths.originalPath), { recursive: true, force: true })
+      }
+      throw error
+    }
+  }
+
+  recordAttachment(input: {
+    specimenId: string
+    filename: string
+    mimeType: string
+    sizeBytes: number
+  }): SpecimenView | undefined {
+    const current = this.json.read()
+    const specimen = findSpecimen(current, input.specimenId)
+    if (!specimen) return undefined
+
+    const dump =
+      observationsForSpecimen(current, specimen.id)[0] ??
+      findObservation(current, specimen.observationIds[0] ?? '')
+
+    const attachment = decodeAttachment({
+      id: nanoid(),
+      specimenId: specimen.id,
+      host: dump
+        ? { _tag: 'observation', id: dump.id }
+        : { _tag: 'specimen' },
+      filename: input.filename,
+      mimeType: input.mimeType,
+      sizeBytes: input.sizeBytes,
+      kind: attachmentKindFromMime(input.mimeType),
+    })
+
+    const snapshot = this.json.mutate((snap) => {
+      const live = findSpecimen(snap, specimen.id)
+      if (!live) return snap
+      let next = insertAttachment(snap, attachment)
+      if (dump) {
+        const liveObs = findObservation(next, dump.id)
+        if (liveObs) {
+          next = upsertObservation(next, attachToObservation(liveObs, attachment.id))
+        }
+      }
+      return next
+    })
+    const nextSpecimen = findSpecimen(snapshot, specimen.id)
+    return nextSpecimen ? hydrateSpecimen(snapshot, nextSpecimen) : undefined
+  }
+
   update(id: string, patch: SpecimenPatch): SpecimenView | undefined {
     let found = false
     const snapshot = this.json.mutate((current) => {
@@ -150,44 +299,19 @@ export class CatalogStore {
     mimeType: string
     bytes: Uint8Array
   }): SpecimenView | undefined {
-    const current = this.json.read()
-    const specimen = findSpecimen(current, input.specimenId)
-    if (!specimen) return undefined
-
-    const dump =
-      observationsForSpecimen(current, specimen.id)[0] ??
-      findObservation(current, specimen.observationIds[0] ?? '')
-
-    const attachment = decodeAttachment({
-      id: nanoid(),
-      specimenId: specimen.id,
-      host: dump
-        ? { _tag: 'observation', id: dump.id }
-        : { _tag: 'specimen' },
+    const recorded = this.recordAttachment({
+      specimenId: input.specimenId,
       filename: input.filename,
       mimeType: input.mimeType,
       sizeBytes: input.bytes.byteLength,
-      kind: attachmentKindFromMime(input.mimeType),
     })
-
-    const dest = this.json.blobPath(specimen.id, attachment.id)
+    if (!recorded) return undefined
+    const attachment = recorded.attachments[recorded.attachments.length - 1]
+    if (!attachment) return recorded
+    const dest = this.json.blobPath(input.specimenId, attachment.id)
     mkdirSync(path.dirname(dest), { recursive: true })
     writeFileSync(dest, input.bytes)
-
-    const snapshot = this.json.mutate((snap) => {
-      const live = findSpecimen(snap, specimen.id)
-      if (!live) return snap
-      let next = insertAttachment(snap, attachment)
-      if (dump) {
-        const liveObs = findObservation(next, dump.id)
-        if (liveObs) {
-          next = upsertObservation(next, attachToObservation(liveObs, attachment.id))
-        }
-      }
-      return next
-    })
-    const nextSpecimen = findSpecimen(snapshot, specimen.id)
-    return nextSpecimen ? hydrateSpecimen(snapshot, nextSpecimen) : undefined
+    return recorded
   }
 
   readBlob(specimenId: string, attachmentId: string): StoredAttachment | undefined {
@@ -198,9 +322,17 @@ export class CatalogStore {
       return undefined
     }
     const dest = this.json.blobPath(specimen.id, attachment.id)
-    if (!fileExists(dest)) return undefined
+    if (fileExists(dest)) {
+      return {
+        bytes: new Uint8Array(readFileSync(dest)),
+        filename: attachment.filename,
+        mimeType: attachment.mimeType,
+      }
+    }
+    const fromAssets = originalPath(this.assetsDir, specimen.id)
+    if (!fromAssets || !fileExists(fromAssets)) return undefined
     return {
-      bytes: new Uint8Array(readFileSync(dest)),
+      bytes: new Uint8Array(readFileSync(fromAssets)),
       filename: attachment.filename,
       mimeType: attachment.mimeType,
     }
@@ -221,6 +353,7 @@ export class CatalogStore {
         questions: new Set(current.questions.map((item) => item.id)),
         edges: new Set(current.edges.map((item) => item.id)),
         events: new Set(current.events.map((item) => item.id)),
+        attachments: new Set(current.attachments.map((item) => item.id)),
       }
       for (const tag of fragment.tags ?? []) {
         if (!have.tags.has(tag.id) && !findTagBySlug(next, tag.slug)) {
@@ -257,6 +390,11 @@ export class CatalogStore {
           next = putAnalog(next, analog)
         }
       }
+      for (const attachment of fragment.attachments ?? []) {
+        if (!have.attachments.has(attachment.id)) {
+          next = insertAttachment(next, attachment)
+        }
+      }
       for (const observation of fragment.observations ?? []) {
         if (!have.observations.has(observation.id)) {
           next = upsertObservation(next, observation)
@@ -284,6 +422,10 @@ export class CatalogStore {
     })
   }
 
+  mergeFragment(fragment: ExampleFragment): void {
+    this.mergeExample(fragment)
+  }
+
   reset(): void {
     this.json.reset()
   }
@@ -294,6 +436,11 @@ let defaultStore: CatalogStore | undefined
 export { catalogDataDir }
 
 export function getCatalogStore(): CatalogStore {
-  defaultStore ??= new CatalogStore(catalogDataDir())
+  if (!defaultStore) {
+    defaultStore = new CatalogStore(catalogDataDir())
+    if (!defaultStore.get(FIRST_SPECIMEN_ID)) {
+      defaultStore.mergeFragment(FIRST_SPECIMEN_FRAGMENT)
+    }
+  }
   return defaultStore
 }

@@ -13,7 +13,7 @@ import { Structure } from '../schemas/structure'
 import { Tag } from '../schemas/tag'
 
 export const CatalogSnapshot = Schema.Struct({
-  version: Schema.Literal(3),
+  version: Schema.Literal(4),
   specimens: Schema.Array(Specimen),
   observations: Schema.Array(Observation),
   analogs: Schema.Array(Analog),
@@ -33,7 +33,7 @@ export const decodeCatalogSnapshot = Schema.decodeUnknownSync(CatalogSnapshot)
 
 export function emptySnapshot(): CatalogSnapshot {
   return {
-    version: 3,
+    version: 4,
     specimens: [],
     observations: [],
     analogs: [],

@@ -4,6 +4,7 @@ import * as Label from '@radix-ui/react-label'
 import * as Separator from '@radix-ui/react-separator'
 import { updateSpecimen } from '~/lib/catalog/functions'
 import {
+  formatLocality,
   getValidNextSpecimenStates,
   organismLabel,
   type SpecimenStatus,
@@ -27,8 +28,11 @@ export function SpecimenDetail({ specimen }: { specimen: SpecimenView }) {
   const meta = [
     organismLabel(specimen.organismGuess),
     specimen.structureGuess?.label,
-    specimen.locality,
+    formatLocality(specimen.locality),
     specimen.observedAt,
+    specimen.cameraMake && specimen.cameraModel
+      ? `${specimen.cameraMake} ${specimen.cameraModel}`
+      : specimen.cameraMake ?? specimen.cameraModel,
   ].filter((item): item is string => Boolean(item) && item !== 'unlinked')
 
   return (
@@ -41,7 +45,8 @@ export function SpecimenDetail({ specimen }: { specimen: SpecimenView }) {
 
       <header className="space-y-3">
         <p className="vanta-label">
-          {specimen.kind} · <span className={`status-${specimen.status}`}>{status}</span>
+          {specimen.id} · {specimen.kind} ·{' '}
+          <span className={`status-${specimen.status}`}>{status}</span>
           {meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
         </p>
         <h2 className="vanta-heading text-3xl leading-tight">{specimen.claim}</h2>

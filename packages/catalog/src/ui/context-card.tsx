@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { VantaCard } from '~/components/portal'
 import { statusVisual } from '~/lib/catalog/registry'
-import { organismLabel, type SpecimenView } from '~/lib/catalog/schema'
+import { formatLocality, organismLabel, type SpecimenView } from '~/lib/catalog/schema'
 
 export function ContextCard({ specimen }: { specimen: SpecimenView }) {
   const visual = statusVisual(specimen.status)
@@ -21,8 +21,9 @@ export function ContextCard({ specimen }: { specimen: SpecimenView }) {
           />
         </VantaCard.Header>
         <VantaCard.Subtitle>
-          {organismLabel(specimen.organismGuess)}
+          {specimen.id} · {organismLabel(specimen.organismGuess)}
           {specimen.structureGuess ? ` · ${specimen.structureGuess.label}` : ''}
+          {` · ${formatLocality(specimen.locality)}`}
         </VantaCard.Subtitle>
         <VantaCard.Body>{specimen.claim}</VantaCard.Body>
         <div className="mt-4 flex flex-wrap gap-2">

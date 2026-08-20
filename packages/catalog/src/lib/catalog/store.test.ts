@@ -1,10 +1,13 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { afterEach, describe, expect, it } from 'vitest'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
 import { fileSpecimen } from './intake'
 import { SpecimenTransitionError } from './entity/specimen-entity'
 import { CatalogStore } from './store.server'
+import { copyOriginal, AssetExistsError } from './assets'
+import { FIRST_SPECIMEN_FRAGMENT, FIRST_SPECIMEN_ID } from './seed'
+import { UNKNOWN_LOCALITY } from './schemas/locality'
 
 describe('CatalogStore', () => {
   const dirs: string[] = []
@@ -17,8 +20,9 @@ describe('CatalogStore', () => {
 
   function store(): CatalogStore {
     const dir = mkdtempSync(path.join(tmpdir(), 'catalog-'))
-    dirs.push(dir)
-    return new CatalogStore(dir)
+    const assets = mkdtempSync(path.join(tmpdir(), 'catalog-assets-'))
+    dirs.push(dir, assets)
+    return new CatalogStore(dir, assets)
   }
 
   it('starts empty', () => {
@@ -145,7 +149,145 @@ describe('CatalogStore', () => {
     const raw = JSON.parse(
       readFileSync(path.join(dir, 'catalog.json'), 'utf8'),
     ) as { version: number; specimens?: unknown[] }
-    expect(raw.version).toBe(3)
+    expect(raw.version).toBe(4)
     expect(raw.specimens).toHaveLength(1)
+    expect(view?.locality).toEqual(UNKNOWN_LOCALITY)
+    expect(view?.cameraMake).toBeNull()
+  })
+
+  it('migrates a v3 locality string and fills camera fields', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'catalog-'))
+    dirs.push(dir)
+    writeFileSync(
+      path.join(dir, 'catalog.json'),
+      `${JSON.stringify({
+        version: 3,
+        specimens: [
+          {
+            _tag: 'Specimen',
+            id: 'v3_note',
+            kind: 'note',
+            status: 'raw',
+            claim: 'Old note with a typed locality.',
+            body: '',
+            organismGuess: null,
+            structureGuess: null,
+            locality: 'pond margin',
+            observedAt: null,
+            tagIds: [],
+            questionIds: [],
+            observationIds: [],
+            attachmentIds: [],
+            example: false,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        observations: [],
+        analogs: [],
+        organisms: [],
+        structures: [],
+        mechanisms: [],
+        functions: [],
+        attachments: [],
+        tags: [],
+        questions: [],
+        edges: [],
+        events: [],
+      })}\n`,
+      'utf8',
+    )
+
+    const catalog = new CatalogStore(dir)
+    expect(catalog.get('v3_note')?.locality).toEqual({
+      _tag: 'named',
+      label: 'pond margin',
+    })
+    expect(catalog.get('v3_note')?.cameraMake).toBeNull()
+    expect(catalog.get('v3_note')?.cameraModel).toBeNull()
+  })
+
+  it('copies a picture original, writes an exif sidecar, and files locality unknown when GPS is missing', async () => {
+    const catalog = store()
+    const bytes = jpegWithoutExif()
+    const view = await catalog.ingestPicture({
+      filename: 'cup.jpg',
+      mimeType: 'image/jpeg',
+      bytes,
+      claim: 'Elongate arthropod in a paper cup.',
+      tags: ['arthropod', 'cup', 'dump'],
+      organismGuess: { label: 'elongate arthropod', guess: true },
+      structureGuess: null,
+      questions: [],
+    })
+
+    expect(view.status).toBe('raw')
+    expect(view.locality).toEqual(UNKNOWN_LOCALITY)
+    expect(view.observedAt).toBeNull()
+    expect(view.cameraMake).toBeNull()
+    expect(view.cameraModel).toBeNull()
+    expect(view.attachments).toHaveLength(1)
+    expect(view.observations).toHaveLength(1)
+    expect(JSON.stringify(view.locality)).not.toMatch(/Tucson|city/i)
+
+    const original = path.join(
+      catalog.assetsDir,
+      'specimens',
+      view.id,
+      'original.jpg',
+    )
+    const sidecarFile = path.join(
+      catalog.assetsDir,
+      'specimens',
+      view.id,
+      'exif.json',
+    )
+    expect(existsSync(original)).toBe(true)
+    expect(readFileSync(original).equals(Buffer.from(bytes))).toBe(true)
+
+    const sidecar = JSON.parse(readFileSync(sidecarFile, 'utf8')) as {
+      stripped: boolean
+      originalPresent: boolean
+      tags: Record<string, unknown>
+    }
+    expect(sidecar.originalPresent).toBe(true)
+    expect(sidecar.stripped).toBe(true)
+    expect(sidecar.tags.GPSLatitude).toBeUndefined()
+
+    expect(() =>
+      copyOriginal({
+        assetsDir: catalog.assetsDir,
+        specimenId: view.id,
+        filename: 'cup.jpg',
+        mimeType: 'image/jpeg',
+        bytes,
+      }),
+    ).toThrow(AssetExistsError)
+  })
+
+  it('files 20260819-001 as a real raw specimen with unknown locality', () => {
+    const catalog = store()
+    catalog.mergeFragment(FIRST_SPECIMEN_FRAGMENT)
+    const view = catalog.get(FIRST_SPECIMEN_ID)
+    expect(view?.example).toBe(false)
+    expect(view?.status).toBe('raw')
+    expect(view?.kind).toBe('picture')
+    expect(view?.claim).toBe('Elongate arthropod in a Taco Bell cup.')
+    expect(view?.locality).toEqual(UNKNOWN_LOCALITY)
+    expect(view?.observedAt).toBeNull()
+    expect(view?.cameraMake).toBeNull()
+    expect(view?.cameraModel).toBeNull()
+    expect(view?.observations).toHaveLength(1)
+    expect(view?.attachments).toHaveLength(0)
   })
 })
+
+/** 1x1 JPEG with no EXIF. */
+function jpegWithoutExif(): Uint8Array {
+  return Uint8Array.from(
+    Buffer.from(
+      '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AP/Z',
+      'base64',
+    ),
+  )
+}

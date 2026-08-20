@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 import { Attachment } from '../schemas/attachment'
 import { Guess } from '../schemas/guess'
+import { Locality } from '../schemas/locality'
 import { SpecimenId } from '../schemas/identifiers'
 import { Observation } from '../schemas/observation'
 import {
@@ -18,8 +19,10 @@ export const SpecimenView = Schema.Struct({
   body: Schema.String,
   organismGuess: Schema.NullOr(Guess),
   structureGuess: Schema.NullOr(Guess),
-  locality: Schema.NullOr(Schema.NonEmptyString),
+  locality: Locality,
   observedAt: Schema.NullOr(Schema.NonEmptyString),
+  cameraMake: Schema.NullOr(Schema.NonEmptyString),
+  cameraModel: Schema.NullOr(Schema.NonEmptyString),
   tags: Schema.Array(Schema.NonEmptyString),
   questions: Schema.Array(Schema.NonEmptyString),
   observations: Schema.Array(Observation),
@@ -65,6 +68,8 @@ export function hydrateSpecimen(
     structureGuess: specimen.structureGuess,
     locality: specimen.locality,
     observedAt: specimen.observedAt,
+    cameraMake: specimen.cameraMake,
+    cameraModel: specimen.cameraModel,
     tags: specimen.tagIds
       .map((id) => tagsById.get(id)?.slug)
       .filter((slug): slug is string => Boolean(slug)),

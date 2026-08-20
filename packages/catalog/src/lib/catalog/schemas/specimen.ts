@@ -7,6 +7,7 @@ import {
   TagId,
 } from './identifiers'
 import { Guess } from './guess'
+import { Locality } from './locality'
 
 /** How the first evidence arrived, or how a later Observation was dumped. */
 export const EvidenceKind = Schema.Literals([
@@ -72,8 +73,10 @@ export const Specimen = Schema.Struct({
   body: Schema.String,
   organismGuess: Schema.NullOr(Guess),
   structureGuess: Schema.NullOr(Guess),
-  locality: Schema.NullOr(Schema.NonEmptyString),
+  locality: Locality,
   observedAt: Schema.NullOr(Schema.NonEmptyString),
+  cameraMake: Schema.NullOr(Schema.NonEmptyString),
+  cameraModel: Schema.NullOr(Schema.NonEmptyString),
   tagIds: Schema.Array(TagId),
   questionIds: Schema.Array(QuestionId),
   observationIds: Schema.Array(ObservationId),

@@ -3,6 +3,7 @@ import { createSpecimen } from './entity/specimen-entity'
 import { createEdge } from './entity/edge-entity'
 import { Guess, guessFromInput } from './schemas/guess'
 import { EvidenceKind } from './schemas/specimen'
+import { Locality, namedLocality, UNKNOWN_LOCALITY } from './schemas/locality'
 import { decodeObservation, type Observation } from './schemas/observation'
 import type { Specimen } from './schemas/specimen'
 import type { SpecimenEvent } from './schemas/events/specimen-events'
@@ -16,6 +17,10 @@ import {
   SpecimenId,
   TagId,
 } from './schemas/identifiers'
+import {
+  dayStampFromUnix,
+  nextFiledSpecimenId,
+} from './specimen-id'
 
 export const IntakeInput = Schema.Struct({
   kind: EvidenceKind,
@@ -23,9 +28,14 @@ export const IntakeInput = Schema.Struct({
   tags: Tags,
   organismGuess: Schema.optional(Schema.NullOr(Guess)),
   structureGuess: Schema.optional(Schema.NullOr(Guess)),
-  locality: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  locality: Schema.optional(Locality),
   observedAt: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  cameraMake: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  cameraModel: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
   questions: Schema.Array(Schema.NonEmptyString),
+  id: Schema.optional(SpecimenId),
+  dayStamp: Schema.optional(Schema.NonEmptyString),
+  takenIds: Schema.optional(Schema.Array(Schema.String)),
 })
 export type IntakeInput = typeof IntakeInput.Type
 
@@ -61,16 +71,21 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
     throw new IntakeError(issuesFromUnknown(error))
   }
 
-  const specimenId = Schema.decodeUnknownSync(SpecimenId)(crypto.randomUUID())
+  const specimenId =
+    intake.id ??
+    nextFiledSpecimenId({
+      day: intake.dayStamp ?? dayStampFromUnix(now),
+      taken: intake.takenIds ?? [],
+    })
   const observationId = Schema.decodeUnknownSync(ObservationId)(
-    crypto.randomUUID(),
+    `obs_${specimenId}`,
   )
   const tags: Tag[] = intake.tags.map((slug) => ({
-    id: Schema.decodeUnknownSync(TagId)(crypto.randomUUID()),
+    id: Schema.decodeUnknownSync(TagId)(`tag_${slug}`),
     slug,
   }))
-  const questions: Question[] = intake.questions.map((text) => ({
-    id: Schema.decodeUnknownSync(QuestionId)(crypto.randomUUID()),
+  const questions: Question[] = intake.questions.map((text, index) => ({
+    id: Schema.decodeUnknownSync(QuestionId)(`q_${specimenId}_${index}`),
     specimenId,
     text,
   }))
@@ -82,8 +97,10 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
       claim: intake.claim,
       organismGuess: intake.organismGuess ?? null,
       structureGuess: intake.structureGuess ?? null,
-      locality: intake.locality ?? null,
+      locality: intake.locality ?? UNKNOWN_LOCALITY,
       observedAt: intake.observedAt ?? null,
+      cameraMake: intake.cameraMake ?? null,
+      cameraModel: intake.cameraModel ?? null,
       tagIds: tags.map((tag) => tag.id),
       questionIds: questions.map((question) => question.id),
       observationIds: [observationId],
@@ -118,7 +135,7 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
   }
 }
 
-export { guessFromInput }
+export { guessFromInput, namedLocality, UNKNOWN_LOCALITY }
 
 function issuesFromUnknown(error: unknown): string[] {
   if (error instanceof Error && error.message.length > 0) {

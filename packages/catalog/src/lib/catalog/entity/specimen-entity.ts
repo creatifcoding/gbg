@@ -14,6 +14,7 @@ import type {
   TagId,
 } from '../schemas/identifiers'
 import type { Guess } from '../schemas/guess'
+import { UNKNOWN_LOCALITY, type Locality } from '../schemas/locality'
 
 export class SpecimenTransitionError extends Error {
   readonly _tag = 'SpecimenTransitionError'
@@ -33,8 +34,10 @@ export type CreateSpecimenInput = {
   claim: string
   organismGuess: Guess | null
   structureGuess?: Guess | null
-  locality?: string | null
+  locality?: Locality
   observedAt?: string | null
+  cameraMake?: string | null
+  cameraModel?: string | null
   tagIds: ReadonlyArray<TagId>
   questionIds: ReadonlyArray<QuestionId>
   observationIds?: ReadonlyArray<ObservationId>
@@ -59,8 +62,10 @@ export function createSpecimen(
     body: '',
     organismGuess: input.organismGuess,
     structureGuess: input.structureGuess ?? null,
-    locality: input.locality ?? null,
+    locality: input.locality ?? UNKNOWN_LOCALITY,
     observedAt: input.observedAt ?? null,
+    cameraMake: input.cameraMake ?? null,
+    cameraModel: input.cameraModel ?? null,
     tagIds: [...input.tagIds],
     questionIds: [...input.questionIds],
     observationIds: [...(input.observationIds ?? [])],

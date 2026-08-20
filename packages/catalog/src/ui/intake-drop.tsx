@@ -20,7 +20,7 @@ export function IntakeDrop() {
   const localityId = useId()
   const observedId = useId()
   const questionsId = useId()
-  const [kind, setKind] = useState<EvidenceKind>('note')
+  const [kind, setKind] = useState<EvidenceKind>('picture')
   const [file, setFile] = useState<File | null>(null)
   const [hover, setHover] = useState(false)
   const [error, setError] = useState('')
@@ -80,7 +80,7 @@ export function IntakeDrop() {
       >
         <p className="vanta-heading text-base">Drop a picture, dossier, or artifact</p>
         <p className="vanta-muted mt-2 text-[14px]">
-          One file is enough. Notes-only dumps work too. Filing creates a specimen.
+          Picture intake copies the original into package assets and reads EXIF. GPS tags become locality. Missing GPS is unknown. No geocoding. Notes still file without a file.
         </p>
         <label className="vanta-chip mt-3 cursor-pointer">
           Choose file
@@ -132,18 +132,26 @@ export function IntakeDrop() {
         label="Part / structure (optional)"
         placeholder="setae, leaf surface"
       />
-      <Field
-        id={localityId}
-        name="locality"
-        label="Locality (optional)"
-        placeholder="where it came from"
-      />
-      <Field
-        id={observedId}
-        name="observedAt"
-        label="Collected / observed (optional)"
-        placeholder="when, if you know"
-      />
+      {kind === 'picture' ? (
+        <p className="vanta-muted text-[14px]">
+          Locality and collected time come from EXIF. GPSLatitude, GPSLongitude, GPSAltitude, GPSDateTime when present. Otherwise locality is unknown.
+        </p>
+      ) : (
+        <>
+          <Field
+            id={localityId}
+            name="locality"
+            label="Locality (optional)"
+            placeholder="where it came from"
+          />
+          <Field
+            id={observedId}
+            name="observedAt"
+            label="Collected / observed (optional)"
+            placeholder="when, if you know"
+          />
+        </>
+      )}
       <div className="space-y-2">
         <Label.Root htmlFor={questionsId} className="vanta-label">
           Open questions
