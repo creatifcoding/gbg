@@ -1,0 +1,29 @@
+{
+  "schema": "mantis.ee.proto-fab.bom.v1",
+  "issue": 26,
+  "status": "UNVERIFIED",
+  "maturity": "PROTO-FAB",
+  "qualified": false,
+  "note": "No invented MPNs. DNP until a sourced orderable exists. Variant PROTO-FAB.",
+  "marking": "LAB COUPON — CONCEPT VALIDATION — NOT FOR ANIMAL USE",
+  "items": [
+    {"ref": "U_SER / U_SER_FULL", "value": "MAX96717_GMSL2_SER_UNVERIFIED", "manufacturer": "Analog Devices", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "suffix/package/pad map missing"},
+    {"ref": "U_DES / U_DES_FULL", "value": "MAX96724_GMSL2_DES_UNVERIFIED", "manufacturer": "Analog Devices", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "suffix/package/pad map missing"},
+    {"ref": "J50_*", "value": "B50_BINDER_12NET", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "B50 series missing; BOM B50"},
+    {"ref": "J27_*", "value": "B27_RAIL_12NET", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "B27 series missing; BOM B27"},
+    {"ref": "J19_LANDS / J19_FULL", "value": "B19_LANDS_TARGET", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "BOM B19 stack-up UNVERIFIED"},
+    {"ref": "S1", "value": "S1_NO_CARRIAGE_MATE_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED"},
+    {"ref": "S2", "value": "S2_NO_BINDER_MATE_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED"},
+    {"ref": "Q1A / Q1B", "value": "Q1_LOADSWITCH_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "dual-channel assembly is #24"},
+    {"ref": "F1", "value": "F1_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "BOM B44 TARGET 2 A"},
+    {"ref": "R_SRC", "value": "R_SRC_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "programmable source impedance sweep"},
+    {"ref": "C_LOAD", "value": "C_LOAD_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "#24 10/47/100 µF sweep; no MPN"},
+    {"ref": "R_LOAD", "value": "R_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "TARGET 100 ohm GMSL load"},
+    {"ref": "R_SHORT", "value": "R_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED"},
+    {"ref": "D_DIS", "value": "DISCHARGE_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED"},
+    {"ref": "U_ISO", "value": "ISO_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED"},
+    {"ref": "K_*", "value": "JMP_FAULT_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "safe-default open"},
+    {"ref": "TP_*", "value": "TP_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED"},
+    {"ref": "RF adapter", "value": "SMA_OR_2.92_UNVERIFIED", "manufacturer": "UNVERIFIED", "mpn": "UNVERIFIED", "dnp": true, "variant": "PROTO-FAB", "status": "UNVERIFIED", "reason": "not invented; SOLT blocked"}
+  ]
+}

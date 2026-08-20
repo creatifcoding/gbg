@@ -1,0 +1,26 @@
+{
+  "schema": "mantis.ee.proto-fab.export-status.v1",
+  "issue": 26,
+  "maturity": "PROTO-FAB",
+  "qualified": false,
+  "kicadCli": false,
+  "executed": {
+    "gerberX2": false,
+    "excellon": false,
+    "position": false,
+    "assemblyPdf": false,
+    "fabricationPdf": false,
+    "netlist": false,
+    "step": false,
+    "erc": false,
+    "drc": false,
+    "ipcD356": false,
+    "ipc2581": false,
+    "odbpp": false,
+    "camReimport": false
+  },
+  "reason": "kicad-cli absent and fabricator/stackup UNVERIFIED. Do not invent export artifacts.",
+  "ipc2581": "not claimed; pinned tool/fabricator path unverified",
+  "odbpp": "not claimed; pinned tool/fabricator path unverified",
+  "manifest": "outputs/planning/manifest.sha256"
+}

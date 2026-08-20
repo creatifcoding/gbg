@@ -1,0 +1,102 @@
+{
+  "schema": "mantis.ee.fixture.net-map.v1",
+  "issue": 26,
+  "status": "UNVERIFIED",
+  "maturity": "PROTO-FAB",
+  "qualified": false,
+  "shopRelease": false,
+  "rawMipiOnPogos": false,
+  "untethered": true,
+  "videoWhileRolling": false,
+  "p08SafetyAuthority": false,
+  "measuredSiPi": false,
+  "marking": "LAB COUPON \u2014 CONCEPT VALIDATION \u2014 NOT FOR ANIMAL USE",
+  "classMarking": "PROTO-FAB DRAFT \u2014 UNQUALIFIED \u2014 NOT A SHOP RELEASE",
+  "consumes": {
+    "library": "terrarium/ee/kicad/libs (EE-01, unadmitted envelopes)",
+    "powerControl": "terrarium/ee/kicad/power-control/net-map.json",
+    "cameraTx": "terrarium/ee/kicad/camera-tx/net-map.json",
+    "carriage": "terrarium/ee/kicad/carriage/net-map.json",
+    "railRx": "terrarium/ee/kicad/rail-rx/net-map.json"
+  },
+  "parentStatus": {
+    "power-control": "UNVERIFIED",
+    "camera-tx": "UNVERIFIED",
+    "carriage": "UNVERIFIED",
+    "rail-rx": "UNVERIFIED"
+  },
+  "structures": [
+    "cal-2xthru-b50",
+    "cal-2xthru-b27",
+    "osl-open",
+    "osl-short",
+    "osl-load",
+    "ser-launch-refplane",
+    "b50-only-keyed",
+    "carriage-route",
+    "b27-b19-adjacent-p01-p08",
+    "rx-launch-refplane",
+    "full-channel-ser-b50-car-b27-b19-rx",
+    "power-s1-s2-q1-aon-discharge-iso-fault"
+  ],
+  "nodes": {
+    "CAL50_* / CAL27_*": "2x-thru coupons; complete 12-net, not GMSL-only",
+    "OSL_*": "open/short/load at B50 plane; RF adapter MPN UNVERIFIED",
+    "SER_*": "serializer courtyard refplane to B50; CSI no-connect",
+    "B50ONLY_*": "keyed B50 plug/receptacle 12-net",
+    "CAR_*": "carriage B50 to B27; C01/C02 V_BRANCH not VIN bypass",
+    "B19_*": "B27 springs to B19 lands; P01-P08 adjacent; P09/P12 HSGND",
+    "RX_*": "B27 dock to deserializer courtyard; CSI no-connect",
+    "FULL_*": "complete path; intervening geometry not simplified",
+    "V_BRANCH": "Q1B output to B50 C01/C02; enable is #24 Q1_EN",
+    "VIN_AON": "always-on supervisor; not V_BRANCH",
+    "LINK_LOCK_OBS": "reserved probe; lock pin map UNVERIFIED",
+    "K_*": "fault jumpers default OPEN; one-at-a-time; human approval"
+  },
+  "powerNetsFrom24": [
+    "VIN_RAIL",
+    "VIN_FUSED",
+    "VIN_SHARED",
+    "V_BRANCH",
+    "Q1_EN",
+    "Q1_EN_N",
+    "Q1_MID",
+    "INTERLOCK_MID",
+    "INTERLOCK_OK",
+    "ISO_EN",
+    "FAULT_N",
+    "P08_DIAG"
+  ],
+  "b27": {
+    "P01": "VIN_A",
+    "P02": "VIN_B",
+    "P03": "GND_A",
+    "P04": "GND_B",
+    "P05": "SDA",
+    "P06": "SCL",
+    "P07": "UID",
+    "P08": "FAULT_N",
+    "P09": "HSGND",
+    "P10": "GMSL_P",
+    "P11": "GMSL_N",
+    "P12": "HSGND"
+  },
+  "b50": {
+    "C01": "VIN_A",
+    "C02": "VIN_B",
+    "C03": "GND_A",
+    "C04": "GND_B",
+    "C05": "SDA",
+    "C06": "SCL",
+    "C07": "UID",
+    "C08": "FAULT_N",
+    "C09": "HSGND",
+    "C10": "GMSL_P",
+    "C11": "GMSL_N",
+    "C12": "HSGND"
+  },
+  "b50AfterQ1": {
+    "C01": "V_BRANCH",
+    "C02": "V_BRANCH"
+  }
+}

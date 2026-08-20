@@ -1,0 +1,112 @@
+{
+  "schema": "mantis.ee.coupon-map.v1",
+  "issue": 26,
+  "status": "UNVERIFIED",
+  "maturity": "PROTO-FAB",
+  "qualified": false,
+  "measuredSiPi": false,
+  "marking": "LAB COUPON — CONCEPT VALIDATION — NOT FOR ANIMAL USE",
+  "classMarking": "PROTO-FAB DRAFT — UNQUALIFIED — NOT A SHOP RELEASE",
+  "consumes": {
+    "deembedPlan": "terrarium/simulations/electrical/channel/deembed-plan.md",
+    "fixtureNetMap": "terrarium/ee/kicad/fixture/net-map.json",
+    "ee24": "terrarium/ee/kicad/power-control/net-map.json",
+    "ee25": [
+      "terrarium/ee/kicad/camera-tx/net-map.json",
+      "terrarium/ee/kicad/carriage/net-map.json",
+      "terrarium/ee/kicad/rail-rx/net-map.json"
+    ]
+  },
+  "locks": {
+    "rawMipiOnPogos": false,
+    "videoWhileRolling": false,
+    "p08SafetyAuthority": false,
+    "untethered": true,
+    "inventedMpn": false
+  },
+  "planes": [
+    {
+      "id": "ser-package",
+      "status": "blocked",
+      "reason": "MAX96717 pad map UNVERIFIED; courtyard reference plane only"
+    },
+    {
+      "id": "ser-b50-launch",
+      "status": "declared",
+      "coupon": "ser-launch-refplane"
+    },
+    {
+      "id": "b50-contact",
+      "status": "declared",
+      "coupon": "cal-2xthru-b50"
+    },
+    {
+      "id": "carriage-pair",
+      "status": "declared",
+      "coupon": "carriage-route"
+    },
+    {
+      "id": "b27-contact",
+      "status": "declared",
+      "coupon": "cal-2xthru-b27"
+    },
+    {
+      "id": "b19-lands",
+      "status": "declared",
+      "coupon": "b27-b19-adjacent-p01-p08",
+      "note": "BOM B19 stack-up UNVERIFIED; TARGET 2.54 mm / 1.5 mm from #23"
+    },
+    {
+      "id": "rx-package",
+      "status": "blocked",
+      "reason": "MAX96724 pad map UNVERIFIED; courtyard reference plane only"
+    }
+  ],
+  "structures": {
+    "cal-2xthru-b50": {
+      "method": "2x-thru",
+      "nets": "CAL50_* complete 12-net",
+      "rfAdapterMpn": "UNVERIFIED"
+    },
+    "cal-2xthru-b27": {
+      "method": "2x-thru",
+      "nets": "CAL27_* complete 12-net",
+      "rfAdapterMpn": "UNVERIFIED"
+    },
+    "osl-open": { "method": "open at B50 plane", "nets": "OSL_OPEN_*" },
+    "osl-short": { "method": "GMSL+ to GMSL- through R_SHORT UNVERIFIED", "nets": "OSL_SHORT_*" },
+    "osl-load": { "method": "TARGET 100 ohm GMSL through R_LOAD UNVERIFIED", "nets": "OSL_LOAD_*" },
+    "ser-launch-refplane": {
+      "path": "MAX96717 courtyard -> B50 C09-C12",
+      "adjacentPower": "C01-C08 present",
+      "mipi": "CSI no-connect"
+    },
+    "b50-only-keyed": {
+      "path": "B50 plug envelope to B50 receptacle envelope",
+      "series": "UNVERIFIED"
+    },
+    "carriage-route": {
+      "path": "B50 to B27 12-net",
+      "vBranch": "C01/C02; not a VIN_A bypass"
+    },
+    "b27-b19-adjacent-p01-p08": {
+      "path": "B27 springs to B19 lands",
+      "adjacentPower": "P01-P08 present",
+      "rfReturns": "P09/P12 HSGND",
+      "compression": "UNVERIFIED; #29 read-only"
+    },
+    "rx-launch-refplane": {
+      "path": "B27 dock -> MAX96724 courtyard",
+      "mipi": "CSI no-connect"
+    },
+    "full-channel-ser-b50-car-b27-b19-rx": {
+      "path": "ser launch -> B50 -> carriage -> B27 -> B19 -> rx launch",
+      "simplified": false
+    },
+    "power-s1-s2-q1-aon-discharge-iso-fault": {
+      "consumes": "#24 net names",
+      "probes": ["VIN", "V_BRANCH", "I_BRANCH", "S1", "S2", "Q1_EN", "Q1_OUT", "discharge", "fault latch", "link lock", "ISO", "AON"],
+      "faults": ["S1 open/weld", "S2 open/weld", "Q1 open/short", "discharge open", "VIN_A open", "GND_A open", "UID inj", "P08 inj", "I2C inj", "partial mate", "brownout"]
+    }
+  }
+}

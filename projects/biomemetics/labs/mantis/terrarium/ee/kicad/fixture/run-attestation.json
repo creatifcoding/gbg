@@ -1,0 +1,17 @@
+{
+  "schema": "mantis.ee.fixture.run-attestation.v1",
+  "issue": 26,
+  "baseBranch": "cursor/mantis-ee-25-b50-b27-channel-98a7",
+  "baseSha": "977b272a3e32ed9e9eda7a1b44b545770352c972",
+  "modelAttestation": {
+    "requested": "Grok 4.5 non-fast",
+    "thisRun": "cursor-grok-4.6-high",
+    "fast": false,
+    "operatorWaiver": true,
+    "note": "Operator waived 4.6-high for this leaf."
+  },
+  "parentsUnadmitted": ["23", "24", "25"],
+  "evidenceClass": "theoretical / PROTO-FAB draft",
+  "qualified": false,
+  "shopRelease": false
+}

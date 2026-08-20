@@ -1,0 +1,22 @@
+{
+  "schema": "mantis.ee.proto-fab.maturity.v1",
+  "issue": 26,
+  "maturity": "PROTO-FAB",
+  "qualified": false,
+  "shopRelease": false,
+  "animalUse": false,
+  "measuredSiPi": false,
+  "humanApprovalRequired": true,
+  "humanApprovalGates": [
+    "ordering",
+    "assembly",
+    "energization",
+    "fault-injection",
+    "esd-testing"
+  ],
+  "marking": "LAB COUPON — CONCEPT VALIDATION — NOT FOR ANIMAL USE",
+  "classMarking": "PROTO-FAB DRAFT — UNQUALIFIED — NOT A SHOP RELEASE",
+  "evidenceClass": "theoretical / PROTO-FAB draft",
+  "parentsUnadmitted": [23, 24, 25],
+  "regeneratesFrom": "ee/kicad/fixture/tools/generate_project.py"
+}

@@ -1,0 +1,20 @@
+{
+  "board": { "design_settings": {} },
+  "meta": { "filename": "fixture.kicad_pro", "version": 1 },
+  "sheets": [
+    ["fixture.kicad_sch", "3b390f58-29f7-512c-9cdc-8b54c9495bc3"],
+    ["sheets/01-cal-2xthru-osl.kicad_sch", "cac3a8dc-ba28-59c9-8f63-36a96e5d678c"],
+    ["sheets/02-ser-launch-refplane.kicad_sch", "ccfe86ab-38b3-534b-8b4d-ad748877e761"],
+    ["sheets/03-b50-only.kicad_sch", "ac5a8c55-fa1f-5003-abcf-807bcadcb656"],
+    ["sheets/04-carriage-route.kicad_sch", "5a5727b8-2135-594e-ba97-8cde60932bc4"],
+    ["sheets/05-b27-b19.kicad_sch", "62562777-0023-516e-ab46-b3c466a5ddb5"],
+    ["sheets/06-rx-launch-refplane.kicad_sch", "319bdb64-893f-52cc-9441-222235a20878"],
+    ["sheets/07-full-channel.kicad_sch", "cc05ba7d-e2f8-5ebe-99c7-d060149ad62c"],
+    ["sheets/08-power-s1s2q1-fault.kicad_sch", "f3bc4fba-019a-5d80-ab76-9abf8ad6ee15"]
+  ],
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": ["mantis-ee"],
+    "pinned_fp_libs": ["mantis-ee"]
+  }
+}
