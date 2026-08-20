@@ -13,6 +13,7 @@ import {
   AttachRpcContract,
   EVIDENCE_SCHEMA_PATH,
   LOCAL_EVIDENCE_RUN,
+  LiveSpecimenRpcs,
   attachEvidence,
   createRpcAttachPort,
   createStubAttachPort,
@@ -611,24 +612,44 @@ test('refuses caller component prose and non-local evidence refs', async () => {
   assert.equal(port.calls.length, 0);
 });
 
-test('RPC attach port calls published Attach and does not open PGlite', async () => {
-  const attachCalls: Array<{
-    readonly specimenId: string;
-    readonly component: { readonly _tag: string };
-  }> = [];
+test('live RPC port calls Attach/Get and never Intake, List, or Promote', async () => {
+  const calls = {
+    get: 0,
+    attach: 0,
+    intake: 0,
+    list: 0,
+    promote: 0,
+  };
   const client = {
-    Get: async ({ specimenId }: { readonly specimenId: string }) => ({
-      id: specimenId,
-    }),
-    Attach: async (payload: {
+    [LiveSpecimenRpcs.Get]: async ({
+      specimenId,
+    }: {
+      readonly specimenId: string;
+    }) => {
+      calls.get += 1;
+      return { id: specimenId };
+    },
+    [LiveSpecimenRpcs.Attach]: async (payload: {
       readonly specimenId: string;
       readonly component: { readonly _tag: string; readonly text?: string };
     }) => {
-      attachCalls.push(payload);
+      calls.attach += 1;
       return {
         id: payload.specimenId,
         components: [{ _tag: 'Locality' }, payload.component],
       };
+    },
+    [LiveSpecimenRpcs.Intake]: async () => {
+      calls.intake += 1;
+      throw new Error('Intake must not run for lab evidence attach');
+    },
+    [LiveSpecimenRpcs.List]: async () => {
+      calls.list += 1;
+      return [];
+    },
+    [LiveSpecimenRpcs.Promote]: async () => {
+      calls.promote += 1;
+      throw new Error('Promote must not run for lab evidence attach');
     },
   };
   const port = createRpcAttachPort(client);
@@ -640,22 +661,26 @@ test('RPC attach port calls published Attach and does not open PGlite', async ()
   assert.equal(receipts[0]?.mode, 'rpc');
   assert.equal(receipts[0]?.storeWrite, false);
   assert.equal(receipts[0]?.localityMutated, false);
-  assert.equal(attachCalls.length, 1);
-  assert.deepEqual(attachCalls[0]?.component, {
-    _tag: 'Structure',
-    text: 'Coupon exposes twelve contacts.',
-  });
-  assert.equal(AttachRpcContract.name, 'Attach');
-  assert.equal(AttachRpcContract.payload.component, 'AttachableComponent');
+  assert.equal(calls.get, 1);
+  assert.equal(calls.attach, 1);
+  assert.equal(calls.intake, 0);
+  assert.equal(calls.list, 0);
+  assert.equal(calls.promote, 0);
+  assert.equal(AttachRpcContract.name, LiveSpecimenRpcs.Attach);
+  assert.deepEqual(AttachRpcContract.neverCalls, ['Intake', 'List', 'Promote']);
 });
 
-test('unverified evidence never reaches the published Attach RPC', async () => {
-  let attachCalls = 0;
+test('unverified evidence never reaches Attach or Intake', async () => {
+  const calls = { attach: 0, intake: 0 };
   const port = createRpcAttachPort({
     Get: async ({ specimenId }) => ({ id: specimenId }),
     Attach: async (payload) => {
-      attachCalls += 1;
+      calls.attach += 1;
       return { id: payload.specimenId, components: [] };
+    },
+    Intake: async () => {
+      calls.intake += 1;
+      throw new Error('Intake must not run');
     },
   });
   await assert.rejects(
@@ -674,5 +699,35 @@ test('unverified evidence never reaches the published Attach RPC', async () => {
       error instanceof AttachRefused &&
       error.reasons.includes('unverified-evidence'),
   );
-  assert.equal(attachCalls, 0);
+  assert.equal(calls.attach, 0);
+  assert.equal(calls.intake, 0);
+});
+
+test('invented GPS never reaches Attach or Intake', async () => {
+  const calls = { attach: 0, intake: 0 };
+  const port = createRpcAttachPort({
+    Get: async ({ specimenId }) => ({ id: specimenId }),
+    Attach: async (payload) => {
+      calls.attach += 1;
+      return { id: payload.specimenId, components: [] };
+    },
+    Intake: async () => {
+      calls.intake += 1;
+      throw new Error('Intake must not run');
+    },
+  });
+  const input = {
+    specimenId: existingSpecimenId,
+    artifact: localArtifact(),
+    latitude: 51.5,
+    longitude: -0.1,
+  } as GovernedAttachInput;
+  await assert.rejects(
+    () => attachEvidence(port, input, validator),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('invented-locality'),
+  );
+  assert.equal(calls.attach, 0);
+  assert.equal(calls.intake, 0);
 });

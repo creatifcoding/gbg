@@ -151,12 +151,14 @@ export interface AttachResult {
  */
 export const AttachRpcContract = {
   name: 'Attach',
+  liveRpcs: ['Intake', 'Get', 'List', 'Promote', 'Attach'] as const,
   payload: {
     specimenId: 'SpecimenId',
     component: 'AttachableComponent',
   },
   success: 'Specimen',
   error: 'AttachError',
+  neverCalls: ['Intake', 'List', 'Promote'] as const,
 } as const;
 
 export interface SpecimenDbAttachPort extends SpecimenDbPort {
@@ -610,11 +612,19 @@ export const createStubAttachPort = (
 };
 
 /**
- * Promise-shaped Get/Attach client matching `@tmnl/specimendb` SpecimenRpcs.
- * Wrap Effect RPC with `Effect.runPromise` at the composition site.
- * Does not import PGlite.
+ * Live `@tmnl/specimendb/rpc` surface as exported on main (`SpecimenRpcs`:
+ * Intake, Get, List, Promote) plus the Attach operation this client calls.
+ * Wrap Effect RPC with `Effect.runPromise` at composition. No PGlite import.
  */
-export interface CatalogAttachRpc {
+export const LiveSpecimenRpcs = {
+  Intake: 'Intake',
+  Get: 'Get',
+  List: 'List',
+  Promote: 'Promote',
+  Attach: 'Attach',
+} as const;
+
+export interface LiveSpecimenRpc {
   readonly Get: (payload: {
     readonly specimenId: string;
   }) => Promise<{ readonly id: string }>;
@@ -625,31 +635,44 @@ export interface CatalogAttachRpc {
     readonly id: string;
     readonly components?: readonly { readonly _tag: string }[];
   }>;
+  /** Present on the live catalog. This port must never call it. */
+  readonly Intake?: (payload: unknown) => Promise<unknown>;
+  readonly List?: () => Promise<unknown>;
+  readonly Promote?: (payload: { readonly specimenId: string }) => Promise<unknown>;
 }
 
+export type CatalogAttachRpc = LiveSpecimenRpc;
+
 export const createRpcAttachPort = (
-  client: CatalogAttachRpc,
-): SpecimenDbAttachPort => ({
-  get: async (specimenId) => {
-    const specimen = await client.Get({ specimenId });
-    return { id: specimen.id };
-  },
-  attach: async (payload) => {
-    const specimen = await client.Attach({
-      specimenId: payload.specimenId,
-      component: payload.component,
-    });
-    if (specimen.id !== payload.specimenId) {
-      throw new Error('SpecimenDB returned a different specimen id');
-    }
-    return {
-      specimenId: payload.specimenId,
-      evidenceId: payload.provenance.evidenceId,
-      claimRefs: payload.provenance.claimRefs,
-      localityMutated: false,
-      taxonMutated: false,
-      storeWrite: false,
-      mode: 'rpc',
-    };
-  },
-});
+  client: LiveSpecimenRpc,
+): SpecimenDbAttachPort => {
+  if (typeof client.Get !== 'function' || typeof client.Attach !== 'function') {
+    throw new TypeError(
+      'live Specimen RPC must expose Get and Attach; Intake is not an attach path',
+    );
+  }
+  return {
+    get: async (specimenId) => {
+      const specimen = await client.Get({ specimenId });
+      return { id: specimen.id };
+    },
+    attach: async (payload) => {
+      const specimen = await client.Attach({
+        specimenId: payload.specimenId,
+        component: payload.component,
+      });
+      if (specimen.id !== payload.specimenId) {
+        throw new Error('SpecimenDB returned a different specimen id');
+      }
+      return {
+        specimenId: payload.specimenId,
+        evidenceId: payload.provenance.evidenceId,
+        claimRefs: payload.provenance.claimRefs,
+        localityMutated: false,
+        taxonMutated: false,
+        storeWrite: false,
+        mode: 'rpc',
+      };
+    },
+  };
+};

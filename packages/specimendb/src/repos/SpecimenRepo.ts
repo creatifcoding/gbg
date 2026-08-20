@@ -21,7 +21,6 @@ import {
   toExiftoolSidecar,
 } from '../media/exif.js';
 import {
-  AttachError,
   CatalogError,
   IntakeError,
   SpecimenNotFoundError,
@@ -37,7 +36,6 @@ import {
   type ComponentKind,
 } from '../schemas/components.js';
 import {
-  AttachPayload,
   IntakePayload,
   IntakeResult,
   Specimen,
@@ -56,12 +54,6 @@ export interface SpecimenRepoShape {
   readonly promote: (
     specimenId: SpecimenId,
   ) => Effect.Effect<typeof Specimen.Type, CatalogError | SpecimenNotFoundError>;
-  readonly attach: (
-    payload: typeof AttachPayload.Type,
-  ) => Effect.Effect<
-    typeof Specimen.Type,
-    CatalogError | SpecimenNotFoundError | AttachError
-  >;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -271,48 +263,7 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
           return yield* get(specimenId);
         });
 
-      const attach = Effect.fn('@tmnl/specimendb/SpecimenRepo.attach')(function* (
-        payload: typeof AttachPayload.Type,
-      ) {
-          const tag: string = payload.component._tag;
-          if (tag === 'Locality') {
-            return yield* new AttachError({
-              specimenId: payload.specimenId,
-              reason: 'invented-locality',
-              message: 'Attach cannot admit Locality or GPS',
-            });
-          }
-          if (tag === 'Taxon') {
-            return yield* new AttachError({
-              specimenId: payload.specimenId,
-              reason: 'invented-taxon',
-              message: 'Attach cannot admit Taxon',
-            });
-          }
-          if (
-            tag !== 'Observation' &&
-            tag !== 'Structure' &&
-            tag !== 'Mechanism' &&
-            tag !== 'Function' &&
-            tag !== 'AnalogLink'
-          ) {
-            return yield* new AttachError({
-              specimenId: payload.specimenId,
-              reason: 'component-not-attachable',
-              message: `Attach cannot admit ${tag}`,
-            });
-          }
-          yield* get(payload.specimenId);
-          yield* insertComponent(
-            payload.specimenId,
-            payload.component._tag,
-            payload.component,
-            nowIso(),
-          );
-          return yield* get(payload.specimenId);
-        });
-
-      return SpecimenRepo.of({ intake, get, list, promote, attach });
+      return SpecimenRepo.of({ intake, get, list, promote });
     }),
   );
 }

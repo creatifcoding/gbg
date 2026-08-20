@@ -9,14 +9,8 @@ import * as Layer from 'effect/Layer';
 import * as Schema from 'effect/Schema';
 import * as Rpc from 'effect/unstable/rpc/Rpc';
 import * as RpcGroup from 'effect/unstable/rpc/RpcGroup';
-import { AttachError, CatalogError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
-import {
-  AttachPayload,
-  GetPayload,
-  IntakePayload,
-  IntakeResult,
-  Specimen,
-} from '../schemas/specimen.js';
+import { CatalogError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
+import { GetPayload, IntakePayload, IntakeResult, Specimen } from '../schemas/specimen.js';
 import { SpecimenRepo } from '../repos/SpecimenRepo.js';
 
 export const Intake = Rpc.make('Intake', {
@@ -42,13 +36,7 @@ export const Promote = Rpc.make('Promote', {
   error: Schema.Union([CatalogError, SpecimenNotFoundError]),
 });
 
-export const Attach = Rpc.make('Attach', {
-  payload: AttachPayload,
-  success: Specimen,
-  error: Schema.Union([CatalogError, SpecimenNotFoundError, AttachError]),
-});
-
-export class SpecimenRpcs extends RpcGroup.make(Intake, Get, List, Promote, Attach) {}
+export class SpecimenRpcs extends RpcGroup.make(Intake, Get, List, Promote) {}
 
 export const SpecimenRpcsLive = SpecimenRpcs.toLayer(
   Effect.gen(function* () {
@@ -58,7 +46,6 @@ export const SpecimenRpcsLive = SpecimenRpcs.toLayer(
       Get: (payload) => repo.get(payload.specimenId),
       List: () => repo.list(),
       Promote: (payload) => repo.promote(payload.specimenId),
-      Attach: (payload) => repo.attach(payload),
     });
   }),
 );

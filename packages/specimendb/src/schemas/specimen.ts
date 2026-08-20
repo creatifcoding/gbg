@@ -6,16 +6,7 @@
 
 import * as Schema from 'effect/Schema';
 import { SpecimenId } from './identifiers.js';
-import {
-  AnalogLinkComponent,
-  Component,
-  FunctionComponent,
-  LocalityComponent,
-  MechanismComponent,
-  ObservationComponent,
-  StructureComponent,
-  type SpecimenStatus,
-} from './components.js';
+import { Component, LocalityComponent, type SpecimenStatus } from './components.js';
 
 export const CaptureGeo = Schema.Struct({
   latitude: Schema.Number,
@@ -52,22 +43,6 @@ export const GetPayload = Schema.Struct({
   specimenId: SpecimenId,
 });
 export type GetPayload = typeof GetPayload.Type;
-
-/** Evidence/catalog attachables only. Locality, Taxon, Media, Exif, Status are not admitted. */
-export const AttachableComponent = Schema.Union([
-  ObservationComponent,
-  StructureComponent,
-  MechanismComponent,
-  FunctionComponent,
-  AnalogLinkComponent,
-]);
-export type AttachableComponent = typeof AttachableComponent.Type;
-
-export const AttachPayload = Schema.Struct({
-  specimenId: SpecimenId,
-  component: AttachableComponent,
-});
-export type AttachPayload = typeof AttachPayload.Type;
 
 export type ComponentBag = { readonly components: ReadonlyArray<Component> };
 

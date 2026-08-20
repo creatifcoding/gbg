@@ -1,6 +1,6 @@
 /**
  * STX catalog surface. Atom + autoLens live on the stx() instance.
- * RPC calls stay Intake / Get / List / Promote / Attach — this module does not invent GPS or ids.
+ * RPC calls stay Intake / Get / List / Promote — this module does not invent GPS or ids.
  *
  * @module @tmnl/specimendb/ui
  */
@@ -11,14 +11,13 @@ import { stx, type StxInstance } from '@tmnl/stx';
 import { localityView, type LocalityView } from '../surface.js';
 import {
   statusOf,
-  type AttachableComponent,
   type IntakePayload,
   type IntakeResult,
   type Specimen,
 } from '../schemas/specimen.js';
 import type { SpecimenId } from '../schemas/identifiers.js';
 import type { SpecimenStatus } from '../schemas/components.js';
-import type { AttachError, CatalogError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
+import type { CatalogError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
 
 export type StatusFilter = 'all' | SpecimenStatus;
 
@@ -61,11 +60,6 @@ export interface SpecimenRpcClient {
   readonly Promote: (payload: {
     readonly specimenId: SpecimenId;
   }) => Effect.Effect<Specimen, CatalogError | SpecimenNotFoundError>;
-  /** Published catalog Attach. Optional on UI test doubles that never attach. */
-  readonly Attach?: (payload: {
-    readonly specimenId: SpecimenId;
-    readonly component: AttachableComponent;
-  }) => Effect.Effect<Specimen, CatalogError | SpecimenNotFoundError | AttachError>;
 }
 
 export type CatalogSurface = {

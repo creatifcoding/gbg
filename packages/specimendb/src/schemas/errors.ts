@@ -28,16 +28,4 @@ export class IntakeError extends Schema.TaggedErrorClass<IntakeError>(
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
-export class AttachError extends Schema.TaggedErrorClass<AttachError>(
-  '@tmnl/specimendb/AttachError',
-)('AttachError', {
-  specimenId: SpecimenId,
-  reason: Schema.Literals(['invented-locality', 'invented-taxon', 'component-not-attachable'] as const),
-  message: Schema.String,
-}) {}
-
-export type SpecimenRpcError =
-  | CatalogError
-  | SpecimenNotFoundError
-  | IntakeError
-  | AttachError;
+export type SpecimenRpcError = CatalogError | SpecimenNotFoundError | IntakeError;
