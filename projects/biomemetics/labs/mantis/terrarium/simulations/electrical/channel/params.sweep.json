@@ -1,0 +1,46 @@
+{
+  "schema": "mantis.ee.channel.params.sweep.v1",
+  "issue": 25,
+  "status": "UNVERIFIED",
+  "note": "No SerDes suffix, contact series, or fabricator stackup is selected. Values are placeholders for cascade screening. analog.com datasheets timed out. Field solver is not Nix-qualified. This does not qualify hardware.",
+  "locks": {
+    "rawMipiOnPogos": false,
+    "videoWhileRolling": false,
+    "untetheredCarriage": true,
+    "gmslCell": "P09-HSGND P10-GMSL_P P11-GMSL_N P12-HSGND"
+  },
+  "parameters": {
+    "z0_ohm": {
+      "default": 100.0,
+      "status": "target",
+      "source": "bus.json 100 ohm TARGET; not a measured result"
+    },
+    "er": {
+      "default": 4.0,
+      "sweep": [3.5, 4.0, 4.5],
+      "status": "UNVERIFIED",
+      "note": "Fabricator stackup not selected"
+    },
+    "l_ser_m": {"default": 0.008, "status": "UNVERIFIED"},
+    "l_carriage_m": {
+      "default": 0.04,
+      "sweep": [0.02, 0.04, 0.08],
+      "status": "UNVERIFIED"
+    },
+    "l_des_m": {"default": 0.01, "status": "UNVERIFIED"},
+    "r_b50_ohm": {
+      "default": 0.2,
+      "sweep": [0.05, 0.2, 1.0],
+      "status": "UNVERIFIED"
+    },
+    "r_b27_ohm": {
+      "default": 0.3,
+      "sweep": [0.05, 0.3, 1.0],
+      "status": "UNVERIFIED"
+    },
+    "alpha_np_per_m": {"default": 2.0, "status": "UNVERIFIED"},
+    "f_min_hz": {"default": 1.0e8},
+    "f_max_hz": {"default": 6.0e9},
+    "n_freq": {"default": 51}
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "schema": "mantis.ee.channel.cascade.v1",
+  "issue": 25,
+  "status": "UNVERIFIED",
+  "qualifiesPhysicalInterface": false,
+  "solver": "numpy analytic TEM + series-R contact",
+  "fieldSolver": "blocked",
+  "vendorTouchstone": "absent",
+  "skrf": "not installed; not added to flake",
+  "locks": {
+    "rawMipiInCascade": false,
+    "videoWhileRolling": false,
+    "gmslPins": [
+      "B50.C10",
+      "B50.C11",
+      "B27.P10",
+      "B27.P11"
+    ],
+    "hsgndPins": [
+      "B50.C09",
+      "B50.C12",
+      "B27.P09",
+      "B27.P12"
+    ]
+  },
+  "nominal": {
+    "il_db_1p5GHz": -1.7282551162333324,
+    "il_db_3GHz": -2.543994970024954,
+    "rl_db_3GHz": -5.826825060625435,
+    "note": "Numbers are simulated placeholders. No ADI IL mask was retrieved (datasheet timeout)."
+  },
+  "sensitivity": [
+    {
+      "l_carriage_m": 0.02,
+      "r_b27_ohm": 0.05,
+      "il_db_1p5GHz": -1.6355885145460693,
+      "il_db_3GHz": -2.4539830659805073,
+      "rl_db_3GHz": -5.021020572417426
+    },
+    {
+      "l_carriage_m": 0.02,
+      "r_b27_ohm": 0.3,
+      "il_db_1p5GHz": -1.6447605223877346,
+      "il_db_3GHz": -2.4623432531089775,
+      "rl_db_3GHz": -5.018279839675404
+    },
+    {
+      "l_carriage_m": 0.02,
+      "r_b27_ohm": 1.0,
+      "il_db_1p5GHz": -1.6703907464207117,
+      "il_db_3GHz": -2.4857167226857593,
+      "rl_db_3GHz": -5.010581208507241
+    },
+    {
+      "l_carriage_m": 0.04,
+      "r_b27_ohm": 0.05,
+      "il_db_1p5GHz": -1.7127848045372165,
+      "il_db_3GHz": -2.5344894169385856,
+      "rl_db_3GHz": -5.833210187883817
+    },
+    {
+      "l_carriage_m": 0.04,
+      "r_b27_ohm": 0.3,
+      "il_db_1p5GHz": -1.7282551162333324,
+      "il_db_3GHz": -2.543994970024954,
+      "rl_db_3GHz": -5.826825060625435
+    },
+    {
+      "l_carriage_m": 0.04,
+      "r_b27_ohm": 1.0,
+      "il_db_1p5GHz": -1.7714412948144163,
+      "il_db_3GHz": -2.5705585460224234,
+      "rl_db_3GHz": -5.809019760250308
+    },
+    {
+      "l_carriage_m": 0.08,
+      "r_b27_ohm": 0.05,
+      "il_db_1p5GHz": -2.0677606132959827,
+      "il_db_3GHz": -2.0587009936810485,
+      "rl_db_3GHz": -18.491762694753742
+    },
+    {
+      "l_carriage_m": 0.08,
+      "r_b27_ohm": 0.3,
+      "il_db_1p5GHz": -2.0819812434687437,
+      "il_db_3GHz": -2.0657836466916226,
+      "rl_db_3GHz": -18.517615580763994
+    },
+    {
+      "l_carriage_m": 0.08,
+      "r_b27_ohm": 1.0,
+      "il_db_1p5GHz": -2.1216758690994713,
+      "il_db_3GHz": -2.085584639832296,
+      "rl_db_3GHz": -18.58973681485782
+    }
+  ],
+  "checks": {
+    "csiNetsInGmslCascade": false,
+    "p09p12AreHsgnd": true,
+    "p10p11AreGmsl": true,
+    "qualificationFlagForcedFalse": true
+  }
+}

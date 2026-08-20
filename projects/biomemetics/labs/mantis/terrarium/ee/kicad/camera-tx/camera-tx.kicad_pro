@@ -1,0 +1,14 @@
+{
+  "board": { "design_settings": {} },
+  "meta": { "filename": "camera-tx.kicad_pro", "version": 1 },
+  "sheets": [
+    ["camera-tx.kicad_sch", "b13e7408-de05-5779-9b08-d2bcc50247ff"],
+    ["sheets/01-local-csi.kicad_sch", "9baa8866-a5ac-50cc-8d89-947794345521"],
+    ["sheets/02-ser-b50.kicad_sch", "01031f0c-ee10-572d-9920-d2665d0cdf00"]
+  ],
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": ["mantis-ee"],
+    "pinned_fp_libs": ["mantis-ee"]
+  }
+}

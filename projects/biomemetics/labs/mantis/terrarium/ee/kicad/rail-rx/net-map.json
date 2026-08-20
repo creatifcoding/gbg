@@ -1,0 +1,27 @@
+{
+  "schema": "mantis.ee.rail-rx.net-map.v1",
+  "issue": 25,
+  "status": "UNVERIFIED",
+  "rawMipiOnPogos": false,
+  "nodes": {
+    "GMSL_P": "B27 P10 into MAX96724 envelope B1",
+    "GMSL_N": "B27 P11 into MAX96724 envelope B2",
+    "CSI_*": "local MIPI to Tachyon CSI1; not on B27",
+    "VDD_DES": "UNVERIFIED local rail; pad map missing"
+  },
+  "b27": {
+    "P01": "VIN_A",
+    "P02": "VIN_B",
+    "P03": "GND_A",
+    "P04": "GND_B",
+    "P05": "SDA",
+    "P06": "SCL",
+    "P07": "UID",
+    "P08": "FAULT_N",
+    "P09": "HSGND",
+    "P10": "GMSL_P",
+    "P11": "GMSL_N",
+    "P12": "HSGND"
+  },
+  "tachyonCsi1": "TACHYON_CSI1_22P; connector MPN UNVERIFIED"
+}

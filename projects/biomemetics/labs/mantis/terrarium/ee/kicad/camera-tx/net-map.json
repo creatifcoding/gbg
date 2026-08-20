@@ -1,0 +1,31 @@
+{
+  "schema": "mantis.ee.camera-tx.net-map.v1",
+  "issue": 25,
+  "status": "UNVERIFIED",
+  "rawMipiOnPogos": false,
+  "untethered": true,
+  "videoWhileRolling": false,
+  "nodes": {
+    "CSI_*": "local MIPI between IMX519 and MAX96717; not on B50",
+    "GMSL_P": "B50 C10",
+    "GMSL_N": "B50 C11",
+    "HSGND": "B50 C09 and C12",
+    "V_BRANCH": "B50 C01/C02 after Q1; not serializer VDD",
+    "VDD_SER": "UNVERIFIED local rail; pad map missing",
+    "CAM_3V3": "UNVERIFIED local rail; SKU missing"
+  },
+  "b50": {
+    "C01": "V_BRANCH",
+    "C02": "V_BRANCH",
+    "C03": "GND_A",
+    "C04": "GND_B",
+    "C05": "SDA",
+    "C06": "SCL",
+    "C07": "UID",
+    "C08": "FAULT_N",
+    "C09": "HSGND",
+    "C10": "GMSL_P",
+    "C11": "GMSL_N",
+    "C12": "HSGND"
+  }
+}
