@@ -91,7 +91,7 @@
         [
           kicad
           ngspice
-          poppler_utils
+          poppler-utils
         ]
       );
 
@@ -118,7 +118,7 @@
       reviewLinux = lib.optionals isLinux (
         with pkgs;
         [
-          poppler_utils
+          poppler-utils
           freecad
           openscad
           inkscape
@@ -143,6 +143,9 @@
         if [ -x "$_mantis_git_root/node_modules/.bin/nx" ]; then
           export PATH="$_mantis_git_root/node_modules/.bin:$PATH"
         fi
+        # Drop user-profile rustup/cargo shadows so the Nix toolchain wins.
+        PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v -E '/\.cargo/bin$|/usr/local/cargo/bin$' | paste -sd: -)"
+        export PATH
         unset _mantis_git_root _wt_key
       '';
 

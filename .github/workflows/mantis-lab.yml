@@ -54,11 +54,11 @@ jobs:
 
       - name: Enter mantis-core and show command surface
         run: |
-          nix develop .#mantis-core --command bash -lc 'mantis --help || mantis help || true; which python3 jq rg cargo bun'
+          nix develop .#mantis-core --command bash -c 'mantis help; command -v python3 jq rg cargo bun; command -v cargo | grep -q /nix/store'
 
       - name: Run mantis doctor in mantis-all
         run: |
-          nix develop .#mantis-all --command bash -lc 'mantis doctor'
+          nix develop .#mantis-all --command mantis doctor
 
       - name: Upload doctor report
         if: always()
@@ -90,4 +90,4 @@ jobs:
 
       - name: Enter ${{ matrix.shell }}
         run: |
-          nix develop .#${{ matrix.shell }} --command bash -lc 'echo MANTIS_SHELL=$MANTIS_SHELL; echo STATE=$MANTIS_STATE_DIR; test -n "$MANTIS_STATE_DIR"; test -d "$CARGO_TARGET_DIR"'
+          nix develop .#${{ matrix.shell }} --command bash -c 'echo MANTIS_SHELL=$MANTIS_SHELL; echo STATE=$MANTIS_STATE_DIR; test -n "$MANTIS_STATE_DIR"; test -d "$CARGO_TARGET_DIR"; command -v cargo | grep -q /nix/store'
