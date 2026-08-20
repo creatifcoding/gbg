@@ -54,11 +54,16 @@ jobs:
 
       - name: Enter mantis-core and show command surface
         run: |
-          nix develop .#mantis-core --command bash -c 'mantis help; command -v python3 jq rg cargo bun; command -v cargo | grep -q /nix/store'
+          nix develop .#mantis-core --command bash -c 'mantis help; command -v python3 jq rg cargo bun; command -v cargo | grep -q /nix/store; ! command -v FreeCADCmd'
+
+      - name: Pin-check FreeCADCmd on mantis-cad (Nix, not apt)
+        run: |
+          nix develop .#mantis-cad --command bash -c 'test -n "$MANTIS_FREECADCMD"; command -v FreeCADCmd | grep -q "^/nix/store/"; FreeCADCmd --version | head -n 1'
 
       - name: Run mantis doctor in mantis-all
         run: |
-          nix develop .#mantis-all --command mantis doctor
+          nix develop .#mantis-all --command bash -c 'test -n "$MANTIS_FREECADCMD"; command -v FreeCADCmd | grep -q "^/nix/store/"; mantis doctor'
+
 
       - name: Upload doctor report
         if: always()
@@ -90,4 +95,12 @@ jobs:
 
       - name: Enter ${{ matrix.shell }}
         run: |
-          nix develop .#${{ matrix.shell }} --command bash -c 'echo MANTIS_SHELL=$MANTIS_SHELL; echo STATE=$MANTIS_STATE_DIR; test -n "$MANTIS_STATE_DIR"; test -d "$CARGO_TARGET_DIR"; command -v cargo | grep -q /nix/store'
+          case "${{ matrix.shell }}" in
+            mantis-cad)
+              nix develop .#mantis-cad --command bash -c 'echo MANTIS_SHELL=$MANTIS_SHELL; test -n "$MANTIS_STATE_DIR"; test -d "$CARGO_TARGET_DIR"; command -v cargo | grep -q /nix/store; test -n "$MANTIS_FREECADCMD"; command -v FreeCADCmd | grep -q "^/nix/store/"'
+              ;;
+            *)
+              nix develop .#${{ matrix.shell }} --command bash -c 'echo MANTIS_SHELL=$MANTIS_SHELL; echo STATE=$MANTIS_STATE_DIR; test -n "$MANTIS_STATE_DIR"; test -d "$CARGO_TARGET_DIR"; command -v cargo | grep -q /nix/store'
+              ;;
+          esac
+

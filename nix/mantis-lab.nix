@@ -95,10 +95,13 @@
         ]
       );
 
+      # User lock: FreeCADCmd comes from the Nix freecad derivation, never apt.
+      # Exposed on mantis-cad and mantis-all only (not mantis-core).
+      freecadPinned = lib.optional isLinux pkgs.freecad;
+
       cadLinux = lib.optionals isLinux (
         with pkgs;
         [
-          freecad
           openscad
           inkscape
           blender
@@ -110,6 +113,9 @@
         with pkgs;
         [
           gmsh
+          # calculix-ccx stays available for future sourced material cards, but
+          # doctor skips FEA until scripts/environment/fixtures/sim/ carries
+          # URL+digest provenance for the card (do not invent one).
           calculix-ccx
           # openEMS intentionally omitted until a headless smoke test qualifies it.
         ]
@@ -119,11 +125,33 @@
         with pkgs;
         [
           poppler-utils
-          freecad
           openscad
           inkscape
         ]
+        ++ freecadPinned
       );
+
+      # Fail closed if FreeCADCmd is missing or shadowed by a non-Nix install.
+      freecadCmdPinHook = lib.optionalString isLinux ''
+        if ! command -v FreeCADCmd >/dev/null 2>&1; then
+          echo "BLOCKED: FreeCADCmd missing in $MANTIS_SHELL (workstream mantis-00a-runtime / issue #21)" >&2
+          echo "FreeCAD must come from Nix pkgs.freecad, not apt." >&2
+          exit 69
+        fi
+        _fcc="$(command -v FreeCADCmd)"
+        case "$_fcc" in
+          /nix/store/*) ;;
+          *)
+            echo "BLOCKED: FreeCADCmd is not from the Nix store: $_fcc" >&2
+            echo "Refuse apt/user-profile FreeCAD; enter nix develop .#mantis-cad" >&2
+            exit 69
+            ;;
+        esac
+        export MANTIS_FREECADCMD="$_fcc"
+        echo "[$MANTIS_SHELL] FreeCADCmd pinned: $MANTIS_FREECADCMD"
+        unset _fcc
+      '';
+
 
       # Worktree-local mutable paths — never share cargo/solver/result dirs across checkouts.
       worktreeShellHook = ''
@@ -213,7 +241,8 @@
 
       devShells.mantis-cad = mkMantisShell {
         name = "mantis-cad";
-        packages = baseTools ++ [ pythonCad ] ++ cadLinux;
+        packages = baseTools ++ [ pythonCad ] ++ freecadPinned ++ cadLinux;
+        extraHook = freecadCmdPinHook;
       };
 
       devShells.mantis-sim = mkMantisShell {
@@ -224,14 +253,23 @@
       devShells.mantis-review = mkMantisShell {
         name = "mantis-review";
         packages = baseTools ++ [ pythonCore ] ++ reviewLinux;
+        extraHook = freecadCmdPinHook;
       };
 
       # Local integration only — not the default cloud-worker shell.
       devShells.mantis-all = mkMantisShell {
         name = "mantis-all";
-        packages = baseTools ++ [ pythonAll ] ++ eeLinux ++ cadLinux ++ simLinux ++ reviewLinux;
+        packages =
+          baseTools
+          ++ [ pythonAll ]
+          ++ freecadPinned
+          ++ eeLinux
+          ++ cadLinux
+          ++ simLinux
+          ++ reviewLinux;
         extraHook = ''
           echo "[mantis-all] local integration shell — prefer scoped shells for cloud workers"
+          ${freecadCmdPinHook}
         '';
       };
 

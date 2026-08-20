@@ -118,11 +118,30 @@ check_cad() {
   local out="$RUN_DIR/cad"
   mkdir -p "$out"
 
-  if ! command -v FreeCADCmd >/dev/null 2>&1 && ! command -v freecadcmd >/dev/null 2>&1; then
-    record "cad.freecad" "FAIL" "$ws" "FreeCADCmd missing — enter nix develop .#mantis-cad"
+  local fcc=""
+  if [ -n "${MANTIS_FREECADCMD:-}" ] && [ -x "$MANTIS_FREECADCMD" ]; then
+    fcc="$MANTIS_FREECADCMD"
+  elif command -v FreeCADCmd >/dev/null 2>&1; then
+    fcc="$(command -v FreeCADCmd)"
+  elif command -v freecadcmd >/dev/null 2>&1; then
+    fcc="$(command -v freecadcmd)"
+  fi
+
+  if [ -z "$fcc" ]; then
+    record "cad.freecad" "FAIL" "$ws" "FreeCADCmd missing — enter nix develop .#mantis-cad (Nix pkgs.freecad, not apt)"
   else
-    local fcc="FreeCADCmd"
-    command -v FreeCADCmd >/dev/null 2>&1 || fcc="freecadcmd"
+    case "$fcc" in
+      /nix/store/*)
+        record "cad.freecad-pin" "PASS" "$ws" "FreeCADCmd from Nix store: $fcc"
+        ;;
+      *)
+        record "cad.freecad-pin" "FAIL" "$ws" "FreeCADCmd not from Nix store: $fcc (refuse apt)"
+        fcc=""
+        ;;
+    esac
+  fi
+
+  if [ -n "$fcc" ]; then
     if "$fcc" -c "import FreeCAD,Part; print('ok')" >"$out/freecad-import.log" 2>&1; then
       if "$fcc" "$MANTIS_ENV_FIXTURES/cad/step_roundtrip.py" "$out" >"$out/step-roundtrip.log" 2>&1; then
         record "cad.step-roundtrip" "PASS" "$ws" "FreeCADCmd/OCCT STEP export/reimport dimensional agree"
@@ -166,25 +185,45 @@ check_sim() {
     fi
   fi
 
-  if ! command -v gmsh >/dev/null 2>&1 || ! command -v ccx >/dev/null 2>&1; then
-    record "sim.gmsh-ccx" "FAIL" "$ws" "gmsh/ccx missing — enter nix develop .#mantis-sim"
+  if ! command -v gmsh >/dev/null 2>&1; then
+    record "sim.gmsh" "FAIL" "$ws" "gmsh missing — enter nix develop .#mantis-sim"
   else
     local simtmp="$MANTIS_SOLVER_TEMP/sim"
     cp "$MANTIS_ENV_FIXTURES/sim/cube.geo" "$simtmp/"
-    cp "$MANTIS_ENV_FIXTURES/sim/cube.inp" "$simtmp/"
     if (cd "$simtmp" && gmsh -3 -o cube.msh cube.geo >"$out/gmsh.log" 2>&1); then
-      if (cd "$simtmp" && ccx cube >"$out/ccx.log" 2>&1); then
+      record "sim.gmsh" "PASS" "$ws" "Gmsh reference mesh ok"
+    else
+      record "sim.gmsh" "FAIL" "$ws" "gmsh mesh failed"
+    fi
+  fi
+
+  # CalculiX FEA requires a sourced material card (URL + digest) under fixtures/sim/.
+  # Do not invent elastic constants; keep skipped until provenance lands.
+  local card_meta="$MANTIS_ENV_FIXTURES/sim/MATERIAL-CARD.json"
+  if [ -f "$card_meta" ] && command -v jq >/dev/null 2>&1 \
+    && jq -e '.source.url and .source.digest and .inp' "$card_meta" >/dev/null 2>&1; then
+    if ! command -v ccx >/dev/null 2>&1; then
+      record "sim.calculix" "FAIL" "$ws" "ccx missing — enter nix develop .#mantis-sim"
+    else
+      local simtmp="$MANTIS_SOLVER_TEMP/sim"
+      local inp_rel
+      inp_rel="$(jq -r '.inp' "$card_meta")"
+      cp "$MANTIS_ENV_FIXTURES/sim/$inp_rel" "$simtmp/"
+      local job
+      job="$(basename "$inp_rel" .inp)"
+      if (cd "$simtmp" && ccx "$job" >"$out/ccx.log" 2>&1); then
         if python3 "$MANTIS_ENV_SCRIPTS/assert-ccx-cube.py" "$simtmp" >"$out/ccx-assert.txt" 2>&1; then
-          record "sim.gmsh-ccx" "PASS" "$ws" "Gmsh mesh + CalculiX numeric assertion ok"
+          record "sim.calculix" "PASS" "$ws" "CalculiX numeric assertion with sourced material card"
         else
-          record "sim.gmsh-ccx" "FAIL" "$ws" "CalculiX assertion failed"
+          record "sim.calculix" "FAIL" "$ws" "CalculiX assertion failed"
         fi
       else
-        record "sim.gmsh-ccx" "FAIL" "$ws" "ccx solve failed"
+        record "sim.calculix" "FAIL" "$ws" "ccx solve failed"
       fi
-    else
-      record "sim.gmsh-ccx" "FAIL" "$ws" "gmsh mesh failed"
     fi
+  else
+    record "sim.calculix" "SKIP" "$ws" \
+      "no sourced material card (URL+digest) under fixtures/sim/; FEA not admitted"
   fi
 
   if command -v openEMS >/dev/null 2>&1; then
