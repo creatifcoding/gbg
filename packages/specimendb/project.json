@@ -1,0 +1,51 @@
+{
+  "name": "@tmnl/specimendb",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/specimendb/src",
+  "projectType": "library",
+  "tags": ["scope:tmnl", "type:lib", "domain:data", "effect:v4"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/specimendb"
+      },
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["default", "^default"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/specimendb"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "packages/specimendb"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "testbed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run testbed",
+        "cwd": "packages/specimendb"
+      }
+    },
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run clean",
+        "cwd": "packages/specimendb"
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Specimen capture</title>
+    <link rel="stylesheet" href="./tokens.css" />
+    <link rel="stylesheet" href="./capture.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="chrome">
+        <h1 class="title">Specimen capture</h1>
+        <p class="lede">
+          This page does not upload the specimen. It only writes EXIF on-device.
+          Take or choose a JPEG, bake GPS and DateTimeOriginal with vendored
+          ExifTool WASM, then download the stamped file. The photo never leaves
+          this device.
+        </p>
+      </header>
+
+      <section class="card-base stack" aria-labelledby="locality-label">
+        <h2 class="label" id="locality-label">Locality</h2>
+        <div class="status">
+          <p id="locality-state" class="status-line status-acquiring">acquiring</p>
+          <p id="locality-detail" class="status-detail">
+            Requesting navigator.geolocation with enableHighAccuracy.
+          </p>
+        </div>
+        <p class="hint">
+          Denied, unavailable, or timed out → locality unknown. GPS is not
+          invented and IP geolocation is not used.
+        </p>
+      </section>
+
+      <section class="card-elevated stack" aria-labelledby="file-label">
+        <h2 class="label" id="file-label">Specimen</h2>
+        <div class="file-row">
+          <div class="actions">
+            <label class="button button-file">
+              Take or choose JPEG
+              <input
+                id="file-input"
+                type="file"
+                accept="image/jpeg,image/*"
+                capture="environment"
+              />
+            </label>
+            <button id="stamp" class="button" type="button" disabled>
+              Stamp + download
+            </button>
+          </div>
+          <p id="file-name" class="file-name">No file chosen</p>
+        </div>
+        <img id="preview" class="preview" alt="Chosen specimen" />
+        <div class="status">
+          <p id="work-state" class="status-line">idle</p>
+          <p id="work-detail" class="status-detail">
+            Stamp uses writeMetadata(file, tags) on the browser File. Nothing is
+            uploaded.
+          </p>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./capture.js"></script>
+  </body>
+</html>

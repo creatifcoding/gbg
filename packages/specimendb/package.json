@@ -1,0 +1,81 @@
+{
+  "name": "@tmnl/specimendb",
+  "version": "0.0.1",
+  "description": "ECS specimen catalog — Intake/Get/List/Promote over PGlite (Effect v4)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./ui": {
+      "import": "./dist/ui/index.js",
+      "types": "./dist/ui/index.d.ts"
+    },
+    "./schemas": {
+      "import": "./dist/schemas/index.js",
+      "types": "./dist/schemas/index.d.ts"
+    },
+    "./rpc": {
+      "import": "./dist/rpc/index.js",
+      "types": "./dist/rpc/index.d.ts"
+    },
+    "./repos": {
+      "import": "./dist/repos/index.js",
+      "types": "./dist/repos/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
+    "testbed": "vite --config testbed/vite.config.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "@effect/sql-pglite": "4.0.0-beta.93",
+    "@electric-sql/pglite": "0.4.5",
+    "@tmnl/stx": "workspace:*",
+    "effect": "4.0.0-beta.93"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.93",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.0.8",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "happy-dom": "^20.8.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0",
+    "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "GBG",
+  "keywords": [
+    "effect-ts",
+    "effect-v4",
+    "ecs",
+    "specimen",
+    "pglite",
+    "catalog"
+  ]
+}

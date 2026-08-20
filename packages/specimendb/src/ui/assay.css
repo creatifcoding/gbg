@@ -1,0 +1,321 @@
+/* Assay / WorkingPanel. Inter + JetBrains. Do not share Terminal charcoal tokens. */
+
+.sdb-assay {
+  --bg-void: #000;
+  --bg-charcoal: #0a0a0a;
+  --bg-charcoal-elevated: #111;
+  --border-dim: #1a1a1a;
+  --text-primary: #a1a1aa;
+  --raw: #f59e0b;
+  --filed: #06b6d4;
+  --working: #10b981;
+  --dead: #f43f5e;
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.sdb-assay *,
+.sdb-assay *::before,
+.sdb-assay *::after {
+  box-sizing: border-box;
+}
+
+.sdb-a-rail,
+.sdb-a-log,
+.sdb-a-list {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #000000;
+}
+
+.sdb-a-rail::-webkit-scrollbar,
+.sdb-a-log::-webkit-scrollbar,
+.sdb-a-list::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.sdb-a-rail::-webkit-scrollbar-track,
+.sdb-a-log::-webkit-scrollbar-track,
+.sdb-a-list::-webkit-scrollbar-track {
+  background: #000000;
+  border-left: 1px solid #1a1a1a;
+}
+
+.sdb-a-rail::-webkit-scrollbar-thumb,
+.sdb-a-log::-webkit-scrollbar-thumb,
+.sdb-a-list::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+
+.sdb-a-rail::-webkit-scrollbar-thumb:hover,
+.sdb-a-log::-webkit-scrollbar-thumb:hover,
+.sdb-a-list::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+.sdb-a-rail {
+  display: flex;
+  flex-direction: column;
+  width: 440px;
+  min-width: 440px;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-void);
+  border-right: 1px solid var(--border-dim);
+}
+
+.sdb-a-rail-head {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.sdb-a-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.sdb-a-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  background: var(--bg-charcoal);
+  border: 1px solid var(--border-dim);
+}
+
+button.sdb-a-card {
+  appearance: none;
+}
+
+.sdb-a-card[data-selected='true'] {
+  border-color: #3f3f46;
+}
+
+.sdb-a-card[data-empty='true'] {
+  cursor: default;
+}
+
+.sdb-a-idrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sdb-a-id {
+  min-height: 1em;
+  color: #e4e4e7;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.sdb-a-chip {
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sdb-a-chip[data-status='raw'] {
+  color: var(--raw);
+}
+.sdb-a-chip[data-status='filed'] {
+  color: var(--filed);
+}
+.sdb-a-chip[data-status='working'] {
+  color: var(--working);
+}
+.sdb-a-chip[data-status='dead'] {
+  color: var(--dead);
+}
+
+.sdb-a-claim {
+  min-height: 1.2em;
+  margin: 0;
+  color: #d4d4d8;
+  font-size: 12px;
+}
+
+.sdb-a-locality {
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+}
+
+.sdb-a-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+  gap: 16px;
+}
+
+.sdb-a-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 112px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  background: var(--bg-charcoal);
+  border: 1px dashed var(--border-dim);
+}
+
+.sdb-a-zone[data-active='true'] {
+  border-color: #3f3f46;
+}
+
+.sdb-a-zone-copy {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e4e4e7;
+}
+
+.sdb-a-error {
+  margin: 0;
+  color: var(--dead);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+}
+
+.sdb-a-focus {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.sdb-a-kicker {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sdb-a-focus-id {
+  min-height: 1.1em;
+  margin: 0 0 8px;
+  color: #e4e4e7;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 22px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.sdb-a-stage {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 12px;
+  min-height: 240px;
+}
+
+.sdb-a-viewport {
+  background: var(--bg-charcoal);
+  border: 1px solid var(--border-dim);
+  padding: 12px;
+}
+
+.sdb-a-viewport-stage {
+  min-height: 200px;
+  background: var(--bg-void);
+  border: 1px solid var(--border-dim);
+}
+
+.sdb-a-channels {
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.sdb-a-channel {
+  background: var(--bg-charcoal);
+  border: 1px solid var(--border-dim);
+  padding: 8px;
+}
+
+.sdb-a-channel-well {
+  min-height: 36px;
+  background: var(--bg-charcoal-elevated);
+}
+
+.sdb-a-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  min-height: 180px;
+}
+
+.sdb-a-panel {
+  background: var(--bg-charcoal);
+  border: 1px solid var(--border-dim);
+  padding: 12px;
+}
+
+.sdb-a-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.sdb-a-row span:last-child {
+  min-width: 48px;
+  min-height: 1em;
+}
+
+.sdb-a-log {
+  overflow: auto;
+}
+
+.sdb-a-log-body {
+  min-height: 96px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+}
+
+[data-promote] {
+  cursor: pointer;
+}
