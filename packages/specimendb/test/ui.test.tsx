@@ -34,6 +34,13 @@ const BANISHED = [
   '99.8%',
   'OD-',
   'OPTICAL_SCAN',
+  'SCAN_MACRO',
+  'ISO-CHROM',
+  'R:0.992',
+  'R: 0.992',
+  'PX-',
+  'BOT-',
+  'COL-',
 ];
 
 function TerminalPage({ client }: { readonly client: SpecimenRpcClient }) {
@@ -53,7 +60,7 @@ const emptyClient = (): SpecimenRpcClient => ({
 });
 
 describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
-  it('Terminal page calls List on mount, Intake on pick, Get on select', async () => {
+  it('Terminal v1 now-slots: Intake, List, SYS_ONLINE, Status, Claim, Media, unknown locality', async () => {
     const calls = { intake: 0, list: 0, get: 0 };
     const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
     const specimen: Specimen = {
@@ -126,18 +133,15 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.getByTestId('claim').textContent).toBe('');
     expect(view.getByTestId('media-bytes')).toBeTruthy();
     expect(view.container.textContent).toContain('IMG_SRC: field.jpg');
-    expect(view.getByTestId('rail-query')).toBeTruthy();
-    expect(view.getByTestId('rail-filters').textContent).toContain('RAW');
-    expect(view.getByTestId('rail-filters').textContent).toContain('FILED');
-    expect(view.getByTestId('rail-filters').textContent).toContain('WORKING');
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('rail-filters')).toBeNull();
+    expect(view.container.textContent).not.toContain('Q QUERY ACCESSION ID');
+    expect(calls.get).toBe(0);
 
-    const getBeforeSelect = calls.get;
     await act(async () => {
       fireEvent.click(view.getByTestId('specimen-card'));
     });
-    await waitFor(() => {
-      expect(calls.get).toBeGreaterThan(getBeforeSelect);
-    });
+    expect(calls.get).toBe(0);
     expect(view.getByTestId('detail-id').textContent).toContain(id);
     expect(view.getByTestId('detail-locality').textContent).toBe('unknown');
     expect(view.getByTestId('detail-status').getAttribute('data-status')).toBe('raw');
@@ -169,6 +173,10 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).toContain('VIEWPORT_XZ');
     expect(view.getByTestId('card-chrome')).toBeTruthy();
     expect(view.getByTestId('intake-zone')).toBeTruthy();
+    expect(view.getByTestId('rail-query')).toBeTruthy();
+    expect(view.getByTestId('rail-filters').textContent).toContain('RAW');
+    expect(view.getByTestId('rail-filters').textContent).toContain('FILED');
+    expect(view.getByTestId('rail-filters').textContent).toContain('WORKING');
     const html = view.container.textContent ?? '';
     for (const banned of BANISHED) {
       expect(html).not.toContain(banned);
@@ -192,7 +200,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(workbench.container.textContent).not.toContain('NO SELECTION');
   });
 
-  it('status filter and accession query are live List on SpecimenId', async () => {
+  it('status filter and accession query are live List on the Workbench rail', async () => {
     const rawId = trustSpecimenId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     const filedId = trustSpecimenId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
     const raw: Specimen = {
@@ -212,7 +220,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       Intake: () => Effect.die('Intake should not run'),
     };
 
-    const view = render(React.createElement(TerminalPage, { client }));
+    const view = render(React.createElement(WorkbenchPage, { client }));
     await waitFor(() => {
       expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
     });
@@ -270,6 +278,53 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     });
     expect(intake).toBe(0);
     expect(view.getByTestId('card-chrome')).toBeTruthy();
+  });
+
+  it('Workbench Intake fills Status and Claim slots and leaves the photo well empty', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+    };
+    let items: Specimen[] = [];
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed(items),
+      Get: () => Effect.die('Get is not a v1 now-slot'),
+      Intake: ({ filename }) => {
+        const next: Specimen = {
+          ...specimen,
+          components: [
+            ...specimen.components,
+            {
+              _tag: 'Media' as const,
+              kind: 'jpeg' as const,
+              filename,
+              assetPath: `memory://${id}/${filename}`,
+              mediaType: 'image/jpeg',
+              byteLength: 1,
+            },
+          ],
+        };
+        items = [next];
+        return Effect.succeed({ specimenId: id, components: next.components });
+      },
+    };
+    const view = render(React.createElement(WorkbenchPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('card-chrome')).toBeTruthy();
+    });
+    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
+    await act(async () => {
+      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
+    });
+    await waitFor(() => {
+      expect(view.getByTestId('specimen-id').textContent).toBe(id);
+    });
+    expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+    expect(view.getByTestId('claim').textContent).toBe('');
+    expect(view.queryByTestId('media-bytes')).toBeNull();
+    expect(view.getByTestId('locality').textContent).toBe('unknown');
   });
 
   it('shows unknown locality for a real JPEG without EXIF GPS, and real coords when GPS exists', async () => {

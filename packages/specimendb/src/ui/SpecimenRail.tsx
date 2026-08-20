@@ -1,5 +1,5 @@
 /**
- * SpecimenRail — full Workbench page. List() on mount, Get() on select.
+ * SpecimenRail — full Workbench page. List() on mount, query + status filter, Intake.
  * Layout is the Variant Workbench HTML, not a mashed two-column shell.
  *
  * @module @tmnl/specimendb/ui
@@ -12,7 +12,7 @@ import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { AccessionQuery, StatusFilters } from './catalog-controls.js';
-import { claimLine, EMPTY_TAG_SLOTS, mediaLabel } from './catalog-view.js';
+import { claimLine, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import {
   CubeMark,
@@ -215,18 +215,11 @@ function SpecimenRailList() {
   );
 }
 
-function WorkbenchWell({
-  preview,
-  caption,
-}: {
-  readonly preview?: string;
-  readonly caption: string;
-}) {
+function WorkbenchWell() {
   return (
     <div className="sdb-w-well">
-      {preview !== undefined ? <img src={preview} alt="" data-testid="media-bytes" /> : null}
       <ShutterMark className="sdb-w-shutter" />
-      <span className="sdb-w-well-cap">{caption}</span>
+      <span className="sdb-w-well-cap" />
     </div>
   );
 }
@@ -241,7 +234,7 @@ function WorkbenchCardChrome() {
           raw
         </span>
       </div>
-      <WorkbenchWell caption="" />
+      <WorkbenchWell />
       <div className="sdb-w-card-body">
         <p className="sdb-w-claim" data-testid="claim" />
         <div className="sdb-w-locality">
@@ -249,7 +242,7 @@ function WorkbenchCardChrome() {
           <span data-testid="locality">unknown</span>
         </div>
         <div className="sdb-w-tags">
-          {EMPTY_TAG_SLOTS.map((_, index) => (
+          {tagSlots().map((_, index) => (
             <span className="sdb-w-tag" key={`empty-tag-${index}`}>
               []
             </span>
@@ -265,10 +258,6 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
   const selectedId = useFocus(
     catalog.store,
     at<CatalogState['selectedId']>(catalog.store.lens.selectedId),
-  );
-  const previews = useFocus(
-    catalog.store,
-    at<CatalogState['previews']>(catalog.store.lens.previews),
   );
   const status = (statusOf(specimen) ?? 'raw') satisfies SpecimenStatus;
 
@@ -286,7 +275,7 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
         </span>
         <StatusMark status={status} testId="status-pill" />
       </div>
-      <WorkbenchWell preview={previews[specimen.id]} caption={mediaLabel(specimen)} />
+      <WorkbenchWell />
       <div className="sdb-w-card-body">
         <p className="sdb-w-claim" data-testid="claim">
           {claimLine(specimen)}
@@ -296,9 +285,9 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
           <span data-testid="locality">{localityLabel(specimen)}</span>
         </div>
         <div className="sdb-w-tags">
-          {EMPTY_TAG_SLOTS.map((_, index) => (
+          {tagSlots(specimen).map((tag, index) => (
             <span className="sdb-w-tag" key={`${specimen.id}:tag:${index}`}>
-              []
+              [{tag}]
             </span>
           ))}
         </div>
@@ -361,12 +350,6 @@ function SpecimenRailDetail() {
 }
 
 function SpecimenRailProperties() {
-  const { catalog } = useRail();
-  const selected = useFocus(
-    catalog.store,
-    at<CatalogState['selected']>(catalog.store.lens.selected),
-  );
-
   return (
     <aside className="sdb-w-props" data-testid="properties-log">
       <header className="sdb-w-props-header">PROPERTIES LOG</header>
@@ -413,9 +396,7 @@ function SpecimenRailProperties() {
         </div>
         <p className="sdb-w-obs" />
       </section>
-      <div className="sdb-w-updated">
-        LAST_UPDATED {selected?.createdAt ?? ''}
-      </div>
+      <div className="sdb-w-updated">LAST_UPDATED</div>
     </aside>
   );
 }

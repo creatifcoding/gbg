@@ -11,8 +11,7 @@ import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
-import { AccessionQuery, StatusFilters } from './catalog-controls.js';
-import { claimLine, EMPTY_TAG_SLOTS, imgSrcLabel, mediaLabel } from './catalog-view.js';
+import { claimLine, imgSrcLabel, mediaLabel, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import { CrosshairMark, DatabaseMark, UploadMark } from './marks.js';
 import './catalog.css';
@@ -81,8 +80,6 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
           <>
             <aside className="sdb-t-rail">
               <IntakeDropHeader />
-              <IntakeDropQuery />
-              <IntakeDropFilters />
               <IntakeDropList />
             </aside>
             <main className="sdb-t-main">
@@ -97,16 +94,6 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
       </div>
     </IntakeDropContext.Provider>
   );
-}
-
-function IntakeDropQuery() {
-  const { catalog } = useIntakeDrop();
-  return <AccessionQuery catalog={catalog} />;
-}
-
-function IntakeDropFilters() {
-  const { catalog } = useIntakeDrop();
-  return <StatusFilters catalog={catalog} />;
 }
 
 function IntakeDropHeader() {
@@ -221,7 +208,7 @@ function TerminalCardChrome() {
         </div>
         <p className="sdb-t-claim" data-testid="claim" />
         <div className="sdb-t-tags">
-          {EMPTY_TAG_SLOTS.map((_, index) => (
+          {tagSlots().map((_, index) => (
             <span className="sdb-t-tag" key={`empty-tag-${index}`} />
           ))}
         </div>
@@ -265,8 +252,10 @@ function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
           {specimen.id}
         </span>
         <div className="sdb-t-tags">
-          {EMPTY_TAG_SLOTS.map((_, index) => (
-            <span className="sdb-t-tag" key={`${specimen.id}:tag:${index}`} />
+          {tagSlots(specimen).map((tag, index) => (
+            <span className="sdb-t-tag" key={`${specimen.id}:tag:${index}`}>
+              {tag}
+            </span>
           ))}
         </div>
       </div>
@@ -343,8 +332,6 @@ export const IntakeDrop = Object.assign(IntakeDropRoot, {
   Header: IntakeDropHeader,
   StatusBar: IntakeDropStatusBar,
   Zone: IntakeDropZone,
-  Query: IntakeDropQuery,
-  Filters: IntakeDropFilters,
   List: IntakeDropList,
   Card: IntakeDropCard,
   Detail: IntakeDropDetail,

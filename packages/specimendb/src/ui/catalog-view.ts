@@ -14,6 +14,14 @@ export const claimLine = (specimen: Specimen): string => {
   return '';
 };
 
+export const tagSlots = (specimen?: Specimen): readonly [string, string, string] => {
+  const tags =
+    specimen === undefined
+      ? []
+      : specimen.components.flatMap((component) => (component._tag === 'Tag' ? [component.value] : []));
+  return [tags[0] ?? '', tags[1] ?? '', tags[2] ?? ''];
+};
+
 export const mediaLabel = (specimen?: Specimen): string => {
   const media = specimen === undefined ? undefined : mediaOf(specimen);
   return media?.filename ?? '';
