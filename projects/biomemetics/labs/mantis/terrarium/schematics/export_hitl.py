@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Raster S00–S11 SVG sheets to HITL PNGs for human readability review.
+"""Raster S00–S11 SVG sheets to HITL PNGs.
 
-The PNGs are the same balloons and scale as the SVG. They are LOOK/THEORY
-screenshots, not shop artifacts, measurements, or qualification evidence.
+HITL Look is visual aesthetic only. The PNGs exist so a human can judge
+shop-drawing appearance (same balloons and scale as the SVG). A PNG does
+not prove geometry or safety.
 """
 
 from __future__ import annotations

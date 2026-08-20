@@ -82,6 +82,6 @@ python3 terrarium/schematics/build_pdf.py
 python3 terrarium/schematics/export_hitl.py
 ```
 
-Inkscape is required for the combined PDF and for HITL PNG rasters. There is no raster fallback for the shop PDF. HITL PNGs are LOOK/THEORY screenshots for readability; see `HITL.md`.
+Inkscape is required for the combined PDF and for HITL PNG rasters. There is no raster fallback for the shop PDF. HITL Look is visual aesthetic only: the PNGs exist so a human can judge shop-drawing appearance. A PNG does not prove geometry or safety. See `HITL.md`.
 The sibling generator `terrarium/cad/generate_schematics.py` is outside this
 write set and is not the #41 source.

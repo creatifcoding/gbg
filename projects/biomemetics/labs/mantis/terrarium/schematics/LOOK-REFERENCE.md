@@ -15,3 +15,7 @@ If a later PR lands variant UI or product screenshots:
 - link them from this file;
 - do not scale the sheets from the pixels;
 - CAD/OCCT bboxes and locked contracts remain dimensional authority.
+
+HITL PNGs under `hitl/` are a separate look check. They are for judging
+shop-drawing appearance only. A PNG does not prove geometry or safety.
+See `HITL.md`.

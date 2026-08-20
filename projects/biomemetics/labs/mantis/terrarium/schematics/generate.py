@@ -252,6 +252,8 @@ class Sheet:
         self.scale = "NTS"
         self.e: list[str] = []
         self._defs()
+        # ASME-style sheet border. Title block sits on the bottom edge.
+        self.rect(8, 8, 404, DRAW_BOTTOM - 8, "heavy")
 
     def _defs(self):
         self.e.append("""<defs>
@@ -270,11 +272,11 @@ class Sheet:
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>""")
@@ -348,18 +350,26 @@ class Sheet:
 
     def note_box(self, x, y, w, title, lines, kind="normal"):
         h = 7 + len(lines)*4.0
-        cls = "med"
-        fill = "#f7f8fa"
-        if kind == "ref": fill = "#fff6d9"
-        if kind == "warn": fill = "#fff0f0"
-        self.rect(x, y, w, h, cls, rx=1.2, fill=fill)
+        cls = "med" if kind != "warn" else "unverified"
+        self.rect(x, y, w, h, cls, rx=0, fill="#ffffff")
         self.text(x+3, y+4.4, title, 2.8, "bold")
         for i, ln in enumerate(lines): self.text(x+3, y+9+i*4, ln, 2.45)
         return h
 
     def scale_bar(self, x, y, real_mm=100, denom=5):
-        self.rect(x, y, 58, 8, "unverified", rx=1, fill="#fff0f0")
+        self.rect(x, y, 58, 8, "unverified", rx=0, fill="#ffffff")
         self.text(x+29, y+5.2, "NTS - DO NOT SCALE", 2.3, "bold", "middle", color="#ba3d3d")
+
+    def color_legend(self, x, y):
+        self.text(x, y, "COLOR KEY (SHOP LINE ART)", 2.2, "bold")
+        self.line(x, y+4, x+10, y+4, "heavy")
+        self.text(x+12, y+5.2, "geometry", 2.1)
+        self.line(x+42, y+4, x+52, y+4, "motion")
+        self.text(x+54, y+5.2, "motion", 2.1)
+        self.rect(x+82, y+1.2, 10, 5, "keepout")
+        self.text(x+94, y+5.2, "keep-out", 2.1)
+        self.line(x+128, y+4, x+138, y+4, "med", color="#0a7891")
+        self.text(x+140, y+5.2, "electrical net", 2.1)
 
     def title_block(self):
         y = DRAW_BOTTOM
@@ -373,7 +383,7 @@ class Sheet:
         self.text(13, y+8, "PARTICLE-BASE MANTIS TERRARIUM", 5.0, "bold")
         self.text(13, y+15, self.title, 4.0, "bold")
         self.text(13, y+23, "THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE", 3.0, "bold", color="#ba3d3d")
-        self.text(13, y+28, "Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)", 2.5)
+        self.text(13, y+28, "Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only", 2.2)
         fields = [
             (273, y+4, "SCALE", self.scale), (337, y+4, "DATE", DATE), (379, y+4, "REV", REV),
             (273, y+15, "SHEET", f"{self.num+1:02d} OF 12 / S{self.num:02d}"), (337, y+15, "STATUS", "THEORETICAL"), (379, y+15, "DRAWN", "GBG#41"),
@@ -386,13 +396,22 @@ class Sheet:
         self.path(f"M226 {y+19} L238 {y+16} L238 {y+27} L226 {y+24} Z", "med")
         self.circle(246, y+21.5, 6, "med")
         self.text(236, y+30, "3RD ANGLE", 1.8, "bold", anchor="middle")
-        self.rect(196, y+7, 58, 7, "unverified", rx=1, fill="#fff0f0")
+        self.rect(196, y+7, 58, 7, "unverified")
         self.text(225, y+11.8, "NTS - DO NOT SCALE", 2.0, "bold", "middle", color="#ba3d3d")
+        # Compact color key lives in the title block so it cannot cover notes.
+        self.line(198, y+17, 206, y+17, "heavy")
+        self.text(208, y+18.2, "geom", 1.7)
+        self.line(198, y+21.5, 206, y+21.5, "motion")
+        self.text(208, y+22.7, "motion", 1.7)
+        self.rect(198, y+24.2, 8, 3.2, "keepout")
+        self.text(208, y+26.8, "keep-out", 1.7)
+        self.line(198, y+30.2, 206, y+30.2, "med", color="#0a7891")
+        self.text(208, y+31.4, "net", 1.7)
 
     def write(self, filename):
         self.title_block()
         svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">',
-               '<rect width="420" height="297" fill="#fcfcfb"/>'] + self.e + ['</svg>']
+               '<rect width="420" height="297" fill="#ffffff"/>'] + self.e + ['</svg>']
         (OUT / filename).write_text("\n".join(svg), encoding="utf-8")
 
 
@@ -401,9 +420,10 @@ def iso_box(s: Sheet, ox, oy, w, d, h):
     front = [(ox,oy),(ox+w,oy),(ox+w,oy-h),(ox,oy-h)]
     top = [(ox,oy-h),(ox+w,oy-h),(ox+w+dx,oy-h+dy),(ox+dx,oy-h+dy)]
     side = [(ox+w,oy),(ox+w+dx,oy+dy),(ox+w+dx,oy-h+dy),(ox+w,oy-h)]
+    # White faces + heavy outlines only. Shaded isometric reads as a render.
     s.poly(front,"heavy",fill="#ffffff")
-    s.poly(top,"med",fill="#f2f4f5")
-    s.poly(side,"med",fill="#e8ecef")
+    s.poly(top,"heavy",fill="#ffffff")
+    s.poly(side,"heavy",fill="#ffffff")
     return dx,dy
 
 
@@ -415,24 +435,24 @@ def sheet00():
     # frame and door
     for x in [48,148]: s.rect(x-3,50,6,170,"plastic",rx=1)
     s.rect(48,47,100,6,"plastic",rx=1); s.rect(48,217,100,6,"plastic",rx=1)
-    s.rect(58,68,80,138,"thin",rx=1,fill="#f7fbfc")
+    s.rect(58,68,80,138,"thin",rx=1,fill="#ffffff")
     s.line(98,68,98,206,"thin"); s.circle(132,137,2,"med",fill="#ffffff")
     s.rect(58,49,80,12,"thin",fill="url(#screen)")
     # rail outside
-    s.rect(43,43,110,5,"med",rx=1,fill="#d7dde2")
-    s.rect(42,42,25,9,"heavy",rx=2,fill="#f8f8f8")
+    s.rect(43,43,110,5,"med",rx=1,fill="#ffffff")
+    s.rect(42,42,25,9,"heavy",fill="#ffffff")
     s.text(54.5,39,"PINCH CARRIAGE",2.4,"bold","middle")
     # camera + brick
-    s.rect(31,48,18,16,"med",rx=2,fill="#f1f3f5")
-    s.circle(40,56,4,"heavy",fill="#dde4ea")
+    s.rect(31,48,18,16,"med",fill="#ffffff")
+    s.circle(40,56,4,"heavy",fill="#ffffff")
     s.path("M40 64 C25 100, 22 160, 188 195","phantom")
-    s.rect(183,170,54,78,"heavy",rx=4,fill="#edf1f4")
+    s.rect(183,170,54,78,"heavy",fill="#ffffff")
     s.text(210,183,"M1 / TACHYON",3.2,"bold","middle")
     s.text(210,189,"OUTSIDE CAGE",2.6,"bold","middle")
     s.rect(195,200,30,17,"med",fill="#ffffff")
     s.text(210,210,f"{VENDOR['tachyon_xyz'][0]:g} x {VENDOR['tachyon_xyz'][1]:g} DATASHEET",2.1,"middle")
     # keepout
-    s.rect(60,78,76,116,"keepout",rx=2)
+    s.rect(60,78,76,116,"keepout")
     s.text(98,132,"ANIMAL VOLUME",4,"bold","middle",color="#b52d2d")
     s.text(98,138,"NO METAL / COPPER / POGOS",2.4,"bold","middle",color="#b52d2d")
     s.text(98,144,"B20 WET-SIDE BARRIER",2.3,"bold","middle",color="#b52d2d")
@@ -461,6 +481,7 @@ def sheet00():
         "S08 follows EE-24 net-map; KiCad is circuit authority.",
         "docs/variant screenshots: none on PRs 32-40 this run."],"ref")
     s.scale_bar(12,232,100,5)
+    s.color_legend(74,232)
     s.write("S00-cover.svg")
 
 
@@ -469,7 +490,7 @@ def front_view(s,x,y,w,h,door=True):
     t=4
     for xx in [x,x+w-t]: s.rect(xx,y,t,h,"plastic")
     for yy in [y,y+h-t]: s.rect(x,yy,w,t,"plastic")
-    s.rect(x+t+2,y+t+2,w-2*t-4,h-2*t-4,"thin",fill="#f8fbfc")
+    s.rect(x+t+2,y+t+2,w-2*t-4,h-2*t-4,"thin",fill="#ffffff")
     if door:
         s.line(x+w/2,y+t+2,x+w/2,y+h-t-2,"med")
         s.circle(x+w-10,y+h/2,1.5,"med")
@@ -480,21 +501,21 @@ def sheet01():
     s=Sheet(1,"ORTHOGRAPHIC ASSEMBLY", "1:5")
     s.view_label(17,16,"Front elevation","1:5")
     front_view(s,35,30,50,100)
-    s.rect(31,25,58,3,"med",fill="#dce1e5")
-    s.rect(29,24,14,6,"heavy",rx=1.5,fill="#ffffff")
+    s.rect(31,25,58,3,"med",fill="#ffffff")
+    s.rect(29,24,14,6,"heavy",fill="#ffffff")
     s.dim_h(35,85,140,130,f"{MODULE_PITCH:g} LOCK")
     s.dim_v(30,130,24,35,f"{SPAN:g} LOCK")
     s.line(35,80,85,80,"center")
     s.text(88,82,f"{MODULE_PITCH:g} GRID",2.5,"bold")
     s.view_label(118,16,"Right elevation","1:5")
     front_view(s,132,30,50,100,False)
-    s.rect(128,25,58,3,"med",fill="#dce1e5")
+    s.rect(128,25,58,3,"med",fill="#ffffff")
     s.dim_h(132,182,140,130,f"{MODULE_PITCH:g} LOCK")
     s.view_label(215,16,"Top plan","1:5")
     s.rect(230,43,50,50,"heavy")
     s.rect(234,47,42,42,"thin",fill="url(#screen)")
-    s.rect(226,38,58,3,"med",fill="#dce1e5")
-    s.rect(224,37,14,6,"heavy",rx=1.5,fill="#ffffff")
+    s.rect(226,38,58,3,"med",fill="#ffffff")
+    s.rect(224,37,14,6,"heavy",fill="#ffffff")
     s.dim_h(230,280,103,93,f"{MODULE_PITCH:g} LOCK")
     s.dim_v(43,93,219,230,f"{MODULE_PITCH:g} LOCK")
     s.view_label(311,16,"Datum / keep-out","1:5")
@@ -538,20 +559,20 @@ def sheet02():
         (146,90,35,"B14/B15","FALSE BOTTOM + TRAY"),
         (190,112,9,"B01/B02","BOTTOM PERIMETER"),]
     for y,w,h,bid,label in parts:
-        s.rect(cx-w/2,y,w,h,"med",rx=1,fill="#f6f7f8")
+        s.rect(cx-w/2,y,w,h,"med",rx=1,fill="#ffffff")
         s.line(cx,y+h,cx,y+18,"center")
         s.balloon(47,y+h/2,bid,cx-w/2,y+h/2)
         s.text(175,y+h/2+1,label,2.7,"bold")
     # side exploded rail/binder/brick
-    s.rect(282,47,82,5,"med",rx=1,fill="#dce2e6")
+    s.rect(282,47,82,5,"med",rx=1,fill="#ffffff")
     s.balloon(378,49,"B18",364,49)
-    s.rect(298,65,24,15,"heavy",rx=2,fill="#ffffff")
+    s.rect(298,65,24,15,"heavy",fill="#ffffff")
     s.balloon(378,72,"B22",322,72)
-    s.rect(302,95,16,13,"med",rx=1,fill="#edf1f4")
-    s.circle(310,101.5,4,"heavy",fill="#dfe5e9")
+    s.rect(302,95,16,13,"med",rx=1,fill="#ffffff")
+    s.circle(310,101.5,4,"heavy",fill="#ffffff")
     s.balloon(378,101,"B36",318,101)
     s.path("M310 108 C315 125, 350 135, 344 157","phantom")
-    s.rect(315,157,58,72,"heavy",rx=4,fill="#edf1f4")
+    s.rect(315,157,58,72,"heavy",fill="#ffffff")
     s.rect(326,180,34,20,"med",fill="#fff")
     s.text(344,191,"TACHYON",3,"bold","middle")
     s.balloon(390,175,"B42",373,175)
@@ -571,27 +592,27 @@ def sheet02():
 def sheet03():
     s=Sheet(3,"PERIMETER BLOCKS", "1:2 / DETAILS 2:1")
     s.view_label(14,15,"Corner block","1:2")
-    s.path("M30 40 L80 40 L80 90 L68 90 L68 53 L30 53 Z","heavy",fill="#f5f7f8")
+    s.path("M30 40 L80 40 L80 90 L68 90 L68 53 L30 53 Z","heavy",fill="#ffffff")
     s.path("M43 53 L43 76 L68 76","hidden")
     s.text(55,99,f"CASSETTE POCKET {3.00+CAD01['seat_clear']:.2f} TARGET (3.00 LOCK + 0.20)",2.2,"bold","middle")
     s.dim_h(30,80,110,90,f"{CAD01['b01'][0]:g} CAD-01 BBOX")
     s.dim_v(40,90,20,30,f"{CAD01['b01'][2]:g} CUBE REF")
     s.balloon(92,52,"B01",80,52)
     s.view_label(118,15,"Edge block","1:2")
-    s.rect(130,40,80,25,"heavy",rx=1,fill="#f6f7f8")
+    s.rect(130,40,80,25,"heavy",rx=1,fill="#ffffff")
     s.rect(136,47,68,8,"thin",fill="#ffffff")
     s.dim_h(130,210,76,65,f"{MODULE_PITCH:g} LOCK")
     s.balloon(220,50,"B02",210,50)
     s.view_label(248,15,"Mid-span block","1:2")
-    s.rect(263,40,80,25,"heavy",rx=1,fill="#f6f7f8")
+    s.rect(263,40,80,25,"heavy",rx=1,fill="#ffffff")
     s.line(303,40,303,65,"med")
     s.circle(288,52.5,3,"med"); s.circle(318,52.5,3,"med")
     s.dim_h(263,343,76,65,f"{MODULE_PITCH:g} + {MODULE_PITCH:g} DATUM")
     s.balloon(355,50,"B03",343,50)
     # Captive end stop for each independent carriage route.
     s.view_label(248,88,"Route end stop / service removal","NTS")
-    s.rect(265,105,78,7,"med",fill="#dce2e6")
-    s.rect(337,96,13,25,"heavy",rx=1,fill="#f5f7f8")
+    s.rect(265,105,78,7,"med",fill="#ffffff")
+    s.rect(337,96,13,25,"heavy",rx=1,fill="#ffffff")
     s.circle(343.5,108.5,2.2,"heavy",fill="#ffffff")
     s.text(302,119,"CANNOT PASS IN NORMAL USE",2.1,"bold","middle")
     s.balloon(362,98,"B51",349,101)
@@ -654,7 +675,7 @@ def sheet04():
     s.dim_v(40,73,20,30,f"{RAIL_HEIGHT:g} CAD-01 BBOX")
     # longitudinal rail
     s.view_label(125,15,"Longitudinal conductor run","1:2")
-    s.rect(135,38,230,66,"med",rx=2,fill="#f3f5f6")
+    s.rect(135,38,230,66,"med",fill="#ffffff")
     colors=["#d9822b","#d9822b","#333333","#333333","#2c9c69","#307ac7","#7a55a3","#d34887"]
     labels=[contact["net"] for contact in BUS_CONTACTS[:8]]
     for i,(c,l) in enumerate(zip(colors,labels)):
@@ -663,7 +684,7 @@ def sheet04():
         s.text(139,yy+1,l,2.3,"bold","end",color=c)
     # Four point-to-point high-speed docks; mechanical detents remain 25 mm.
     for i,xx in enumerate([162,218,282,338],start=1):
-        s.rect(xx-12,82,24,13,"med",rx=1,fill="#e7f5f6")
+        s.rect(xx-12,82,24,13,"med",rx=1,fill="#ffffff")
         s.text(xx,88,f"V{i}  G + - G",2.0,"bold","middle",color="#0a7891")
         s.text(xx,92,"100 ohm TARGET",1.8,"middle")
     for xx in range(150,356,25): s.line(xx,36,xx,106,"center")
@@ -671,10 +692,10 @@ def sheet04():
     # stackup detail
     s.view_label(12,126,"Detail D - strip stack-up","5:1")
     s.text(30,146,"EXPOSED ENIG LAND IN CAPTIVE EXTERNAL SLOT - NO FILM OVER CONTACT",2.05,"bold",color="#b52d2d")
-    layers=[("ENIG CONTACT LAND",2,"#e6b84a"),("FLEX / SPRING COPPER",5,"#d77c3d"),("DIELECTRIC",7,"#d7e4f0"),("PETG / ASA FRAME",18,"#f4f5f6")]
+    layers=[("ENIG CONTACT LAND",2,"metal"),("FLEX / SPRING COPPER",5,"metal"),("DIELECTRIC",7,"plastic"),("PETG / ASA FRAME",18,"plastic")]
     yy=151
-    for name,hh,fc in layers:
-        s.rect(30,yy,120,hh,"med",fill=fc)
+    for name,hh,cls in layers:
+        s.rect(30,yy,120,hh,cls)
         s.text(156,yy+hh/2+1,name,2.4,"bold")
         yy+=hh
     s.text(30,190,f"LAND t={CAD01['land_t']:g} REF (study); OTHER STACK LAYERS UNVERIFIED",2.3,"bold",color="#b52d2d")
@@ -688,6 +709,7 @@ def sheet04():
         s.text(346.5+i*13,185,lab,1.8,"bold","middle",color=c)
     s.dim_h(245,263,197,178,f"{CONTACT_PITCH:g} PITCH TARGET")
     s.text(239,205,f"FIELD {CONTACT_FIELD:g} IN CAVITY {RAIL_WIDTH-2*RAIL_WALL:g}; P09-P12 GMSL2 CELL",2.2,"bold")
+    s.color_legend(12,209)
     s.note_box(12,218,190,"CAD-01 RAIL MEASURE",[
         f"B18 250: {CAD01['b18_250'][0]:g} x {CAD01['b18_250'][1]:g} x {CAD01['b18_250'][2]:g}; 500 span sibling.",
         f"Offset {CAD01['rail_offset']:g} REF; B52 lip {CAD01['b52_t']:g}; slot {CAD01['slot']:g} REF.",
@@ -705,7 +727,7 @@ def sheet05():
     s=Sheet(5,"CARRIAGE MECHANISM", "2:1 / DETAIL 5:1")
     s.view_label(12,15,"Locked state","2:1")
     # locked cross section
-    s.path("M25 45 L38 28 L95 28 L108 45 L102 75 L31 75 Z","heavy",fill="#f6f7f8")
+    s.path("M25 45 L38 28 L95 28 L108 45 L102 75 L31 75 Z","heavy",fill="#ffffff")
     s.circle(42,57,6,"metal"); s.circle(91,57,6,"metal")
     s.rect(48,52,37,7,"plastic",rx=1)
     for i in range(12):
@@ -718,7 +740,7 @@ def sheet05():
     s.text(66,84,f"LOCKED q=0  B22 {CAD02['b22'][0]:g}x{CAD02['b22'][1]:g}x{CAD02['b22'][2]:g}  LIFT PAWL IN",2.3,"bold","middle")
     s.balloon(116,34,"B22",101,42); s.balloon(116,58,"B27",86,63); s.balloon(116,78,"B19",88,74)
     s.view_label(145,15,"Pinched / travel state","2:1")
-    s.path("M160 45 L177 33 L226 33 L243 45 L237 75 L166 75 Z","heavy",fill="#f6f7f8")
+    s.path("M160 45 L177 33 L226 33 L243 45 L237 75 L166 75 Z","heavy",fill="#ffffff")
     s.circle(177,57,6,"metal"); s.circle(226,57,6,"metal")
     s.rect(182,47,39,7,"plastic",rx=1)
     for i in range(12):
@@ -743,7 +765,7 @@ def sheet05():
     ]
     for i,(a,b) in enumerate(states):
         x=272; y=28+i*17
-        s.rect(x,y,128,15,"med",rx=1.5,fill="#f8f9fa")
+        s.rect(x,y,128,15,"med",fill="#ffffff")
         s.text(x+4,y+6,a,2.15,"bold")
         s.text(x+4,y+12,b,1.95)
     # detail spring/pogo
@@ -782,22 +804,22 @@ def sheet05():
 def sheet06():
     s=Sheet(6,"UNIVERSAL LATCH + BINDER", "2:1 / DETAIL 5:1")
     s.view_label(12,15,"Universal shoe - free","2:1")
-    s.rect(28,38,80,50,"heavy",rx=4,fill="#f5f7f8")
+    s.rect(28,38,80,50,"heavy",fill="#ffffff")
     s.path("M45 42 L55 52 L82 52 L92 42","med")
     s.path("M52 78 L62 68 L75 68 L85 78","med")
     s.rect(58,57,22,7,"metal",rx=1)
     s.text(68,96,f"B28 SHOE {CAD02['b28'][0]:g}x{CAD02['b28'][1]:g}x{CAD02['b28'][2]:g} CAD-02",2.3,"bold","middle")
     s.balloon(118,45,"B28",92,47)
     s.view_label(145,15,"Binder - mating","2:1")
-    s.rect(162,31,62,65,"heavy",rx=5,fill="#eef1f4")
+    s.rect(162,31,62,65,"heavy",fill="#ffffff")
     s.path("M174 78 L184 68 L202 68 L212 78","heavy")
     s.path("M180 61 L190 54 L206 61","med")
     s.line(193,109,193,87,"motion")
     s.text(193,116,f"B29 HOUSING {CAD02['b29'][0]:g}x{CAD02['b29'][1]:g}x{CAD02['b29'][2]:g}",2.3,"bold","middle")
     s.balloon(234,42,"B29",224,45)
     s.view_label(260,15,"Mated / load path","2:1")
-    s.rect(280,38,80,50,"heavy",rx=4,fill="#f5f7f8")
-    s.rect(289,25,62,55,"heavy",rx=5,fill="#eef1f4")
+    s.rect(280,38,80,50,"heavy",fill="#ffffff")
+    s.rect(289,25,62,55,"heavy",fill="#ffffff")
     s.path("M297 72 L307 62 L331 62 L341 72","heavy")
     s.line(320,30,320,78,"motion")
     s.path("M320 30 C350 42 352 75 338 87","phantom")
@@ -816,9 +838,9 @@ def sheet06():
     s.text(124,183,"FAILURE: CRACK / PARTIAL ENGAGEMENT -> RETENTION WITNESS MARK",2.5,"bold",color="#b52d2d")
     # Binder-local CSI clearance and separate B50 face.
     s.view_label(260,126,"Detail H - binder-local FPC + B50 face","2:1")
-    s.rect(280,143,88,52,"heavy",rx=4,fill="#eef1f4")
-    s.circle(305,165,12,"heavy",fill="#dfe5e9")
-    s.rect(325,153,12,30,"thin",fill="#d3a74b")
+    s.rect(280,143,88,52,"heavy",fill="#ffffff")
+    s.circle(305,165,12,"heavy",fill="#ffffff")
+    s.rect(325,153,12,30,"thin",fill="#ffffff")
     s.path("M317 166 C321 153 326 156 331 168","phantom")
     s.rect(354,155,6,20,"metal")
     s.line(360,165,366,165,"thin")
@@ -841,12 +863,12 @@ def sheet06():
 def sheet07():
     s=Sheet(7,"CAMERA LOAD / SERDES BINDER", "2:1 / PCB 1:1")
     s.view_label(12,15,"Camera binder assembly","2:1")
-    s.rect(28,32,126,84,"heavy",rx=6,fill="#eef1f4")
-    s.rect(42,48,50,48,"med",fill="#d8e2e7")
-    s.circle(67,72,13,"heavy",fill="#eef3f5")
+    s.rect(28,32,126,84,"heavy",fill="#ffffff")
+    s.rect(42,48,50,48,"med",fill="#ffffff")
+    s.circle(67,72,13,"heavy",fill="#ffffff")
     s.text(67,102,"B36 CAMERA MODULE",2.3,"bold","middle")
     s.text(67,107,"SKU / OUTLINE UNVERIFIED - NOT A SOURCED STEP",2.0,"middle",color="#b52d2d")
-    s.rect(103,46,36,52,"med",rx=2,fill="#f8f3df")
+    s.rect(103,46,36,52,"med",fill="#ffffff")
     s.text(121,61,"B45",2.5,"bold","middle")
     s.text(121,68,"MAX96717",2.6,"bold","middle")
     s.text(121,75,"SERIALIZER",2.2,"middle")
@@ -872,7 +894,7 @@ def sheet07():
     s.view_label(12,145,"Video path - no tether to moving carriage","DIAGRAM")
     blocks=[(16,52,"CAMERA\nSKU UNVER"),(78,60,"MAX96717\nCSI -> GMSL2"),(148,42,"B50\nBINDER"),(200,48,"V-DOCK\nB27/B19"),(258,62,"MAX96724\n4-PORT DES"),(330,72,"TACHYON\nCSI1")]
     for x,w,label in blocks:
-        s.rect(x,165,w,34,"med",rx=2,fill="#f7f8f9")
+        s.rect(x,165,w,34,"med",fill="#ffffff")
         for j,ln in enumerate(label.split("\n")): s.text(x+w/2,179+j*5,ln,2.4,"bold","middle")
     for x1,x2 in [(68,78),(138,148),(190,200),(248,258),(320,330)]: s.line(x1,182,x2,182,"motion")
     s.text(195,208,"RAW MIPI STAYS INSIDE BINDER; 3/6 Gbps GMSL2 CROSSES LOCKED POGO DOCK",2.7,"bold","middle")
@@ -891,10 +913,11 @@ def sheet07():
 def sheet08():
     s=Sheet(8,"ELECTRICAL + VIDEO FUNCTIONAL DIAGRAM", "1:1 SYMBOL GRID")
     s.text(12,15,"RAIL POWER / CONTROL / GMSL2 - FUNCTIONAL DIAGRAM, NOT RELEASE SCHEMATIC",4.0,"bold")
+    s.color_legend(12,22)
     # Power source and protected external rail supply.
-    s.rect(15,30,50,24,"med",rx=2,fill="#f5f7f8"); s.text(40,41,"UPSTREAM DC/PD",2.8,"bold","middle"); s.text(40,48,"SOURCE",2.2,"middle")
+    s.rect(15,30,50,24,"med",fill="#ffffff"); s.text(40,41,"UPSTREAM DC/PD",2.8,"bold","middle"); s.text(40,48,"SOURCE",2.2,"middle")
     s.line(65,42,82,42,"med",color="#d9822b")
-    s.rect(82,34,26,16,"med",fill="#fff6d9"); s.text(95,41,"F1",2.8,"bold","middle"); s.text(95,46,"2 A TARGET",1.9,"middle")
+    s.rect(82,34,26,16,"med",fill="#ffffff"); s.text(95,41,"F1",2.8,"bold","middle"); s.text(95,46,"2 A TARGET",1.9,"middle")
     s.line(108,42,126,42,"med",color="#d9822b")
     s.rect(126,30,54,24,"med",fill="#fff"); s.text(153,40,"B44 RAIL EFUSE",2.6,"bold","middle"); s.text(153,47,"LIMIT / FAULT",2.0,"middle")
     s.line(180,42,405,42,"med",color="#d9822b"); s.text(292,38,"P01/P02 GUARDED EXT. 12 V TARGET; MAY REMAIN ENERGIZED",2.15,"bold","middle",color="#d9822b")
@@ -909,47 +932,47 @@ def sheet08():
     s.text(190,87,"S1 CARRIAGE + S2 BINDER: BOTH CLOSED TO ENABLE LOCAL Q1",2.05,"bold","middle",color="#b52d2d")
 
     # Camera binder chain.
-    s.rect(18,104,64,60,"heavy",rx=2,fill="#eef1f4")
+    s.rect(18,104,64,60,"heavy",fill="#ffffff")
     s.text(50,116,"B36 CAMERA",3.1,"bold","middle")
     s.text(50,123,"SKU UNVERIFIED",2.2,"middle",color="#b52d2d")
     s.text(50,131,"LOCAL MIPI CSI-2",2.4,"bold","middle")
-    s.rect(96,104,67,60,"heavy",rx=2,fill="#fff8e3")
+    s.rect(96,104,67,60,"heavy",fill="#ffffff")
     s.text(129.5,116,"B45 MAX96717",3.0,"bold","middle")
     s.text(129.5,124,"3/6 Gbps GMSL2",2.3,"middle")
     s.text(129.5,132,"187.5 Mbps REV",2.1,"middle")
     s.text(129.5,141,"LOCAL DC/DC",2.2,"bold","middle")
-    s.rect(117,56,24,10,"med",fill="#e7f5f6"); s.text(129,62,"B27 RAIL",1.9,"bold","middle")
-    s.rect(112,70,34,16,"med",fill="#fff6d9"); s.text(129,77,"B48 Q1",2.2,"bold","middle"); s.text(129,82,"LOCAL BRANCH",1.7,"middle")
-    s.rect(117,90,24,10,"med",fill="#fff0f0"); s.text(129,96,"B50 BINDER",1.75,"bold","middle")
+    s.rect(117,56,24,10,"med",fill="#ffffff"); s.text(129,62,"B27 RAIL",1.9,"bold","middle")
+    s.rect(112,70,34,16,"med",fill="#ffffff"); s.text(129,77,"B48 Q1",2.2,"bold","middle"); s.text(129,82,"LOCAL BRANCH",1.7,"middle")
+    s.rect(117,90,24,10,"med",fill="#ffffff"); s.text(129,96,"B50 BINDER",1.75,"bold","middle")
     s.line(82,132,96,132,"motion")
     s.line(129,104,129,100,"thin",color="#d9822b"); s.line(129,90,129,86,"thin",color="#d9822b"); s.line(129,70,129,66,"thin",color="#d9822b"); s.line(129,56,129,42,"thin",color="#d9822b"); s.line(138,104,138,61,"thin",color="#333")
     s.text(250,92,"POWER: RAIL Pxx -> B27 -> B48/Q1 -> B50 Cxx -> BINDER; S1/S2 GATE Q1",1.9,"bold","middle")
 
     # Four point-to-point video docks into quad deserializer.
     for i,y in enumerate([103,119,135,151],start=1):
-        s.rect(183,y-5,36,10,"med",rx=1,fill="#e7f5f6")
+        s.rect(183,y-5,36,10,"med",rx=1,fill="#ffffff")
         s.text(201,y+1,f"V{i} G + - G",1.9,"bold","middle",color="#0a7891")
         s.line(181,132,183,y,"thin",color="#0a7891") if i==1 else None
         s.line(219,y,252,y,"med",color="#0a7891")
-    s.rect(166,126,15,12,"med",rx=1,fill="#fff0f0")
+    s.rect(166,126,15,12,"med",rx=1,fill="#ffffff")
     s.text(173.5,131,"B50",1.9,"bold","middle")
     s.text(173.5,136,"UNVER",1.5,"middle",color="#b52d2d")
     s.line(163,132,166,132,"thin",color="#0a7891")
     s.text(201,169,"ONLY ONE DOCK POPULATED BY THIS CARRIAGE",2.0,"bold","middle")
-    s.rect(252,96,72,76,"heavy",rx=2,fill="#e9eef1")
+    s.rect(252,96,72,76,"heavy",fill="#ffffff")
     s.text(288,109,"B46 MAX96724",3.1,"bold","middle")
     s.text(288,117,"QUAD GMSL2 DES",2.4,"middle")
     for i,y in enumerate([127,137,147,157],start=1): s.text(261,y,f"IN{i}",2.0,"bold")
     s.text(288,166,"CSI-2 OUT",2.3,"bold","middle")
     s.line(324,134,342,134,"motion")
-    s.rect(342,104,62,60,"heavy",rx=2,fill="#e9eef1")
+    s.rect(342,104,62,60,"heavy",fill="#ffffff")
     s.text(373,119,"B42 TACHYON",3.2,"bold","middle")
     s.text(373,128,"DEDICATED CSI",2.2,"middle")
     s.text(373,137,"22p / 0.5 mm",2.2,"middle")
     s.text(373,147,"QWIIC MASTER",2.2,"middle")
 
     # Low-speed rail control below video path.
-    s.rect(52,177,58,39,"med",rx=1,fill="#f7f8f9")
+    s.rect(52,177,58,39,"med",rx=1,fill="#ffffff")
     s.text(81,187,"B49 TCA9548A",2.3,"bold","middle")
     s.text(81,194,"OPTIONAL I2C",2.0,"middle")
     s.text(81,201,"SEGMENT MUX",2.0,"middle")
@@ -979,12 +1002,12 @@ def sheet08():
 def sheet09():
     s=Sheet(9,"SERDES / CSI / PARTICLE BRICK", "1:1 / DIAGRAM")
     s.view_label(12,15,"Tachyon + deserializer carrier","1:1")
-    s.rect(22,34,85,56,"heavy",rx=2,fill="#e9eef1")
+    s.rect(22,34,85,56,"heavy",fill="#ffffff")
     s.text(64.5,57,"B42 TACHYON",4.5,"bold","middle")
     s.text(64.5,65,f"{VENDOR['tachyon_xyz'][0]:g} x {VENDOR['tachyon_xyz'][1]:g} x {VENDOR['tachyon_xyz'][2]:g} DATASHEET",2.2,"middle")
-    s.rect(31,78,22,5,"med",fill="#d3a74b"); s.rect(75,78,22,5,"med",fill="#d3a74b")
+    s.rect(31,78,22,5,"med",fill="#ffffff"); s.rect(75,78,22,5,"med",fill="#ffffff")
     s.text(42,88,"DEDICATED CSI",2.0,"bold","middle"); s.text(86,88,"SHARED DSI/CSI",2.0,"bold","middle")
-    s.rect(124,34,66,56,"heavy",rx=2,fill="#fff8e3")
+    s.rect(124,34,66,56,"heavy",fill="#ffffff")
     s.text(157,54,"B46 MAX96724",3.5,"bold","middle")
     s.text(157,62,"4 x GMSL2 IN",2.3,"middle")
     s.text(157,70,"MIPI CSI-2 OUT",2.3,"middle")
@@ -993,8 +1016,8 @@ def sheet09():
     s.text(106,105,"DESERIALIZER CARRIER DIMS / TACHYON DRIVER SUPPORT UNVERIFIED",2.2,"bold","middle",color="#b52d2d")
 
     s.view_label(215,15,"Optional M1 external brick","1:2")
-    s.rect(236,28,60.5,110,"heavy",rx=7,fill="#edf1f4")
-    s.rect(246,48,40,68,"med",rx=2,fill="#ffffff")
+    s.rect(236,28,60.5,110,"heavy",rx=7,fill="#ffffff")
+    s.rect(246,48,40,68,"med",fill="#ffffff")
     s.text(266,76,"TACHYON",3.4,"bold","middle")
     s.text(266,84,"+ DES",2.6,"middle")
     s.circle(250,129,6,"med",fill="#fff"); s.circle(282,129,6,"med",fill="#fff")
@@ -1005,7 +1028,7 @@ def sheet09():
 
     s.view_label(320,15,"External mount boundary","1:5")
     front_view(s,334,36,50,100)
-    s.rect(389,72,22,60,"heavy",rx=4,fill="#edf1f4")
+    s.rect(389,72,22,60,"heavy",fill="#ffffff")
     s.line(384,87,389,87,"med"); s.line(384,118,389,118,"med")
     s.text(400,95,"M1",3.5,"bold","middle")
     s.text(400,103,"OUTSIDE",2.1,"bold","middle")
@@ -1013,11 +1036,11 @@ def sheet09():
 
     s.view_label(12,174,"Four video docks / two Tachyon CSI options","DIAGRAM")
     for i,x in enumerate([18,68,118,168],start=1):
-        s.rect(x,191,38,25,"med",rx=2,fill="#e7f5f6"); s.text(x+19,203,f"V{i} GMSL2",2.2,"bold","middle")
+        s.rect(x,191,38,25,"med",fill="#ffffff"); s.text(x+19,203,f"V{i} GMSL2",2.2,"bold","middle")
     for x in [56,106,156,206]: s.line(x,203,230,203,"thin",color="#0a7891")
-    s.rect(230,184,68,40,"heavy",rx=2,fill="#fff8e3"); s.text(264,202,"MAX96724",3,"bold","middle"); s.text(264,210,"AGGREGATE / ROUTE",2.1,"middle")
+    s.rect(230,184,68,40,"heavy",fill="#ffffff"); s.text(264,202,"MAX96724",3,"bold","middle"); s.text(264,210,"AGGREGATE / ROUTE",2.1,"middle")
     s.line(298,196,320,196,"motion"); s.line(298,213,320,213,"motion")
-    s.rect(320,181,82,47,"heavy",rx=2,fill="#e9eef1"); s.text(361,195,"DEDICATED CSI",2.5,"bold","middle"); s.text(361,207,"SHARED DSI/CSI",2.5,"bold","middle"); s.text(361,219,"GPIO 68 HIGH",2.2,"bold","middle")
+    s.rect(320,181,82,47,"heavy",fill="#ffffff"); s.text(361,195,"DEDICATED CSI",2.5,"bold","middle"); s.text(361,207,"SHARED DSI/CSI",2.5,"bold","middle"); s.text(361,219,"GPIO 68 HIGH",2.2,"bold","middle")
 
     s.note_box(12,231,190,"VERIFIED THIS RUN (PARTICLE / ADI PAGES)",[
         f"Tachyon {VENDOR['tachyon_xyz'][0]:g}x{VENDOR['tachyon_xyz'][1]:g}x{VENDOR['tachyon_xyz'][2]:g}; CSI 22p / 0.5 mm; 2.5 Gbps/lane.",
@@ -1032,17 +1055,17 @@ def sheet10():
     s=Sheet(10,"HUSBANDRY INTERFERENCE", "1:5 / DETAILS 5:1")
     s.view_label(12,15,"Section through animal volume","1:5")
     s.rect(38,31,86,172,"heavy")
-    s.rect(44,37,74,160,"thin",fill="#f9fbfc")
+    s.rect(44,37,74,160,"thin",fill="#ffffff")
     s.rect(44,37,74,10,"thin",fill="url(#screen)")
     s.rect(44,47,74,52,"keepout")
     s.text(81,70,"MOLT KEEP-OUT",3.4,"bold","middle",color="#b52d2d")
     s.line(81,99,81,181,"thin")
     s.path("M60 130 C75 115 90 145 105 126","med")
-    s.rect(47,184,68,9,"med",fill="#e6ecef")
+    s.rect(47,184,68,9,"med",fill="#ffffff")
     s.text(81,213,f"FALSE BOTTOM + {TRAY:g} TRAY REF",2.4,"bold","middle")
     # rail outside
-    s.rect(31,27,100,4,"med",fill="#dce2e6")
-    s.rect(25,25,20,8,"heavy",rx=2,fill="#fff")
+    s.rect(31,27,100,4,"med",fill="#ffffff")
+    s.rect(25,25,20,8,"heavy",fill="#fff")
     # B20 keep-out: continuous wet-side barrier between rail metal and animal volume
     s.rect(34,31,6,172,"keepout")
     s.text(37,118,"B20",2.6,"bold",rotate=-90,color="#b52d2d")
@@ -1098,7 +1121,7 @@ def sheet11():
         (145,125,"P - MAGNET POCKET","5:1"),
         (278,125,"Q - 250/500 JOINT","5:1")]
     for x,y,name,sc in details:
-        s.rect(x,y,120,98,"med",rx=1.5,fill="#ffffff")
+        s.rect(x,y,120,98,"med",fill="#ffffff")
         s.text(x+4,y+8,name,2.8,"bold")
         s.text(x+116,y+8,"NTS - DO NOT SCALE",2.1,"bold","end")
     # K
