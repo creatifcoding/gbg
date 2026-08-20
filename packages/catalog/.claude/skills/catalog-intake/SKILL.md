@@ -1,6 +1,6 @@
 ---
 name: catalog-intake
-description: Catalog 10-second intake. Type, claim, 3+ tags, optional taxon/part, then file a Specimen. Invoke when building or changing dump, fileSpecimen, or the intake screen.
+description: Catalog 10-second intake. Type, claim, 3+ tags. Raw is complete. Do not block on taxon, GPS, mechanism, or analog. No identification wizard.
 model_invoked: true
 triggers:
   - "intake"
@@ -14,9 +14,9 @@ triggers:
 
 # Catalog intake
 
-Dump first. File in one screen. Body waits.
+Dump first. File in one screen. Body waits. Raw is complete.
 
-This package is biomimetic and specimen-first. A picture dump becomes a Specimen by copying the original into package assets and reading EXIF. Taxon, structure, mechanism, and analog stay optional links. The app does not invent citations or geocode from pixels.
+This package is biomimetic and specimen-first. A picture dump becomes a Specimen by copying the original into package assets and reading EXIF. Taxon, GPS, mechanism, and analog do not block filing. Open questions are enough for later understanding. The app does not invent citations, geocode from pixels, or run an identification wizard.
 
 ## Canonical sources
 
@@ -44,10 +44,10 @@ One screen. No wizard. No step 2.
 | locality | pictures: EXIF `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime`, or `unknown`. Capture JPEGs get those tags from `navigator.geolocation` at shoot. Never IP, Cloudflare country, pixels, or a geocoded city. Other kinds may take a named string. |
 | collected / observed | pictures: `DateTimeOriginal` when present. Other kinds optional. |
 | camera | `Make` / `Model` when present |
-| open questions | zero or more, already in hand |
+| open questions | enough for later understanding. Zero or more, already in hand |
 | id | `YYYYMMDD-NNN` from DateTimeOriginal or the filing day |
 
-Status starts `raw`. Intake also writes a CRUD Observation (`observation-of` the specimen) and hangs the original on that observation. Body is `''`.
+Status starts `raw`. That is a complete dump, not a draft. Intake also writes a CRUD Observation (`observation-of` the specimen) and hangs the original on that observation. Body is `''`.
 
 Intake still owns filing. A JPEG from `capture/` is the preferred picture dump: browser geo written into GPS tags on the device, or unknown if location was denied. `ingestPicture` ignores form locality.
 
@@ -75,7 +75,7 @@ export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
 
 ### Pattern 2: One form
 
-`IntakeDrop` is drop zone plus type tabs plus claim, tags, optional taxon/part, questions, submit. Pictures hide the locality field. GPS is EXIF-only.
+`IntakeDrop` is drop zone plus type tabs plus claim, tags, optional taxon/part, questions, submit. Pictures hide the locality field. GPS is EXIF-only and never a filing gate. No mechanism or analog fields. No identification step.
 
 ### Pattern 3: Empty is valid
 
@@ -88,7 +88,22 @@ Index may render zero specimens. Seed examples are opt-in and marked `example: t
 ```typescript
 // BANNED
 /intake/type -> /intake/tags -> /intake/review
+/intake/identify
 ```
+
+Do not build an identification wizard. Raw specimens are complete.
+
+### Require taxon, GPS, mechanism, or analog to file
+
+```typescript
+// BANNED
+if (!intake.organismGuess) throw new IntakeError(['Identify it first'])
+if (locality._tag === 'unknown') throw new IntakeError(['Need GPS'])
+intake.mechanism // not on IntakeInput
+intake.analog // not on IntakeInput
+```
+
+A Specimen can exist with `organismGuess: null`, locality `unknown`, no mechanism, and no analog. Open questions are enough. Do not invent an Organism record from a guess.
 
 ### Body at dump time
 
@@ -98,10 +113,6 @@ decodeIntake({ …, body: 'methods section' })
 ```
 
 Body is not on `IntakeInput`.
-
-### Require a taxonomy to file
-
-A Specimen can exist with `organismGuess: null`. Do not invent an Organism record from a guess.
 
 ### Keep Card as a peer aggregate
 

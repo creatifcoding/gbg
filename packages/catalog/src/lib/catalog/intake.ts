@@ -22,6 +22,11 @@ import {
   nextFiledSpecimenId,
 } from './specimen-id'
 
+/**
+ * Dump gate. Required: kind, claim, 3+ tags.
+ * Taxon, GPS, mechanism, and analog do not block filing.
+ * Open questions are enough for later understanding. No identification wizard.
+ */
 export const IntakeInput = Schema.Struct({
   kind: EvidenceKind,
   claim: Schema.NonEmptyString,

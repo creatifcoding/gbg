@@ -41,7 +41,9 @@ export const SPECIMEN_STATUSES = [
 ] as const satisfies ReadonlyArray<SpecimenStatus>
 
 /**
- * Specimen lifecycle. Linear happy path, skip-to-dead from any live state.
+ * Specimen lifecycle. raw is a complete dump, not a draft.
+ * Taxon, GPS, mechanism, and analog are later links. Open questions are enough.
+ * Linear happy path, skip-to-dead from any live state.
  * dead is deaccessioned. Do not auto-walk skipped states.
  */
 const specimenTransitions: Record<SpecimenStatus, readonly SpecimenStatus[]> = {

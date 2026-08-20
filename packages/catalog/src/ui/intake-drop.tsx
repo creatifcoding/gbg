@@ -80,7 +80,7 @@ export function IntakeDrop() {
       >
         <p className="vanta-heading text-base">Drop a picture, dossier, or artifact</p>
         <p className="vanta-muted mt-2 text-[14px]">
-          Picture intake copies the original into package assets and reads EXIF. GPS tags become locality. Missing GPS is unknown. No geocoding. Notes still file without a file.
+          Picture intake copies the original into package assets and reads EXIF. GPS tags become locality. Missing GPS still files as unknown. Taxon, mechanism, and analog are not gates. Notes still file without a file.
         </p>
         <label className="vanta-chip mt-3 cursor-pointer">
           Choose file
@@ -134,7 +134,7 @@ export function IntakeDrop() {
       />
       {kind === 'picture' ? (
         <p className="vanta-muted text-[14px]">
-          Locality and collected time come from EXIF GPS tags written at capture (browser geolocation into the JPEG). GPSLatitude, GPSLongitude, GPSAltitude, GPSDateTime when present. Otherwise locality is unknown.
+          Locality and collected time come from EXIF GPS tags written at capture (browser geolocation into the JPEG). GPSLatitude, GPSLongitude, GPSAltitude, GPSDateTime when present. Missing GPS still files. Locality unknown is not a blocker.
         </p>
       ) : (
         <>
@@ -160,7 +160,7 @@ export function IntakeDrop() {
           id={questionsId}
           name="questions"
           rows={3}
-          placeholder="One question per line"
+          placeholder="What still needs to be understood? One per line. Enough for later."
           className="t-input vanta-textarea"
         />
       </div>

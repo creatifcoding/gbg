@@ -10,20 +10,20 @@ Empty catalog is valid. The default data dir files `20260819-001` on first boot.
 
 ## Product invariant
 
-Intake is one screen, no wizard. Filing produces a Specimen first:
+Intake is one screen, no identification wizard. Filing produces a complete raw Specimen:
 
 - first evidence: `picture` | `dossier` | `artifact` | `note`
-- status machine: `raw` → `filed` → `working` → `dead` (dead is deaccessioned; skip-to-dead allowed; do not skip `filed`)
+- status machine: `raw` → `filed` → `working` → `dead` (dead is deaccessioned; skip-to-dead allowed; do not skip `filed`). `raw` is a complete dump, not a draft.
 - one-line claim
 - 3 or more tags
 - taxon / part guesses optional and marked `guess: true`
 - picture intake copies the original into `assets/specimens/<id>/` (never overwrite) and writes `exif.json`
-- locality is EXIF-first on pictures: `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime` when present, otherwise `unknown`. No geocoding.
+- locality is EXIF-first on pictures: `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime` when present, otherwise `unknown`. No geocoding. Missing GPS does not block filing.
 - `DateTimeOriginal`, `Make`, and `Model` are pulled when present
-- open questions (may be empty)
+- open questions are enough for later understanding (may be empty)
 - filed ids look like `20260819-001`
 
-Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxonomy does not block intake.
+Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxon, GPS, mechanism, and analog do not block intake. Do not build an identification wizard.
 
 Analog is a separate event-sourced aggregate (`raw` → `working` → `tested` → `dead`). Organism, Structure, Mechanism, Function, Attachment, Tag, Question, and Observation are not event sourced. Edges are first-class (`observation-of`, `same-lot`, `derived-from`, `identified-as`, `exhibits`, `performs`, `via`, `inspires`, `contained-in`, `depicts`, `contradicts`).
 

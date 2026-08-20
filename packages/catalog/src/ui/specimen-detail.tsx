@@ -68,7 +68,7 @@ export function SpecimenDetail({ specimen }: { specimen: SpecimenView }) {
           </p>
         ) : (
           <p className="vanta-muted text-[14px]">
-            No taxon or part guess. Identification can wait.
+            No taxon or part guess. Raw is complete. Open questions are enough.
           </p>
         )}
       </header>

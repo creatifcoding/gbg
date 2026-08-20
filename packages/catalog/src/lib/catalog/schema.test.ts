@@ -8,7 +8,7 @@ import {
 } from './schema'
 
 describe('intake invariant', () => {
-  it('files a raw specimen from type, claim, and 3 tags without a taxon', () => {
+  it('files a complete raw specimen without taxon, GPS, mechanism, or analog', () => {
     const filed = fileSpecimen(
       {
         kind: 'picture',
@@ -23,14 +23,33 @@ describe('intake invariant', () => {
     expect(filed.specimen.body).toBe('')
     expect(filed.specimen.example).toBe(false)
     expect(filed.specimen.organismGuess).toBeNull()
+    expect(filed.specimen.structureGuess).toBeNull()
     expect(filed.specimen.locality).toEqual({ _tag: 'unknown' })
     expect(filed.specimen.cameraMake).toBeNull()
+    expect(filed.questions.map((question) => question.text)).toEqual([
+      'What surface was the toe on?',
+    ])
+    expect(filed.specimen).not.toHaveProperty('mechanism')
+    expect(filed.specimen).not.toHaveProperty('analog')
     expect(filed.specimen.id).toMatch(/^\d{8}-\d{3}$/)
     expect(filed.tags).toHaveLength(3)
     expect(filed.specimen.createdAt).toBe(1_700_000_000_000)
     expect(filed.events[0]?.type).toBe('SpecimenCreated')
     expect(filed.observation.specimenId).toBe(filed.specimen.id)
     expect(filed.observationEdge.kind).toBe('observation-of')
+  })
+
+  it('still files when open questions are empty', () => {
+    const filed = fileSpecimen({
+      kind: 'note',
+      claim: 'A cup dump with nothing identified yet.',
+      tags: ['cup', 'dump', 'unknown'],
+      questions: [],
+    })
+    expect(filed.specimen.status).toBe('raw')
+    expect(filed.questions).toEqual([])
+    expect(filed.specimen.organismGuess).toBeNull()
+    expect(filed.specimen.locality).toEqual({ _tag: 'unknown' })
   })
 
   it('marks a provided taxon as a guess, not a required Organism record', () => {
