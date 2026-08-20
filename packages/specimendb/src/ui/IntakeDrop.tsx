@@ -11,7 +11,8 @@ import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
-import { claimLine, imgSrcLabel, tagSlots } from './catalog-view.js';
+import { AccessionQuery, StatusFilters } from './catalog-controls.js';
+import { claimLine, EMPTY_TAG_SLOTS, imgSrcLabel, mediaLabel } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import { CrosshairMark, DatabaseMark, UploadMark } from './marks.js';
 import './catalog.css';
@@ -72,6 +73,7 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
           className="sdb-file-input"
           data-testid="intake-file"
           type="file"
+          accept="image/jpeg,image/heic,image/heif,.jpg,.jpeg,.heic,.heif"
           multiple
           onChange={bind.onChange}
         />
@@ -79,6 +81,8 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
           <>
             <aside className="sdb-t-rail">
               <IntakeDropHeader />
+              <IntakeDropQuery />
+              <IntakeDropFilters />
               <IntakeDropList />
             </aside>
             <main className="sdb-t-main">
@@ -93,6 +97,16 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
       </div>
     </IntakeDropContext.Provider>
   );
+}
+
+function IntakeDropQuery() {
+  const { catalog } = useIntakeDrop();
+  return <AccessionQuery catalog={catalog} />;
+}
+
+function IntakeDropFilters() {
+  const { catalog } = useIntakeDrop();
+  return <StatusFilters catalog={catalog} />;
 }
 
 function IntakeDropHeader() {
@@ -185,7 +199,7 @@ function TerminalWell({
   return (
     <div className="sdb-t-well">
       <span className="sdb-t-well-grid tech-grid" />
-      {preview !== undefined ? <img src={preview} alt="" /> : null}
+      {preview !== undefined ? <img src={preview} alt="" data-testid="media-bytes" /> : null}
       <CrosshairMark className="sdb-t-crosshair" />
       <span className="sdb-t-imgsrc">{caption}</span>
     </div>
@@ -193,7 +207,6 @@ function TerminalWell({
 }
 
 function TerminalCardChrome() {
-  const slots = tagSlots();
   return (
     <article className="sdb-t-card" data-empty="true" data-testid="card-chrome">
       <TerminalWell caption="IMG_SRC" />
@@ -206,9 +219,9 @@ function TerminalCardChrome() {
             unknown
           </span>
         </div>
-        <p className="sdb-t-claim" />
+        <p className="sdb-t-claim" data-testid="claim" />
         <div className="sdb-t-tags">
-          {slots.map((_, index) => (
+          {EMPTY_TAG_SLOTS.map((_, index) => (
             <span className="sdb-t-tag" key={`empty-tag-${index}`} />
           ))}
         </div>
@@ -228,7 +241,6 @@ function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
     at<CatalogState['previews']>(catalog.store.lens.previews),
   );
   const status = (statusOf(specimen) ?? 'raw') satisfies SpecimenStatus;
-  const slots = tagSlots(specimen);
 
   return (
     <button
@@ -246,15 +258,15 @@ function IntakeDropCard({ specimen }: { readonly specimen: Specimen }) {
             {localityLabel(specimen)}
           </span>
         </div>
-        <p className="sdb-t-claim">{claimLine(specimen)}</p>
-        <span className="sdb-t-id" data-testid="specimen-id" hidden>
+        <p className="sdb-t-claim" data-testid="claim">
+          {claimLine(specimen)}
+        </p>
+        <span className="sdb-t-id" data-testid="specimen-id">
           {specimen.id}
         </span>
         <div className="sdb-t-tags">
-          {slots.map((tag, index) => (
-            <span className="sdb-t-tag" key={`${specimen.id}:tag:${index}`}>
-              {tag}
-            </span>
+          {EMPTY_TAG_SLOTS.map((_, index) => (
+            <span className="sdb-t-tag" key={`${specimen.id}:tag:${index}`} />
           ))}
         </div>
       </div>
@@ -273,11 +285,6 @@ function IntakeDropDetail() {
     at<CatalogState['intakeError']>(catalog.store.lens.intakeError),
   );
   const status = selected === null ? undefined : (statusOf(selected) ?? 'raw');
-  const taxon = selected?.components.find((component) => component._tag === 'Taxon');
-  const classOrder =
-    taxon?._tag === 'Taxon'
-      ? [taxon.scientificName, taxon.commonName].filter((part) => part !== undefined && part.length > 0).join(' / ')
-      : '';
 
   return (
     <section className="sdb-t-detail" data-testid="specimen-detail">
@@ -297,7 +304,7 @@ function IntakeDropDetail() {
         {METRIC_KICKERS.map((kicker) => (
           <div className="sdb-t-cell" key={kicker}>
             <div className="sdb-t-kicker">{kicker}</div>
-            <div className="sdb-t-cell-value">{kicker === 'CLASS / ORDER' ? classOrder : ''}</div>
+            <div className="sdb-t-cell-value" />
           </div>
         ))}
       </div>
@@ -310,9 +317,19 @@ function IntakeDropDetail() {
           <div className="sdb-t-panel-head">PROCESS LOG</div>
           <div className="sdb-t-log-body">
             {selected !== null ? (
-              <p className="sdb-t-locality" data-testid="detail-locality">
-                {localityLabel(selected)}
-              </p>
+              <>
+                <p className="sdb-t-claim" data-testid="detail-claim">
+                  {claimLine(selected)}
+                </p>
+                <p className="sdb-t-locality" data-testid="detail-locality">
+                  {localityLabel(selected)}
+                </p>
+                {mediaLabel(selected) !== '' ? (
+                  <p className="sdb-t-locality" data-testid="detail-media">
+                    {mediaLabel(selected)}
+                  </p>
+                ) : null}
+              </>
             ) : null}
             {intakeError !== null ? <p className="sdb-error">{intakeError}</p> : null}
           </div>
@@ -326,6 +343,8 @@ export const IntakeDrop = Object.assign(IntakeDropRoot, {
   Header: IntakeDropHeader,
   StatusBar: IntakeDropStatusBar,
   Zone: IntakeDropZone,
+  Query: IntakeDropQuery,
+  Filters: IntakeDropFilters,
   List: IntakeDropList,
   Card: IntakeDropCard,
   Detail: IntakeDropDetail,

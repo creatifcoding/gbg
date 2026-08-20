@@ -1,32 +1,25 @@
 /**
- * Fill card/detail slots from real components only.
- * Empty strings keep chrome visible. Never invent ids, GPS, or taxon.
+ * Fill now-slots from real Specimen components only.
+ * Claim is Claim or empty. Filename is a media well label, not a claim.
+ * Tag chips stay empty until someone attaches a Tag (when).
  */
 
 import { mediaOf, type Specimen } from '../schemas/specimen.js';
 
+export const EMPTY_TAG_SLOTS = ['', '', ''] as const;
+
 export const claimLine = (specimen: Specimen): string => {
   const claim = specimen.components.find((component) => component._tag === 'Claim');
   if (claim?._tag === 'Claim' && claim.text.length > 0) return claim.text;
-  return mediaOf(specimen)?.filename ?? '';
+  return '';
 };
 
-export const tagValues = (specimen: Specimen): ReadonlyArray<string> =>
-  specimen.components.flatMap((component) => (component._tag === 'Tag' ? [component.value] : []));
-
-export const tagSlots = (specimen?: Specimen): readonly [string, string, string] => {
-  const tags = specimen === undefined ? [] : tagValues(specimen);
-  return [tags[0] ?? '', tags[1] ?? '', tags[2] ?? ''];
-};
-
-export const wellKind = (specimen?: Specimen): string => {
+export const mediaLabel = (specimen?: Specimen): string => {
   const media = specimen === undefined ? undefined : mediaOf(specimen);
-  if (media === undefined) return '';
-  return media.kind === 'jpeg' || media.kind === 'heic' ? 'OPTICAL_SCAN' : 'FIELD_SAMPLE';
+  return media?.filename ?? '';
 };
 
 export const imgSrcLabel = (specimen?: Specimen): string => {
-  const media = specimen === undefined ? undefined : mediaOf(specimen);
-  if (media === undefined) return 'IMG_SRC';
-  return `IMG_SRC: ${media.filename}`;
+  const name = mediaLabel(specimen);
+  return name.length > 0 ? `IMG_SRC: ${name}` : 'IMG_SRC';
 };

@@ -10,7 +10,6 @@ import * as Result from 'effect/Result';
 import { stx, type StxInstance } from '@tmnl/stx';
 import { localityView, type LocalityView } from '../surface.js';
 import {
-  mediaOf,
   statusOf,
   type IntakePayload,
   type IntakeResult,
@@ -86,14 +85,22 @@ export const formatLocality = (view: LocalityView): string => {
 export const localityLabel = (specimen: { readonly components: Specimen['components'] }): string =>
   formatLocality(localityView(specimen));
 
+export const isJpegHeic = (file: { readonly name: string; readonly type: string }): boolean => {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  if (type === 'image/jpeg' || type === 'image/jpg' || type === 'image/heic' || type === 'image/heif') {
+    return true;
+  }
+  return name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.heic') || name.endsWith('.heif');
+};
+
 export const visibleSpecimens = (state: CatalogState): ReadonlyArray<Specimen> => {
   const q = state.query.trim().toLowerCase();
   return state.items.filter((specimen) => {
     const status = statusOf(specimen) ?? 'raw';
     if (state.statusFilter !== 'all' && status !== state.statusFilter) return false;
     if (q.length === 0) return true;
-    const media = mediaOf(specimen);
-    return specimen.id.toLowerCase().includes(q) || (media?.filename.toLowerCase().includes(q) ?? false);
+    return specimen.id.toLowerCase().includes(q);
   });
 };
 
@@ -149,6 +156,13 @@ export const createCatalog = (client: SpecimenRpcClient): CatalogSurface => {
 
   const intakeEffect = (file: File) =>
     Effect.gen(function* () {
+      if (!isJpegHeic(file)) {
+        patch({
+          intakeStatus: 'error',
+          intakeError: 'JPEG/HEIC first',
+        });
+        return;
+      }
       patch({
         intakeStatus: 'dropping',
         intakeError: null,

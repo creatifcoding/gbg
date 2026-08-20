@@ -43,6 +43,51 @@
   display: none;
 }
 
+.sdb-query {
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--charcoal-200);
+  background: #000;
+  color: var(--offwhite);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sdb-query::placeholder {
+  color: var(--charcoal-400);
+}
+
+.sdb-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--charcoal-200);
+}
+
+.sdb-filters button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--charcoal-200);
+  background: transparent;
+  color: var(--charcoal-400);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.sdb-filters button[data-active='true'] {
+  color: var(--offwhite);
+  border-color: var(--charcoal-300);
+}
+
 .tech-grid {
   background-color: #000;
   background-image:
@@ -282,6 +327,14 @@ button.sdb-t-card {
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.25;
+}
+
+.sdb-t-id {
+  color: var(--charcoal-400);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  word-break: break-all;
 }
 
 .sdb-t-tags {

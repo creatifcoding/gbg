@@ -31,6 +31,9 @@ const BANISHED = [
   'NO SELECTION',
   'DRAG_AND_DROP_ASSETS',
   'VOL: 04',
+  '99.8%',
+  'OD-',
+  'OPTICAL_SCAN',
 ];
 
 function TerminalPage({ client }: { readonly client: SpecimenRpcClient }) {
@@ -120,6 +123,13 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.queryByTestId('card-chrome')).toBeNull();
     expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
     expect(view.getByTestId('locality').textContent).toBe('unknown');
+    expect(view.getByTestId('claim').textContent).toBe('');
+    expect(view.getByTestId('media-bytes')).toBeTruthy();
+    expect(view.container.textContent).toContain('IMG_SRC: field.jpg');
+    expect(view.getByTestId('rail-query')).toBeTruthy();
+    expect(view.getByTestId('rail-filters').textContent).toContain('RAW');
+    expect(view.getByTestId('rail-filters').textContent).toContain('FILED');
+    expect(view.getByTestId('rail-filters').textContent).toContain('WORKING');
 
     const getBeforeSelect = calls.get;
     await act(async () => {
@@ -182,6 +192,86 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(workbench.container.textContent).not.toContain('NO SELECTION');
   });
 
+  it('status filter and accession query are live List on SpecimenId', async () => {
+    const rawId = trustSpecimenId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const filedId = trustSpecimenId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    const raw: Specimen = {
+      id: rawId,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+    };
+    const filed: Specimen = {
+      id: filedId,
+      createdAt: '2026-08-20T00:00:01.000Z',
+      components: [new StatusComponent({ value: 'filed' }), new LocalityComponent({ state: 'unknown' })],
+    };
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([raw, filed]),
+      Get: (payload) =>
+        Effect.succeed(payload.specimenId === filedId ? filed : raw),
+      Intake: () => Effect.die('Intake should not run'),
+    };
+
+    const view = render(React.createElement(TerminalPage, { client }));
+    await waitFor(() => {
+      expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
+    });
+
+    await act(async () => {
+      fireEvent.click(view.getByTestId('rail-filters').querySelector('[data-filter="filed"]')!);
+    });
+    await waitFor(() => {
+      expect(view.getAllByTestId('specimen-id').map((node) => node.textContent)).toEqual([filedId]);
+    });
+
+    await act(async () => {
+      fireEvent.click(view.getByTestId('rail-filters').querySelector('[data-filter="all"]')!);
+    });
+    await waitFor(() => {
+      expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
+    });
+
+    await act(async () => {
+      fireEvent.change(view.getByTestId('rail-query'), { target: { value: 'aaaa' } });
+    });
+    await waitFor(() => {
+      expect(view.getAllByTestId('specimen-id').map((node) => node.textContent)).toEqual([rawId]);
+    });
+
+    await act(async () => {
+      fireEvent.change(view.getByTestId('rail-query'), { target: { value: 'field.jpg' } });
+    });
+    await waitFor(() => {
+      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      expect(view.queryByTestId('specimen-card')).toBeNull();
+    });
+  });
+
+  it('rejects non JPEG/HEIC at Intake and leaves the card template', async () => {
+    let intake = 0;
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([]),
+      Get: () => Effect.die('Get should not run'),
+      Intake: () => {
+        intake += 1;
+        return Effect.die('csv is later');
+      },
+    };
+    const view = render(React.createElement(TerminalPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('card-chrome')).toBeTruthy();
+    });
+    const csv = new File(['a,b\n1,2'], 'packet.csv', { type: 'text/csv' });
+    await act(async () => {
+      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [csv] } });
+    });
+    await waitFor(() => {
+      expect(view.getByTestId('intake-error').textContent).toBe('JPEG/HEIC first');
+    });
+    expect(intake).toBe(0);
+    expect(view.getByTestId('card-chrome')).toBeTruthy();
+  });
+
   it('shows unknown locality for a real JPEG without EXIF GPS, and real coords when GPS exists', async () => {
     await Effect.runPromise(
       Effect.scoped(
@@ -207,6 +297,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
             waitFor(() => {
               expect(view.getAllByTestId('locality')[0]?.textContent).toBe('unknown');
               expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+              expect(view.getByTestId('claim').textContent).toBe('');
             }),
           );
 
@@ -232,6 +323,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
           expect(html).not.toContain('SP-2023-084');
           expect(html).not.toContain('SEQ-882.C');
           expect(html).not.toContain('SPC-88.94X');
+          expect(html).not.toContain('99.8%');
           view.unmount();
         }),
       ).pipe(Effect.provide(MemoryCatalogLive)) as Effect.Effect<void>,

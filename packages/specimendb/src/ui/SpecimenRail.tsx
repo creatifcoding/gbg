@@ -11,7 +11,8 @@ import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
-import { claimLine, tagSlots, wellKind } from './catalog-view.js';
+import { AccessionQuery, StatusFilters } from './catalog-controls.js';
+import { claimLine, EMPTY_TAG_SLOTS, mediaLabel } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import {
   CubeMark,
@@ -79,6 +80,7 @@ function SpecimenRailRoot({ catalog, children }: SpecimenRailProps) {
           className="sdb-file-input"
           data-testid="intake-file"
           type="file"
+          accept="image/jpeg,image/heic,image/heif,.jpg,.jpeg,.heic,.heif"
           multiple
           onChange={bind.onChange}
         />
@@ -87,6 +89,8 @@ function SpecimenRailRoot({ catalog, children }: SpecimenRailProps) {
             <SpecimenRailStrip />
             <aside className="sdb-w-rail">
               <SpecimenRailHeader />
+              <SpecimenRailQuery />
+              <SpecimenRailFilters />
               <SpecimenRailList />
             </aside>
             <main className="sdb-w-main">
@@ -124,6 +128,16 @@ function SpecimenRailStrip() {
       </span>
     </aside>
   );
+}
+
+function SpecimenRailQuery() {
+  const { catalog } = useRail();
+  return <AccessionQuery catalog={catalog} />;
+}
+
+function SpecimenRailFilters() {
+  const { catalog } = useRail();
+  return <StatusFilters catalog={catalog} />;
 }
 
 function SpecimenRailHeader() {
@@ -210,7 +224,7 @@ function WorkbenchWell({
 }) {
   return (
     <div className="sdb-w-well">
-      {preview !== undefined ? <img src={preview} alt="" /> : null}
+      {preview !== undefined ? <img src={preview} alt="" data-testid="media-bytes" /> : null}
       <ShutterMark className="sdb-w-shutter" />
       <span className="sdb-w-well-cap">{caption}</span>
     </div>
@@ -218,7 +232,6 @@ function WorkbenchWell({
 }
 
 function WorkbenchCardChrome() {
-  const slots = tagSlots();
   return (
     <article className="sdb-w-card" data-empty="true" data-testid="card-chrome">
       <div className="sdb-w-idrow">
@@ -230,13 +243,13 @@ function WorkbenchCardChrome() {
       </div>
       <WorkbenchWell caption="" />
       <div className="sdb-w-card-body">
-        <p className="sdb-w-claim" />
+        <p className="sdb-w-claim" data-testid="claim" />
         <div className="sdb-w-locality">
           <PinMark />
           <span data-testid="locality">unknown</span>
         </div>
         <div className="sdb-w-tags">
-          {slots.map((_, index) => (
+          {EMPTY_TAG_SLOTS.map((_, index) => (
             <span className="sdb-w-tag" key={`empty-tag-${index}`}>
               []
             </span>
@@ -258,7 +271,6 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
     at<CatalogState['previews']>(catalog.store.lens.previews),
   );
   const status = (statusOf(specimen) ?? 'raw') satisfies SpecimenStatus;
-  const slots = tagSlots(specimen);
 
   return (
     <button
@@ -274,17 +286,19 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
         </span>
         <StatusMark status={status} testId="status-pill" />
       </div>
-      <WorkbenchWell preview={previews[specimen.id]} caption={wellKind(specimen)} />
+      <WorkbenchWell preview={previews[specimen.id]} caption={mediaLabel(specimen)} />
       <div className="sdb-w-card-body">
-        <p className="sdb-w-claim">{claimLine(specimen)}</p>
+        <p className="sdb-w-claim" data-testid="claim">
+          {claimLine(specimen)}
+        </p>
         <div className="sdb-w-locality">
           <PinMark />
           <span data-testid="locality">{localityLabel(specimen)}</span>
         </div>
         <div className="sdb-w-tags">
-          {slots.map((tag, index) => (
+          {EMPTY_TAG_SLOTS.map((_, index) => (
             <span className="sdb-w-tag" key={`${specimen.id}:tag:${index}`}>
-              [{tag}]
+              []
             </span>
           ))}
         </div>
@@ -309,7 +323,9 @@ function SpecimenRailDetail() {
           <h1 className="sdb-w-detail-id" data-testid="detail-id">
             {selected?.id ?? ''}
           </h1>
-          <p className="sdb-w-detail-claim">{body}</p>
+          <p className="sdb-w-detail-claim" data-testid="detail-claim">
+            {body}
+          </p>
           {selected !== null ? (
             <p className="sdb-w-locality">
               <PinMark />
@@ -350,14 +366,6 @@ function SpecimenRailProperties() {
     catalog.store,
     at<CatalogState['selected']>(catalog.store.lens.selected),
   );
-  const taxon = selected?.components.find((component) => component._tag === 'Taxon');
-  const structure = selected?.components.find((component) => component._tag === 'Structure');
-  const observation = selected?.components.find((component) => component._tag === 'Observation');
-  const taxonValue = (rank: string): string => {
-    if (taxon?._tag !== 'Taxon') return '';
-    if (rank === 'Class') return taxon.commonName ?? '';
-    return taxon.scientificName ?? taxon.rank ?? '';
-  };
 
   return (
     <aside className="sdb-w-props" data-testid="properties-log">
@@ -371,7 +379,7 @@ function SpecimenRailProperties() {
           {CLASSIFICATION_ROWS.map((row) => (
             <div className="sdb-w-row" key={row}>
               <dt>{row}</dt>
-              <dd>{taxonValue(row)}</dd>
+              <dd />
             </div>
           ))}
         </dl>
@@ -385,9 +393,17 @@ function SpecimenRailProperties() {
           {METRIC_ROWS.map((row) => (
             <div className="sdb-w-row" key={row}>
               <dt>{row}</dt>
-              <dd>{structure?._tag === 'Structure' && row === 'Tensile_Str' ? structure.text : ''}</dd>
+              <dd />
             </div>
           ))}
+          <div className="sdb-w-row">
+            <dt>Elev</dt>
+            <dd />
+          </div>
+          <div className="sdb-w-row">
+            <dt>Temp</dt>
+            <dd />
+          </div>
         </dl>
       </section>
       <section className="sdb-w-prop">
@@ -395,7 +411,7 @@ function SpecimenRailProperties() {
           <span>OBSERVATION LOG</span>
           <TerminalMark />
         </div>
-        <p className="sdb-w-obs">{observation?._tag === 'Observation' ? observation.text : ''}</p>
+        <p className="sdb-w-obs" />
       </section>
       <div className="sdb-w-updated">
         LAST_UPDATED {selected?.createdAt ?? ''}
@@ -407,6 +423,8 @@ function SpecimenRailProperties() {
 export const SpecimenRail = Object.assign(SpecimenRailRoot, {
   Header: SpecimenRailHeader,
   Strip: SpecimenRailStrip,
+  Query: SpecimenRailQuery,
+  Filters: SpecimenRailFilters,
   Intake: SpecimenRailIntake,
   List: SpecimenRailList,
   Card: SpecimenRailCard,
