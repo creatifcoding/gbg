@@ -1,6 +1,6 @@
 # @tmnl/specimendb
 
-Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in a DuckDB file database and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
+Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in PGlite and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
 
 Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality and taxon are never invented.
 
@@ -20,8 +20,8 @@ Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag,
 
 ## Field capture
 
-Static page in [`capture/`](./capture/): stamp GPS + DateTimeOriginal into a JPEG in the browser and download it. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to DuckDB or RPC.
+Static page in [`capture/`](./capture/): stamp GPS + DateTimeOriginal into a JPEG in the browser and download it. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to PGlite or RPC.
 
 ## Versions
 
-Effect pin matches `@tmnl/msh` / effect-smol: `effect@4.0.0-beta.93`. DuckDB is `@duckdb/node-api` behind a repository — there is no `@effect/sql-duckdb`.
+Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pglite@4.0.0-beta.93` (peers that pin) plus `@electric-sql/pglite@0.4.5`. The repo talks `SqlClient`. L1 is PGlite. There is no DuckDB driver and no `@effect/sql-duckdb`.

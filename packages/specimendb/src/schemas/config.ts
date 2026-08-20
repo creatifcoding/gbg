@@ -5,12 +5,12 @@
  */
 
 import * as Context from 'effect/Context';
-import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
 import * as Schema from 'effect/Schema';
 
 export const CatalogConfigSchema = Schema.Struct({
-  databasePath: Schema.String,
+  /** PGlite data directory, or `memory://` for an in-memory catalog. */
+  dataDir: Schema.String,
   assetsRoot: Schema.String,
 });
 export type CatalogConfig = typeof CatalogConfigSchema.Type;

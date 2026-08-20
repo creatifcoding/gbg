@@ -57,4 +57,4 @@ Override pins with `EXIFTOOL_VERSION` / `ZEROPERL_VERSION` if you must.
 
 - Does not invent locality or taxon
 - Does not identify the specimen
-- Does not talk to DuckDB / RPC / `@tmnl/specimendb` intake
+- Does not talk to PGlite / RPC / `@tmnl/specimendb` intake

@@ -6,12 +6,12 @@
 
 import * as Layer from 'effect/Layer';
 import { AssetStore } from './media/store.js';
-import { DuckDbClient } from './repos/duckdb.js';
+import { CatalogSqlLive } from './repos/pglite.js';
 import { SpecimenRepo } from './repos/SpecimenRepo.js';
 import { SpecimenRpcsLive } from './rpc/SpecimenRpcs.js';
 import { CatalogConfigLayer, type CatalogConfig } from './schemas/config.js';
 
-export const CatalogPersistenceLive = Layer.mergeAll(DuckDbClient.layer, AssetStore.layer);
+export const CatalogPersistenceLive = Layer.mergeAll(CatalogSqlLive, AssetStore.layer);
 
 export const SpecimenCatalogLive = SpecimenRpcsLive.pipe(
   Layer.provide(SpecimenRepo.layer),

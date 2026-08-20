@@ -42,7 +42,10 @@ describe('strict Effect v4 package guardrails', () => {
         if (bannedImport.test(line)) {
           violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
         }
-        if (line.includes("from '" + "@gbg/tmnl") || line.includes('from "' + "@gbg/tmnl")) {
+        if (
+          relative(packageRoot, file).startsWith('src/') &&
+          (line.includes('@duckdb/') || line.includes("from 'duckdb'") || line.includes('from "duckdb"'))
+        ) {
           violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
         }
       }
@@ -58,5 +61,8 @@ describe('strict Effect v4 package guardrails', () => {
     expect(pkg.dependencies.effect).toBe('4.0.0-beta.93');
     expect(pkg.devDependencies['@effect/vitest']).toBe('4.0.0-beta.93');
     expect(pkg.dependencies.effect?.startsWith('3.')).toBe(false);
+    expect(pkg.dependencies['@effect/sql-pglite']).toBe('4.0.0-beta.93');
+    expect(pkg.dependencies['@duckdb/node-api']).toBeUndefined();
+    expect(pkg.dependencies.duckdb).toBeUndefined();
   });
 });

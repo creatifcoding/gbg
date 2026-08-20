@@ -1,6 +1,8 @@
 /**
  * SpecimenRepo — ECS persistence: entity row + attached components.
  *
+ * Talks `SqlClient`. L1 is PGlite (`@effect/sql-pglite`).
+ *
  * @module @tmnl/specimendb/repos/SpecimenRepo
  */
 
@@ -9,7 +11,8 @@ import * as Context from 'effect/Context';
 import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
 import * as Schema from 'effect/Schema';
-import { DuckDbClient } from './duckdb.js';
+import { SqlClient } from 'effect/unstable/sql/SqlClient';
+import type { SqlError } from 'effect/unstable/sql/SqlError';
 import { AssetStore } from '../media/store.js';
 import {
   detectMediaKind,
@@ -52,6 +55,13 @@ const nowIso = () => new Date().toISOString();
 
 const decodeComponent = Schema.decodeUnknownEffect(Component);
 
+const catalogError = (operation: string) => (cause: SqlError) =>
+  new CatalogError({
+    operation,
+    message: cause.message,
+    cause,
+  });
+
 const parsePayload = (raw: unknown): unknown => {
   if (typeof raw === 'string') {
     try {
@@ -90,7 +100,7 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
   static readonly layer = Layer.effect(
     SpecimenRepo,
     Effect.gen(function* () {
-      const db = yield* DuckDbClient;
+      const sql = yield* SqlClient;
       const assets = yield* AssetStore;
 
       const insertComponent = (
@@ -99,18 +109,22 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
         component: typeof Component.Type,
         attachedAt: string,
       ) =>
-        db.runValues(
-          `INSERT INTO components (id, specimen_id, kind, payload, attached_at)
-           VALUES ($1, $2, $3, $4::JSON, $5)`,
-          [randomUUID(), specimenId, kind, JSON.stringify(component), attachedAt],
-        );
+        sql`
+          INSERT INTO components (id, specimen_id, kind, payload, attached_at)
+          VALUES (
+            ${randomUUID()},
+            ${specimenId},
+            ${kind},
+            ${JSON.stringify(component)}::jsonb,
+            ${attachedAt}
+          )
+        `.pipe(Effect.asVoid, Effect.mapError(catalogError('insertComponent')));
 
       const loadSpecimen = (id: SpecimenId, createdAt: string) =>
         Effect.gen(function* () {
-          const componentRows = yield* db.query(
-            `SELECT payload FROM components WHERE specimen_id = $1 ORDER BY attached_at ASC`,
-            [id],
-          );
+          const componentRows = yield* sql<Record<string, unknown>>`
+            SELECT payload FROM components WHERE specimen_id = ${id} ORDER BY attached_at ASC
+          `.pipe(Effect.mapError(catalogError('loadComponents')));
           const components = yield* rowsToComponents(componentRows);
           return { id, createdAt, components } satisfies typeof Specimen.Type;
         });
@@ -180,10 +194,9 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
             );
           }
 
-          yield* db.runValues(`INSERT INTO specimens (id, created_at) VALUES ($1, $2)`, [
-            specimenId,
-            createdAt,
-          ]);
+          yield* sql`
+            INSERT INTO specimens (id, created_at) VALUES (${specimenId}, ${createdAt})
+          `.pipe(Effect.asVoid, Effect.mapError(catalogError('insertSpecimen')));
 
           for (const component of components) {
             yield* insertComponent(specimenId, component._tag, component, createdAt);
@@ -195,23 +208,23 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
       const get = Effect.fn('@tmnl/specimendb/SpecimenRepo.get')(function* (
         specimenId: SpecimenId,
       ) {
-          const rows = yield* db.query(`SELECT id, created_at FROM specimens WHERE id = $1`, [
-            specimenId,
-          ]);
+          const rows = yield* sql<{ id: string; created_at: string }>`
+            SELECT id, created_at FROM specimens WHERE id = ${specimenId}
+          `.pipe(Effect.mapError(catalogError('get')));
           const row = rows[0];
           if (row === undefined) {
             return yield* new SpecimenNotFoundError({ specimenId });
           }
-          return yield* loadSpecimen(specimenId, String(row['created_at']));
+          return yield* loadSpecimen(specimenId, row.created_at);
         });
 
       const list = Effect.fn('@tmnl/specimendb/SpecimenRepo.list')(function* () {
-          const rows = yield* db.query(`SELECT id, created_at FROM specimens ORDER BY created_at ASC`);
+          const rows = yield* sql<{ id: string; created_at: string }>`
+            SELECT id, created_at FROM specimens ORDER BY created_at ASC
+          `.pipe(Effect.mapError(catalogError('list')));
           const specimens: Array<typeof Specimen.Type> = [];
           for (const row of rows) {
-            specimens.push(
-              yield* loadSpecimen(trustSpecimenId(String(row['id'])), String(row['created_at'])),
-            );
+            specimens.push(yield* loadSpecimen(trustSpecimenId(row.id), row.created_at));
           }
           return specimens;
         });

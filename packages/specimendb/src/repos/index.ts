@@ -1,2 +1,2 @@
-export { DuckDbClient, type DuckDbClientShape } from './duckdb.js';
+export { CatalogSqlLive, CatalogMigratorLive, PgliteFromConfig } from './pglite.js';
 export { SpecimenRepo, type SpecimenRepoShape } from './SpecimenRepo.js';

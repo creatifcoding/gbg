@@ -1,7 +1,7 @@
 {
   "name": "@tmnl/specimendb",
   "version": "0.0.1",
-  "description": "ECS specimen catalog — Intake/Get/List over a DuckDB file database (Effect v4)",
+  "description": "ECS specimen catalog — Intake/Get/List over PGlite (Effect v4)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -38,7 +38,8 @@
     "prepublishOnly": "bun run clean && bun run build"
   },
   "dependencies": {
-    "@duckdb/node-api": "1.5.5-r.4",
+    "@effect/sql-pglite": "4.0.0-beta.93",
+    "@electric-sql/pglite": "0.4.5",
     "effect": "4.0.0-beta.93"
   },
   "devDependencies": {
@@ -57,7 +58,7 @@
     "effect-v4",
     "ecs",
     "specimen",
-    "duckdb",
+    "pglite",
     "catalog"
   ]
 }

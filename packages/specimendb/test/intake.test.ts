@@ -1,5 +1,5 @@
 /**
- * Intake / Get / List over DuckDB. JPEG and HEIC without GPS still file as raw.
+ * Intake / Get / List over PGlite. JPEG and HEIC without GPS still file as raw.
  */
 
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -21,7 +21,7 @@ const runCatalog = async (program: Effect.Effect<unknown, unknown, never>) => {
       Effect.scoped(program).pipe(
         Effect.provide(
           layer({
-            databasePath: join(root, 'catalog.duckdb'),
+            dataDir: 'memory://',
             assetsRoot: join(root, 'assets'),
           }),
         ),
