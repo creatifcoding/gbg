@@ -90,11 +90,17 @@ model.
 
 For Cursor agents, use Grok only:
 
-- root architecture, high-risk system decisions, and arbitration:
-  **Grok 4.6 xhigh, non-fast**;
-- implementation, domain analysis, and independent review:
+- implementation, domain analysis, and independent review prefer
   **Grok 4.5, non-fast**;
-- do not use Sol, Auto routing, or Fast Mode.
+- root architecture, high-risk system decisions, and arbitration prefer
+  **Grok 4.6 xhigh, non-fast**;
+- when GitHub `@cursor` cannot attest Grok 4.5 but does attest
+  **Grok 4.6 high, non-fast**, the root controller may explicitly name and
+  authorize that exact model in one immutable issue packet; this is a recorded
+  allocation decision, never a silent fallback;
+- every run attests its actual model/mode before editing and stops if it is not
+  the exact Grok variant authorized by its packet;
+- do not use Sol, Auto routing, Fast Mode, or any unreported fallback.
 
 Use expensive reasoning for boundaries, failure modes, and contested evidence;
 use deterministic tools for generation, checking, conversion, and sweeps.
