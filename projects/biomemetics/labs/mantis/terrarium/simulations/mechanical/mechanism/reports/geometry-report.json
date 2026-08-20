@@ -1,0 +1,24 @@
+{
+  "maturity": "DRAFT",
+  "authority": "freecad-part-occt",
+  "openscadAuthority": false,
+  "evidenceClass": "theoretical/UNVERIFIED",
+  "generatedAt": "2026-08-20T10:21:06.265319+00:00",
+  "paramsSha256": "12f9dd48bdc336686a67aef73df817fe95ffdd8cd984b46c08d953b670c70848",
+  "busSha256": "4ad0160164e1070b4fbf543a4321574210daa09fc81c9f00dbdd52f6a0ebb28f",
+  "electrical": {
+    "S1": "UNVERIFIED",
+    "S2": "UNVERIFIED",
+    "Q1": "UNVERIFIED",
+    "issue24": "unmet",
+    "note": "Mechanical envelopes only. Do not invent nets or switch/Q1 parts."
+  },
+  "parentFrame": "PR 34 frame/rail/B20 is draft-only and not admitted",
+  "clearanceLiftMm": 1.8,
+  "failures": [],
+  "ok": true,
+  "export": {
+    "blocked": true,
+    "reason": "FreeCADCmd not on PATH. Python kinematics still authoritative for this check."
+  }
+}
