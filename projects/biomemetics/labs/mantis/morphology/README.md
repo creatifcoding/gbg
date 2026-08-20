@@ -6,3 +6,7 @@ basis as `observed`, `measured`, `calculated`, `simulated`, `ref`, `target`,
 `typ`, or `unverified`.
 
 Taxonomic interpretation remains optional and explicitly qualified.
+
+Schema: `structure.schema.json`. Committed catalog: `catalog.json` (empty until
+an Observation exists). A structure cannot be `observed` without a bound
+observation.

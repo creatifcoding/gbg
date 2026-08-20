@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:analogs:analog-catalog:v1",
+  "title": "Mantis analog catalog",
+  "description": "Directional biology-to-engineering mappings. Empty unless a Function exists. An analog is a relationship with limits, not identity.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceRef",
+    "catalogSpecimen",
+    "records"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "AnalogCatalog"
+    },
+    "workspaceRef": {
+      "const": "biomemetics.mantis"
+    },
+    "catalogSpecimen": {
+      "const": false
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/analog"
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "review": {
+      "$ref": "../observations/observation.schema.json#/$defs/review"
+    },
+    "analog": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "kind",
+        "analogId",
+        "functionRef",
+        "workspaceRef",
+        "target",
+        "direction",
+        "equivalent",
+        "limit",
+        "nonEquivalence",
+        "review"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "kind": {
+          "const": "AnalogLink"
+        },
+        "analogId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "functionRef": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "workspaceRef": {
+          "const": "biomemetics.mantis"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "const": "biology-to-engineering"
+        },
+        "equivalent": {
+          "const": false
+        },
+        "limit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nonEquivalence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "./function.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "FunctionCatalog",
+  "workspaceRef": "biomemetics.mantis",
+  "catalogSpecimen": false,
+  "records": []
+}
