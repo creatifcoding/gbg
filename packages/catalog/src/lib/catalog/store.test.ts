@@ -25,20 +25,39 @@ describe('CatalogStore', () => {
     return new CatalogStore(dir, assets)
   }
 
+  function dump(
+    catalog: CatalogStore,
+    input: {
+      kind: 'picture' | 'dossier' | 'artifact' | 'note'
+      claim: string
+      tags: readonly string[]
+      questions: readonly string[]
+      organismGuess?: { label: string; guess: true } | null
+    },
+  ) {
+    return catalog.insertIntake(
+      fileSpecimen({
+        ...input,
+        tags: [...input.tags],
+        questions: [...input.questions],
+        takenIds: catalog.takenSpecimenIds(),
+      }),
+    )
+  }
+
   it('starts empty', () => {
     expect(store().list()).toEqual([])
   })
 
   it('inserts a specimen and reads it back', () => {
     const catalog = store()
-    const filed = fileSpecimen({
+    const view = dump(catalog, {
       kind: 'artifact',
       claim: 'This shark-skin sample, parked until denticles are named.',
       tags: ['denticle', 'drag', 'bench'],
       questions: ['Is this a denticle or a scale?'],
     })
-    const view = catalog.insertIntake(filed)
-    expect(catalog.get(view.id)?.claim).toBe(filed.specimen.claim)
+    expect(catalog.get(view.id)?.claim).toBe(view.claim)
     expect(catalog.get(view.id)?.questions).toEqual([
       'Is this a denticle or a scale?',
     ])
@@ -47,23 +66,19 @@ describe('CatalogStore', () => {
 
   it('filters by kind, status, and tag slug', () => {
     const catalog = store()
-    const picture = catalog.insertIntake(
-      fileSpecimen({
-        kind: 'picture',
-        claim: 'This gecko toe under the scope.',
-        tags: ['setae', 'gecko', 'live'],
-        organismGuess: { label: 'Tokay gecko', guess: true },
-        questions: [],
-      }),
-    )
-    const note = catalog.insertIntake(
-      fileSpecimen({
-        kind: 'note',
-        claim: 'Need to check the analog against the mechanism.',
-        tags: ['analog', 'mechanism', 'lab'],
-        questions: [],
-      }),
-    )
+    const picture = dump(catalog, {
+      kind: 'picture',
+      claim: 'This gecko toe under the scope.',
+      tags: ['setae', 'gecko', 'live'],
+      organismGuess: { label: 'Tokay gecko', guess: true },
+      questions: [],
+    })
+    const note = dump(catalog, {
+      kind: 'note',
+      claim: 'Need to check the analog against the mechanism.',
+      tags: ['analog', 'mechanism', 'lab'],
+      questions: [],
+    })
     catalog.update(note.id, { status: 'filed' })
 
     expect(catalog.list({ kind: 'picture' })).toHaveLength(1)
@@ -73,14 +88,12 @@ describe('CatalogStore', () => {
 
   it('stores an attachment blob on the intake observation', () => {
     const catalog = store()
-    const specimen = catalog.insertIntake(
-      fileSpecimen({
-        kind: 'picture',
-        claim: 'Dropped PNG of this lotus leaf.',
-        tags: ['lotus', 'png', 'drop'],
-        questions: [],
-      }),
-    )
+    const specimen = dump(catalog, {
+      kind: 'picture',
+      claim: 'Dropped PNG of this lotus leaf.',
+      tags: ['lotus', 'png', 'drop'],
+      questions: [],
+    })
     const bytes = new TextEncoder().encode('not-a-real-png')
     const next = catalog.attach({
       specimenId: specimen.id,
@@ -97,14 +110,12 @@ describe('CatalogStore', () => {
 
   it('rejects skipped status transitions', () => {
     const catalog = store()
-    const specimen = catalog.insertIntake(
-      fileSpecimen({
-        kind: 'note',
-        claim: 'Raw dump cannot jump to working.',
-        tags: ['status', 'machine', 'test'],
-        questions: [],
-      }),
-    )
+    const specimen = dump(catalog, {
+      kind: 'note',
+      claim: 'Raw dump cannot jump to working.',
+      tags: ['status', 'machine', 'test'],
+      questions: [],
+    })
     expect(() => catalog.update(specimen.id, { status: 'working' })).toThrow(
       SpecimenTransitionError,
     )
