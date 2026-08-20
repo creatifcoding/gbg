@@ -1,0 +1,191 @@
+{
+  "$schema": "contracts/bus.schema.json",
+  "schemaVersion": "1.1.0",
+  "release": "B-draft",
+  "architecture": {
+    "cameraTethered": false,
+    "rawMipiOnRail": false,
+    "videoTransport": "GMSL2",
+    "videoTopology": "indexed-point-to-point-docks",
+    "videoWhileMoving": false,
+    "contactSequence": "break-before-move",
+    "powerControlGeometry": "continuous",
+    "highSpeedGeometry": "discrete-dock",
+    "powerSwitchScope": "per-carriage-load-branch",
+    "safetyInterlock": "local-mechanical-normally-open",
+    "p08SafetyCritical": false,
+    "trainingWindow": "bounded-timeout-then-latch-off",
+    "binderElectricalInterface": "separate-keyed-12-net-unverified",
+    "binderRemoval": "mechanically-blocked-unless-pinch-safe",
+    "binderMateInterlock": "local-mechanical-S2",
+    "status": "theoretical-unverified"
+  },
+  "cameraPath": [
+    "Sony-IMX519-autofocus-module-TBD",
+    "local-MIPI-CSI-2",
+    "MAX96717",
+    "B50-keyed-binder-interface",
+    "GMSL2-dock",
+    "MAX96724",
+    "short-22-position-0.5-mm-CSI-2",
+    "Particle-Tachyon"
+  ],
+  "contacts": [
+    { "pin": "P01", "net": "VIN-A", "geometry": "continuous", "role": "power" },
+    { "pin": "P02", "net": "VIN-B", "geometry": "continuous", "role": "power" },
+    { "pin": "P03", "net": "GND-A", "geometry": "continuous", "role": "return" },
+    { "pin": "P04", "net": "GND-B", "geometry": "continuous", "role": "return" },
+    { "pin": "P05", "net": "SDA", "geometry": "continuous", "role": "control" },
+    { "pin": "P06", "net": "SCL", "geometry": "continuous", "role": "control" },
+    { "pin": "P07", "net": "UID", "geometry": "continuous", "role": "identity" },
+    { "pin": "P08", "net": "FAULT_N/IRQ", "geometry": "continuous", "role": "diagnostic" },
+    { "pin": "P09", "net": "HSGND", "geometry": "discrete-dock", "role": "high-speed-ground" },
+    { "pin": "P10", "net": "GMSL+", "geometry": "discrete-dock", "role": "high-speed-positive" },
+    { "pin": "P11", "net": "GMSL-", "geometry": "discrete-dock", "role": "high-speed-negative" },
+    { "pin": "P12", "net": "HSGND", "geometry": "discrete-dock", "role": "high-speed-ground" }
+  ],
+  "states": [
+    "absent",
+    "mechanically-seated",
+    "power-mated",
+    "training-window",
+    "link-trained",
+    "fault-latched",
+    "pinch-safe",
+    "lifted"
+  ],
+  "transitions": [
+    {
+      "id": "t01-seat",
+      "from": "absent",
+      "to": "mechanically-seated",
+      "guards": ["B27-aligned", "contacts-settled", "S1-open", "S2-open"],
+      "actions": ["keep-Q1-off", "isolate-low-speed"]
+    },
+    {
+      "id": "t02-mate",
+      "from": "mechanically-seated",
+      "to": "power-mated",
+      "guards": ["B27-fully-seated", "B50-fully-seated", "S1-closed", "S2-closed", "ground-first-mate-order-confirmed", "low-speed-backfeed-blocked"],
+      "actions": ["arm-local-supervisor", "keep-video-muted"]
+    },
+    {
+      "id": "t03-train",
+      "from": "power-mated",
+      "to": "training-window",
+      "guards": ["UID-valid", "no-overcurrent", "mate-state-stable"],
+      "actions": ["enable-current-limited-Q1", "start-bounded-timeout"]
+    },
+    {
+      "id": "t04-admit",
+      "from": "training-window",
+      "to": "link-trained",
+      "guards": ["GMSL-lock", "UID-stable", "no-fault"],
+      "actions": ["admit-video"]
+    },
+    {
+      "id": "t05-training-fault",
+      "from": "training-window",
+      "to": "fault-latched",
+      "guards": ["timeout-or-fault"],
+      "actions": ["mute-video", "turn-Q1-off", "discharge-load", "isolate-low-speed"]
+    },
+    {
+      "id": "t06-active-fault",
+      "from": "link-trained",
+      "to": "fault-latched",
+      "guards": ["overcurrent-or-lock-loss-or-mate-disagreement"],
+      "actions": ["mute-video", "turn-Q1-off", "discharge-load", "isolate-low-speed"]
+    },
+    {
+      "id": "t07-pinch-safe",
+      "from": "link-trained",
+      "to": "pinch-safe",
+      "guards": ["S1-opens-on-first-pinch-travel"],
+      "actions": ["mute-video", "turn-Q1-off", "discharge-load", "isolate-low-speed"]
+    },
+    {
+      "id": "t08-lift",
+      "from": "pinch-safe",
+      "to": "lifted",
+      "guards": ["branch-voltage-below-selected-threshold", "all-signals-isolated", "released-contact-lift-achieved"],
+      "actions": ["permit-roller-translation"]
+    },
+    {
+      "id": "t09-indexed-release",
+      "from": "lifted",
+      "to": "mechanically-seated",
+      "guards": ["translation-stopped", "indexed-dock-aligned"],
+      "actions": ["keep-Q1-off", "settle-contacts-before-remate"]
+    },
+    {
+      "id": "t10-interrupted-pinch",
+      "from": "pinch-safe",
+      "to": "mechanically-seated",
+      "guards": ["pinch-released-before-lift"],
+      "actions": ["keep-Q1-off", "require-clean-full-remate"]
+    },
+    {
+      "id": "t11-fault-detach",
+      "from": "fault-latched",
+      "to": "absent",
+      "guards": ["clean-detach"],
+      "actions": ["clear-latch-only-after-branch-safe"]
+    }
+  ],
+  "safetyRequirements": [
+    {
+      "id": "sr-power-sequence",
+      "status": "unverified",
+      "protocolRef": "terrarium/ee/protocols/power-sequence.md",
+      "acceptance": "No PASS until selected discharge voltage/time limits are recorded and captures show local Q1 off, load discharged, and low-speed isolated before either separable interface moves.",
+      "evidenceRefs": []
+    },
+    {
+      "id": "sr-single-fault",
+      "status": "unverified",
+      "protocolRef": "terrarium/ee/protocols/single-fault.md",
+      "acceptance": "No single S1, S2, P08, firmware, UID, or link-lock fault may energize the carriage branch while B27 or B50 contact geometry is moving or ambiguous.",
+      "evidenceRefs": []
+    },
+    {
+      "id": "sr-mate-order-backfeed",
+      "status": "unverified",
+      "protocolRef": "terrarium/ee/protocols/power-sequence.md",
+      "acceptance": "Ground-first/make-first and break-last behavior plus low-speed backfeed blocking must be demonstrated on both B27 and B50 with selected parts.",
+      "evidenceRefs": []
+    },
+    {
+      "id": "sr-interrupted-pinch",
+      "status": "unverified",
+      "protocolRef": "terrarium/ee/protocols/power-sequence.md",
+      "acceptance": "Every interrupted pinch returns to a branch-off state and requires a clean full remate before a new bounded training window.",
+      "evidenceRefs": []
+    },
+    {
+      "id": "sr-complete-channel",
+      "status": "unverified",
+      "protocolRef": "terrarium/ee/protocols/high-speed-channel.md",
+      "acceptance": "The complete B27 plus carriage routing plus B50 channel must pass selected 3/6 Gbps return-loss, eye, BER, ESD, bounce, wear, and contamination limits.",
+      "evidenceRefs": []
+    },
+    {
+      "id": "sr-route-retention",
+      "status": "unverified",
+      "protocolRef": "terrarium/ee/protocols/route-retention.md",
+      "acceptance": "Each B51 end stop retains the worst-case loaded carriage under the selected handling/drop protocol and needs deliberate tool service for removal.",
+      "evidenceRefs": []
+    }
+  ],
+  "validationRequired": [
+    "3-and-6-Gbps-eye-and-BER",
+    "return-loss",
+    "contact-skew-and-bounce",
+    "ESD",
+    "contamination",
+    "wear",
+    "thermal-rise",
+    "fuse-coordination",
+    "Tachyon-driver-and-device-tree"
+  ]
+}

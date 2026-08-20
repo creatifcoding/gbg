@@ -1,0 +1,237 @@
+{
+  "$schema": "../contracts/params.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "ParameterSet",
+  "parameterSetId": "mantis.terrarium.draft-b",
+  "workspaceRef": "biomemetics.mantis",
+  "contextRef": "mantis.terrarium",
+  "revision": "B-draft",
+  "parameters": {
+    "frame.exterior.width": {
+      "value": 250,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "workspace.json#projects/terrarium",
+          "relation": "decision"
+        }
+      ]
+    },
+    "frame.exterior.depth": {
+      "value": 250,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "workspace.json#projects/terrarium",
+          "relation": "decision"
+        }
+      ]
+    },
+    "frame.exterior.height": {
+      "value": 500,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "workspace.json#projects/terrarium",
+          "relation": "decision"
+        }
+      ]
+    },
+    "frame.module_pitch": {
+      "value": 250,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "GOAL.md",
+          "relation": "decision"
+        }
+      ]
+    },
+    "frame.first_span": {
+      "value": 500,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "GOAL.md",
+          "relation": "decision"
+        }
+      ]
+    },
+    "frame.band": {
+      "value": 24,
+      "unit": "mm",
+      "status": "ref"
+    },
+    "panel.stock_thickness": {
+      "value": 3,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "terrarium/docs/metaprompts/mantis-terrarium-metaprompt.md",
+          "relation": "decision"
+        }
+      ]
+    },
+    "organism.design_adult_body": {
+      "value": 80,
+      "unit": "mm",
+      "status": "ref",
+      "note": "No mantis photo supplied; conservative design reference only."
+    },
+    "animal.clear.width": {
+      "value": 202,
+      "unit": "mm",
+      "status": "calculated",
+      "references": [
+        {
+          "ref": "terrarium/cad/mantis_terrarium.scad",
+          "relation": "derived-from"
+        }
+      ]
+    },
+    "animal.clear.depth": {
+      "value": 202,
+      "unit": "mm",
+      "status": "calculated",
+      "references": [
+        {
+          "ref": "terrarium/cad/mantis_terrarium.scad",
+          "relation": "derived-from"
+        }
+      ]
+    },
+    "animal.clear.height": {
+      "value": 427,
+      "unit": "mm",
+      "status": "calculated",
+      "references": [
+        {
+          "ref": "terrarium/cad/mantis_terrarium.scad",
+          "relation": "derived-from"
+        }
+      ]
+    },
+    "husbandry.screen.aperture_max": {
+      "value": 0.8,
+      "unit": "mm",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "GOAL.md",
+          "relation": "decision"
+        }
+      ]
+    },
+    "door.nymph_visible_gap_max": {
+      "value": 0.5,
+      "unit": "mm",
+      "status": "target"
+    },
+    "false_bottom.tray_depth": {
+      "value": 25,
+      "unit": "mm",
+      "status": "ref"
+    },
+    "animal_volume.metal_allowed": {
+      "value": false,
+      "status": "locked",
+      "references": [
+        {
+          "ref": "workspace.json#projects/terrarium/locks",
+          "relation": "decision"
+        }
+      ]
+    },
+    "rail.detent_pitch": {
+      "value": 25,
+      "unit": "mm",
+      "status": "ref"
+    },
+    "rail.envelope.width": {
+      "value": 38,
+      "unit": "mm",
+      "status": "ref"
+    },
+    "rail.envelope.height": {
+      "value": 16,
+      "unit": "mm",
+      "status": "ref"
+    },
+    "rail.side_wall": {
+      "value": 3,
+      "unit": "mm",
+      "status": "ref"
+    },
+    "rail.contact_count": {
+      "value": 12,
+      "unit": "count",
+      "status": "locked",
+      "references": [
+        {
+          "ref": "terrarium/bus.json#contacts",
+          "relation": "decision"
+        }
+      ]
+    },
+    "rail.video_dock_count_per_span": {
+      "value": 4,
+      "unit": "count/500 mm",
+      "status": "ref"
+    },
+    "rail.contact_pitch": {
+      "value": 2.54,
+      "unit": "mm",
+      "status": "target"
+    },
+    "rail.contact_land_width": {
+      "value": 1.5,
+      "unit": "mm",
+      "status": "target"
+    },
+    "pogo.working_compression": {
+      "value": 0.6,
+      "unit": "mm",
+      "status": "target"
+    },
+    "pogo.released_contact_lift_min": {
+      "value": 1.2,
+      "unit": "mm",
+      "status": "target"
+    },
+    "carriage.pinch_input_travel": {
+      "value": 5,
+      "unit": "mm",
+      "status": "target"
+    },
+    "carriage.pinch_force": {
+      "value": 20,
+      "unit": "N",
+      "status": "target",
+      "range": {
+        "minimum": 15,
+        "maximum": 25
+      }
+    },
+    "binder.pull_off_min": {
+      "value": 40,
+      "unit": "N",
+      "status": "target"
+    },
+    "rail.vin": {
+      "value": 12,
+      "unit": "V DC",
+      "status": "target"
+    },
+    "rail.fuse": {
+      "value": 2,
+      "unit": "A",
+      "status": "target"
+    }
+  }
+}

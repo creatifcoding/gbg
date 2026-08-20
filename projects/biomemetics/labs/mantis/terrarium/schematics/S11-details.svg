@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<rect x="12" y="14" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
+<text x="16" y="22" font-size="2.8" font-weight="bold" text-anchor="start">K - POGO BORE / TRAVEL</text>
+<text x="128" y="22" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
+<rect x="145" y="14" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
+<text x="149" y="22" font-size="2.8" font-weight="bold" text-anchor="start">L - STRIP WIPE</text>
+<text x="261" y="22" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
+<rect x="278" y="14" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
+<text x="282" y="22" font-size="2.8" font-weight="bold" text-anchor="start">M - PINCH SPRING POCKET</text>
+<text x="394" y="22" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
+<rect x="12" y="125" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
+<text x="16" y="133" font-size="2.8" font-weight="bold" text-anchor="start">N - INTERNAL CSI / SERDES RELIEF</text>
+<text x="128" y="133" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
+<rect x="145" y="125" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
+<text x="149" y="133" font-size="2.8" font-weight="bold" text-anchor="start">P - MAGNET POCKET</text>
+<text x="261" y="133" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
+<rect x="278" y="125" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
+<text x="282" y="133" font-size="2.8" font-weight="bold" text-anchor="start">Q - 250/500 JOINT</text>
+<text x="394" y="133" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
+<rect x="38" y="38" width="30" height="52" rx="0" class="cut"/>
+<rect x="48" y="43" width="10" height="30" rx="0" class="metal"/>
+<circle cx="53" cy="79" r="6" class="metal"/>
+<line x1="53" y1="85" x2="53" y2="95" class="med"/>
+<line x1="48" y1="90" x2="48" y2="101" class="thin"/>
+<line x1="58" y1="90" x2="58" y2="101" class="thin"/>
+<line x1="48" y1="101" x2="58" y2="101" class="dim"/>
+<text x="53.0" y="99.6" font-size="2.7" font-weight="normal" text-anchor="middle">BORE +0.20 TARGET</text>
+<text x="75" y="48" font-size="2.15" font-weight="bold" text-anchor="start">0.60 WORK COMPRESSION TARGET</text>
+<text x="75" y="56" font-size="2.3" font-weight="normal" text-anchor="start">OVERTRAVEL UNVERIFIED</text>
+<text x="75" y="64" font-size="2.3" font-weight="bold" text-anchor="start" fill="#b52d2d">SELECT POGO SERIES</text>
+<rect x="160" y="72" width="92" height="8" rx="0" class="metal"/>
+<path d="M170 45 Q182 35 194 45 L194 68" class="med"/>
+<circle cx="194" cy="71" r="3" class="metal"/>
+<line x1="194" y1="71" x2="224" y2="71" class="motion"/>
+<path d="M194 68 C204 62 214 62 224 68" class="phantom"/>
+<text x="206" y="90" font-size="2.4" font-weight="bold" text-anchor="middle">P01-P08 WIPE 0.8 TARGET</text>
+<text x="206" y="98" font-size="2.2" font-weight="bold" text-anchor="middle">P09-P12 VERTICAL SEAT; NO WIPE</text>
+<rect x="303" y="36" width="44" height="58" rx="0" class="cut"/>
+<path d="M316 40 C304 50 328 59 316 68 C304 78 328 86 316 94" class="med"/>
+<line x1="340" y1="40" x2="340" y2="92" class="phantom"/>
+<text x="354" y="48" font-size="2.3" font-weight="bold" text-anchor="start">POCKET +0.30</text>
+<text x="354" y="56" font-size="2.3" font-weight="normal" text-anchor="start">NO SHARP ROOT</text>
+<text x="354" y="64" font-size="2.3" font-weight="normal" text-anchor="start">10k CYCLE TARGET</text>
+<rect x="31" y="149" width="26" height="44" rx="0" class="cut"/>
+<path d="M57 170 C72 170 78 182 94 182" class="med"/>
+<path d="M57 176 C70 176 75 188 94 188" class="med"/>
+<rect x="57" y="164" width="18" height="18" rx="0" class="plastic"/>
+<line x1="94" y1="170" x2="105" y2="170" class="thin"/>
+<line x1="94" y1="188" x2="105" y2="188" class="thin"/>
+<line x1="105" y1="170" x2="105" y2="188" class="dim"/>
+<text x="103.3" y="179.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 103.3 179.0)">Rmin 10 TARGET</text>
+<text x="26" y="205" font-size="2.3" font-weight="bold" text-anchor="start">CLAMP FPC INSULATION, NEVER CONDUCTORS</text>
+<rect x="166" y="148" width="64" height="48" rx="0" class="cut"/>
+<rect x="184" y="160" width="28" height="22" rx="1" class="metal"/>
+<line x1="184" y1="182" x2="184" y2="207" class="thin"/>
+<line x1="212" y1="182" x2="212" y2="207" class="thin"/>
+<line x1="184" y1="207" x2="212" y2="207" class="dim"/>
+<text x="198.0" y="205.6" font-size="2.7" font-weight="normal" text-anchor="middle">MAGNET SIZE UNVERIFIED</text>
+<text x="151" y="215" font-size="2.2" font-weight="bold" text-anchor="start">CAPTURE LIP; MAGNET DOES NOT DEFINE NYMPH SEAL</text>
+<rect x="293" y="150" width="36" height="44" rx="0" class="cut"/>
+<rect x="346" y="150" width="36" height="44" rx="0" class="cut"/>
+<rect x="320" y="159" width="35" height="26" rx="0" class="metal"/>
+<circle cx="326" cy="172" r="3" class="heavy" fill="#fff"/>
+<circle cx="349" cy="172" r="3" class="heavy" fill="#fff"/>
+<line x1="320" y1="185" x2="320" y2="207" class="thin"/>
+<line x1="355" y1="185" x2="355" y2="207" class="thin"/>
+<line x1="320" y1="207" x2="355" y2="207" class="dim"/>
+<text x="337.5" y="205.6" font-size="2.7" font-weight="normal" text-anchor="middle">22 REF</text>
+<text x="338" y="217" font-size="2.2" font-weight="bold" text-anchor="middle">SHEAR KEY + TWO M3; FACE CASSETTE NOT STRUCTURAL</text>
+<rect x="12" y="232" width="393" height="15.0" rx="1.2" class="med" fill="#fff6d9"/>
+<text x="15" y="236.4" font-size="2.8" font-weight="bold" text-anchor="start">DETAIL RELEASE RULE</text>
+<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Every value marked TARGET/REF/UNVERIFIED requires coupon or vendor-drawing closure before STEP release.</text>
+<text x="15" y="245" font-size="2.45" font-weight="normal" text-anchor="start">Critical first articles: pogo bore coupon, strip wipe coupon, latch pull-off coupon, nymph-gap feeler check.</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">DETAIL BLOW-UPS</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">12 OF 12 / S11</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S11</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

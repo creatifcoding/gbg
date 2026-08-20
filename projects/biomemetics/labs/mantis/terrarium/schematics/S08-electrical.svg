@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<text x="12" y="15" font-size="4.0" font-weight="bold" text-anchor="start">RAIL POWER / CONTROL / GMSL2 - FUNCTIONAL DIAGRAM, NOT RELEASE SCHEMATIC</text>
+<rect x="15" y="30" width="50" height="24" rx="2" class="med" fill="#f5f7f8"/>
+<text x="40" y="41" font-size="2.8" font-weight="bold" text-anchor="middle">UPSTREAM DC/PD</text>
+<text x="40" y="48" font-size="2.2" font-weight="middle" text-anchor="start">SOURCE</text>
+<line x1="65" y1="42" x2="82" y2="42" class="med" stroke="#d9822b"/>
+<rect x="82" y="34" width="26" height="16" rx="0" class="med" fill="#fff6d9"/>
+<text x="95" y="41" font-size="2.8" font-weight="bold" text-anchor="middle">F1</text>
+<text x="95" y="46" font-size="1.9" font-weight="middle" text-anchor="start">2 A TARGET</text>
+<line x1="108" y1="42" x2="126" y2="42" class="med" stroke="#d9822b"/>
+<rect x="126" y="30" width="54" height="24" rx="0" class="med" fill="#fff"/>
+<text x="153" y="40" font-size="2.6" font-weight="bold" text-anchor="middle">B44 RAIL EFUSE</text>
+<text x="153" y="47" font-size="2.0" font-weight="middle" text-anchor="start">LIMIT / FAULT</text>
+<line x1="180" y1="42" x2="405" y2="42" class="med" stroke="#d9822b"/>
+<text x="292" y="38" font-size="2.15" font-weight="bold" text-anchor="middle" fill="#d9822b">P01/P02 GUARDED EXT. 12 V TARGET; MAY REMAIN ENERGIZED</text>
+<line x1="15" y1="61" x2="405" y2="61" class="med" stroke="#333"/>
+<text x="292" y="58" font-size="2.3" font-weight="bold" text-anchor="middle">P03/P04 GND</text>
+<line x1="153" y1="54" x2="153" y2="72" class="thin"/>
+<circle cx="153" cy="78" r="3" class="med" fill="#fff"/>
+<line x1="153" y1="78" x2="166" y2="70" class="med"/>
+<circle cx="171" cy="78" r="3" class="med" fill="#fff"/>
+<text x="162" y="66" font-size="1.8" font-weight="bold" text-anchor="middle">S1 / B27</text>
+<line x1="190" y1="54" x2="190" y2="72" class="thin"/>
+<circle cx="190" cy="78" r="3" class="med" fill="#fff"/>
+<line x1="190" y1="78" x2="203" y2="70" class="med"/>
+<circle cx="208" cy="78" r="3" class="med" fill="#fff"/>
+<text x="199" y="66" font-size="1.8" font-weight="bold" text-anchor="middle">S2 / B50</text>
+<text x="190" y="87" font-size="2.05" font-weight="bold" text-anchor="middle" fill="#b52d2d">S1 CARRIAGE + S2 BINDER: BOTH CLOSED TO ENABLE LOCAL Q1</text>
+<rect x="18" y="104" width="64" height="60" rx="2" class="heavy" fill="#eef1f4"/>
+<text x="50" y="116" font-size="3.1" font-weight="bold" text-anchor="middle">B36 IMX519</text>
+<text x="50" y="123" font-size="2.2" font-weight="middle" text-anchor="start" fill="#b52d2d">MODULE SKU TBD</text>
+<text x="50" y="131" font-size="2.4" font-weight="bold" text-anchor="middle">MIPI CSI-2</text>
+<rect x="96" y="104" width="67" height="60" rx="2" class="heavy" fill="#fff8e3"/>
+<text x="129.5" y="116" font-size="3.0" font-weight="bold" text-anchor="middle">B45 MAX96717</text>
+<text x="129.5" y="124" font-size="2.3" font-weight="middle" text-anchor="start">3/6 Gbps GMSL2</text>
+<text x="129.5" y="132" font-size="2.1" font-weight="middle" text-anchor="start">187.5 Mbps REV</text>
+<text x="129.5" y="141" font-size="2.2" font-weight="bold" text-anchor="middle">LOCAL DC/DC</text>
+<rect x="117" y="56" width="24" height="10" rx="0" class="med" fill="#e7f5f6"/>
+<text x="129" y="62" font-size="1.9" font-weight="bold" text-anchor="middle">B27 RAIL</text>
+<rect x="112" y="70" width="34" height="16" rx="0" class="med" fill="#fff6d9"/>
+<text x="129" y="77" font-size="2.2" font-weight="bold" text-anchor="middle">B48 Q1</text>
+<text x="129" y="82" font-size="1.7" font-weight="middle" text-anchor="start">LOCAL BRANCH</text>
+<rect x="117" y="90" width="24" height="10" rx="0" class="med" fill="#fff0f0"/>
+<text x="129" y="96" font-size="1.75" font-weight="bold" text-anchor="middle">B50 BINDER</text>
+<line x1="82" y1="132" x2="96" y2="132" class="motion"/>
+<line x1="129" y1="104" x2="129" y2="100" class="thin" stroke="#d9822b"/>
+<line x1="129" y1="90" x2="129" y2="86" class="thin" stroke="#d9822b"/>
+<line x1="129" y1="70" x2="129" y2="66" class="thin" stroke="#d9822b"/>
+<line x1="129" y1="56" x2="129" y2="42" class="thin" stroke="#d9822b"/>
+<line x1="138" y1="104" x2="138" y2="61" class="thin" stroke="#333"/>
+<text x="250" y="92" font-size="1.9" font-weight="bold" text-anchor="middle">POWER: RAIL Pxx -&gt; B27 -&gt; B48/Q1 -&gt; B50 Cxx -&gt; BINDER; S1/S2 GATE Q1</text>
+<rect x="183" y="98" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<text x="201" y="104" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V1 G + - G</text>
+<line x1="181" y1="132" x2="183" y2="103" class="thin" stroke="#0a7891"/>
+<line x1="219" y1="103" x2="252" y2="103" class="med" stroke="#0a7891"/>
+<rect x="183" y="114" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<text x="201" y="120" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V2 G + - G</text>
+<line x1="219" y1="119" x2="252" y2="119" class="med" stroke="#0a7891"/>
+<rect x="183" y="130" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<text x="201" y="136" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V3 G + - G</text>
+<line x1="219" y1="135" x2="252" y2="135" class="med" stroke="#0a7891"/>
+<rect x="183" y="146" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<text x="201" y="152" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V4 G + - G</text>
+<line x1="219" y1="151" x2="252" y2="151" class="med" stroke="#0a7891"/>
+<rect x="166" y="126" width="15" height="12" rx="1" class="med" fill="#fff0f0"/>
+<text x="173.5" y="131" font-size="1.9" font-weight="bold" text-anchor="middle">B50</text>
+<text x="173.5" y="136" font-size="1.5" font-weight="middle" text-anchor="start" fill="#b52d2d">UNVER</text>
+<line x1="163" y1="132" x2="166" y2="132" class="thin" stroke="#0a7891"/>
+<text x="201" y="169" font-size="2.0" font-weight="bold" text-anchor="middle">ONLY ONE DOCK POPULATED BY THIS CARRIAGE</text>
+<rect x="252" y="96" width="72" height="76" rx="2" class="heavy" fill="#e9eef1"/>
+<text x="288" y="109" font-size="3.1" font-weight="bold" text-anchor="middle">B46 MAX96724</text>
+<text x="288" y="117" font-size="2.4" font-weight="middle" text-anchor="start">QUAD GMSL2 DES</text>
+<text x="261" y="127" font-size="2.0" font-weight="bold" text-anchor="start">IN1</text>
+<text x="261" y="137" font-size="2.0" font-weight="bold" text-anchor="start">IN2</text>
+<text x="261" y="147" font-size="2.0" font-weight="bold" text-anchor="start">IN3</text>
+<text x="261" y="157" font-size="2.0" font-weight="bold" text-anchor="start">IN4</text>
+<text x="288" y="166" font-size="2.3" font-weight="bold" text-anchor="middle">CSI-2 OUT</text>
+<line x1="324" y1="134" x2="342" y2="134" class="motion"/>
+<rect x="342" y="104" width="62" height="60" rx="2" class="heavy" fill="#e9eef1"/>
+<text x="373" y="119" font-size="3.2" font-weight="bold" text-anchor="middle">B42 TACHYON</text>
+<text x="373" y="128" font-size="2.2" font-weight="middle" text-anchor="start">DEDICATED CSI</text>
+<text x="373" y="137" font-size="2.2" font-weight="middle" text-anchor="start">22p / 0.5 mm</text>
+<text x="373" y="147" font-size="2.2" font-weight="middle" text-anchor="start">QWIIC MASTER</text>
+<rect x="52" y="177" width="58" height="39" rx="1" class="med" fill="#f7f8f9"/>
+<text x="81" y="187" font-size="2.3" font-weight="bold" text-anchor="middle">B49 TCA9548A</text>
+<text x="81" y="194" font-size="2.0" font-weight="middle" text-anchor="start">OPTIONAL I2C</text>
+<text x="81" y="201" font-size="2.0" font-weight="middle" text-anchor="start">SEGMENT MUX</text>
+<text x="81" y="208" font-size="1.9" font-weight="middle" text-anchor="start">0x70 REF</text>
+<text x="18" y="181" font-size="2.0" font-weight="bold" text-anchor="start">B42 QWIIC</text>
+<line x1="38" y1="184" x2="52" y2="184" class="thin" stroke="#2c9c69"/>
+<line x1="38" y1="193" x2="52" y2="193" class="thin" stroke="#307ac7"/>
+<text x="112" y="185" font-size="2.2" font-weight="bold" text-anchor="start" fill="#2c9c69">P05 SDA</text>
+<line x1="145" y1="184" x2="404" y2="184" class="med" stroke="#2c9c69"/>
+<text x="112" y="194" font-size="2.2" font-weight="bold" text-anchor="start" fill="#307ac7">P06 SCL</text>
+<line x1="145" y1="193" x2="404" y2="193" class="med" stroke="#307ac7"/>
+<text x="112" y="203" font-size="2.2" font-weight="bold" text-anchor="start" fill="#7a55a3">P07 UID</text>
+<line x1="145" y1="202" x2="404" y2="202" class="med" stroke="#7a55a3"/>
+<text x="112" y="212" font-size="2.2" font-weight="bold" text-anchor="start" fill="#d34887">P08 FAULT_N/IRQ</text>
+<line x1="145" y1="211" x2="404" y2="211" class="med" stroke="#d34887"/>
+<line x1="110" y1="184" x2="145" y2="184" class="thin" stroke="#2c9c69"/>
+<line x1="110" y1="193" x2="145" y2="193" class="thin" stroke="#307ac7"/>
+<line x1="38" y1="202" x2="145" y2="202" class="thin" stroke="#7a55a3"/>
+<line x1="38" y1="211" x2="145" y2="211" class="thin" stroke="#d34887"/>
+<line x1="165" y1="176" x2="165" y2="216" class="center"/>
+<text x="165" y="174" font-size="1.8" font-weight="bold" text-anchor="middle">B27 / S1</text>
+<line x1="220" y1="176" x2="220" y2="216" class="center"/>
+<text x="220" y="174" font-size="1.8" font-weight="bold" text-anchor="middle">B50 / S2</text>
+<text x="211" y="219" font-size="2.2" font-weight="bold" text-anchor="middle">3.3 V LOGIC / 100 kHz TARGET / EXTERNAL PULL-UPS DNP-TUNE</text>
+<rect x="12" y="226" width="191" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="15" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - PROTECTED VIDEO MATE</text>
+<text x="15" y="235" font-size="2.45" font-weight="normal" text-anchor="start">States: absent / seated / training / trained / fault / pinch-safe / lifted.</text>
+<text x="15" y="239" font-size="2.45" font-weight="normal" text-anchor="start">S1 or S2 opens first; local Q1 turns off and discharges before motion.</text>
+<text x="15" y="243" font-size="2.45" font-weight="normal" text-anchor="start">Release seats B27+B50 before a bounded, current-limited training window.</text>
+<rect x="214" y="226" width="191" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="217" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">FAULT POLICY</text>
+<text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Bent HSD pin or station skew -&gt; no lock; training times out and Q1 latches off.</text>
+<text x="217" y="239" font-size="2.45" font-weight="normal" text-anchor="start">UID identifies load, while V1-V4 deserializer port identifies position.</text>
+<text x="217" y="243" font-size="2.45" font-weight="normal" text-anchor="start">P08 is diagnostic only. B27+B50 eye/BER, ESD and timing remain gates.</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">ELECTRICAL + VIDEO FUNCTIONAL DIAGRAM</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">09 OF 12 / S08</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S08</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

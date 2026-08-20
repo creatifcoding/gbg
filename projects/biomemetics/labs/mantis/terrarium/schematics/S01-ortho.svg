@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<text x="17" y="16" font-size="3.2" font-weight="bold" text-anchor="start">FRONT ELEVATION</text>
+<text x="17" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="35" y="30" width="50" height="100" rx="0" class="heavy"/>
+<rect x="35" y="30" width="4" height="100" rx="0" class="plastic"/>
+<rect x="81" y="30" width="4" height="100" rx="0" class="plastic"/>
+<rect x="35" y="30" width="50" height="4" rx="0" class="plastic"/>
+<rect x="35" y="126" width="50" height="4" rx="0" class="plastic"/>
+<rect x="41" y="36" width="38" height="88" rx="0" class="thin" fill="#f8fbfc"/>
+<line x1="60.0" y1="36" x2="60.0" y2="124" class="med"/>
+<circle cx="75" cy="80.0" r="1.5" class="med"/>
+<rect x="41" y="36" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
+<rect x="31" y="25" width="58" height="3" rx="0" class="med" fill="#dce1e5"/>
+<rect x="29" y="24" width="14" height="6" rx="1.5" class="heavy" fill="#ffffff"/>
+<line x1="35" y1="130" x2="35" y2="140" class="thin"/>
+<line x1="85" y1="130" x2="85" y2="140" class="thin"/>
+<line x1="35" y1="140" x2="85" y2="140" class="dim"/>
+<text x="60.0" y="138.6" font-size="2.7" font-weight="normal" text-anchor="middle">250 LOCK</text>
+<line x1="35" y1="30" x2="24" y2="30" class="thin"/>
+<line x1="35" y1="130" x2="24" y2="130" class="thin"/>
+<line x1="24" y1="30" x2="24" y2="130" class="dim"/>
+<text x="22.3" y="80.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 22.3 80.0)">500 LOCK</text>
+<line x1="35" y1="80" x2="85" y2="80" class="center"/>
+<text x="88" y="82" font-size="2.5" font-weight="bold" text-anchor="start">250 GRID</text>
+<text x="118" y="16" font-size="3.2" font-weight="bold" text-anchor="start">RIGHT ELEVATION</text>
+<text x="118" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="132" y="30" width="50" height="100" rx="0" class="heavy"/>
+<rect x="132" y="30" width="4" height="100" rx="0" class="plastic"/>
+<rect x="178" y="30" width="4" height="100" rx="0" class="plastic"/>
+<rect x="132" y="30" width="50" height="4" rx="0" class="plastic"/>
+<rect x="132" y="126" width="50" height="4" rx="0" class="plastic"/>
+<rect x="138" y="36" width="38" height="88" rx="0" class="thin" fill="#f8fbfc"/>
+<rect x="138" y="36" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
+<rect x="128" y="25" width="58" height="3" rx="0" class="med" fill="#dce1e5"/>
+<line x1="132" y1="130" x2="132" y2="140" class="thin"/>
+<line x1="182" y1="130" x2="182" y2="140" class="thin"/>
+<line x1="132" y1="140" x2="182" y2="140" class="dim"/>
+<text x="157.0" y="138.6" font-size="2.7" font-weight="normal" text-anchor="middle">250 LOCK</text>
+<text x="215" y="16" font-size="3.2" font-weight="bold" text-anchor="start">TOP PLAN</text>
+<text x="215" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="230" y="43" width="50" height="50" rx="0" class="heavy"/>
+<rect x="234" y="47" width="42" height="42" rx="0" class="thin" fill="url(#screen)"/>
+<rect x="226" y="38" width="58" height="3" rx="0" class="med" fill="#dce1e5"/>
+<rect x="224" y="37" width="14" height="6" rx="1.5" class="heavy" fill="#ffffff"/>
+<line x1="230" y1="93" x2="230" y2="103" class="thin"/>
+<line x1="280" y1="93" x2="280" y2="103" class="thin"/>
+<line x1="230" y1="103" x2="280" y2="103" class="dim"/>
+<text x="255.0" y="101.6" font-size="2.7" font-weight="normal" text-anchor="middle">250 LOCK</text>
+<line x1="230" y1="43" x2="219" y2="43" class="thin"/>
+<line x1="230" y1="93" x2="219" y2="93" class="thin"/>
+<line x1="219" y1="43" x2="219" y2="93" class="dim"/>
+<text x="217.3" y="68.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 217.3 68.0)">250 LOCK</text>
+<text x="311" y="16" font-size="3.2" font-weight="bold" text-anchor="start">DATUM / KEEP-OUT</text>
+<text x="311" y="19.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="326" y="30" width="50" height="100" rx="0" class="heavy"/>
+<rect x="326" y="30" width="4" height="100" rx="0" class="plastic"/>
+<rect x="372" y="30" width="4" height="100" rx="0" class="plastic"/>
+<rect x="326" y="30" width="50" height="4" rx="0" class="plastic"/>
+<rect x="326" y="126" width="50" height="4" rx="0" class="plastic"/>
+<rect x="332" y="36" width="38" height="88" rx="0" class="thin" fill="#f8fbfc"/>
+<line x1="351.0" y1="36" x2="351.0" y2="124" class="med"/>
+<circle cx="366" cy="80.0" r="1.5" class="med"/>
+<rect x="332" y="36" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
+<rect x="332" y="66" width="38" height="50" rx="0" class="keepout"/>
+<text x="351" y="89" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">UPPER 1/3</text>
+<text x="351" y="94" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">CLEAR</text>
+<line x1="326" y1="63" x2="376" y2="63" class="phantom"/>
+<text x="380" y="65" font-size="2.3" font-weight="bold" text-anchor="start">MOLT DATUM</text>
+<rect x="18" y="166" width="115" height="27.0" rx="1.2" class="med" fill="#fff6d9"/>
+<text x="21" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED ENVELOPE</text>
+<text x="21" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Exterior: 250 W x 250 D x 500 H.</text>
+<text x="21" y="179" font-size="2.45" font-weight="normal" text-anchor="start">Module datum repeats at 250 mm.</text>
+<text x="21" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Nominal clear: 202 x 202 x 427 REF.</text>
+<text x="21" y="187" font-size="2.45" font-weight="normal" text-anchor="start">Frame face dimensions REF pending first article.</text>
+<text x="21" y="191" font-size="2.45" font-weight="normal" text-anchor="start">Interior must still satisfy &gt;=240 mm height.</text>
+<rect x="151" y="166" width="115" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="154" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">PROJECTION</text>
+<text x="154" y="175" font-size="2.45" font-weight="normal" text-anchor="start">Third-angle arrangement shown.</text>
+<text x="154" y="179" font-size="2.45" font-weight="normal" text-anchor="start">Front is the door/view cassette face.</text>
+<text x="154" y="183" font-size="2.45" font-weight="normal" text-anchor="start">Top rail sits entirely outside enclosure.</text>
+<text x="154" y="187" font-size="2.45" font-weight="normal" text-anchor="start">Hidden wet-side barrier is continuous.</text>
+<rect x="284" y="166" width="115" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="287" y="170.4" font-size="2.8" font-weight="bold" text-anchor="start">INTERFACE DATUMS</text>
+<text x="287" y="175" font-size="2.45" font-weight="normal" text-anchor="start">A: exterior block face.</text>
+<text x="287" y="179" font-size="2.45" font-weight="normal" text-anchor="start">B: cassette seat plane.</text>
+<text x="287" y="183" font-size="2.45" font-weight="normal" text-anchor="start">C: rail conductor centerline.</text>
+<text x="287" y="187" font-size="2.45" font-weight="normal" text-anchor="start">D: false-bottom tray surface.</text>
+<rect x="18" y="232" width="58" height="8" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="47" y="237.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">ORTHOGRAPHIC ASSEMBLY</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">02 OF 12 / S01</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S01</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

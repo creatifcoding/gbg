@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">TACHYON + DESERIALIZER CARRIER</text>
+<text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="22" y="34" width="85" height="56" rx="2" class="heavy" fill="#e9eef1"/>
+<text x="64.5" y="57" font-size="4.5" font-weight="bold" text-anchor="middle">B42 TACHYON</text>
+<text x="64.5" y="65" font-size="2.3" font-weight="middle" text-anchor="start">85 x 56 x 18.5 VERIFIED</text>
+<rect x="31" y="78" width="22" height="5" rx="0" class="med" fill="#d3a74b"/>
+<rect x="75" y="78" width="22" height="5" rx="0" class="med" fill="#d3a74b"/>
+<text x="42" y="88" font-size="2.0" font-weight="bold" text-anchor="middle">DEDICATED CSI</text>
+<text x="86" y="88" font-size="2.0" font-weight="bold" text-anchor="middle">SHARED DSI/CSI</text>
+<rect x="124" y="34" width="66" height="56" rx="2" class="heavy" fill="#fff8e3"/>
+<text x="157" y="54" font-size="3.5" font-weight="bold" text-anchor="middle">B46 MAX96724</text>
+<text x="157" y="62" font-size="2.3" font-weight="middle" text-anchor="start">4 x GMSL2 IN</text>
+<text x="157" y="70" font-size="2.3" font-weight="middle" text-anchor="start">MIPI CSI-2 OUT</text>
+<line x1="124" y1="80" x2="107" y2="80" class="motion"/>
+<text x="115" y="76" font-size="1.8" font-weight="bold" text-anchor="middle">22p 0.5</text>
+<text x="106" y="105" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#b52d2d">DESERIALIZER CARRIER DIMS / TACHYON DRIVER SUPPORT UNVERIFIED</text>
+<text x="215" y="15" font-size="3.2" font-weight="bold" text-anchor="start">OPTIONAL M1 EXTERNAL BRICK</text>
+<text x="215" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="236" y="28" width="60.5" height="110" rx="7" class="heavy" fill="#edf1f4"/>
+<rect x="246" y="48" width="40" height="68" rx="2" class="med" fill="#ffffff"/>
+<text x="266" y="76" font-size="3.4" font-weight="bold" text-anchor="middle">TACHYON</text>
+<text x="266" y="84" font-size="2.6" font-weight="middle" text-anchor="start">+ DES</text>
+<circle cx="250" cy="129" r="6" class="med" fill="#fff"/>
+<circle cx="282" cy="129" r="6" class="med" fill="#fff"/>
+<line x1="236" y1="138" x2="236" y2="147" class="thin"/>
+<line x1="296.5" y1="138" x2="296.5" y2="147" class="thin"/>
+<line x1="236" y1="147" x2="296.5" y2="147" class="dim"/>
+<text x="266.25" y="145.6" font-size="2.7" font-weight="normal" text-anchor="middle">121 VERIFIED</text>
+<line x1="236" y1="28" x2="226" y2="28" class="thin"/>
+<line x1="236" y1="138" x2="226" y2="138" class="thin"/>
+<line x1="226" y1="28" x2="226" y2="138" class="dim"/>
+<text x="224.3" y="83.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 224.3 83.0)">220 VERIFIED</text>
+<text x="266" y="155" font-size="2.2" font-weight="bold" text-anchor="middle">DEPTH 69 VERIFIED</text>
+<text x="266" y="161" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#0a7891">M20 NOT USED FOR MOVING CSI: NO CAMERA TETHER</text>
+<text x="320" y="15" font-size="3.2" font-weight="bold" text-anchor="start">EXTERNAL MOUNT BOUNDARY</text>
+<text x="320" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="334" y="36" width="50" height="100" rx="0" class="heavy"/>
+<rect x="334" y="36" width="4" height="100" rx="0" class="plastic"/>
+<rect x="380" y="36" width="4" height="100" rx="0" class="plastic"/>
+<rect x="334" y="36" width="50" height="4" rx="0" class="plastic"/>
+<rect x="334" y="132" width="50" height="4" rx="0" class="plastic"/>
+<rect x="340" y="42" width="38" height="88" rx="0" class="thin" fill="#f8fbfc"/>
+<line x1="359.0" y1="42" x2="359.0" y2="130" class="med"/>
+<circle cx="374" cy="86.0" r="1.5" class="med"/>
+<rect x="340" y="42" width="38" height="8" rx="0" class="thin" fill="url(#screen)"/>
+<rect x="389" y="72" width="22" height="60" rx="4" class="heavy" fill="#edf1f4"/>
+<line x1="384" y1="87" x2="389" y2="87" class="med"/>
+<line x1="384" y1="118" x2="389" y2="118" class="med"/>
+<text x="400" y="95" font-size="3.5" font-weight="bold" text-anchor="middle">M1</text>
+<text x="400" y="103" font-size="2.1" font-weight="bold" text-anchor="middle">OUTSIDE</text>
+<text x="368" y="148" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#b52d2d">BRICK + SERDES HUB NEVER ENTER WET VOLUME</text>
+<text x="12" y="174" font-size="3.2" font-weight="bold" text-anchor="start">FOUR VIDEO DOCKS / TWO TACHYON CSI OPTIONS</text>
+<text x="12" y="177.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="18" y="191" width="38" height="25" rx="2" class="med" fill="#e7f5f6"/>
+<text x="37" y="203" font-size="2.2" font-weight="bold" text-anchor="middle">V1 GMSL2</text>
+<rect x="68" y="191" width="38" height="25" rx="2" class="med" fill="#e7f5f6"/>
+<text x="87" y="203" font-size="2.2" font-weight="bold" text-anchor="middle">V2 GMSL2</text>
+<rect x="118" y="191" width="38" height="25" rx="2" class="med" fill="#e7f5f6"/>
+<text x="137" y="203" font-size="2.2" font-weight="bold" text-anchor="middle">V3 GMSL2</text>
+<rect x="168" y="191" width="38" height="25" rx="2" class="med" fill="#e7f5f6"/>
+<text x="187" y="203" font-size="2.2" font-weight="bold" text-anchor="middle">V4 GMSL2</text>
+<line x1="56" y1="203" x2="230" y2="203" class="thin" stroke="#0a7891"/>
+<line x1="106" y1="203" x2="230" y2="203" class="thin" stroke="#0a7891"/>
+<line x1="156" y1="203" x2="230" y2="203" class="thin" stroke="#0a7891"/>
+<line x1="206" y1="203" x2="230" y2="203" class="thin" stroke="#0a7891"/>
+<rect x="230" y="184" width="68" height="40" rx="2" class="heavy" fill="#fff8e3"/>
+<text x="264" y="202" font-size="3" font-weight="bold" text-anchor="middle">MAX96724</text>
+<text x="264" y="210" font-size="2.1" font-weight="middle" text-anchor="start">AGGREGATE / ROUTE</text>
+<line x1="298" y1="196" x2="320" y2="196" class="motion"/>
+<line x1="298" y1="213" x2="320" y2="213" class="motion"/>
+<rect x="320" y="181" width="82" height="47" rx="2" class="heavy" fill="#e9eef1"/>
+<text x="361" y="195" font-size="2.5" font-weight="bold" text-anchor="middle">DEDICATED CSI</text>
+<text x="361" y="207" font-size="2.5" font-weight="bold" text-anchor="middle">SHARED DSI/CSI</text>
+<text x="361" y="219" font-size="2.2" font-weight="bold" text-anchor="middle">GPIO 68 HIGH</text>
+<rect x="12" y="231" width="190" height="15.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="15" y="235.4" font-size="2.8" font-weight="bold" text-anchor="start">VERIFIED INTERFACES</text>
+<text x="15" y="240" font-size="2.45" font-weight="normal" text-anchor="start">Tachyon: dual 4-lane CSI, 22-pin 0.5 mm, up to 2.5 Gbps/lane.</text>
+<text x="15" y="244" font-size="2.45" font-weight="normal" text-anchor="start">MAX96724: four GMSL2 inputs and CSI-2 outputs; 3/6 Gbps links.</text>
+<rect x="215" y="231" width="190" height="15.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="218" y="235.4" font-size="2.8" font-weight="bold" text-anchor="start">INTEGRATION GATE</text>
+<text x="218" y="240" font-size="2.45" font-weight="normal" text-anchor="start">Particle does not document MAX96724 support: kernel/DT work is required.</text>
+<text x="218" y="244" font-size="2.45" font-weight="normal" text-anchor="start">No HAT/CSI pin number is inferred; use Particle and ADI reference CAD.</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">SERDES / CSI / PARTICLE BRICK</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">10 OF 12 / S09</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S09</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

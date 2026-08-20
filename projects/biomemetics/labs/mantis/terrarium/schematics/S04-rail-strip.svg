@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">RAIL CHANNEL SECTION C-C</text>
+<text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<path d="M30 67 L37 40 L91 40 L98 67 L89 73 L39 73 Z" class="cut"/>
+<rect x="40" y="53" width="48" height="9" rx="1" class="plastic"/>
+<rect x="42" y="55" width="44" height="1.6" rx="0" class="metal"/>
+<rect x="43.0" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#d9822b"/>
+<rect x="46.55" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#d9822b"/>
+<rect x="50.1" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#333333"/>
+<rect x="53.65" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#333333"/>
+<rect x="57.2" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#2c9c69"/>
+<rect x="60.75" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#307ac7"/>
+<rect x="64.3" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#7a55a3"/>
+<rect x="67.85" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#d34887"/>
+<rect x="71.4" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#333333"/>
+<rect x="74.95" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#0a7891"/>
+<rect x="78.5" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#0a7891"/>
+<rect x="82.05" y="55.1" width="2.0" height="1.4" rx="0" class="thin" fill="#333333"/>
+<rect x="41" y="52" width="8" height="1.2" rx="0" class="plastic"/>
+<rect x="79" y="52" width="8" height="1.2" rx="0" class="plastic"/>
+<circle cx="109" cy="46" r="4.0" class="med" fill="#ffffff"/>
+<text x="109" y="47.2" font-size="2.6" font-weight="bold" text-anchor="middle">B18</text>
+<line x1="109" y1="50" x2="98" y2="48" class="leader"/>
+<circle cx="109" cy="67" r="4.0" class="med" fill="#ffffff"/>
+<text x="109" y="68.2" font-size="2.6" font-weight="bold" text-anchor="middle">B19</text>
+<line x1="109" y1="71" x2="87" y2="59" class="leader"/>
+<circle cx="109" cy="88" r="4.0" class="med" fill="#ffffff"/>
+<text x="109" y="89.2" font-size="2.6" font-weight="bold" text-anchor="middle">B20</text>
+<line x1="109" y1="92" x2="82" y2="72" class="leader"/>
+<circle cx="18" cy="47" r="4.0" class="med" fill="#ffffff"/>
+<text x="18" y="48.2" font-size="2.6" font-weight="bold" text-anchor="middle">B52</text>
+<line x1="18" y1="51" x2="42" y2="52" class="leader"/>
+<text x="29" y="84" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">WET-SIDE BARRIER</text>
+<line x1="28" y1="80" x2="100" y2="80" class="phantom"/>
+<line x1="30" y1="73" x2="30" y2="104" class="thin"/>
+<line x1="98" y1="73" x2="98" y2="104" class="thin"/>
+<line x1="30" y1="104" x2="98" y2="104" class="dim"/>
+<text x="64.0" y="102.6" font-size="2.7" font-weight="normal" text-anchor="middle">38 REF</text>
+<line x1="30" y1="40" x2="20" y2="40" class="thin"/>
+<line x1="30" y1="73" x2="20" y2="73" class="thin"/>
+<line x1="20" y1="40" x2="20" y2="73" class="dim"/>
+<text x="18.3" y="56.5" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 18.3 56.5)">16 REF</text>
+<text x="125" y="15" font-size="3.2" font-weight="bold" text-anchor="start">LONGITUDINAL CONDUCTOR RUN</text>
+<text x="125" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="135" y="38" width="230" height="66" rx="2" class="med" fill="#f3f5f6"/>
+<line x1="145" y1="43.0" x2="355" y2="43.0" class="med" stroke="#d9822b"/>
+<text x="139" y="44.0" font-size="2.3" font-weight="bold" text-anchor="end" fill="#d9822b">VIN-A</text>
+<line x1="145" y1="47.4" x2="355" y2="47.4" class="med" stroke="#d9822b"/>
+<text x="139" y="48.4" font-size="2.3" font-weight="bold" text-anchor="end" fill="#d9822b">VIN-B</text>
+<line x1="145" y1="51.8" x2="355" y2="51.8" class="med" stroke="#333333"/>
+<text x="139" y="52.8" font-size="2.3" font-weight="bold" text-anchor="end" fill="#333333">GND-A</text>
+<line x1="145" y1="56.2" x2="355" y2="56.2" class="med" stroke="#333333"/>
+<text x="139" y="57.2" font-size="2.3" font-weight="bold" text-anchor="end" fill="#333333">GND-B</text>
+<line x1="145" y1="60.6" x2="355" y2="60.6" class="med" stroke="#2c9c69"/>
+<text x="139" y="61.6" font-size="2.3" font-weight="bold" text-anchor="end" fill="#2c9c69">SDA</text>
+<line x1="145" y1="65.0" x2="355" y2="65.0" class="med" stroke="#307ac7"/>
+<text x="139" y="66.0" font-size="2.3" font-weight="bold" text-anchor="end" fill="#307ac7">SCL</text>
+<line x1="145" y1="69.4" x2="355" y2="69.4" class="med" stroke="#7a55a3"/>
+<text x="139" y="70.4" font-size="2.3" font-weight="bold" text-anchor="end" fill="#7a55a3">UID</text>
+<line x1="145" y1="73.80000000000001" x2="355" y2="73.80000000000001" class="med" stroke="#d34887"/>
+<text x="139" y="74.80000000000001" font-size="2.3" font-weight="bold" text-anchor="end" fill="#d34887">FAULT_N/IRQ</text>
+<rect x="150" y="82" width="24" height="13" rx="1" class="med" fill="#e7f5f6"/>
+<text x="162" y="88" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#0a7891">V1  G + - G</text>
+<text x="162" y="92" font-size="1.8" font-weight="middle" text-anchor="start">100 ohm TARGET</text>
+<rect x="206" y="82" width="24" height="13" rx="1" class="med" fill="#e7f5f6"/>
+<text x="218" y="88" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#0a7891">V2  G + - G</text>
+<text x="218" y="92" font-size="1.8" font-weight="middle" text-anchor="start">100 ohm TARGET</text>
+<rect x="270" y="82" width="24" height="13" rx="1" class="med" fill="#e7f5f6"/>
+<text x="282" y="88" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#0a7891">V3  G + - G</text>
+<text x="282" y="92" font-size="1.8" font-weight="middle" text-anchor="start">100 ohm TARGET</text>
+<rect x="326" y="82" width="24" height="13" rx="1" class="med" fill="#e7f5f6"/>
+<text x="338" y="88" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#0a7891">V4  G + - G</text>
+<text x="338" y="92" font-size="1.8" font-weight="middle" text-anchor="start">100 ohm TARGET</text>
+<line x1="150" y1="36" x2="150" y2="106" class="center"/>
+<line x1="175" y1="36" x2="175" y2="106" class="center"/>
+<line x1="200" y1="36" x2="200" y2="106" class="center"/>
+<line x1="225" y1="36" x2="225" y2="106" class="center"/>
+<line x1="250" y1="36" x2="250" y2="106" class="center"/>
+<line x1="275" y1="36" x2="275" y2="106" class="center"/>
+<line x1="300" y1="36" x2="300" y2="106" class="center"/>
+<line x1="325" y1="36" x2="325" y2="106" class="center"/>
+<line x1="350" y1="36" x2="350" y2="106" class="center"/>
+<text x="250" y="112" font-size="2.4" font-weight="bold" text-anchor="middle">25 mm MECH DETENTS; VIDEO ONLY AT V1-V4 POINT-TO-POINT DOCKS</text>
+<text x="12" y="126" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL D - STRIP STACK-UP</text>
+<text x="12" y="129.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<text x="30" y="146" font-size="2.05" font-weight="bold" text-anchor="start" fill="#b52d2d">EXPOSED ENIG LAND IN CAPTIVE EXTERNAL SLOT - NO FILM OVER CONTACT</text>
+<rect x="30" y="151" width="120" height="2" rx="0" class="med" fill="#e6b84a"/>
+<text x="156" y="153.0" font-size="2.4" font-weight="bold" text-anchor="start">ENIG CONTACT LAND</text>
+<rect x="30" y="153" width="120" height="5" rx="0" class="med" fill="#d77c3d"/>
+<text x="156" y="156.5" font-size="2.4" font-weight="bold" text-anchor="start">FLEX / SPRING COPPER</text>
+<rect x="30" y="158" width="120" height="7" rx="0" class="med" fill="#d7e4f0"/>
+<text x="156" y="162.5" font-size="2.4" font-weight="bold" text-anchor="start">DIELECTRIC</text>
+<rect x="30" y="165" width="120" height="18" rx="0" class="med" fill="#f4f5f6"/>
+<text x="156" y="175.0" font-size="2.4" font-weight="bold" text-anchor="start">PETG / ASA FRAME</text>
+<text x="30" y="190" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">ALL THICKNESSES UNVERIFIED UNTIL STRIP VENDOR SELECTED</text>
+<text x="230" y="126" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL E - CONTACT LANDS</text>
+<text x="230" y="129.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="239" y="150" width="7" height="28" rx="0" class="med" fill="#d9822b"/>
+<text x="242.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#d9822b">P01</text>
+<rect x="251" y="150" width="7" height="28" rx="0" class="med" fill="#d9822b"/>
+<text x="254.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#d9822b">P02</text>
+<rect x="263" y="150" width="7" height="28" rx="0" class="med" fill="#333333"/>
+<text x="266.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#333333">P03</text>
+<rect x="275" y="150" width="7" height="28" rx="0" class="med" fill="#333333"/>
+<text x="278.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#333333">P04</text>
+<rect x="287" y="150" width="7" height="28" rx="0" class="med" fill="#2c9c69"/>
+<text x="290.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#2c9c69">P05</text>
+<rect x="299" y="150" width="7" height="28" rx="0" class="med" fill="#307ac7"/>
+<text x="302.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#307ac7">P06</text>
+<rect x="311" y="150" width="7" height="28" rx="0" class="med" fill="#7a55a3"/>
+<text x="314.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#7a55a3">P07</text>
+<rect x="323" y="150" width="7" height="28" rx="0" class="med" fill="#d34887"/>
+<text x="326.5" y="185" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#d34887">P08</text>
+<rect x="342" y="150" width="9" height="28" rx="0" class="med" fill="#333"/>
+<text x="346.5" y="185" font-size="1.8" font-weight="bold" text-anchor="middle" fill="#333">G</text>
+<rect x="355" y="150" width="9" height="28" rx="0" class="med" fill="#0a7891"/>
+<text x="359.5" y="185" font-size="1.8" font-weight="bold" text-anchor="middle" fill="#0a7891">HSD+</text>
+<rect x="368" y="150" width="9" height="28" rx="0" class="med" fill="#0a7891"/>
+<text x="372.5" y="185" font-size="1.8" font-weight="bold" text-anchor="middle" fill="#0a7891">HSD-</text>
+<rect x="381" y="150" width="9" height="28" rx="0" class="med" fill="#333"/>
+<text x="385.5" y="185" font-size="1.8" font-weight="bold" text-anchor="middle" fill="#333">G</text>
+<line x1="245" y1="178" x2="245" y2="197" class="thin"/>
+<line x1="263" y1="178" x2="263" y2="197" class="thin"/>
+<line x1="245" y1="197" x2="263" y2="197" class="dim"/>
+<text x="254.0" y="195.6" font-size="2.7" font-weight="normal" text-anchor="middle">2.54 PITCH TARGET</text>
+<text x="239" y="205" font-size="2.4" font-weight="bold" text-anchor="start">P01-P08 CONTINUOUS; P09-P12 GUARDED GMSL2 DOCK CELL</text>
+<rect x="12" y="218" width="190" height="23.0" rx="1.2" class="med" fill="#fff6d9"/>
+<text x="15" y="222.4" font-size="2.8" font-weight="bold" text-anchor="start">POWER / SIGNAL</text>
+<text x="15" y="227" font-size="2.45" font-weight="normal" text-anchor="start">VIN: 12 V nominal TARGET from separate DC/DC; fuse F1 = 2 A TARGET.</text>
+<text x="15" y="231" font-size="2.45" font-weight="normal" text-anchor="start">P01-P08: power/control. P09-P12: 100 ohm TARGET GMSL2 cell.</text>
+<text x="15" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Video contact exists only at V1-V4; no signal is carried while rolling.</text>
+<text x="15" y="239" font-size="2.45" font-weight="normal" text-anchor="start">B20 is the continuous wet-side barrier; contact lands stay external.</text>
+<rect x="215" y="218" width="190" height="23.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="218" y="222.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE CONTROL</text>
+<text x="218" y="227" font-size="2.45" font-weight="normal" text-anchor="start">S1 pre-travel opens the local carriage Q1 branch before pogo lift.</text>
+<text x="218" y="231" font-size="2.45" font-weight="normal" text-anchor="start">Bent HSD pogo -&gt; link loss; no fallback to raw MIPI or continuous strip.</text>
+<text x="218" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Each V-dock routes point-to-point to a separate deserializer input.</text>
+<text x="218" y="239" font-size="2.45" font-weight="normal" text-anchor="start">B52 guard/wiper shields the access slot; it is not a hermetic cover.</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">RAIL + STRIP</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">05 OF 12 / S04</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S04</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

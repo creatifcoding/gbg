@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "workspace": "projects/biomemetics/labs/mantis",
+  "mutationPolicy": "The orchestrator owns this graph. Issue agents read it and modify only their declared write set.",
+  "modelPolicy": {
+    "planner": { "model": "grok-4.6", "effort": "xhigh", "fast": false },
+    "implementer": { "model": "grok-4.5", "fast": false },
+    "reviewer": { "model": "grok-4.5", "fast": false, "readOnly": true },
+    "forbidden": ["sol", "auto", "fast-mode"]
+  },
+  "concurrency": {
+    "maximumImplementers": 3,
+    "oneImplementerPerIssue": true,
+    "maximumReadOnlyReviewersPerIssue": 2
+  },
+  "workstreams": [
+    {
+      "id": "mantis-00-workspace",
+      "title": "Bootstrap the durable mantis biomemetics workspace",
+      "status": "local-draft",
+      "role": "planner",
+      "dependencies": [],
+      "writeSet": ["projects/biomemetics/labs/mantis/**"],
+      "acceptance": ["scripts/verify-core.sh", "scripts/verify-fabrication.sh"]
+    },
+    {
+      "id": "mantis-01-specimendb-bridge",
+      "title": "Add governed lab-evidence component attachment to SpecimenDB",
+      "status": "blocked",
+      "role": "implementer",
+      "dependencies": ["mantis-00-workspace", "gbg-pr-12-merged"],
+      "writeSet": [
+        "packages/specimendb/src/**",
+        "packages/specimendb/test/**",
+        "projects/biomemetics/labs/mantis/tooling/typescript/**"
+      ],
+      "note": "Current SpecimenDB draft exposes Intake/Get/List only. Do not bypass it with direct PGlite writes."
+    },
+    {
+      "id": "mantis-02-video-coupon",
+      "title": "Build and characterize the complete indexed powered-video B27+B50 coupon",
+      "status": "proposed",
+      "role": "implementer",
+      "dependencies": ["mantis-00-workspace"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/ee/**",
+        "projects/biomemetics/labs/mantis/terrarium/simulations/**",
+        "projects/biomemetics/labs/mantis/evidence/**"
+      ],
+      "note": "Coupon must include rail pogo interface, carriage routing, separate binder handoff, both launches, S1/S2/Q1 sequencing, and representative power protection."
+    },
+    {
+      "id": "mantis-03-carriage",
+      "title": "Resolve pinch-lift carriage, latch, contact sequence, and tolerances",
+      "status": "proposed",
+      "role": "implementer",
+      "dependencies": ["mantis-00-workspace"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/cad/**",
+        "projects/biomemetics/labs/mantis/terrarium/simulations/mechanical/**"
+      ]
+    },
+    {
+      "id": "mantis-04-observation-pipeline",
+      "title": "Admit mantis media and derive evidence without invented identity",
+      "status": "proposed",
+      "role": "implementer",
+      "dependencies": ["mantis-00-workspace", "mantis-01-specimendb-bridge"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/observations/**",
+        "projects/biomemetics/labs/mantis/morphology/**",
+        "projects/biomemetics/labs/mantis/mechanisms/**",
+        "projects/biomemetics/labs/mantis/analogs/**"
+      ]
+    }
+  ]
+}
