@@ -108,7 +108,7 @@ function IntakeDropHeader() {
     <header className="sdb-t-rail-header">
       <i className="ph ph-database sdb-t-mark" />
       <h1>Local Catalog</h1>
-      <span className="sdb-t-vol">VOL</span>
+      <span className="sdb-t-vol">VOL: 04</span>
     </header>
   );
 }
@@ -155,6 +155,10 @@ function IntakeDropZone() {
         onDrop={bind.onDrop}
       >
         <span className="sdb-t-zone-grid sdb-t-tech-grid" />
+        <span className="sdb-t-corner sdb-t-corner-tl" />
+        <span className="sdb-t-corner sdb-t-corner-tr" />
+        <span className="sdb-t-corner sdb-t-corner-bl" />
+        <span className="sdb-t-corner sdb-t-corner-br" />
         <i className="ph ph-upload-simple sdb-t-upload" />
         <span className="sdb-t-protocol">
           {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'Initiate_Intake_Protocol'}

@@ -74,7 +74,7 @@ Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 /
 | F-033 | coordinate line | Locality numbers | never | no invented GPS |
 | F-034 | pin locality | Locality | when | `unknown` or EXIF; not invented |
 | F-035 | `Initiate Intake Sequence` | Media, Status=`raw` | now | Intake |
-| F-036 | `h-40` photo well | Media | chrome | empty on Workbench (Media now is Terminal F-006) |
+| F-036 | `h-40` photo well | Media | now | object URL when attached |
 | F-037 | `VIEWPORT_XZ` | — | later | empty |
 | F-038 | `MAG` | — | chrome | |
 | F-039 | `ACTIVE_RENDER` | — | chrome | |

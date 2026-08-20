@@ -1,6 +1,6 @@
 # Look notes — Terminal `/intake` and Workbench `/rail`
 
-> Reconstruct from Variant HTML regions. Not a charcoal theme on a shared shell.
+> Regions from the Variant HTML. Live binds in the wells. Not a shared shell.
 
 ## Job
 
@@ -9,51 +9,18 @@
 | `/intake` | Terminal | Console + index: eat a file, list what filed |
 | `/rail` | Workbench | IDE/CAD three-pane: find a record, inspect it |
 
-## Regions (built first)
+## Regions
 
-**Terminal**
+**Terminal** — 420px Local Catalog (`h-14`, `VOL: 04`, `h-52` cards), `SPECIMEN_DB /` + `SYS_ONLINE`, dashed `Initiate_Intake_Protocol` with corner-brackets and 24px tech-grid, process-log / metric wells, 4px scroll gutters.
 
-1. 420px Local Catalog rail (`h-14` kicker, VOL chrome, card stack)
-2. `SPECIMEN_DB /` + `SYS_ONLINE`
-3. Dashed `Initiate_Intake_Protocol` well (`h-40`, charcoal + 24px tech-grid)
-4. Process-log / metric wells (empty until a later bind)
+**Workbench** — icon rail, `LOCAL_STORAGE // ACTIVE_WORKBENCH` crumb, 420px card list, `h-40` media well, corner-bracket drop, big id + Export DB / Run Sim, `VIEWPORT_XZ`, 340px Properties Log.
 
-**Workbench**
+## Now-rows in those wells
 
-1. 64px icon rail
-2. 420px card list (`SpecimenDB // Core`, query, RAW/FILED/WORKING/DEAD)
-3. Top drop `Initiate Intake Sequence // Drop Telemetry Data` + corner-brackets
-4. `VIEWPORT_XZ`
-5. 340px Properties Log inspector
+Intake / List / Get / Promote. Status pills are real. Locality is `unknown` unless EXIF GPS exists. Media bytes render in both photo wells when attached. Claim and tags stay empty until attached. Taxon / spectral / GPS numbers stay empty.
 
-## Type / density / color (in that order)
+## Side-by-side
 
-- Terminal body: Inter. Kickers: `ui-monospace`, 11px Local Catalog, 9px pills/tags, 13px claim.
-- Workbench chrome: IBM Plex Mono. Claim: Inter. Status squares: 6px.
-- Rail 420px. Terminal photo well `h-52` (208px). Workbench media well `h-40` (160px). Scrollbars 4px `#000/#333`.
-- Color last: void `#000`, charcoal cards `#1a1a1a`, selected border filed-cyan `#22d3ee`. Status paint stays amber/cyan/emerald/rose.
+1440×900: `intake.png`, `rail.png`.
 
-## Binds (unchanged this cut)
-
-Intake / Get / List / Promote. Locality is `unknown` unless EXIF GPS exists. Real `SpecimenId` only. Workbench photo well stays empty (F-036). Terminal owns Media bytes (F-006).
-
-## What still diverges from the Variant board
-
-Do not mistake these screenshots for the HTML. Remaining gaps:
-
-- Live IDs are branded UUIDs. Variant cards used short `SP-` theater. Required.
-- Taxon / spectral / GPS / ML% wells stay empty. Variant filled them with invented numbers.
-- `VOL` is chrome without the theater `04`.
-- Workbench `h-40` well stays empty (F-036). Terminal owns Media bytes.
-- Dropped JPEG in the Terminal well is whatever was ingested, not the Variant field-photo stock.
-- Phosphor is the testbed webfont. Stroke weight may not match the HTML SVG export.
-- Workbench has no `LOCAL_STORAGE // ACTIVE_WORKBENCH` breadcrumb (not in the region list this cut used).
-- Assay / Dactyl / Catalog / Accession were not restyled.
-
-## Screenshots
-
-Same viewport (1440×900), after dropping a no-GPS JPEG (`field.jpg`):
-
-- `intake.png` — Terminal `/intake`. Status `raw`, locality `unknown`, Media bytes in the `h-52` well, cyan selection.
-- `rail.png` — Workbench `/rail`. Same binds. Media well empty by design (F-036). Cyan selection. Corner-brackets on the drop and `VIEWPORT_XZ`.
-
+These are the Terminal and Workbench pages. Live accession strings are branded UUIDs, not `SP-` theater. Empty later-slots stay empty. That is the source HTML with theater values stripped, not a different layout.

@@ -99,6 +99,7 @@ function SpecimenRailRoot({ catalog, children }: SpecimenRailProps) {
               <SpecimenRailList />
             </aside>
             <main className="sdb-w-main">
+              <SpecimenRailCrumb />
               <div className="sdb-w-zone-wrap">
                 <SpecimenRailIntake />
               </div>
@@ -132,6 +133,20 @@ function SpecimenRailStrip() {
         <i className="ph ph-sliders" />
       </span>
     </aside>
+  );
+}
+
+function SpecimenRailCrumb() {
+  const { catalog } = useRail();
+  const selected = useFocus(
+    catalog.store,
+    at<CatalogState['selected']>(catalog.store.lens.selected),
+  );
+  return (
+    <div className="sdb-w-crumb">
+      LOCAL_STORAGE // ACTIVE_WORKBENCH
+      {selected !== null ? ` // ${selected.id}` : ''}
+    </div>
   );
 }
 
@@ -217,10 +232,11 @@ function SpecimenRailList() {
   );
 }
 
-function WorkbenchWell() {
+function WorkbenchWell({ preview }: { readonly preview?: string }) {
   return (
     <div className="sdb-w-well">
-      <i className="ph ph-aperture sdb-w-shutter" />
+      {preview !== undefined ? <img src={preview} alt="" data-testid="media-bytes" /> : null}
+      {preview === undefined ? <i className="ph ph-aperture sdb-w-shutter" /> : null}
       <span className="sdb-w-well-cap" />
     </div>
   );
@@ -261,6 +277,10 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
     catalog.store,
     at<CatalogState['selectedId']>(catalog.store.lens.selectedId),
   );
+  const previews = useFocus(
+    catalog.store,
+    at<CatalogState['previews']>(catalog.store.lens.previews),
+  );
   const status = (statusOf(specimen) ?? 'raw') satisfies SpecimenStatus;
 
   return (
@@ -281,7 +301,7 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
           onPromote={onStatusPromote(catalog, specimen.id)}
         />
       </div>
-      <WorkbenchWell />
+      <WorkbenchWell preview={previews[specimen.id]} />
       <div className="sdb-w-card-body">
         <p className="sdb-w-claim" data-testid="claim">
           {claimLine(specimen)}
@@ -366,6 +386,11 @@ function SpecimenRailDetail() {
 }
 
 function SpecimenRailProperties() {
+  const { catalog } = useRail();
+  const selected = useFocus(
+    catalog.store,
+    at<CatalogState['selected']>(catalog.store.lens.selected),
+  );
   return (
     <aside className="sdb-w-props" data-testid="properties-log">
       <header className="sdb-w-props-header">PROPERTIES LOG</header>
@@ -412,7 +437,10 @@ function SpecimenRailProperties() {
         </div>
         <p className="sdb-w-obs" />
       </section>
-      <div className="sdb-w-updated">LAST_UPDATED</div>
+      <div className="sdb-w-updated">
+        LAST_UPDATED
+        {selected !== null ? ` // ${selected.createdAt}` : ''}
+      </div>
     </aside>
   );
 }
@@ -420,6 +448,7 @@ function SpecimenRailProperties() {
 export const SpecimenRail = Object.assign(SpecimenRailRoot, {
   Header: SpecimenRailHeader,
   Strip: SpecimenRailStrip,
+  Crumb: SpecimenRailCrumb,
   Query: SpecimenRailQuery,
   Filters: SpecimenRailFilters,
   Intake: SpecimenRailIntake,

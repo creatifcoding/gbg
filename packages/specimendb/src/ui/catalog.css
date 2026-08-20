@@ -39,8 +39,8 @@
 
 .sdb-t-tech-grid {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -92,6 +92,8 @@
   gap: 16px;
   padding: 16px;
   overflow: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .sdb-t-main {
@@ -119,6 +121,8 @@
   gap: 24px;
   padding: 24px;
   overflow: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .sdb-t-zone {
@@ -266,20 +270,25 @@ button.sdb-t-zone {
 }
 
 .sdb-t-id {
+  min-width: 0;
+  flex: 1;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.04em;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sdb-t-locality {
+  flex-shrink: 0;
   font-size: 10px;
   letter-spacing: 0.04em;
 }
 
 .sdb-t-tag {
   font-size: 9px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
@@ -365,6 +374,42 @@ button.sdb-t-zone {
   line-height: 1;
 }
 
+.sdb-t-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sdb-t-corner-tl {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid #a3a3a3;
+  border-left: 1px solid #a3a3a3;
+}
+
+.sdb-t-corner-tr {
+  top: -1px;
+  right: -1px;
+  border-top: 1px solid #a3a3a3;
+  border-right: 1px solid #a3a3a3;
+}
+
+.sdb-t-corner-bl {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 1px solid #a3a3a3;
+  border-left: 1px solid #a3a3a3;
+}
+
+.sdb-t-corner-br {
+  right: -1px;
+  bottom: -1px;
+  border-right: 1px solid #a3a3a3;
+  border-bottom: 1px solid #a3a3a3;
+}
+
 .sdb-t-crosshair {
   position: absolute;
   top: 50%;
@@ -386,7 +431,7 @@ button.sdb-t-zone {
 
 .sdb-t-idrow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
@@ -399,9 +444,9 @@ button.sdb-t-zone {
 }
 
 .sdb-t-tag {
-  min-width: 48px;
-  min-height: 16px;
-  padding: 2px 6px;
+  min-width: 64px;
+  min-height: 18px;
+  padding: 3px 8px;
 }
 
 .sdb-t-imgsrc {
@@ -537,7 +582,7 @@ button.sdb-t-zone {
 }
 
 .sdb-t-zone {
-  background-color: #1a1a1a;
+  background-color: #111;
   border: 1px dashed #333;
   border-radius: 0;
 }
@@ -749,6 +794,8 @@ button.sdb-t-zone {
   gap: 16px;
   padding: 16px;
   overflow: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .sdb-w-main {
@@ -758,6 +805,19 @@ button.sdb-t-zone {
   min-width: 0;
   height: 100%;
   overflow: hidden;
+}
+
+.sdb-w-crumb {
+  flex-shrink: 0;
+  padding: 10px 24px 0;
+  overflow: hidden;
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .sdb-w-zone-wrap {
@@ -773,7 +833,7 @@ button.sdb-t-zone {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  height: 128px;
+  height: 160px;
   margin: 0;
   padding: 0;
   cursor: pointer;
@@ -792,6 +852,8 @@ button.sdb-t-zone {
   min-width: 0;
   padding: 24px;
   overflow: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .sdb-w-props {
@@ -801,6 +863,8 @@ button.sdb-t-zone {
   min-width: 340px;
   height: 100%;
   overflow: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .sdb-w-card {
@@ -831,6 +895,14 @@ button.sdb-w-zone,
   position: relative;
   height: 160px;
   overflow: hidden;
+}
+
+.sdb-w-well img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
 }
 
 .sdb-w-viewport {
@@ -910,14 +982,18 @@ button.sdb-w-zone,
 }
 
 .sdb-w-id {
+  min-width: 0;
+  flex: 1;
   min-height: 1em;
   font-size: 12px;
   letter-spacing: 0.08em;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sdb-w-claim {
-  min-height: 1.4em;
+  min-height: 2.4em;
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
@@ -934,10 +1010,10 @@ button.sdb-w-zone,
 }
 
 .sdb-w-tag {
-  min-width: 32px;
+  min-width: 48px;
   min-height: 14px;
   font-size: 9px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.2em;
 }
 
 .sdb-w-zone-copy {
@@ -1182,8 +1258,8 @@ button.sdb-w-zone,
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 

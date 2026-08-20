@@ -34,7 +34,6 @@ const BANISHED = [
   'NO RECORDS',
   'NO SELECTION',
   'DRAG_AND_DROP_ASSETS',
-  'VOL: 04',
   '99.8%',
   'OD-',
   'OPTICAL_SCAN',
@@ -397,7 +396,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     });
     expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
     expect(view.getByTestId('claim').textContent).toBe('');
-    expect(view.queryByTestId('media-bytes')).toBeNull();
+    expect(view.getByTestId('media-bytes')).toBeTruthy();
     expect(view.getByTestId('locality').textContent).toBe('unknown');
   });
 
@@ -457,7 +456,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     });
     expect(view.getByTestId('locality').textContent).toBe('unknown');
     expect(view.container.textContent).not.toContain('SP-2023-084');
-    expect(view.queryByTestId('media-bytes')).toBeNull();
+    expect(view.getByTestId('media-bytes')).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(view.getByTestId('status-pill'));
@@ -554,7 +553,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(css).toMatch(/\.sdb-workbench\s*\{[^}]*IBM Plex Mono/s);
     expect(css).toContain('ui-monospace');
     expect(css).toContain('background-size: 24px 24px');
-    expect(css).toContain('rgba(255, 255, 255, 0.02)');
+    expect(css).toContain('rgba(255, 255, 255, 0.04)');
     expect(css).toContain('width: 6px');
     expect(css).toContain('height: 6px');
     expect(css).toContain('height: 48px');
@@ -579,13 +578,13 @@ describe('six full pages', () => {
       name: 'Terminal',
       Page: TerminalPage,
       testId: 'intake-drop',
-      copy: ['Initiate_Intake_Protocol', 'Local Catalog', 'SYS_ONLINE'],
+      copy: ['Initiate_Intake_Protocol', 'Local Catalog', 'SYS_ONLINE', 'VOL: 04'],
     },
     {
       name: 'Workbench',
       Page: WorkbenchPage,
       testId: 'specimen-rail',
-      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'PROPERTIES LOG'],
+      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'PROPERTIES LOG', 'LOCAL_STORAGE // ACTIVE_WORKBENCH'],
     },
     {
       name: 'Assay',
