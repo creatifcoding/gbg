@@ -64,21 +64,19 @@ function firstTag(
   return undefined
 }
 
+/** EXIF GPS tags only. Generic latitude/longitude dumps are not locality. */
+const GPS_LAT = ['GPSLatitude'] as const
+const GPS_LON = ['GPSLongitude'] as const
+const GPS_ALT = ['GPSAltitude'] as const
+const GPS_DT = ['GPSDateTime'] as const
+
 export function localityFromExif(tags: Record<string, unknown>): Locality {
-  const latitude = tagNumber(
-    firstTag(tags, ['GPSLatitude', 'latitude', 'gpsLatitude']),
-  )
-  const longitude = tagNumber(
-    firstTag(tags, ['GPSLongitude', 'longitude', 'gpsLongitude']),
-  )
+  const latitude = tagNumber(firstTag(tags, GPS_LAT))
+  const longitude = tagNumber(firstTag(tags, GPS_LON))
   if (latitude == null || longitude == null) return UNKNOWN_LOCALITY
 
-  const altitude = tagNumber(
-    firstTag(tags, ['GPSAltitude', 'altitude', 'gpsAltitude']),
-  )
-  const gpsDateTime = tagString(
-    firstTag(tags, ['GPSDateTime', 'GPSDateStamp', 'gpsDateTime']),
-  )
+  const altitude = tagNumber(firstTag(tags, GPS_ALT))
+  const gpsDateTime = tagString(firstTag(tags, GPS_DT))
 
   const gps: GpsLocality = {
     _tag: 'gps',

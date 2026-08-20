@@ -35,6 +35,21 @@ describe('localityFromExif', () => {
     expect(JSON.stringify(locality)).not.toMatch(/Tucson|city|geocode/i)
   })
 
+  it('ignores generic latitude/longitude dumps from IP or pixels', () => {
+    expect(
+      localityFromExif({
+        latitude: 32,
+        longitude: -110,
+      }),
+    ).toEqual(UNKNOWN_LOCALITY)
+    expect(
+      localityFromExif({
+        gpsLatitude: 32.2217,
+        gpsLongitude: -110.9265,
+      }),
+    ).toEqual(UNKNOWN_LOCALITY)
+  })
+
   it('reads grouped exiftool keys', () => {
     expect(
       localityFromExif({

@@ -6,7 +6,7 @@ Static page. Rear camera. ExifTool WASM writes GPS and DateTimeOriginal into the
 
 [Cloudflare Drop](https://www.cloudflare.com/drop/) takes a static folder or zip and serves it on a `workers.dev` URL. HTTPS comes with that. The URL lasts 60 minutes unless you claim it. Static only: HTML, CSS, JS, images, fonts, WASM. No Worker, no R2, no API.
 
-After load, this page talks to the camera and geolocation APIs on the device, then fetches its own `vendor/zeroperl.wasm`. It does not call a CDN. It does not phone home.
+After load, this page talks to the camera. Location is taken from `navigator.geolocation` at shoot, not from IP, Cloudflare country headers, or the pixels. Then it fetches its own `vendor/zeroperl.wasm`. It does not call a CDN. It does not phone home.
 
 ## Zip and drop
 
@@ -37,14 +37,17 @@ python3 -m http.server 8765
 
 ## Behavior
 
-1. Arm camera requests the environment/rear camera and a geolocation fix.
-2. Capture a still. Canvas encodes JPEG once.
-3. `@uswriting/exiftool` (`writeMetadata`) writes `GPSLatitude`, `GPSLongitude`, `GPSLatitudeRef`, `GPSLongitudeRef`, `DateTimeOriginal`, and `GPSDateTime` when a fix exists. The JPEG is not re-encoded after that write.
-4. Download the tagged file. The page never uploads it.
-5. If geolocation is denied or missing, GPS tags are omitted. Locality stays unknown. No fake coordinates.
-6. No analytics, no third-party scripts, no service worker.
+Source of truth for `Specimen.locality` on capture:
 
-Intake still owns filing. Drop this JPEG into the catalog intake screen. EXIF-first locality applies.
+1. `navigator.geolocation` with `enableHighAccuracy` at shot time. Arm camera does not take a fix.
+2. Canvas encodes JPEG once. `@uswriting/exiftool` (`writeMetadata`) writes those numbers into `GPSLatitude`, `GPSLongitude`, `GPSLatitudeRef`, `GPSLongitudeRef`, `DateTimeOriginal`, and `GPSDateTime`. The JPEG is not re-encoded after that write.
+3. Intake later reads those EXIF GPS tags. Generic `{ latitude, longitude }` dumps are not locality.
+
+Download the tagged file. The page never uploads it. If geolocation is denied or missing, GPS tags are omitted and locality is unknown. No fake coordinates. No IP geo. No `cf-ipcountry`. No pixel guess.
+
+No analytics, no third-party scripts, no service worker.
+
+Intake still owns filing. Drop this JPEG into the catalog intake screen. Locality is those GPS tags, or unknown.
 
 ## Vendor
 

@@ -29,8 +29,8 @@ Static only. Zip `capture/`, drag onto https://www.cloudflare.com/drop/, claim w
 
 - Rear camera via `getUserMedia`. HTTPS comes from Drop.
 - Canvas encodes JPEG once. `writeMetadata` writes EXIF onto that JPEG. Do not re-encode after.
-- Tags: `GPSLatitude`, `GPSLongitude`, `GPSLatitudeRef`, `GPSLongitudeRef`, `DateTimeOriginal`, `GPSDateTime` when a fix exists.
-- Denied geolocation omits GPS tags. Do not fake coordinates.
+- Locality chain: `navigator.geolocation` (`enableHighAccuracy`, `maximumAge: 0`) at shoot, not at arm. WASM writes those numbers. Intake reads `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime`.
+- Denied geolocation omits GPS tags. Locality is unknown. Do not fake coordinates. Do not use IP geo, Cloudflare country headers, or pixels.
 - No analytics, no third-party scripts, no service worker.
 - Vanta Black tokens for paint. Load CSS and WASM from this folder only.
 
@@ -40,4 +40,6 @@ Static only. Zip `capture/`, drag onto https://www.cloudflare.com/drop/, claim w
 // BANNED
 fetch('https://cdn.example/zeroperl.wasm')
 navigator.geolocation.getCurrentPosition(() => {}, () => { coords = { latitude: 0, longitude: 0 } })
+fetch('https://ipapi.co/json')
+const country = request.headers.get('cf-ipcountry')
 ```

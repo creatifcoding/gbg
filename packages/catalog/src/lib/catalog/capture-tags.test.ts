@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  GEO_SHOT_OPTIONS,
   captureFilename,
+  coordsFromGeolocation,
   tagsFromCapture,
 } from '../../../capture/tags.js'
 
@@ -36,5 +38,16 @@ describe('capture tags', () => {
   it('names the download from the capture clock', () => {
     const capturedAt = new Date(2026, 7, 20, 9, 5, 7)
     expect(captureFilename(capturedAt)).toBe('specimen-20260820-090507.jpg')
+  })
+
+  it('takes shot coords from GeolocationCoordinates numbers only', () => {
+    expect(GEO_SHOT_OPTIONS.enableHighAccuracy).toBe(true)
+    expect(GEO_SHOT_OPTIONS.maximumAge).toBe(0)
+    expect(
+      coordsFromGeolocation({ latitude: 32.2217, longitude: -110.9265 }),
+    ).toEqual({ latitude: 32.2217, longitude: -110.9265 })
+    expect(coordsFromGeolocation({ latitude: 32, longitude: 'west' })).toBeNull()
+    expect(coordsFromGeolocation({})).toBeNull()
+    expect(coordsFromGeolocation(null)).toBeNull()
   })
 })

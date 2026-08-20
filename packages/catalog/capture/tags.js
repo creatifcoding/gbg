@@ -1,4 +1,10 @@
-/** Build ExifTool tags for a captured still. GPS omitted when coords are missing. */
+/** Build ExifTool tags from a browser Geolocation API fix taken at shot time. */
+
+export const GEO_SHOT_OPTIONS = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 10000,
+}
 
 export function pad2(value) {
   return String(value).padStart(2, '0')
@@ -10,6 +16,18 @@ export function formatExifLocal(date) {
 
 export function formatExifUtc(date) {
   return `${date.getUTCFullYear()}:${pad2(date.getUTCMonth() + 1)}:${pad2(date.getUTCDate())} ${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}:${pad2(date.getUTCSeconds())}`
+}
+
+/**
+ * Read lat/lon from a GeolocationPosition.coords object.
+ * Returns null when the numbers are missing. Does not guess, geocode, or use IP.
+ */
+export function coordsFromGeolocation(coords) {
+  if (!coords) return null
+  const latitude = coords.latitude
+  const longitude = coords.longitude
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  return { latitude, longitude }
 }
 
 export function tagsFromCapture({ capturedAt, coords }) {

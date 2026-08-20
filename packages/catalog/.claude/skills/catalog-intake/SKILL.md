@@ -41,7 +41,7 @@ One screen. No wizard. No step 2.
 | tags | at least 3 |
 | taxon guess | optional. Marked `{ label, guess: true }` if present |
 | part / structure | optional guess |
-| locality | pictures: GPS tags or `unknown`. Never a geocoded city. Other kinds may take a named string. |
+| locality | pictures: EXIF `GPSLatitude` / `GPSLongitude` / `GPSAltitude` / `GPSDateTime`, or `unknown`. Capture JPEGs get those tags from `navigator.geolocation` at shoot. Never IP, Cloudflare country, pixels, or a geocoded city. Other kinds may take a named string. |
 | collected / observed | pictures: `DateTimeOriginal` when present. Other kinds optional. |
 | camera | `Make` / `Model` when present |
 | open questions | zero or more, already in hand |
@@ -49,7 +49,7 @@ One screen. No wizard. No step 2.
 
 Status starts `raw`. Intake also writes a CRUD Observation (`observation-of` the specimen) and hangs the original on that observation. Body is `''`.
 
-Intake still owns filing. A JPEG from `capture/` is the preferred picture dump: GPS already in the file, or unknown if location was denied.
+Intake still owns filing. A JPEG from `capture/` is the preferred picture dump: browser geo written into GPS tags on the device, or unknown if location was denied. `ingestPicture` ignores form locality.
 
 `fileSpecimen` is the record gate. `ingestPicture` is how a picture Specimen is born. If the dump cannot make that Specimen, throw `IntakeError`. Do not save a partial.
 
@@ -111,10 +111,12 @@ Intake creates a Specimen. Do not revive Card.
 
 ```typescript
 // BANNED
-locality: reverseGeocode(pixels) // or a guessed city name
+locality: reverseGeocode(pixels)
+localityFromExif({ latitude, longitude }) // IP or pixel dump
+headers['cf-ipcountry']
 ```
 
-Missing GPS tags file as `{ _tag: 'unknown' }`. Do not invent a place.
+Missing GPS tags file as `{ _tag: 'unknown' }`. Do not invent a place. Generic `latitude` / `longitude` keys are not GPS tags.
 
 ### Overwrite the original
 

@@ -1,5 +1,10 @@
 import { writeMetadata } from './vendor/exiftool.js'
-import { captureFilename, tagsFromCapture } from './tags.js'
+import {
+  GEO_SHOT_OPTIONS,
+  captureFilename,
+  coordsFromGeolocation,
+  tagsFromCapture,
+} from './tags.js'
 
 const wasmUrl = new URL('./vendor/zeroperl.wasm', import.meta.url)
 
@@ -16,7 +21,6 @@ const geoChip = document.querySelector('#geo-chip')
 let stream = null
 let taggedBlob = null
 let downloadName = 'specimen.jpg'
-let coords = null
 
 function setChip(el, state, label) {
   el.dataset.state = state
@@ -54,6 +58,7 @@ function localFetch(input, init) {
 
 function requestCoords() {
   return new Promise((resolve) => {
+    setChip(geoChip, 'idle', 'locating')
     if (!navigator.geolocation) {
       setChip(geoChip, 'unknown', 'location unavailable')
       resolve(null)
@@ -61,11 +66,8 @@ function requestCoords() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const next = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        }
-        if (!Number.isFinite(next.latitude) || !Number.isFinite(next.longitude)) {
+        const next = coordsFromGeolocation(pos.coords)
+        if (!next) {
           setChip(geoChip, 'unknown', 'location unknown')
           resolve(null)
           return
@@ -77,7 +79,7 @@ function requestCoords() {
         setChip(geoChip, 'denied', 'location denied')
         resolve(null)
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+      GEO_SHOT_OPTIONS,
     )
   })
 }
@@ -88,7 +90,6 @@ async function armCamera() {
   downloadBtn.disabled = true
   still.hidden = true
   preview.hidden = false
-  coords = await requestCoords()
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -102,13 +103,9 @@ async function armCamera() {
     await preview.play()
     setChip(cameraChip, 'live', 'camera live')
     shootBtn.disabled = false
-    if (!coords) {
-      showNote(
-        'No GPS fix. The download will carry DateTimeOriginal only. Intake will file locality as unknown.',
-      )
-    } else {
-      showNote('')
-    }
+    showNote(
+      'Location is taken from the browser Geolocation API when you shoot, with enableHighAccuracy. Not IP, not Cloudflare, not the pixels.',
+    )
   } catch (error) {
     setChip(cameraChip, 'blocked', 'camera blocked')
     shootBtn.disabled = true
@@ -143,10 +140,11 @@ async function shoot() {
   shootBtn.disabled = true
   try {
     const capturedAt = new Date()
+    const shotCoords = await requestCoords()
     const jpeg = await canvasJpeg(preview)
     const filename = captureFilename(capturedAt)
     const file = new File([jpeg], filename, { type: 'image/jpeg' })
-    const tags = tagsFromCapture({ capturedAt, coords })
+    const tags = tagsFromCapture({ capturedAt, coords: shotCoords })
     const result = await writeMetadata(file, tags, { fetch: localFetch, args: ['-m'] })
     if (!result.success) {
       throw new Error(result.error || 'ExifTool write failed.')
@@ -157,8 +155,10 @@ async function shoot() {
     still.hidden = false
     preview.hidden = true
     downloadBtn.disabled = false
-    const gps = tags.GPSLatitude ? 'GPS written' : 'GPS omitted, locality unknown'
-    showNote(`${gps}. DateTimeOriginal ${tags.DateTimeOriginal}. Download the file. Do not upload it here.`)
+    const gps = tags.GPSLatitude
+      ? 'GPS written from navigator.geolocation'
+      : 'No geolocation fix. GPS omitted. Intake will file locality as unknown.'
+    showNote(`${gps} DateTimeOriginal ${tags.DateTimeOriginal}. Download the file. Do not upload it here.`)
   } catch (error) {
     showError(error instanceof Error ? error.message : 'Capture failed.')
     shootBtn.disabled = false

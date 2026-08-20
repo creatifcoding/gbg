@@ -134,7 +134,7 @@ export function IntakeDrop() {
       />
       {kind === 'picture' ? (
         <p className="vanta-muted text-[14px]">
-          Locality and collected time come from EXIF. GPSLatitude, GPSLongitude, GPSAltitude, GPSDateTime when present. Otherwise locality is unknown.
+          Locality and collected time come from EXIF GPS tags written at capture (browser geolocation into the JPEG). GPSLatitude, GPSLongitude, GPSAltitude, GPSDateTime when present. Otherwise locality is unknown.
         </p>
       ) : (
         <>
