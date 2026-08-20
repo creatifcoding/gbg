@@ -2,17 +2,17 @@ import { Schema } from 'effect'
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
 import { fileCard, IntakeError } from './intake'
-import { EXAMPLE_CARDS } from './seed'
+import { EXAMPLE_FRAGMENT } from './seed'
 import {
   CatalogFilter,
-  decodeCard,
+  guessFromInput,
   isCardKind,
   isCardStatus,
-  organismFromInput,
   parseQuestions,
   parseTags,
 } from './schema'
 import { getCatalogStore } from './store.server'
+import { CardTransitionError } from './entity/card-entity'
 
 export const listCards = createServerFn({ method: 'GET' })
   .validator((data: { kind?: string; status?: string; tag?: string } = {}) =>
@@ -44,15 +44,15 @@ export const createCard = createServerFn({ method: 'POST' })
     }
 
     try {
-      const card = fileCard({
+      const filed = fileCard({
         kind: kindRaw,
         claim: String(data.get('claim') ?? '').trim(),
         tags: parseTags(String(data.get('tags') ?? '')),
-        organism: organismFromInput(String(data.get('organism') ?? '')),
+        organismGuess: guessFromInput(String(data.get('organism') ?? '')),
         questions: parseQuestions(String(data.get('questions') ?? '')),
       })
 
-      const stored = getCatalogStore().insert(card)
+      const stored = getCatalogStore().insertIntake(filed)
       const file = data.get('file')
       if (file instanceof File && file.size > 0) {
         const bytes = new Uint8Array(await file.arrayBuffer())
@@ -67,37 +67,36 @@ export const createCard = createServerFn({ method: 'POST' })
       return stored
     } catch (error) {
       if (error instanceof IntakeError) throw error
-      throw new IntakeError([
-        'Need a type, a one-line claim, 3+ tags, and organism/system (or unknown).',
-      ])
+      throw new IntakeError(['Need a type, a one-line claim, and 3+ tags.'])
     }
   })
 
 export const updateCard = createServerFn({ method: 'POST' })
-  .validator((data: { id: string; notes?: string; status?: string }) => data)
+  .validator((data: { id: string; body?: string; status?: string }) => data)
   .handler(async ({ data }) => {
-    const patch: { notes?: string; status?: 'raw' | 'filed' | 'working' | 'dead' } = {}
-    if (typeof data.notes === 'string') patch.notes = data.notes
+    const patch: { body?: string; status?: 'raw' | 'filed' | 'working' | 'dead' } =
+      {}
+    if (typeof data.body === 'string') patch.body = data.body
     if (data.status) {
       if (!isCardStatus(data.status)) {
         throw new Error(`Unknown status: ${data.status}`)
       }
       patch.status = data.status
     }
-    const next = getCatalogStore().update(data.id, patch)
-    if (!next) throw notFound()
-    return decodeCard(next)
+    try {
+      const next = getCatalogStore().update(data.id, patch)
+      if (!next) throw notFound()
+      return next
+    } catch (error) {
+      if (error instanceof CardTransitionError) throw error
+      throw error
+    }
   })
 
 export const loadExampleCards = createServerFn({ method: 'POST' }).handler(
   async () => {
     const store = getCatalogStore()
-    const existing = new Set(store.list().map((card) => card.id))
-    for (const example of EXAMPLE_CARDS) {
-      if (!existing.has(example.id)) {
-        store.insert({ ...example, createdAt: Date.now(), updatedAt: Date.now() })
-      }
-    }
+    store.mergeExample(EXAMPLE_FRAGMENT)
     return store.list()
   },
 )

@@ -156,7 +156,7 @@ function CatalogCardExample() {
       </VantaCard.Header>
       <VantaCard.Subtitle>unknown organism</VantaCard.Subtitle>
       <VantaCard.Body>
-        One-line claim lives here. Tags, organism, and open questions already exist. Deeper notes wait.
+        One-line claim lives here. Tags and open questions can exist at dump. Organism is an optional guess. Body waits.
       </VantaCard.Body>
       <VantaCard.Divider />
       <div className="grid grid-cols-3 gap-4">

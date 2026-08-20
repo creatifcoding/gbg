@@ -12,7 +12,7 @@ function IntakePage() {
         <p className="vanta-label">Ten-second start</p>
         <h2 className="vanta-heading text-3xl">Dump, then file</h2>
         <p className="vanta-muted mt-2 max-w-xl text-[16px]">
-          One screen. No wizard. A card needs a type, a one-line claim, three tags, an organism or unknown, and whatever questions you already have.
+          One screen. No wizard. A Card needs a type, a one-line claim, and three tags. Organism, structure, and function guesses are optional. Questions if you already have them.
         </p>
       </header>
       <IntakeDrop />

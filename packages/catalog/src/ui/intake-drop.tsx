@@ -116,8 +116,8 @@ export function IntakeDrop() {
       <Field
         id={organismId}
         name="organism"
-        label="Organism / system"
-        placeholder="unknown"
+        label="Organism guess (optional)"
+        placeholder="leave blank"
       />
       <div className="space-y-2">
         <Label.Root htmlFor={questionsId} className="vanta-label">

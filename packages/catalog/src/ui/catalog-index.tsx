@@ -76,7 +76,7 @@ function EmptyCatalog({ onLoadExamples }: { onLoadExamples: () => Promise<void> 
     <div className="vanta-empty">
       <p className="vanta-heading text-xl">Empty catalog. That is valid.</p>
       <p className="vanta-muted mt-2 max-w-xl text-[16px]">
-        Intake is one screen. A dump becomes a card with type, claim, tags, organism, and open questions. Deeper notes wait until after the card exists.
+        Intake is one screen. A dump becomes a Card: type, claim, 3+ tags, optional guesses, open questions. Organism, structure, and function can wait. Body waits until after the card exists.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link to="/intake" className="vanta-btn-primary">

@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/catalog/src",
   "projectType": "application",
-  "tags": ["scope:gbg", "type:app", "domain:biomedical-catalog", "stack:tanstack-start"],
+  "tags": ["scope:gbg", "type:app", "domain:biomimetic-catalog", "stack:tanstack-start"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",

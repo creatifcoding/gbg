@@ -1,11 +1,18 @@
 import { VANTA_COLORS } from '~/components/portal/tokens'
-import type { CardKind, CardStatus } from './schema'
-import { CARD_KINDS, CARD_STATUSES } from './schema'
+import type { AnalogStatus, CardKind, CardStatus } from './schema'
+import { ANALOG_STATUSES, CARD_KINDS, CARD_STATUSES } from './schema'
 
 type CatalogIndicator = 'active' | 'pending' | 'inactive' | 'idle' | 'error'
 
+type Visual = {
+  accent: 'cyan' | 'emerald' | 'amber' | 'rose' | 'violet'
+  indicator: CatalogIndicator
+  color: string
+  glow: string
+}
+
 /**
- * Closed vocabularies for catalog cards.
+ * Closed vocabularies for biomimetic catalog cards and analogs.
  * Status maps onto VANTA accents. Do not invent a second palette.
  */
 export const STATUS_VISUAL = {
@@ -33,15 +40,34 @@ export const STATUS_VISUAL = {
     color: VANTA_COLORS.accent.rose,
     glow: VANTA_COLORS.accent.roseGlow,
   },
-} as const satisfies Record<
-  CardStatus,
-  {
-    accent: 'cyan' | 'emerald' | 'amber' | 'rose'
-    indicator: CatalogIndicator
-    color: string
-    glow: string
-  }
->
+} as const satisfies Record<CardStatus, Visual>
+
+export const ANALOG_STATUS_VISUAL = {
+  raw: {
+    accent: 'amber',
+    indicator: 'pending',
+    color: VANTA_COLORS.accent.amber,
+    glow: VANTA_COLORS.accent.amberGlow,
+  },
+  working: {
+    accent: 'emerald',
+    indicator: 'active',
+    color: VANTA_COLORS.accent.emerald,
+    glow: VANTA_COLORS.accent.emeraldGlow,
+  },
+  tested: {
+    accent: 'violet',
+    indicator: 'idle',
+    color: VANTA_COLORS.accent.violet,
+    glow: VANTA_COLORS.accent.violetGlow,
+  },
+  dead: {
+    accent: 'rose',
+    indicator: 'error',
+    color: VANTA_COLORS.accent.rose,
+    glow: VANTA_COLORS.accent.roseGlow,
+  },
+} as const satisfies Record<AnalogStatus, Visual>
 
 export const KIND_LABEL = {
   picture: 'picture',
@@ -54,10 +80,20 @@ export function statusVisual(status: CardStatus) {
   return STATUS_VISUAL[status]
 }
 
+export function analogStatusVisual(status: AnalogStatus) {
+  return ANALOG_STATUS_VISUAL[status]
+}
+
 export function isRegisteredKind(value: string): value is CardKind {
   return (CARD_KINDS as readonly string[]).includes(value)
 }
 
 export function isRegisteredStatus(value: string): value is CardStatus {
   return (CARD_STATUSES as readonly string[]).includes(value)
+}
+
+export function isRegisteredAnalogStatus(
+  value: string,
+): value is AnalogStatus {
+  return (ANALOG_STATUSES as readonly string[]).includes(value)
 }

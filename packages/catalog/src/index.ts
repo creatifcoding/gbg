@@ -1,33 +1,47 @@
 export {
+  ANALOG_STATUSES,
   Attachment,
   AttachmentId,
   AttachmentKind,
+  AnalogId,
+  BioFunction,
   CARD_KINDS,
   CARD_STATUSES,
   CardId,
   CardKind,
   CardStatus,
+  CardView,
   CatalogCard,
   CatalogFilter,
-  IntakeInput,
-  OrganismKnown,
-  OrganismSystem,
-  OrganismUnknown,
+  Edge,
+  EdgeId,
+  FunctionId,
+  Guess,
+  MechanismId,
+  OrganismId,
+  StructureId,
   Tags,
   attachmentKindFromMime,
   decodeCard,
-  decodeIntake,
   encodeCard,
+  getValidNextCardStates,
+  guessFromInput,
   isCardKind,
   isCardStatus,
-  organismFromInput,
+  isValidCardTransition,
   organismLabel,
   parseQuestions,
   parseTags,
 } from './lib/catalog/schema'
-export { fileCard, IntakeError } from './lib/catalog/intake'
+export { decodeIntake, fileCard, IntakeError, type IntakeInput } from './lib/catalog/intake'
 export { EXAMPLE_CARDS } from './lib/catalog/seed'
-export { STATUS_VISUAL, KIND_LABEL, statusVisual } from './lib/catalog/registry'
+export {
+  ANALOG_STATUS_VISUAL,
+  KIND_LABEL,
+  STATUS_VISUAL,
+  analogStatusVisual,
+  statusVisual,
+} from './lib/catalog/registry'
 export * from './components/portal'
 export { Badge } from './components/primitives/badge'
 export * from './ui'

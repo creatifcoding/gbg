@@ -46,7 +46,7 @@ triggers:
 | Subsystem | Path | Testbed | Skill |
 | --- | --- | --- | --- |
 | portal / VantaCard | `src/components/portal/` | `/testbed/vanta` | color, tokens, compound |
-| catalog domain | `src/lib/catalog/` | unit tests | intake, registry |
+| catalog domain | `src/lib/catalog/{schemas,models,repos,entity}` | unit tests | intake, registry |
 | screens | `src/ui/` | product routes | component-tiers |
 | testbed harness | `src/components/testbed/` | `/testbed/vanta` | testbed-patterns |
 

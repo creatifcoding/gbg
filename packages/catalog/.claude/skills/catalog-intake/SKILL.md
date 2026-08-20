@@ -1,6 +1,6 @@
 ---
 name: catalog-intake
-description: Catalog 10-second intake. Type, claim, tags, organism, open questions, then file. Invoke when building or changing dump, fileCard, or the intake screen.
+description: Catalog 10-second intake. Type, claim, 3+ tags, optional guesses, open questions, then file a Card. Invoke when building or changing dump, fileCard, or the intake screen.
 model_invoked: true
 triggers:
   - "intake"
@@ -14,17 +14,18 @@ triggers:
 
 # Catalog intake
 
-Dump first. File in one screen. Notes wait.
+Dump first. File in one screen. Body waits.
 
-A dump is not a paper. The app does not invent citations.
+This package is biomimetic. A dump becomes a Card, not a paper. The app does not invent citations. Organism, structure, and function are optional links or guesses. Do not block intake on a perfect taxonomy.
 
 ## Canonical sources
 
-- Schema: `src/lib/catalog/schema.ts`
+- Schemas: `src/lib/catalog/schemas/` (`card.ts`, `guess.ts`)
 - Invariant: `src/lib/catalog/intake.ts` (`fileCard`, `IntakeError`)
+- Entity: `src/lib/catalog/entity/card-entity.ts` (status machine + events)
 - Server: `src/lib/catalog/functions.ts` (`createCard`)
 - Screen: `src/ui/intake-drop.tsx`, `src/routes/intake.tsx`
-- Persistence: `src/lib/catalog/store.server.ts`
+- Persistence: `src/lib/catalog/repos/json-catalog.ts`, `src/lib/catalog/store.server.ts`
 
 ## First pass (required)
 
@@ -35,41 +36,34 @@ One screen. No wizard. No step 2.
 | type | `picture` \| `dossier` \| `artifact` \| `note` |
 | claim | one line, required |
 | tags | at least 3 |
-| organism / system | a label, or `unknown` |
+| organism guess | optional. Marked `{ label, guess: true }` if present |
 | open questions | zero or more, already in hand |
 
-Status starts `raw`. Attachments are optional. Notes are `''`.
+Status starts `raw`. Attachments are optional. Body is `''`.
 
-`fileCard` is the gate. If the dump cannot make that card, throw `IntakeError`. Do not save a partial.
+`fileCard` is the gate. If the dump cannot make that Card, throw `IntakeError`. Do not save a partial.
 
 ## Then file
 
-After `fileCard` succeeds, the card exists. Detail can take notes, move status (`filed` / `working` / `dead`), and show blobs.
+After `fileCard` succeeds, the Card exists. Detail can take body, move status (`filed` / `working` / `dead` via the machine), and show blobs.
 
 Deeper writing happens on `/cards/$cardId`, never as intake step 2.
 
 ## Patterns
 
-### Pattern 1: Decode, then commit
+### Pattern 1: Decode, then commit through the entity
 
 ```typescript
-export function fileCard(input: unknown, now = Date.now()): CatalogCard {
+export function fileCard(input: unknown, now = Date.now()): IntakeResult {
   const intake = decodeIntake(input) // throws -> IntakeError
-  return decodeCard({
-    …intake,
-    status: 'raw',
-    notes: '',
-    attachments: [],
-    example: false,
-    createdAt: now,
-    updatedAt: now,
-  })
+  const { card, event } = createCard({ …intake, status implied raw, body: '' }, now)
+  return { card, tags, questions, events: [event] }
 }
 ```
 
 ### Pattern 2: One form
 
-`IntakeDrop` is drop zone plus type tabs plus claim, tags, organism, questions, submit. Sliding tabs are Transitions.dev on VANTA colors. Inputs use `.vanta-input`.
+`IntakeDrop` is drop zone plus type tabs plus claim, tags, optional organism guess, questions, submit. Sliding tabs are Transitions.dev on VANTA colors. Inputs use `.vanta-input`.
 
 ### Pattern 3: Empty is valid
 
@@ -84,14 +78,23 @@ Index may render zero cards. Seed examples are opt-in and marked `example: true`
 /intake/type -> /intake/tags -> /intake/review
 ```
 
-### Notes at dump time
+### Body at dump time
 
 ```typescript
 // BANNED
-decodeIntake({ …, notes: 'methods section' })
+decodeIntake({ …, body: 'methods section' })
 ```
 
-Notes are not on `IntakeInput`.
+Body is not on `IntakeInput`.
+
+### Require a taxonomy to file
+
+```typescript
+// BANNED
+organism: required
+```
+
+A Card can exist with `organismGuess: null`. Do not invent an Organism record from a guess.
 
 ### Invented citations
 

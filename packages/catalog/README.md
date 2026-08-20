@@ -1,6 +1,6 @@
 # @gbg/catalog
 
-Biomedical research catalog. Dump a picture, dossier, artifact, or note and file it as a card in one screen.
+Biomimetic research catalog. Dump a picture, dossier, artifact, or note and file it as a Card in one screen. Cards can later depict organisms, structures, mechanisms, functions, and engineered analogs. The package is not a generic biomedical file cabinet.
 
 Empty catalog is valid. The app does not invent citations or papers.
 
@@ -10,16 +10,20 @@ Empty catalog is valid. The app does not invent citations or papers.
 
 ## Product invariant
 
-Intake is one screen, no wizard. Filing produces a card with:
+Intake is one screen, no wizard. Filing produces a Card first:
 
-- type: `picture` | `dossier` | `artifact` | `note`
-- status: starts `raw` (`filed` | `working` | `dead` later)
+- kind: `picture` | `dossier` | `artifact` | `note`
+- status machine: `raw` → `filed` → `working` → `dead` (skip-to-dead allowed; do not skip `filed`)
 - one-line claim
 - 3 or more tags
-- organism/system, or `unknown`
+- organism / structure / function guesses optional and marked `guess: true`
 - open questions (may be empty)
 
-Deeper notes exist only after the card exists.
+Body exists only after the Card exists. Taxonomy does not block intake.
+
+Analog is a separate event-sourced aggregate (`raw` → `working` → `tested` → `dead`) inspired by a Mechanism. Organism, Structure, Mechanism, Function, Attachment, Tag, and Question are reference-graph records. Edges are first-class (`exhibits`, `performs`, `via`, `inspires`, `contained-in`, `depicts`, `contradicts`).
+
+Deferred: Collection, kingdom/clade tree, Material separate from Structure, citations.
 
 ## Run
 
@@ -51,9 +55,9 @@ No cloud secrets. Auth is deferred.
 
 ## Persistence
 
-Local JSON at `packages/catalog/.data/catalog.json`. Blobs go in `.data/blobs/`. Override with `CATALOG_DATA_DIR`.
+Local JSON at `packages/catalog/.data/catalog.json` (snapshot version 2). Blobs go in `.data/blobs/`. Override with `CATALOG_DATA_DIR`. Version 1 files migrate on read.
 
-The card schema does not mention Notion. A Notion adapter can sit later without changing intake.
+The schema does not mention Notion. A Notion adapter can sit later without changing intake.
 
 ## Packages adopted
 
@@ -66,6 +70,8 @@ The card schema does not mention Notion. A Notion adapter can sit later without 
 | nanoid | Attachment ids. |
 
 React is the only UI framework. Motion is CSS from Transitions.dev. No Framer Motion, GSAP, or anime.js in this package.
+
+v1 RPCs are TanStack Start server functions, not Effect Cluster actors.
 
 ## Beautiful UI
 
@@ -93,7 +99,13 @@ Each recipe keeps its `prefers-reduced-motion` guard.
 
 ```
 packages/catalog/
-  src/lib/catalog/           schema, intake, file store, registry, server functions
+  src/lib/catalog/
+    schemas/     branded IDs, Card, Analog, reference graph, edges, events
+    models/      snapshot v2, CardView
+    repos/       JSON document + find/upsert
+    entity/      Card/Analog status machines (no Cluster)
+    intake.ts    10-second fileCard
+    functions.ts Start server functions
   src/components/portal/     VANTA tokens + VantaCard (cloned from tmnl portal)
   src/components/primitives/ token-driven Badge
   src/components/testbed/    VantaCardTestbed at /testbed/vanta
@@ -102,6 +114,8 @@ packages/catalog/
   src/styles/                VANTA CSS variables + transitions.dev recipes
   .claude/skills/            catalog-scoped skills mined from tmnl
 ```
+
+Layout is mined from `packages/tmnl/src/lib/iiot` (how to make an app). Names are biomimetic, not ISA-95.
 
 `src/index.ts` re-exports schema, intake, portal tokens, VantaCard, and screens.
 
@@ -125,4 +139,4 @@ Package-local skills live in `.claude/skills/`. Registry: `.claude/skills/SKILL_
 
 ## Example cards
 
-The catalog boots empty. The index has a button that loads three cards tagged `example`. They are labeled as synthetic UI fixtures. They are not papers.
+The catalog boots empty. The index has a button that loads marked example cards (gecko setae, lotus leaf, unknown scale) plus a gecko-tape Analog fixture. They are labeled as synthetic UI fixtures. They are not papers.

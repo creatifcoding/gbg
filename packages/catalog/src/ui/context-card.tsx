@@ -16,7 +16,7 @@ export function ContextCard({ card }: { card: CatalogCard }) {
             label={card.example ? `${card.status} example` : card.status}
           />
         </VantaCard.Header>
-        <VantaCard.Subtitle>{organismLabel(card.organism)}</VantaCard.Subtitle>
+        <VantaCard.Subtitle>{organismLabel(card.organismGuess)}</VantaCard.Subtitle>
         <VantaCard.Body>{card.claim}</VantaCard.Body>
         <div className="mt-4 flex flex-wrap gap-2">
           {card.tags.map((tag) => (

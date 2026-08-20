@@ -17,8 +17,8 @@ The catalog registry is a closed map from domain literals onto VANTA visuals.
 
 ## Canonical sources
 
-- Vocabularies: `src/lib/catalog/schema.ts` (`CARD_KINDS`, `CARD_STATUSES`)
-- Visual map: `src/lib/catalog/registry.ts` (`STATUS_VISUAL`, `KIND_LABEL`)
+- Vocabularies: `src/lib/catalog/schemas/card.ts`, `src/lib/catalog/schemas/analog.ts`
+- Visual map: `src/lib/catalog/registry.ts` (`STATUS_VISUAL`, `ANALOG_STATUS_VISUAL`, `KIND_LABEL`)
 - Tests: `src/lib/catalog/registry.test.ts`
 - Consumer: `src/ui/context-card.tsx`
 
@@ -28,32 +28,38 @@ Kinds and statuses are Effect Schema literals. `isCardKind` / `isRegisteredKind`
 
 ```typescript
 export const CARD_STATUSES = ['raw', 'filed', 'working', 'dead'] as const
+export const ANALOG_STATUSES = ['raw', 'working', 'tested', 'dead'] as const
 ```
+
+Card machine: `raw → filed → working → dead` (skip-to-dead allowed; do not skip filed).
+Analog machine: `raw → working → tested → dead`.
 
 ## Pattern 2: Visual singleton
 
-One object. Import it. Do not fork amber for "raw" in a component.
+One object per aggregate. Import it. Do not fork amber for "raw" in a component.
 
 ```typescript
 export const STATUS_VISUAL = {
-  raw: { accent: 'amber', indicator: 'pending', color: VANTA_COLORS.accent.amber, glow: VANTA_COLORS.accent.amberGlow },
-  filed: { accent: 'cyan', indicator: 'idle', color: VANTA_COLORS.accent.cyan, glow: VANTA_COLORS.accent.cyanGlow },
-  working: { accent: 'emerald', indicator: 'active', color: VANTA_COLORS.accent.emerald, glow: VANTA_COLORS.accent.emeraldGlow },
-  dead: { accent: 'rose', indicator: 'error', color: VANTA_COLORS.accent.rose, glow: VANTA_COLORS.accent.roseGlow },
+  raw: { accent: 'amber', indicator: 'pending', … },
+  filed: { accent: 'cyan', indicator: 'idle', … },
+  working: { accent: 'emerald', indicator: 'active', … },
+  dead: { accent: 'rose', indicator: 'error', … },
 } as const satisfies Record<CardStatus, …>
 ```
+
+Analog `tested` maps to violet. Still a VANTA accent.
 
 `satisfies Record<CardStatus, …>` fails the build if a status is missing.
 
 ## Pattern 3: Exhaustiveness test
 
-`registry.test.ts` walks `CARD_STATUSES` and asserts every key exists. When you add a status, the test fails until the map is updated.
+`registry.test.ts` walks `CARD_STATUSES` and `ANALOG_STATUSES` and asserts every key exists. When you add a status, the test fails until the map is updated.
 
 ## When catalog needs a real singleton later
 
 If client state must be shared outside React, follow tmnl's atom registry pattern from `packages/tmnl/.claude/skills/tmnl-registry-patterns/SKILL.md`. Do not copy overlay code until catalog actually has overlays.
 
-Until then, `STATUS_VISUAL` is the registry.
+Until then, `STATUS_VISUAL` / `ANALOG_STATUS_VISUAL` are the registry.
 
 ## Anti-patterns
 
@@ -79,7 +85,7 @@ kind: CardKind
 
 ### Multiple STATUS_VISUAL objects
 
-One module. One export.
+One module. Card map and analog map live there. Do not fork a third palette in UI.
 
 ## Related
 

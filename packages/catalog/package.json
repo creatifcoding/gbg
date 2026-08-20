@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Biomedical research catalog. 10-second intake into filed cards",
+  "description": "Biomimetic research catalog. 10-second intake into filed cards",
   "author": "GBG",
   "license": "MIT",
   "repository": {
@@ -56,7 +56,7 @@
   "keywords": [
     "gbg",
     "catalog",
-    "biomedical",
+    "biomimetic",
     "tanstack-start"
   ]
 }

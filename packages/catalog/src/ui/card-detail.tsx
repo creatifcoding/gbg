@@ -1,10 +1,10 @@
 import { useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import * as Label from '@radix-ui/react-label'
 import * as Separator from '@radix-ui/react-separator'
 import { updateCard } from '~/lib/catalog/functions'
 import {
-  CARD_STATUSES,
+  getValidNextCardStates,
   organismLabel,
   type CatalogCard,
   type CardStatus,
@@ -13,9 +13,22 @@ import { SlidingTabs } from './sliding-tabs'
 
 export function CardDetail({ card }: { card: CatalogCard }) {
   const router = useRouter()
-  const [notes, setNotes] = useState(card.notes)
+  const [body, setBody] = useState(card.body)
   const [status, setStatus] = useState<CardStatus>(card.status)
   const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+
+  const statusOptions = useMemo(() => {
+    const next = getValidNextCardStates(status)
+    const values = [status, ...next]
+    return values.map((value) => ({ value, label: value }))
+  }, [status])
+
+  const guesses = [
+    card.organismGuess ? `organism guess: ${card.organismGuess.label}` : null,
+    card.structureGuess ? `structure guess: ${card.structureGuess.label}` : null,
+    card.functionGuess ? `function guess: ${card.functionGuess.label}` : null,
+  ].filter((item): item is string => item !== null)
 
   return (
     <article className="t-panel-slide space-y-6" data-open="true">
@@ -28,7 +41,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
       <header className="space-y-3">
         <p className="vanta-label">
           {card.kind} · <span className={`status-${card.status}`}>{status}</span> ·{' '}
-          {organismLabel(card.organism)}
+          {organismLabel(card.organismGuess)}
         </p>
         <h2 className="vanta-heading text-3xl leading-tight">{card.claim}</h2>
         <div className="flex flex-wrap gap-2">
@@ -38,6 +51,13 @@ export function CardDetail({ card }: { card: CatalogCard }) {
             </span>
           ))}
         </div>
+        {guesses.length > 0 ? (
+          <p className="vanta-muted text-[14px]">{guesses.join(' · ')}</p>
+        ) : (
+          <p className="vanta-muted text-[14px]">
+            No organism, structure, or function guess. Taxonomy is optional.
+          </p>
+        )}
       </header>
 
       <section className="space-y-3">
@@ -45,13 +65,26 @@ export function CardDetail({ card }: { card: CatalogCard }) {
         <SlidingTabs
           ariaLabel="Card status"
           value={status}
-          options={CARD_STATUSES.map((value) => ({ value, label: value }))}
+          options={statusOptions}
           onChange={async (next) => {
+            if (next === status) return
+            const previous = status
             setStatus(next)
-            await updateCard({ data: { id: card.id, status: next } })
-            await router.invalidate()
+            setError('')
+            try {
+              await updateCard({ data: { id: card.id, status: next } })
+              await router.invalidate()
+            } catch (caught) {
+              setStatus(previous)
+              setError(
+                caught instanceof Error
+                  ? caught.message
+                  : 'That status move is not allowed.',
+              )
+            }
           }}
         />
+        {error ? <p className="vanta-error">{error}</p> : null}
       </section>
 
       <section className="space-y-3">
@@ -102,28 +135,28 @@ export function CardDetail({ card }: { card: CatalogCard }) {
           event.preventDefault()
           setPending(true)
           try {
-            await updateCard({ data: { id: card.id, notes } })
+            await updateCard({ data: { id: card.id, body } })
             await router.invalidate()
           } finally {
             setPending(false)
           }
         }}
       >
-        <Label.Root htmlFor="notes" className="vanta-label">
-          Deeper notes
+        <Label.Root htmlFor="body" className="vanta-label">
+          Body
         </Label.Root>
         <p className="vanta-muted text-[14px]">
-          This field stays empty until the card exists. Write after filing.
+          Markdown later. This field stays empty until the card exists.
         </p>
         <textarea
-          id="notes"
-          value={notes}
-          onChange={(event) => setNotes(event.currentTarget.value)}
+          id="body"
+          value={body}
+          onChange={(event) => setBody(event.currentTarget.value)}
           rows={8}
           className="vanta-textarea"
         />
         <button type="submit" disabled={pending} className="vanta-btn-primary">
-          {pending ? 'Saving…' : 'Save notes'}
+          {pending ? 'Saving…' : 'Save body'}
         </button>
       </form>
     </article>
