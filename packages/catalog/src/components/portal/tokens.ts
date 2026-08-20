@@ -2,9 +2,9 @@
  * TMNL Vantablack Design System — Tokens
  *
  * SOURCE: copied from packages/tmnl/src/components/portal/tokens.ts
- * @gbg/tmnl has no clean subpath for portal tokens (src/index.ts barrels
- * the whole app). Catalog copies these constants only — not VantaCard,
- * shells, tauri, or other tmnl UI.
+ * Canonical remains that tmnl file. @gbg/tmnl barrels the whole app,
+ * so catalog keeps a local copy here next to VantaCard.
+ * Do not import tmnl shells, tauri, elixir, renode, or iiot.
  *
  * Canonical design tokens for the vantablack card system.
  * Splash defines the aesthetic; these tokens extract it for reuse.

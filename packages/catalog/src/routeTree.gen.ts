@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as IntakeRouteImport } from './routes/intake'
 import { Route as CardsCardIdRouteImport } from './routes/cards.$cardId'
+import { Route as TestbedVantaRouteImport } from './routes/testbed.vanta'
 import { Route as ApiBlobsCardIdAttachmentIdRouteImport } from './routes/api/blobs.$cardId.$attachmentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const CardsCardIdRoute = CardsCardIdRouteImport.update({
   path: '/cards/$cardId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TestbedVantaRoute = TestbedVantaRouteImport.update({
+  id: '/testbed/vanta',
+  path: '/testbed/vanta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBlobsCardIdAttachmentIdRoute =
   ApiBlobsCardIdAttachmentIdRouteImport.update({
     id: '/api/blobs/$cardId/$attachmentId',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/intake': typeof IntakeRoute
   '/cards/$cardId': typeof CardsCardIdRoute
+  '/testbed/vanta': typeof TestbedVantaRoute
   '/api/blobs/$cardId/$attachmentId': typeof ApiBlobsCardIdAttachmentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/intake': typeof IntakeRoute
   '/cards/$cardId': typeof CardsCardIdRoute
+  '/testbed/vanta': typeof TestbedVantaRoute
   '/api/blobs/$cardId/$attachmentId': typeof ApiBlobsCardIdAttachmentIdRoute
 }
 export interface FileRoutesById {
@@ -53,6 +61,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/intake': typeof IntakeRoute
   '/cards/$cardId': typeof CardsCardIdRoute
+  '/testbed/vanta': typeof TestbedVantaRoute
   '/api/blobs/$cardId/$attachmentId': typeof ApiBlobsCardIdAttachmentIdRoute
 }
 export interface FileRouteTypes {
@@ -61,14 +70,21 @@ export interface FileRouteTypes {
     | '/'
     | '/intake'
     | '/cards/$cardId'
+    | '/testbed/vanta'
     | '/api/blobs/$cardId/$attachmentId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/intake' | '/cards/$cardId' | '/api/blobs/$cardId/$attachmentId'
+  to:
+    | '/'
+    | '/intake'
+    | '/cards/$cardId'
+    | '/testbed/vanta'
+    | '/api/blobs/$cardId/$attachmentId'
   id:
     | '__root__'
     | '/'
     | '/intake'
     | '/cards/$cardId'
+    | '/testbed/vanta'
     | '/api/blobs/$cardId/$attachmentId'
   fileRoutesById: FileRoutesById
 }
@@ -76,6 +92,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   IntakeRoute: typeof IntakeRoute
   CardsCardIdRoute: typeof CardsCardIdRoute
+  TestbedVantaRoute: typeof TestbedVantaRoute
   ApiBlobsCardIdAttachmentIdRoute: typeof ApiBlobsCardIdAttachmentIdRoute
 }
 
@@ -102,6 +119,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CardsCardIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/testbed/vanta': {
+      id: '/testbed/vanta'
+      path: '/testbed/vanta'
+      fullPath: '/testbed/vanta'
+      preLoaderRoute: typeof TestbedVantaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/blobs/$cardId/$attachmentId': {
       id: '/api/blobs/$cardId/$attachmentId'
       path: '/api/blobs/$cardId/$attachmentId'
@@ -116,6 +140,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   IntakeRoute: IntakeRoute,
   CardsCardIdRoute: CardsCardIdRoute,
+  TestbedVantaRoute: TestbedVantaRoute,
   ApiBlobsCardIdAttachmentIdRoute: ApiBlobsCardIdAttachmentIdRoute,
 }
 export const routeTree = rootRouteImport

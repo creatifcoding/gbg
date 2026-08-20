@@ -4,6 +4,7 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
+  useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import appCss from '~/styles/app.css?url'
@@ -33,11 +34,18 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const isTestbed = pathname.startsWith('/testbed')
+
   return (
     <RootDocument>
-      <Shell title="Research catalog">
+      {isTestbed ? (
         <Outlet />
-      </Shell>
+      ) : (
+        <Shell title="Research catalog">
+          <Outlet />
+        </Shell>
+      )}
       <TanStackRouterDevtools position="bottom-right" />
     </RootDocument>
   )

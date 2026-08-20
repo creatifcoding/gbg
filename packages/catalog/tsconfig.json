@@ -20,6 +20,7 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
+      "@/*": ["./src/*"],
       "@gbg/catalog": ["./src/index.ts"]
     }
   },

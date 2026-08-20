@@ -93,23 +93,35 @@ Each recipe keeps its `prefers-reduced-motion` guard.
 
 ```
 packages/catalog/
-  src/lib/catalog/   schema, intake, file store, server functions
-  src/routes/        Start file routes
-  src/ui/            catalog screens, VANTA token copy, vendored-pattern components
-  src/styles/        VANTA CSS variables + transitions.dev recipes
+  src/lib/catalog/           schema, intake, file store, registry, server functions
+  src/components/portal/     VANTA tokens + VantaCard (cloned from tmnl portal)
+  src/components/primitives/ token-driven Badge
+  src/components/testbed/    VantaCardTestbed at /testbed/vanta
+  src/ui/                    catalog screens
+  src/routes/                Start file routes
+  src/styles/                VANTA CSS variables + transitions.dev recipes
+  .claude/skills/            catalog-scoped skills mined from tmnl
 ```
 
-`src/index.ts` re-exports the schema, VANTA tokens, and UI the same way other `@gbg/*` packages expose a facade.
+`src/index.ts` re-exports schema, intake, portal tokens, VantaCard, and screens.
 
 ## Visual system
 
 Catalog uses TMNL's Vanta Black tokens. There is no second palette.
 
-Canonical source: `packages/tmnl/src/components/portal/tokens.ts` (`VANTA_COLORS`, `VANTA_TYPOGRAPHY`, `VANTA_BORDERS`, `VANTA_ANIMATION`). `@gbg/tmnl` barrels the whole app from `src/index.ts`, so catalog copies those token constants into `src/ui/vanta/tokens.ts`. It does not import tmnl shells, tauri, or `VantaCard`.
+Canonical source: `packages/tmnl/src/components/portal/tokens.ts`. `@gbg/tmnl` barrels the whole app, so catalog copies the token constants into `src/components/portal/tokens.ts` and clones `VantaCard`. It does not import tmnl shells, tauri, elixir, renode, or iiot.
 
-Surfaces are void/base (`#000000` / `#030303`). Accents stay cyan, emerald, amber, rose, violet. Labels use Share Tech Mono, headings Space Grotesk, body Geo. Radii are 2–4px.
+Surfaces are void/base (`#000000` / `#030303`). Accents stay cyan, emerald, amber, rose, violet. Labels use Share Tech Mono, headings Space Grotesk, body Geo. Radii are 2 to 4px.
 
-Radix, Beautiful UI patterns, and Transitions.dev sit on these tokens. Transitions.dev tab/tooltip colors are remapped to VANTA surfaces; the motion recipes are unchanged.
+Index cards are `VantaCard` compounds. Status maps through `src/lib/catalog/registry.ts`.
+
+Radix, Beautiful UI patterns, and Transitions.dev sit on these tokens. Transitions.dev tab/tooltip colors are remapped to VANTA surfaces. The motion recipes are unchanged.
+
+Testbed: http://127.0.0.1:3007/testbed/vanta
+
+## Skills
+
+Package-local skills live in `.claude/skills/`. Registry: `.claude/skills/SKILL_REGISTRY.md`. They rewrite tmnl color, token, tier, type, file, testbed, registry, compound-component, and grounded-research skills for catalog, plus `catalog-intake`.
 
 ## Example cards
 

@@ -27,4 +27,7 @@ export {
 } from './lib/catalog/schema'
 export { fileCard, IntakeError } from './lib/catalog/intake'
 export { EXAMPLE_CARDS } from './lib/catalog/seed'
+export { STATUS_VISUAL, KIND_LABEL, statusVisual } from './lib/catalog/registry'
+export * from './components/portal'
+export { Badge } from './components/primitives/badge'
 export * from './ui'

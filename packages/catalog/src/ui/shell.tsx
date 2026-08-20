@@ -17,6 +17,7 @@ export function Shell({
           <nav className="vanta-nav mt-8 flex flex-col gap-1">
             <Link to="/">Catalog</Link>
             <Link to="/intake">Intake</Link>
+            <Link to="/testbed/vanta">Testbed</Link>
           </nav>
           <p className="vanta-muted mt-10 text-[12px] leading-5">
             Dump first. File a card in one screen. Notes wait until the card exists.
