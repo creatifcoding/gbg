@@ -1,5 +1,6 @@
 /**
  * SpecimenRail — compound list + detail. List() on mount, Get() on select.
+ * Visual: Variant Workbench (dense charcoal cards, IBM Plex Mono kickers).
  *
  * @module @tmnl/specimendb/ui
  */
@@ -30,15 +31,32 @@ const FILTERS: ReadonlyArray<{ readonly id: StatusFilter; readonly label: string
   { id: 'dead', label: 'DEAD' },
 ];
 
+const StatusMark = ({
+  status,
+  testId,
+}: {
+  readonly status: SpecimenStatus;
+  readonly testId: string;
+}) => (
+  <span className="sdb-pill" data-status={status} data-testid={testId}>
+    <span className="sdb-pill-dot" aria-hidden="true" />
+    {status}
+  </span>
+);
+
 export type SpecimenRailProps = {
   readonly catalog: CatalogSurface;
   readonly children?: ReactNode;
 };
 
 function SpecimenRailRoot({ catalog, children }: SpecimenRailProps) {
+  const composed = children !== undefined
   return (
     <SpecimenRailContext.Provider value={catalog}>
-      <section className="sdb-rail" data-testid="specimen-rail">
+      <section
+        className={composed ? 'sdb-rail-host' : 'sdb-rail'}
+        data-testid="specimen-rail"
+      >
         {children ?? (
           <>
             <SpecimenRailHeader />
@@ -56,8 +74,8 @@ function SpecimenRailHeader() {
   const catalog = useRail();
   const online = useFocus(catalog.store, at<CatalogState['online']>(catalog.store.lens.online));
   return (
-    <div className="sdb-kicker">
-      <span className="sdb-kicker-title">// SPECIMENDB</span>
+    <div className="sdb-rail-header">
+      <span className="sdb-kicker-title">SpecimenDB // Core</span>
       <span className={online ? 'sdb-online' : 'sdb-offline'} data-testid="rail-online">
         {online ? 'ONLINE' : 'OFFLINE'}
       </span>
@@ -151,6 +169,7 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
   const preview = previews[specimen.id];
   const claim = specimen.components.find((c) => c._tag === 'Claim');
   const tags = specimen.components.filter((c) => c._tag === 'Tag');
+  const body = claim?._tag === 'Claim' && claim.text.length > 0 ? claim.text : media?.filename;
 
   return (
     <button
@@ -160,23 +179,20 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
       data-selected={selectedId === specimen.id ? 'true' : 'false'}
       onClick={() => void catalog.select(specimen.id)}
     >
-      <div className="sdb-card-media">
-        {preview !== undefined ? <img src={preview} alt="" /> : null}
-        <span className="sdb-pill" data-status={status} data-testid="status-pill">
-          {status}
+      <div className="sdb-card-idrow">
+        <span className="sdb-id" data-testid="specimen-id">
+          {specimen.id}
         </span>
+        <StatusMark status={status} testId="status-pill" />
       </div>
-      <div className="sdb-card-body">
-        <div className="sdb-card-meta">
-          <span className="sdb-id" data-testid="specimen-id">
-            {specimen.id}
-          </span>
-          <span className="sdb-locality" data-testid="locality">
-            {localityLabel(specimen)}
-          </span>
-        </div>
-        {claim?._tag === 'Claim' && claim.text.length > 0 ? <p className="sdb-claim">{claim.text}</p> : null}
-        {media !== undefined ? <span className="sdb-locality">{media.filename}</span> : null}
+      <div className="sdb-card-media tech-grid">
+        {preview !== undefined ? <img src={preview} alt="" /> : null}
+      </div>
+      {body !== undefined ? <p className="sdb-claim">{body}</p> : null}
+      <div className="sdb-card-foot">
+        <span className="sdb-locality" data-testid="locality">
+          {localityLabel(specimen)}
+        </span>
         {tags.length > 0 ? (
           <div className="sdb-tags">
             {tags.map((tag) =>
@@ -202,8 +218,8 @@ function SpecimenRailDetail() {
   if (selected === null) {
     return (
       <section className="sdb-detail" data-testid="specimen-detail">
-        <div className="sdb-kicker">
-          <span className="sdb-kicker-title">// RECORD</span>
+        <div className="sdb-detail-header">
+          <span className="sdb-kicker-title">Record</span>
         </div>
         <p className="sdb-empty">NO SELECTION</p>
       </section>
@@ -215,9 +231,7 @@ function SpecimenRailDetail() {
   return (
     <section className="sdb-detail" data-testid="specimen-detail">
       <div className="sdb-detail-meta">
-        <span className="sdb-pill" data-status={status} data-testid="detail-status">
-          {status}
-        </span>
+        <StatusMark status={status} testId="detail-status" />
         <span className="sdb-locality">CREATED {selected.createdAt}</span>
       </div>
       <h1 className="sdb-detail-id" data-testid="detail-id">

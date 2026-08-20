@@ -20,7 +20,7 @@ afterEach(() => {
   cleanup();
 });
 
-const BANISHED_IDS = ['SP-2023-084', 'SEQ-882.C'];
+const BANISHED_IDS = ['SP-2023-084', 'SEQ-882.C', 'SP-9942-X'];
 
 function Shell({ client }: { readonly client: SpecimenRpcClient }) {
   const catalog = useMemo(() => createCatalog(client), [client]);
@@ -85,6 +85,9 @@ describe('IntakeDrop + SpecimenRail', () => {
     await waitFor(() => {
       expect(calls.list).toBeGreaterThan(0);
     });
+    expect(view.getByTestId('intake-zone').textContent).toContain('Initiate_Intake_Protocol');
+    expect(view.container.textContent).toContain('SpecimenDB // Core');
+    expect(view.container.textContent).not.toContain('DRAG_AND_DROP_ASSETS');
 
     const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
     const input = view.getByTestId('intake-file') as HTMLInputElement;

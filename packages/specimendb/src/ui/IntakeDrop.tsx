@@ -1,5 +1,6 @@
 /**
  * IntakeDrop — compound drop/pick zone. Calls SpecimenRpcs.Intake.
+ * Visual: Variant Terminal (Initiate_Intake_Protocol + tech-grid).
  *
  * @module @tmnl/specimendb/ui
  */
@@ -42,8 +43,8 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
 
 function IntakeDropHeader() {
   return (
-    <div className="sdb-kicker">
-      <span className="sdb-kicker-title">// ACCESSION_INTAKE</span>
+    <div className="sdb-intake-header">
+      <span className="sdb-kicker-title">Local Catalog</span>
     </div>
   );
 }
@@ -83,7 +84,7 @@ function IntakeDropZone() {
     <>
       <button
         type="button"
-        className="sdb-zone"
+        className="sdb-zone tech-grid"
         data-testid="intake-zone"
         data-active={active ? 'true' : 'false'}
         data-status={intakeStatus}
@@ -99,10 +100,10 @@ function IntakeDropZone() {
         onDragLeave={() => setActive(false)}
         onDrop={onDrop}
       >
-        <span aria-hidden="true">↑</span>
-        <span className="sdb-zone-label">
-          {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'DRAG_AND_DROP_ASSETS'}
+        <span className="sdb-zone-protocol">
+          {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'Initiate_Intake_Protocol'}
         </span>
+        <span className="sdb-zone-sub">DRAG FIELD ASSETS OR RAW DATA PACKETS HERE</span>
       </button>
       <input
         ref={inputRef}
