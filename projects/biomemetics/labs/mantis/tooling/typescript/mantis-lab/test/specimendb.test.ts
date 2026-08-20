@@ -14,6 +14,7 @@ import {
   EVIDENCE_SCHEMA_PATH,
   LOCAL_EVIDENCE_RUN,
   attachEvidence,
+  createRpcAttachPort,
   createStubAttachPort,
   isLocalEvidenceRecordRef,
   loadEvidenceRuntimeValidator,
@@ -608,4 +609,70 @@ test('refuses caller component prose and non-local evidence refs', async () => {
       error.reasons.includes('evidence-not-local-run'),
   );
   assert.equal(port.calls.length, 0);
+});
+
+test('RPC attach port calls published Attach and does not open PGlite', async () => {
+  const attachCalls: Array<{
+    readonly specimenId: string;
+    readonly component: { readonly _tag: string };
+  }> = [];
+  const client = {
+    Get: async ({ specimenId }: { readonly specimenId: string }) => ({
+      id: specimenId,
+    }),
+    Attach: async (payload: {
+      readonly specimenId: string;
+      readonly component: { readonly _tag: string; readonly text?: string };
+    }) => {
+      attachCalls.push(payload);
+      return {
+        id: payload.specimenId,
+        components: [{ _tag: 'Locality' }, payload.component],
+      };
+    },
+  };
+  const port = createRpcAttachPort(client);
+  const receipts = await attachEvidence(
+    port,
+    { specimenId: existingSpecimenId, artifact: localArtifact() },
+    validator,
+  );
+  assert.equal(receipts[0]?.mode, 'rpc');
+  assert.equal(receipts[0]?.storeWrite, false);
+  assert.equal(receipts[0]?.localityMutated, false);
+  assert.equal(attachCalls.length, 1);
+  assert.deepEqual(attachCalls[0]?.component, {
+    _tag: 'Structure',
+    text: 'Coupon exposes twelve contacts.',
+  });
+  assert.equal(AttachRpcContract.name, 'Attach');
+  assert.equal(AttachRpcContract.payload.component, 'AttachableComponent');
+});
+
+test('unverified evidence never reaches the published Attach RPC', async () => {
+  let attachCalls = 0;
+  const port = createRpcAttachPort({
+    Get: async ({ specimenId }) => ({ id: specimenId }),
+    Attach: async (payload) => {
+      attachCalls += 1;
+      return { id: payload.specimenId, components: [] };
+    },
+  });
+  await assert.rejects(
+    () =>
+      attachEvidence(
+        port,
+        {
+          specimenId: existingSpecimenId,
+          artifact: localArtifact(
+            evidenceRecord({ review: { status: 'pending' } }),
+          ),
+        },
+        validator,
+      ),
+    (error: unknown) =>
+      error instanceof AttachRefused &&
+      error.reasons.includes('unverified-evidence'),
+  );
+  assert.equal(attachCalls, 0);
 });

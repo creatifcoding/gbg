@@ -14,9 +14,16 @@ import {
   StatusComponent,
   type Component,
 } from '../src/schemas/components.js';
-import { SpecimenNotFoundError } from '../src/schemas/errors.js';
+import { AttachError, SpecimenNotFoundError } from '../src/schemas/errors.js';
 import { trustSpecimenId, type SpecimenId } from '../src/schemas/identifiers.js';
-import { nextStatus, statusOf, type IntakePayload, type IntakeResult, type Specimen } from '../src/schemas/specimen.js';
+import {
+  nextStatus,
+  statusOf,
+  type AttachPayload,
+  type IntakePayload,
+  type IntakeResult,
+  type Specimen,
+} from '../src/schemas/specimen.js';
 import { detectMediaKind, extractExifTags, gpsFromExif } from '../src/media/exif.js';
 import type { SpecimenRpcClient } from '../src/ui/catalog-stx.js';
 
@@ -121,7 +128,33 @@ export const makeMemoryRepo = () => {
       return updated;
     });
 
-  return { intake, get, list, promote };
+  const attach = (payload: typeof AttachPayload.Type) =>
+    Effect.gen(function* () {
+      const tag: string = payload.component._tag;
+      if (tag === 'Locality') {
+        return yield* new AttachError({
+          specimenId: payload.specimenId,
+          reason: 'invented-locality',
+          message: 'Attach cannot admit Locality or GPS',
+        });
+      }
+      if (tag === 'Taxon') {
+        return yield* new AttachError({
+          specimenId: payload.specimenId,
+          reason: 'invented-taxon',
+          message: 'Attach cannot admit Taxon',
+        });
+      }
+      const specimen = yield* get(payload.specimenId);
+      const updated: Specimen = {
+        ...specimen,
+        components: [...specimen.components, payload.component],
+      };
+      rows.set(payload.specimenId, updated);
+      return updated;
+    });
+
+  return { intake, get, list, promote, attach };
 };
 
 export const makeMemoryClient = (): SpecimenRpcClient => {
@@ -131,5 +164,6 @@ export const makeMemoryClient = (): SpecimenRpcClient => {
     Get: (payload) => repo.get(payload.specimenId),
     List: () => repo.list(),
     Promote: (payload) => repo.promote(payload.specimenId),
+    Attach: (payload) => repo.attach(payload),
   };
 };

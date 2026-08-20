@@ -133,6 +133,8 @@ export interface AttachPayload {
   readonly provenance: ProjectionProvenance;
 }
 
+export type AttachMode = 'stub' | 'rpc';
+
 export interface AttachResult {
   readonly specimenId: SpecimenId;
   readonly evidenceId: string;
@@ -140,27 +142,21 @@ export interface AttachResult {
   readonly localityMutated: false;
   readonly taxonMutated: false;
   readonly storeWrite: false;
-  readonly mode: 'stub';
+  readonly mode: AttachMode;
 }
 
 /**
- * Published Attach RPC shape (Effect `Rpc.make('Attach', …)` once the catalog
- * package exposes it). This client talks to a stub port only.
+ * Published Attach RPC shape (`Rpc.make('Attach', …)` on `@tmnl/specimendb`).
+ * Payload is SpecimenId + attachable component. Provenance stays on this client.
  */
 export const AttachRpcContract = {
   name: 'Attach',
   payload: {
     specimenId: 'SpecimenId',
-    component: 'governed-admission',
-    provenance: 'ProjectionProvenance',
+    component: 'AttachableComponent',
   },
-  success: {
-    localityMutated: false,
-    taxonMutated: false,
-    storeWrite: false,
-    mode: 'stub',
-  },
-  error: 'AttachRefused',
+  success: 'Specimen',
+  error: 'AttachError',
 } as const;
 
 export interface SpecimenDbAttachPort extends SpecimenDbPort {
@@ -570,9 +566,8 @@ export const attachEvidence = async (
       localityMutated: false,
       taxonMutated: false,
       storeWrite: false,
-      mode: 'stub',
+      mode: receipt.mode,
     });
-    void receipt;
   }
   return receipts;
 };
@@ -613,3 +608,48 @@ export const createStubAttachPort = (
     },
   };
 };
+
+/**
+ * Promise-shaped Get/Attach client matching `@tmnl/specimendb` SpecimenRpcs.
+ * Wrap Effect RPC with `Effect.runPromise` at the composition site.
+ * Does not import PGlite.
+ */
+export interface CatalogAttachRpc {
+  readonly Get: (payload: {
+    readonly specimenId: string;
+  }) => Promise<{ readonly id: string }>;
+  readonly Attach: (payload: {
+    readonly specimenId: string;
+    readonly component: SpecimenComponentDraft;
+  }) => Promise<{
+    readonly id: string;
+    readonly components?: readonly { readonly _tag: string }[];
+  }>;
+}
+
+export const createRpcAttachPort = (
+  client: CatalogAttachRpc,
+): SpecimenDbAttachPort => ({
+  get: async (specimenId) => {
+    const specimen = await client.Get({ specimenId });
+    return { id: specimen.id };
+  },
+  attach: async (payload) => {
+    const specimen = await client.Attach({
+      specimenId: payload.specimenId,
+      component: payload.component,
+    });
+    if (specimen.id !== payload.specimenId) {
+      throw new Error('SpecimenDB returned a different specimen id');
+    }
+    return {
+      specimenId: payload.specimenId,
+      evidenceId: payload.provenance.evidenceId,
+      claimRefs: payload.provenance.claimRefs,
+      localityMutated: false,
+      taxonMutated: false,
+      storeWrite: false,
+      mode: 'rpc',
+    };
+  },
+});
