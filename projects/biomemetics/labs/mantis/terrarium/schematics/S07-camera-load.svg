@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
-<rect width="420" height="297" fill="#fcfcfb"/>
+<rect width="420" height="297" fill="#ffffff"/>
 <defs>
   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
   <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
@@ -16,22 +16,23 @@
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
+<rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
 <text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">CAMERA BINDER ASSEMBLY</text>
 <text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="28" y="32" width="126" height="84" rx="6" class="heavy" fill="#eef1f4"/>
-<rect x="42" y="48" width="50" height="48" rx="0" class="med" fill="#d8e2e7"/>
-<circle cx="67" cy="72" r="13" class="heavy" fill="#eef3f5"/>
+<rect x="28" y="32" width="126" height="84" rx="0" class="heavy" fill="#ffffff"/>
+<rect x="42" y="48" width="50" height="48" rx="0" class="med" fill="#ffffff"/>
+<circle cx="67" cy="72" r="13" class="heavy" fill="#ffffff"/>
 <text x="67" y="102" font-size="2.3" font-weight="bold" text-anchor="middle">B36 CAMERA MODULE</text>
 <text x="67" y="107" font-size="2.0" font-weight="middle" text-anchor="start" fill="#b52d2d">SKU / OUTLINE UNVERIFIED - NOT A SOURCED STEP</text>
-<rect x="103" y="46" width="36" height="52" rx="2" class="med" fill="#f8f3df"/>
+<rect x="103" y="46" width="36" height="52" rx="0" class="med" fill="#ffffff"/>
 <text x="121" y="61" font-size="2.5" font-weight="bold" text-anchor="middle">B45</text>
 <text x="121" y="68" font-size="2.6" font-weight="bold" text-anchor="middle">MAX96717</text>
 <text x="121" y="75" font-size="2.2" font-weight="middle" text-anchor="start">SERIALIZER</text>
@@ -104,22 +105,22 @@
 <text x="295" y="126" font-size="2.25" font-weight="bold" text-anchor="middle">B27 + B50 FULL CHANNEL: 100 ohm TARGET / TO BE CHARACTERIZED</text>
 <text x="12" y="145" font-size="3.2" font-weight="bold" text-anchor="start">VIDEO PATH - NO TETHER TO MOVING CARRIAGE</text>
 <text x="12" y="148.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="16" y="165" width="52" height="34" rx="2" class="med" fill="#f7f8f9"/>
+<rect x="16" y="165" width="52" height="34" rx="0" class="med" fill="#ffffff"/>
 <text x="42.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">CAMERA</text>
 <text x="42.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">SKU UNVER</text>
-<rect x="78" y="165" width="60" height="34" rx="2" class="med" fill="#f7f8f9"/>
+<rect x="78" y="165" width="60" height="34" rx="0" class="med" fill="#ffffff"/>
 <text x="108.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">MAX96717</text>
 <text x="108.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI -&gt; GMSL2</text>
-<rect x="148" y="165" width="42" height="34" rx="2" class="med" fill="#f7f8f9"/>
+<rect x="148" y="165" width="42" height="34" rx="0" class="med" fill="#ffffff"/>
 <text x="169.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">B50</text>
 <text x="169.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">BINDER</text>
-<rect x="200" y="165" width="48" height="34" rx="2" class="med" fill="#f7f8f9"/>
+<rect x="200" y="165" width="48" height="34" rx="0" class="med" fill="#ffffff"/>
 <text x="224.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">V-DOCK</text>
 <text x="224.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">B27/B19</text>
-<rect x="258" y="165" width="62" height="34" rx="2" class="med" fill="#f7f8f9"/>
+<rect x="258" y="165" width="62" height="34" rx="0" class="med" fill="#ffffff"/>
 <text x="289.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">MAX96724</text>
 <text x="289.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">4-PORT DES</text>
-<rect x="330" y="165" width="72" height="34" rx="2" class="med" fill="#f7f8f9"/>
+<rect x="330" y="165" width="72" height="34" rx="0" class="med" fill="#ffffff"/>
 <text x="366.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">TACHYON</text>
 <text x="366.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI1</text>
 <line x1="68" y1="182" x2="78" y2="182" class="motion"/>
@@ -129,12 +130,12 @@
 <line x1="320" y1="182" x2="330" y2="182" class="motion"/>
 <text x="195" y="208" font-size="2.7" font-weight="bold" text-anchor="middle">RAW MIPI STAYS INSIDE BINDER; 3/6 Gbps GMSL2 CROSSES LOCKED POGO DOCK</text>
 <text x="195" y="215" font-size="2.5" font-weight="bold" text-anchor="middle" fill="#0a7891">POWER + VIDEO + REVERSE CONTROL CROSS THE CARRIAGE; NOTHING TETHERS IT</text>
-<rect x="12" y="224" width="190" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<rect x="12" y="224" width="190" height="19.0" rx="0" class="med" fill="#ffffff"/>
 <text x="15" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - CAMERA VIDEO DOCK</text>
 <text x="15" y="233" font-size="2.45" font-weight="normal" text-anchor="start">States: free / S1+S2 power-mated / training / link-trained / pinch-safe.</text>
 <text x="15" y="237" font-size="2.45" font-weight="normal" text-anchor="start">What moves: binder. V-dock and MAX96724 stay on rail/brick. No tether.</text>
 <text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Raw MIPI never rides B50, B27, or the continuous strip (EE-23/25 lock).</text>
-<rect x="215" y="224" width="190" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
+<rect x="215" y="224" width="190" height="19.0" rx="0" class="unverified" fill="#ffffff"/>
 <text x="218" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / WHY / EE-25</text>
 <text x="218" y="233" font-size="2.45" font-weight="normal" text-anchor="start">Partial dock or bent HSD: training timeout; Q1 latches off.</text>
 <text x="218" y="237" font-size="2.45" font-weight="normal" text-anchor="start">Particle lists IMX519 AF and S5K3P9SX sensors; no orderable SKU drawn.</text>
@@ -149,7 +150,7 @@
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">CAMERA LOAD / SERDES BINDER</text>
 <text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
-<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
 <text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
@@ -171,6 +172,14 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
 <text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
+<text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
+<line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
+<text x="208" y="279.7" font-size="1.7" font-weight="normal" text-anchor="start">motion</text>
+<rect x="198" y="281.2" width="8" height="3.2" rx="0" class="keepout"/>
+<text x="208" y="283.8" font-size="1.7" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="198" y1="287.2" x2="206" y2="287.2" class="med" stroke="#0a7891"/>
+<text x="208" y="288.4" font-size="1.7" font-weight="normal" text-anchor="start">net</text>
 </svg>

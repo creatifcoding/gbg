@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
-<rect width="420" height="297" fill="#fcfcfb"/>
+<rect width="420" height="297" fill="#ffffff"/>
 <defs>
   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
   <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
@@ -16,20 +16,30 @@
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
+<rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
 <text x="12" y="15" font-size="4.0" font-weight="bold" text-anchor="start">RAIL POWER / CONTROL / GMSL2 - FUNCTIONAL DIAGRAM, NOT RELEASE SCHEMATIC</text>
-<rect x="15" y="30" width="50" height="24" rx="2" class="med" fill="#f5f7f8"/>
+<text x="12" y="22" font-size="2.2" font-weight="bold" text-anchor="start">COLOR KEY (SHOP LINE ART)</text>
+<line x1="12" y1="26" x2="22" y2="26" class="heavy"/>
+<text x="24" y="27.2" font-size="2.1" font-weight="normal" text-anchor="start">geometry</text>
+<line x1="54" y1="26" x2="64" y2="26" class="motion"/>
+<text x="66" y="27.2" font-size="2.1" font-weight="normal" text-anchor="start">motion</text>
+<rect x="94" y="23.2" width="10" height="5" rx="0" class="keepout"/>
+<text x="106" y="27.2" font-size="2.1" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="140" y1="26" x2="150" y2="26" class="med" stroke="#0a7891"/>
+<text x="152" y="27.2" font-size="2.1" font-weight="normal" text-anchor="start">electrical net</text>
+<rect x="15" y="30" width="50" height="24" rx="0" class="med" fill="#ffffff"/>
 <text x="40" y="41" font-size="2.8" font-weight="bold" text-anchor="middle">UPSTREAM DC/PD</text>
 <text x="40" y="48" font-size="2.2" font-weight="middle" text-anchor="start">SOURCE</text>
 <line x1="65" y1="42" x2="82" y2="42" class="med" stroke="#d9822b"/>
-<rect x="82" y="34" width="26" height="16" rx="0" class="med" fill="#fff6d9"/>
+<rect x="82" y="34" width="26" height="16" rx="0" class="med" fill="#ffffff"/>
 <text x="95" y="41" font-size="2.8" font-weight="bold" text-anchor="middle">F1</text>
 <text x="95" y="46" font-size="1.9" font-weight="middle" text-anchor="start">2 A TARGET</text>
 <line x1="108" y1="42" x2="126" y2="42" class="med" stroke="#d9822b"/>
@@ -51,21 +61,21 @@
 <circle cx="208" cy="78" r="3" class="med" fill="#fff"/>
 <text x="199" y="66" font-size="1.8" font-weight="bold" text-anchor="middle">S2 / B50</text>
 <text x="190" y="87" font-size="2.05" font-weight="bold" text-anchor="middle" fill="#b52d2d">S1 CARRIAGE + S2 BINDER: BOTH CLOSED TO ENABLE LOCAL Q1</text>
-<rect x="18" y="104" width="64" height="60" rx="2" class="heavy" fill="#eef1f4"/>
+<rect x="18" y="104" width="64" height="60" rx="0" class="heavy" fill="#ffffff"/>
 <text x="50" y="116" font-size="3.1" font-weight="bold" text-anchor="middle">B36 CAMERA</text>
 <text x="50" y="123" font-size="2.2" font-weight="middle" text-anchor="start" fill="#b52d2d">SKU UNVERIFIED</text>
 <text x="50" y="131" font-size="2.4" font-weight="bold" text-anchor="middle">LOCAL MIPI CSI-2</text>
-<rect x="96" y="104" width="67" height="60" rx="2" class="heavy" fill="#fff8e3"/>
+<rect x="96" y="104" width="67" height="60" rx="0" class="heavy" fill="#ffffff"/>
 <text x="129.5" y="116" font-size="3.0" font-weight="bold" text-anchor="middle">B45 MAX96717</text>
 <text x="129.5" y="124" font-size="2.3" font-weight="middle" text-anchor="start">3/6 Gbps GMSL2</text>
 <text x="129.5" y="132" font-size="2.1" font-weight="middle" text-anchor="start">187.5 Mbps REV</text>
 <text x="129.5" y="141" font-size="2.2" font-weight="bold" text-anchor="middle">LOCAL DC/DC</text>
-<rect x="117" y="56" width="24" height="10" rx="0" class="med" fill="#e7f5f6"/>
+<rect x="117" y="56" width="24" height="10" rx="0" class="med" fill="#ffffff"/>
 <text x="129" y="62" font-size="1.9" font-weight="bold" text-anchor="middle">B27 RAIL</text>
-<rect x="112" y="70" width="34" height="16" rx="0" class="med" fill="#fff6d9"/>
+<rect x="112" y="70" width="34" height="16" rx="0" class="med" fill="#ffffff"/>
 <text x="129" y="77" font-size="2.2" font-weight="bold" text-anchor="middle">B48 Q1</text>
 <text x="129" y="82" font-size="1.7" font-weight="middle" text-anchor="start">LOCAL BRANCH</text>
-<rect x="117" y="90" width="24" height="10" rx="0" class="med" fill="#fff0f0"/>
+<rect x="117" y="90" width="24" height="10" rx="0" class="med" fill="#ffffff"/>
 <text x="129" y="96" font-size="1.75" font-weight="bold" text-anchor="middle">B50 BINDER</text>
 <line x1="82" y1="132" x2="96" y2="132" class="motion"/>
 <line x1="129" y1="104" x2="129" y2="100" class="thin" stroke="#d9822b"/>
@@ -74,25 +84,25 @@
 <line x1="129" y1="56" x2="129" y2="42" class="thin" stroke="#d9822b"/>
 <line x1="138" y1="104" x2="138" y2="61" class="thin" stroke="#333"/>
 <text x="250" y="92" font-size="1.9" font-weight="bold" text-anchor="middle">POWER: RAIL Pxx -&gt; B27 -&gt; B48/Q1 -&gt; B50 Cxx -&gt; BINDER; S1/S2 GATE Q1</text>
-<rect x="183" y="98" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<rect x="183" y="98" width="36" height="10" rx="1" class="med" fill="#ffffff"/>
 <text x="201" y="104" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V1 G + - G</text>
 <line x1="181" y1="132" x2="183" y2="103" class="thin" stroke="#0a7891"/>
 <line x1="219" y1="103" x2="252" y2="103" class="med" stroke="#0a7891"/>
-<rect x="183" y="114" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<rect x="183" y="114" width="36" height="10" rx="1" class="med" fill="#ffffff"/>
 <text x="201" y="120" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V2 G + - G</text>
 <line x1="219" y1="119" x2="252" y2="119" class="med" stroke="#0a7891"/>
-<rect x="183" y="130" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<rect x="183" y="130" width="36" height="10" rx="1" class="med" fill="#ffffff"/>
 <text x="201" y="136" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V3 G + - G</text>
 <line x1="219" y1="135" x2="252" y2="135" class="med" stroke="#0a7891"/>
-<rect x="183" y="146" width="36" height="10" rx="1" class="med" fill="#e7f5f6"/>
+<rect x="183" y="146" width="36" height="10" rx="1" class="med" fill="#ffffff"/>
 <text x="201" y="152" font-size="1.9" font-weight="bold" text-anchor="middle" fill="#0a7891">V4 G + - G</text>
 <line x1="219" y1="151" x2="252" y2="151" class="med" stroke="#0a7891"/>
-<rect x="166" y="126" width="15" height="12" rx="1" class="med" fill="#fff0f0"/>
+<rect x="166" y="126" width="15" height="12" rx="1" class="med" fill="#ffffff"/>
 <text x="173.5" y="131" font-size="1.9" font-weight="bold" text-anchor="middle">B50</text>
 <text x="173.5" y="136" font-size="1.5" font-weight="middle" text-anchor="start" fill="#b52d2d">UNVER</text>
 <line x1="163" y1="132" x2="166" y2="132" class="thin" stroke="#0a7891"/>
 <text x="201" y="169" font-size="2.0" font-weight="bold" text-anchor="middle">ONLY ONE DOCK POPULATED BY THIS CARRIAGE</text>
-<rect x="252" y="96" width="72" height="76" rx="2" class="heavy" fill="#e9eef1"/>
+<rect x="252" y="96" width="72" height="76" rx="0" class="heavy" fill="#ffffff"/>
 <text x="288" y="109" font-size="3.1" font-weight="bold" text-anchor="middle">B46 MAX96724</text>
 <text x="288" y="117" font-size="2.4" font-weight="middle" text-anchor="start">QUAD GMSL2 DES</text>
 <text x="261" y="127" font-size="2.0" font-weight="bold" text-anchor="start">IN1</text>
@@ -101,12 +111,12 @@
 <text x="261" y="157" font-size="2.0" font-weight="bold" text-anchor="start">IN4</text>
 <text x="288" y="166" font-size="2.3" font-weight="bold" text-anchor="middle">CSI-2 OUT</text>
 <line x1="324" y1="134" x2="342" y2="134" class="motion"/>
-<rect x="342" y="104" width="62" height="60" rx="2" class="heavy" fill="#e9eef1"/>
+<rect x="342" y="104" width="62" height="60" rx="0" class="heavy" fill="#ffffff"/>
 <text x="373" y="119" font-size="3.2" font-weight="bold" text-anchor="middle">B42 TACHYON</text>
 <text x="373" y="128" font-size="2.2" font-weight="middle" text-anchor="start">DEDICATED CSI</text>
 <text x="373" y="137" font-size="2.2" font-weight="middle" text-anchor="start">22p / 0.5 mm</text>
 <text x="373" y="147" font-size="2.2" font-weight="middle" text-anchor="start">QWIIC MASTER</text>
-<rect x="52" y="177" width="58" height="39" rx="1" class="med" fill="#f7f8f9"/>
+<rect x="52" y="177" width="58" height="39" rx="1" class="med" fill="#ffffff"/>
 <text x="81" y="187" font-size="2.3" font-weight="bold" text-anchor="middle">B49 TCA9548A</text>
 <text x="81" y="194" font-size="2.0" font-weight="middle" text-anchor="start">OPTIONAL I2C</text>
 <text x="81" y="201" font-size="2.0" font-weight="middle" text-anchor="start">SEGMENT MUX</text>
@@ -131,12 +141,12 @@
 <line x1="220" y1="176" x2="220" y2="216" class="center"/>
 <text x="220" y="174" font-size="1.8" font-weight="bold" text-anchor="middle">B50 / S2</text>
 <text x="211" y="219" font-size="2.2" font-weight="bold" text-anchor="middle">3.3 V LOGIC / 100 kHz TARGET / EXTERNAL PULL-UPS DNP-TUNE</text>
-<rect x="12" y="226" width="191" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<rect x="12" y="226" width="191" height="19.0" rx="0" class="med" fill="#ffffff"/>
 <text x="15" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - EE-24 INTERLOCK</text>
 <text x="15" y="235" font-size="2.45" font-weight="normal" text-anchor="start">EE-24 nodes: VIN_RAIL -&gt; F1 -&gt; VIN_FUSED -&gt; P01||P02 VIN_SHARED.</text>
 <text x="15" y="239" font-size="2.45" font-weight="normal" text-anchor="start">INTERLOCK_OK = S1 NO series S2 NO. Q1_EN never driven by P08.</text>
 <text x="15" y="243" font-size="2.45" font-weight="normal" text-anchor="start">S1 open: Q1 off, discharge, ISO_EN off, then B27 may lift.</text>
-<rect x="214" y="226" width="191" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
+<rect x="214" y="226" width="191" height="19.0" rx="0" class="unverified" fill="#ffffff"/>
 <text x="217" y="230.4" font-size="2.8" font-weight="bold" text-anchor="start">FAULT POLICY / NOT A RELEASE SCHEMATIC</text>
 <text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">KiCad on #24/#25 is circuit authority; this SVG is a review diagram.</text>
 <text x="217" y="239" font-size="2.45" font-weight="normal" text-anchor="start">S1/S2/Q1/B27/B50 series UNVERIFIED (#23). No MPNs invented.</text>
@@ -151,7 +161,7 @@
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">ELECTRICAL + VIDEO FUNCTIONAL DIAGRAM</text>
 <text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
-<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
 <text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
@@ -173,6 +183,14 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
 <text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
+<text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
+<line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
+<text x="208" y="279.7" font-size="1.7" font-weight="normal" text-anchor="start">motion</text>
+<rect x="198" y="281.2" width="8" height="3.2" rx="0" class="keepout"/>
+<text x="208" y="283.8" font-size="1.7" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="198" y1="287.2" x2="206" y2="287.2" class="med" stroke="#0a7891"/>
+<text x="208" y="288.4" font-size="1.7" font-weight="normal" text-anchor="start">net</text>
 </svg>

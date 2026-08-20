@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
-<rect width="420" height="297" fill="#fcfcfb"/>
+<rect width="420" height="297" fill="#ffffff"/>
 <defs>
   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
   <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
@@ -16,17 +16,18 @@
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
+<rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
 <text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">LOCKED STATE</text>
 <text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<path d="M25 45 L38 28 L95 28 L108 45 L102 75 L31 75 Z" class="heavy" fill="#f6f7f8"/>
+<path d="M25 45 L38 28 L95 28 L108 45 L102 75 L31 75 Z" class="heavy" fill="#ffffff"/>
 <circle cx="42" cy="57" r="6" class="metal"/>
 <circle cx="91" cy="57" r="6" class="metal"/>
 <rect x="48" y="52" width="37" height="7" rx="1" class="plastic"/>
@@ -69,7 +70,7 @@
 <line x1="116" y1="82" x2="88" y2="74" class="leader"/>
 <text x="145" y="15" font-size="3.2" font-weight="bold" text-anchor="start">PINCHED / TRAVEL STATE</text>
 <text x="145" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<path d="M160 45 L177 33 L226 33 L243 45 L237 75 L166 75 Z" class="heavy" fill="#f6f7f8"/>
+<path d="M160 45 L177 33 L226 33 L243 45 L237 75 L166 75 Z" class="heavy" fill="#ffffff"/>
 <circle cx="177" cy="57" r="6" class="metal"/>
 <circle cx="226" cy="57" r="6" class="metal"/>
 <rect x="182" y="47" width="39" height="7" rx="1" class="plastic"/>
@@ -107,19 +108,19 @@
 <text x="202" y="90" font-size="2.35" font-weight="bold" text-anchor="middle">q=5 ROLLING; LIFT 2.2 THROW / 1.8 CLEAR</text>
 <text x="270" y="15" font-size="3.2" font-weight="bold" text-anchor="start">CAD-02 PINCH Q (MM)</text>
 <text x="270" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="272" y="28" width="128" height="15" rx="1.5" class="med" fill="#f8f9fa"/>
+<rect x="272" y="28" width="128" height="15" rx="0" class="med" fill="#ffffff"/>
 <text x="276" y="34" font-size="2.15" font-weight="bold" text-anchor="start">q=0 LOCKED</text>
 <text x="276" y="40" font-size="1.95" font-weight="normal" text-anchor="start">S1 closed; pawl in</text>
-<rect x="272" y="45" width="128" height="15" rx="1.5" class="med" fill="#f8f9fa"/>
+<rect x="272" y="45" width="128" height="15" rx="0" class="med" fill="#ffffff"/>
 <text x="276" y="51" font-size="2.15" font-weight="bold" text-anchor="start">q=1 S1_OPEN</text>
 <text x="276" y="57" font-size="1.95" font-weight="normal" text-anchor="start">Q1 off; contacts seated</text>
-<rect x="272" y="62" width="128" height="15" rx="1.5" class="med" fill="#f8f9fa"/>
+<rect x="272" y="62" width="128" height="15" rx="0" class="med" fill="#ffffff"/>
 <text x="276" y="68" font-size="2.15" font-weight="bold" text-anchor="start">q=2.2 PINCH_SAFE</text>
 <text x="276" y="74" font-size="1.95" font-weight="normal" text-anchor="start">lift pawl retracts</text>
-<rect x="272" y="79" width="128" height="15" rx="1.5" class="med" fill="#f8f9fa"/>
+<rect x="272" y="79" width="128" height="15" rx="0" class="med" fill="#ffffff"/>
 <text x="276" y="85" font-size="2.15" font-weight="bold" text-anchor="start">q=4 CLEAR</text>
 <text x="276" y="91" font-size="1.95" font-weight="normal" text-anchor="start">lift={CAD02[&#x27;throw&#x27;]:g}; still locked</text>
-<rect x="272" y="96" width="128" height="15" rx="1.5" class="med" fill="#f8f9fa"/>
+<rect x="272" y="96" width="128" height="15" rx="0" class="med" fill="#ffffff"/>
 <text x="276" y="102" font-size="2.15" font-weight="bold" text-anchor="start">q=5 ROLLING</text>
 <text x="276" y="108" font-size="1.95" font-weight="normal" text-anchor="start">translation pawl out</text>
 <text x="12" y="120" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL F - PINCH / SPRING / POGO ARRAY</text>
@@ -142,7 +143,7 @@
 <text x="97" y="170" font-size="2.25" font-weight="normal" text-anchor="start">B24 CARRIER 36x32x6; B26 d=8 UNVER</text>
 <text x="97" y="178" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">MIPI IS NOT ON THESE CONTACTS</text>
 <text x="97" y="186" font-size="2.2" font-weight="normal" text-anchor="start">ADR-002: HARDWARE PAWLS, NOT A TIMED DELAY</text>
-<rect x="230" y="121" width="175" height="35.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<rect x="230" y="121" width="175" height="35.0" rx="0" class="med" fill="#ffffff"/>
 <text x="233" y="125.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - PINCH-LIFT / ROLL</text>
 <text x="233" y="130" font-size="2.45" font-weight="normal" text-anchor="start">States: LOCKED / S1_OPEN / PINCH_SAFE / CONTACTS_CLEAR / ROLLING.</text>
 <text x="233" y="134" font-size="2.45" font-weight="normal" text-anchor="start">What moves: B24/B27 lift then rollers; rail/B19 stays grounded.</text>
@@ -151,7 +152,7 @@
 <text x="233" y="146" font-size="2.45" font-weight="normal" text-anchor="start">Translation pawl blocks roll until lift &gt;= clearance. Speed cannot skip a pawl.</text>
 <text x="233" y="150" font-size="2.45" font-weight="normal" text-anchor="start">EE-24 S1/S2/Q1 parts UNVERIFIED; electrical dwell is a later independent gate.</text>
 <text x="233" y="154" font-size="2.45" font-weight="normal" text-anchor="start">Chosen over screws for one-hand relocate without opening the cage.</text>
-<rect x="230" y="191" width="175" height="23.0" rx="1.2" class="med" fill="#fff0f0"/>
+<rect x="230" y="191" width="175" height="23.0" rx="0" class="unverified" fill="#ffffff"/>
 <text x="233" y="195.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / ACCEPTANCE</text>
 <text x="233" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Interrupted pinch: keep Q1 off; require a clean full remate.</text>
 <text x="233" y="204" font-size="2.45" font-weight="normal" text-anchor="start">Bent HSD: training timeout; Q1 latches off. No MIPI fallback.</text>
@@ -167,7 +168,7 @@
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">CARRIAGE MECHANISM</text>
 <text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
-<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
 <text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
@@ -189,6 +190,14 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
 <text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
+<text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
+<line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
+<text x="208" y="279.7" font-size="1.7" font-weight="normal" text-anchor="start">motion</text>
+<rect x="198" y="281.2" width="8" height="3.2" rx="0" class="keepout"/>
+<text x="208" y="283.8" font-size="1.7" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="198" y1="287.2" x2="206" y2="287.2" class="med" stroke="#0a7891"/>
+<text x="208" y="288.4" font-size="1.7" font-weight="normal" text-anchor="start">net</text>
 </svg>

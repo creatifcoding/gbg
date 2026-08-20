@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
-<rect width="420" height="297" fill="#fcfcfb"/>
+<rect width="420" height="297" fill="#ffffff"/>
 <defs>
   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
   <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
@@ -16,17 +16,18 @@
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
+<rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
 <text x="14" y="15" font-size="3.2" font-weight="bold" text-anchor="start">CORNER BLOCK</text>
 <text x="14" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<path d="M30 40 L80 40 L80 90 L68 90 L68 53 L30 53 Z" class="heavy" fill="#f5f7f8"/>
+<path d="M30 40 L80 40 L80 90 L68 90 L68 53 L30 53 Z" class="heavy" fill="#ffffff"/>
 <path d="M43 53 L43 76 L68 76" class="hidden"/>
 <text x="55" y="99" font-size="2.2" font-weight="bold" text-anchor="middle">CASSETTE POCKET 3.20 TARGET (3.00 LOCK + 0.20)</text>
 <line x1="30" y1="90" x2="30" y2="110" class="thin"/>
@@ -42,7 +43,7 @@
 <line x1="92" y1="56" x2="80" y2="52" class="leader"/>
 <text x="118" y="15" font-size="3.2" font-weight="bold" text-anchor="start">EDGE BLOCK</text>
 <text x="118" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="130" y="40" width="80" height="25" rx="1" class="heavy" fill="#f6f7f8"/>
+<rect x="130" y="40" width="80" height="25" rx="1" class="heavy" fill="#ffffff"/>
 <rect x="136" y="47" width="68" height="8" rx="0" class="thin" fill="#ffffff"/>
 <line x1="130" y1="65" x2="130" y2="76" class="thin"/>
 <line x1="210" y1="65" x2="210" y2="76" class="thin"/>
@@ -53,7 +54,7 @@
 <line x1="220" y1="54" x2="210" y2="50" class="leader"/>
 <text x="248" y="15" font-size="3.2" font-weight="bold" text-anchor="start">MID-SPAN BLOCK</text>
 <text x="248" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="263" y="40" width="80" height="25" rx="1" class="heavy" fill="#f6f7f8"/>
+<rect x="263" y="40" width="80" height="25" rx="1" class="heavy" fill="#ffffff"/>
 <line x1="303" y1="40" x2="303" y2="65" class="med"/>
 <circle cx="288" cy="52.5" r="3" class="med"/>
 <circle cx="318" cy="52.5" r="3" class="med"/>
@@ -66,8 +67,8 @@
 <line x1="355" y1="54" x2="343" y2="50" class="leader"/>
 <text x="248" y="88" font-size="3.2" font-weight="bold" text-anchor="start">ROUTE END STOP / SERVICE REMOVAL</text>
 <text x="248" y="91.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="265" y="105" width="78" height="7" rx="0" class="med" fill="#dce2e6"/>
-<rect x="337" y="96" width="13" height="25" rx="1" class="heavy" fill="#f5f7f8"/>
+<rect x="265" y="105" width="78" height="7" rx="0" class="med" fill="#ffffff"/>
+<rect x="337" y="96" width="13" height="25" rx="1" class="heavy" fill="#ffffff"/>
 <circle cx="343.5" cy="108.5" r="2.2" class="heavy" fill="#ffffff"/>
 <text x="302" y="119" font-size="2.1" font-weight="bold" text-anchor="middle">CANNOT PASS IN NORMAL USE</text>
 <circle cx="362" cy="98" r="4.0" class="med" fill="#ffffff"/>
@@ -104,11 +105,11 @@
 <text x="292" y="176" font-size="2.5" font-weight="normal" text-anchor="start">POCKET INSET 10 / Z 8 REF</text>
 <text x="292" y="184" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">NYMPH GAP &lt;=0.50 TARGET</text>
 <text x="292" y="192" font-size="2.2" font-weight="normal" text-anchor="start">B04 RETAINER 250 x 5.2 x 12 CAD-01</text>
-<rect x="14" y="222" width="180" height="15.0" rx="1.2" class="med" fill="#fff6d9"/>
+<rect x="14" y="222" width="180" height="15.0" rx="0" class="med" fill="#ffffff"/>
 <text x="17" y="226.4" font-size="2.8" font-weight="bold" text-anchor="start">CAD-01 MEASURED UNIQUE PARTS</text>
 <text x="17" y="231" font-size="2.45" font-weight="normal" text-anchor="start">B01 24 cube; B02 250 x 24 x 24; B03 22 x 24 x 24; B10 250 x 250 x 6.</text>
 <text x="17" y="235" font-size="2.45" font-weight="normal" text-anchor="start">Kerf 0.15 REF on B05/B06 cut profiles. Coupon 3.10/3.20/3.30.</text>
-<rect x="214" y="222" width="190" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<rect x="214" y="222" width="190" height="23.0" rx="0" class="med" fill="#ffffff"/>
 <text x="217" y="226.4" font-size="2.8" font-weight="bold" text-anchor="start">LOAD PATH / ROUTES</text>
 <text x="217" y="231" font-size="2.45" font-weight="normal" text-anchor="start">Panel -&gt; gasket -&gt; pocket wall -&gt; perimeter block.</text>
 <text x="217" y="235" font-size="2.45" font-weight="normal" text-anchor="start">500 span bending crosses B03 coupler, not the face cassette.</text>
@@ -124,7 +125,7 @@
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">PERIMETER BLOCKS</text>
 <text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
-<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
 <text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
@@ -146,6 +147,14 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
 <text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
+<text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
+<line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
+<text x="208" y="279.7" font-size="1.7" font-weight="normal" text-anchor="start">motion</text>
+<rect x="198" y="281.2" width="8" height="3.2" rx="0" class="keepout"/>
+<text x="208" y="283.8" font-size="1.7" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="198" y1="287.2" x2="206" y2="287.2" class="med" stroke="#0a7891"/>
+<text x="208" y="288.4" font-size="1.7" font-weight="normal" text-anchor="start">net</text>
 </svg>
