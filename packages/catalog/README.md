@@ -29,19 +29,14 @@ From the repo root, after `bun install`:
 nx run catalog:dev
 # or
 nx run catalog:serve
-```
-
-App: http://127.0.0.1:3007
-
-Other Nx targets:
-
-```bash
 nx run catalog:typecheck
 nx run catalog:test
 nx run catalog:build
 ```
 
-From the package:
+App: http://127.0.0.1:3007
+
+If Nx cannot load the workspace graph (other packages' Vite configs failing to resolve), run the same scripts from this package:
 
 ```bash
 cd packages/catalog
@@ -49,6 +44,7 @@ bun run dev
 bun run typecheck
 bun run test:run
 bun run build
+bun run start   # production server, http://127.0.0.1:3000
 ```
 
 No cloud secrets. Auth is deferred.

@@ -19,15 +19,13 @@ export function Shell({
           <nav className="mt-8 flex flex-col gap-2 text-[14px]">
             <Link
               to="/"
-              className="rounded-lg px-3 py-2 hover:bg-white"
-              activeProps={{ className: 'rounded-lg bg-white px-3 py-2' }}
+              className="rounded-lg px-3 py-2 hover:bg-white data-[status=active]:bg-white"
             >
               Catalog
             </Link>
             <Link
               to="/intake"
-              className="rounded-lg px-3 py-2 hover:bg-white"
-              activeProps={{ className: 'rounded-lg bg-white px-3 py-2' }}
+              className="rounded-lg px-3 py-2 hover:bg-white data-[status=active]:bg-white"
             >
               Intake
             </Link>
