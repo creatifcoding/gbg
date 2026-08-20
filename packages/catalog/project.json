@@ -1,0 +1,72 @@
+{
+  "name": "catalog",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/catalog/src",
+  "projectType": "application",
+  "tags": ["scope:gbg", "type:app", "domain:biomedical-catalog", "stack:tanstack-start"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run dev",
+        "cwd": "packages/catalog"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run dev",
+        "cwd": "packages/catalog"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/catalog"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"],
+      "outputs": ["{projectRoot}/.output", "{projectRoot}/dist"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "packages/catalog"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/catalog"
+      },
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run preview",
+        "cwd": "packages/catalog"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run start",
+        "cwd": "packages/catalog"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run clean",
+        "cwd": "packages/catalog"
+      }
+    }
+  }
+}

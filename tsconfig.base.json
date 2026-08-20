@@ -28,6 +28,7 @@
       "@gbg/schema-render-react": ["packages/schema-render-react/src/index.ts"],
       "@gbg/limitlessrp": ["packages/limitlessrp/src/index.ts"],
       "@gbg/limitlessrp/*": ["packages/limitlessrp/src/*"],
+      "@gbg/catalog": ["packages/catalog/src/index.ts"],
       "@tmnl/effect-sui": ["packages/effect-sui/src/index.ts"],
       "@tmnl/effect-sui/*": ["packages/effect-sui/src/*"],
       "@tmnl/msh": ["packages/msh/src/index.ts"],

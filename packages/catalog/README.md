@@ -1,0 +1,110 @@
+# @gbg/catalog
+
+Biomedical research catalog. Dump a picture, dossier, artifact, or note and file it as a card in one screen.
+
+Empty catalog is valid. The app does not invent citations or papers.
+
+## Why this name
+
+`packages/catalog` / `@gbg/catalog` was free. Nothing else in the workspace owns that name. Kept it.
+
+## Product invariant
+
+Intake is one screen, no wizard. Filing produces a card with:
+
+- type: `picture` | `dossier` | `artifact` | `note`
+- status: starts `raw` (`filed` | `working` | `dead` later)
+- one-line claim
+- 3 or more tags
+- organism/system, or `unknown`
+- open questions (may be empty)
+
+Deeper notes exist only after the card exists.
+
+## Run
+
+From the repo root, after `bun install`:
+
+```bash
+nx run catalog:dev
+# or
+nx run catalog:serve
+```
+
+App: http://127.0.0.1:3007
+
+Other Nx targets:
+
+```bash
+nx run catalog:typecheck
+nx run catalog:test
+nx run catalog:build
+```
+
+From the package:
+
+```bash
+cd packages/catalog
+bun run dev
+bun run typecheck
+bun run test:run
+bun run build
+```
+
+No cloud secrets. Auth is deferred.
+
+## Persistence
+
+Local JSON at `packages/catalog/.data/catalog.json`. Blobs go in `.data/blobs/`. Override with `CATALOG_DATA_DIR`.
+
+The card schema does not mention Notion. A Notion adapter can sit later without changing intake.
+
+## Packages adopted
+
+| Piece | How it is used |
+| --- | --- |
+| TanStack Start (`@tanstack/react-start`, `@tanstack/react-router`) | The app. File routes, server functions, Vite plugin. |
+| Radix UI | `@radix-ui/react-label`, `select`, `separator`. Accessible primitives only. |
+| Tailwind CSS v4 + `@tailwindcss/vite` | Layout and type. Same CSS runtime as the Start example, not a second one. |
+| Effect Schema | Domain types and intake validation. Already in the monorepo. |
+| nanoid | Attachment ids. |
+
+React is the only UI framework. Motion is CSS from Transitions.dev. No Framer Motion, GSAP, or anime.js in this package.
+
+## Beautiful UI
+
+[beautifului.dev](https://www.beautifului.dev/) is copy-paste source, not an npm package. There is no public registry. This app does not vendor the ice-cream marketing demos. It uses three patterns from that set, rewritten for catalog cards:
+
+- Filter chips (`src/ui/filter-chips.tsx`) from Filter Table
+- Card rows (`src/ui/context-card.tsx`) from Context Cards
+- Intake drop + composer (`src/ui/intake-drop.tsx`) from Prompt Bar
+
+## Transitions.dev
+
+[transitions.dev](https://transitions.dev/) is also copy-paste. The `transitions-pro` CLI can pull snippets, but the CSS is not a runtime you import. Vendored into `src/styles/transitions.css` from the public skill files:
+
+- `_root.css` motion tokens (subset)
+- card resize
+- modal open/close
+- panel reveal
+- error-state shake
+- tabs sliding
+- tooltip
+
+Each recipe keeps its `prefers-reduced-motion` guard.
+
+## Layout
+
+```
+packages/catalog/
+  src/lib/catalog/   schema, intake, file store, server functions
+  src/routes/        Start file routes
+  src/ui/            catalog screens and vendored-pattern components
+  src/styles/        Tailwind + transitions.dev CSS
+```
+
+`src/index.ts` re-exports the schema and UI the same way other `@gbg/*` packages expose a facade.
+
+## Example cards
+
+The catalog boots empty. The index has a button that loads three cards tagged `example`. They are labeled as synthetic UI fixtures. They are not papers.

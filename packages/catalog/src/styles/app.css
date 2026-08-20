@@ -1,0 +1,88 @@
+@import 'tailwindcss' source('../');
+@import './transitions.css';
+
+:root {
+  --catalog-bg: #f6f5f2;
+  --catalog-paper: #fffcf7;
+  --catalog-ink: #1c1b19;
+  --catalog-muted: #6b675f;
+  --catalog-line: rgba(28, 27, 25, 0.12);
+  --catalog-accent: #2f5d50;
+  --catalog-danger: #9b2c2c;
+  --catalog-example: #8a5a12;
+  --catalog-text-xs: 12px;
+  --catalog-text-sm: 14px;
+  --catalog-text-base: 16px;
+  color-scheme: light;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--catalog-bg);
+  color: var(--catalog-ink);
+  font-family:
+    'Iowan Old Style',
+    'Palatino Linotype',
+    Palatino,
+    'URW Palladio L',
+    P052,
+    serif;
+  font-size: var(--catalog-text-base);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.catalog-sans {
+  font-family:
+    'IBM Plex Sans',
+    'Source Sans 3',
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+
+.catalog-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--catalog-line);
+  background: #fff;
+  font-size: var(--catalog-text-xs);
+  letter-spacing: 0.02em;
+}
+
+.catalog-chip[data-active='true'] {
+  background: var(--catalog-ink);
+  color: var(--catalog-paper);
+  border-color: var(--catalog-ink);
+}
+
+.catalog-drop {
+  border: 1.5px dashed var(--catalog-line);
+  background: #fff;
+  border-radius: 18px;
+  min-height: 140px;
+}
+
+.catalog-drop[data-active='true'] {
+  border-color: var(--catalog-accent);
+  background: color-mix(in srgb, var(--catalog-accent) 8%, white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
