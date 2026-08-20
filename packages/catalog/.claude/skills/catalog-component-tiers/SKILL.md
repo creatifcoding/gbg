@@ -119,7 +119,7 @@ export const VantaCard = Object.assign(VantaCardRoot, {
 
 Allowed: route -> ui -> portal. ui -> lib/catalog. testbed -> portal.
 
-Banned: primitive importing `CatalogIndex`. portal importing `fileCard`. ui importing a testbed.
+Banned: primitive importing `CatalogIndex`. portal importing `fileSpecimen`. ui importing a testbed.
 
 ## Anti-patterns
 
@@ -129,7 +129,7 @@ Do not put schema decoding, blob writes, and VantaCard slots in a route file. Ro
 
 ### Domain logic in primitives
 
-`Badge` does not call `useRouter` or `getCard`.
+`Badge` does not call `useRouter` or `getSpecimen`.
 
 ### Testbed in production
 

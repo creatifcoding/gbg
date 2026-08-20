@@ -17,21 +17,21 @@ The catalog registry is a closed map from domain literals onto VANTA visuals.
 
 ## Canonical sources
 
-- Vocabularies: `src/lib/catalog/schemas/card.ts`, `src/lib/catalog/schemas/analog.ts`
+- Vocabularies: `src/lib/catalog/schemas/specimen.ts`, `src/lib/catalog/schemas/analog.ts`
 - Visual map: `src/lib/catalog/registry.ts` (`STATUS_VISUAL`, `ANALOG_STATUS_VISUAL`, `KIND_LABEL`)
 - Tests: `src/lib/catalog/registry.test.ts`
 - Consumer: `src/ui/context-card.tsx`
 
 ## Pattern 1: Closed vocabulary
 
-Kinds and statuses are Effect Schema literals. `isCardKind` / `isRegisteredKind` reject unknown strings. Do not accept free-text type.
+Kinds and statuses are Effect Schema literals. `isEvidenceKind` / `isRegisteredKind` reject unknown strings. Do not accept free-text type.
 
 ```typescript
-export const CARD_STATUSES = ['raw', 'filed', 'working', 'dead'] as const
+export const SPECIMEN_STATUSES = ['raw', 'filed', 'working', 'dead'] as const
 export const ANALOG_STATUSES = ['raw', 'working', 'tested', 'dead'] as const
 ```
 
-Card machine: `raw → filed → working → dead` (skip-to-dead allowed; do not skip filed).
+Specimen machine: `raw → filed → working → dead` (dead is deaccessioned; skip-to-dead allowed; do not skip filed).
 Analog machine: `raw → working → tested → dead`.
 
 ## Pattern 2: Visual singleton
@@ -53,7 +53,7 @@ Analog `tested` maps to violet. Still a VANTA accent.
 
 ## Pattern 3: Exhaustiveness test
 
-`registry.test.ts` walks `CARD_STATUSES` and `ANALOG_STATUSES` and asserts every key exists. When you add a status, the test fails until the map is updated.
+`registry.test.ts` walks `SPECIMEN_STATUSES` and `ANALOG_STATUSES` and asserts every key exists. When you add a status, the test fails until the map is updated.
 
 ## When catalog needs a real singleton later
 
@@ -80,7 +80,7 @@ const visual = statusVisual(status)
 kind: string
 
 // CORRECT
-kind: CardKind
+kind: EvidenceKind
 ```
 
 ### Multiple STATUS_VISUAL objects

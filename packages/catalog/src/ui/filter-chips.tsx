@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react'
-import { CARD_KINDS, CARD_STATUSES, type CardKind, type CardStatus } from '~/lib/catalog/schema'
+import {
+  EVIDENCE_KINDS,
+  SPECIMEN_STATUSES,
+  type EvidenceKind,
+  type SpecimenStatus,
+} from '~/lib/catalog/schema'
 
 export function FilterChips({
   kind,
@@ -10,12 +15,12 @@ export function FilterChips({
   onStatus,
   onTag,
 }: {
-  kind: CardKind | 'all'
-  status: CardStatus | 'all'
+  kind: EvidenceKind | 'all'
+  status: SpecimenStatus | 'all'
   tag: string
   tags: ReadonlyArray<string>
-  onKind: (value: CardKind | 'all') => void
-  onStatus: (value: CardStatus | 'all') => void
+  onKind: (value: EvidenceKind | 'all') => void
+  onStatus: (value: SpecimenStatus | 'all') => void
   onTag: (value: string) => void
 }) {
   return (
@@ -24,7 +29,7 @@ export function FilterChips({
         <Chip active={kind === 'all'} onClick={() => onKind('all')}>
           all
         </Chip>
-        {CARD_KINDS.map((value) => (
+        {EVIDENCE_KINDS.map((value) => (
           <Chip key={value} active={kind === value} onClick={() => onKind(value)}>
             {value}
           </Chip>
@@ -34,7 +39,7 @@ export function FilterChips({
         <Chip active={status === 'all'} onClick={() => onStatus('all')}>
           all
         </Chip>
-        {CARD_STATUSES.map((value) => (
+        {SPECIMEN_STATUSES.map((value) => (
           <Chip key={value} active={status === value} onClick={() => onStatus(value)}>
             {value}
           </Chip>

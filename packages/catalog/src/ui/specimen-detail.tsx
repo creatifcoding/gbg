@@ -2,60 +2,68 @@ import { useRouter } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import * as Label from '@radix-ui/react-label'
 import * as Separator from '@radix-ui/react-separator'
-import { updateCard } from '~/lib/catalog/functions'
+import { updateSpecimen } from '~/lib/catalog/functions'
 import {
-  getValidNextCardStates,
+  getValidNextSpecimenStates,
   organismLabel,
-  type CatalogCard,
-  type CardStatus,
+  type SpecimenStatus,
+  type SpecimenView,
 } from '~/lib/catalog/schema'
 import { SlidingTabs } from './sliding-tabs'
 
-export function CardDetail({ card }: { card: CatalogCard }) {
+export function SpecimenDetail({ specimen }: { specimen: SpecimenView }) {
   const router = useRouter()
-  const [body, setBody] = useState(card.body)
-  const [status, setStatus] = useState<CardStatus>(card.status)
+  const [body, setBody] = useState(specimen.body)
+  const [status, setStatus] = useState<SpecimenStatus>(specimen.status)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
   const statusOptions = useMemo(() => {
-    const next = getValidNextCardStates(status)
+    const next = getValidNextSpecimenStates(status)
     const values = [status, ...next]
     return values.map((value) => ({ value, label: value }))
   }, [status])
 
-  const guesses = [
-    card.organismGuess ? `organism guess: ${card.organismGuess.label}` : null,
-    card.structureGuess ? `structure guess: ${card.structureGuess.label}` : null,
-    card.functionGuess ? `function guess: ${card.functionGuess.label}` : null,
-  ].filter((item): item is string => item !== null)
+  const meta = [
+    organismLabel(specimen.organismGuess),
+    specimen.structureGuess?.label,
+    specimen.locality,
+    specimen.observedAt,
+  ].filter((item): item is string => Boolean(item) && item !== 'unlinked')
 
   return (
     <article className="t-panel-slide space-y-6" data-open="true">
-      {card.example ? (
+      {specimen.example ? (
         <p className="vanta-banner">
-          EXAMPLE CARD. Synthetic UI fixture. Not a paper, not a citation, not a result.
+          EXAMPLE SPECIMEN. Synthetic UI fixture. Not a paper, not a citation, not a result.
         </p>
       ) : null}
 
       <header className="space-y-3">
         <p className="vanta-label">
-          {card.kind} · <span className={`status-${card.status}`}>{status}</span> ·{' '}
-          {organismLabel(card.organismGuess)}
+          {specimen.kind} · <span className={`status-${specimen.status}`}>{status}</span>
+          {meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
         </p>
-        <h2 className="vanta-heading text-3xl leading-tight">{card.claim}</h2>
+        <h2 className="vanta-heading text-3xl leading-tight">{specimen.claim}</h2>
         <div className="flex flex-wrap gap-2">
-          {card.tags.map((tag) => (
+          {specimen.tags.map((tag) => (
             <span key={tag} className="vanta-chip cursor-default">
               {tag}
             </span>
           ))}
         </div>
-        {guesses.length > 0 ? (
-          <p className="vanta-muted text-[14px]">{guesses.join(' · ')}</p>
+        {specimen.organismGuess || specimen.structureGuess ? (
+          <p className="vanta-muted text-[14px]">
+            {specimen.organismGuess
+              ? `taxon guess: ${specimen.organismGuess.label}`
+              : 'taxon unlinked'}
+            {specimen.structureGuess
+              ? ` · part guess: ${specimen.structureGuess.label}`
+              : ''}
+          </p>
         ) : (
           <p className="vanta-muted text-[14px]">
-            No organism, structure, or function guess. Taxonomy is optional.
+            No taxon or part guess. Identification can wait.
           </p>
         )}
       </header>
@@ -63,7 +71,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
       <section className="space-y-3">
         <h3 className="vanta-label">Status</h3>
         <SlidingTabs
-          ariaLabel="Card status"
+          ariaLabel="Specimen status"
           value={status}
           options={statusOptions}
           onChange={async (next) => {
@@ -72,7 +80,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
             setStatus(next)
             setError('')
             try {
-              await updateCard({ data: { id: card.id, status: next } })
+              await updateSpecimen({ data: { id: specimen.id, status: next } })
               await router.invalidate()
             } catch (caught) {
               setStatus(previous)
@@ -88,12 +96,28 @@ export function CardDetail({ card }: { card: CatalogCard }) {
       </section>
 
       <section className="space-y-3">
+        <h3 className="vanta-label">Observations</h3>
+        {specimen.observations.length === 0 ? (
+          <p className="vanta-muted text-[16px]">None yet. Intake creates the first one.</p>
+        ) : (
+          <ul className="list-disc space-y-1 pl-5 text-[16px]">
+            {specimen.observations.map((observation) => (
+              <li key={observation.id}>
+                {observation.kind}
+                {observation.note ? ` · ${observation.note}` : ''}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
         <h3 className="vanta-label">Open questions</h3>
-        {card.questions.length === 0 ? (
+        {specimen.questions.length === 0 ? (
           <p className="vanta-muted text-[16px]">None written at intake.</p>
         ) : (
           <ul className="list-disc space-y-1 pl-5 text-[16px]">
-            {card.questions.map((question) => (
+            {specimen.questions.map((question) => (
               <li key={question}>{question}</li>
             ))}
           </ul>
@@ -102,22 +126,22 @@ export function CardDetail({ card }: { card: CatalogCard }) {
 
       <section className="space-y-3">
         <h3 className="vanta-label">Attachments</h3>
-        {card.attachments.length === 0 ? (
-          <p className="vanta-muted text-[16px]">No file on this card.</p>
+        {specimen.attachments.length === 0 ? (
+          <p className="vanta-muted text-[16px]">No file on this specimen.</p>
         ) : (
           <ul className="space-y-4">
-            {card.attachments.map((attachment) => (
+            {specimen.attachments.map((attachment) => (
               <li key={attachment.id}>
                 {attachment.kind === 'image' ? (
                   <img
-                    src={`/api/blobs/${card.id}/${attachment.id}`}
+                    src={`/api/blobs/${specimen.id}/${attachment.id}`}
                     alt={attachment.filename}
                     className="max-h-80 rounded-[4px] border border-[color:var(--vanta-border)]"
                   />
                 ) : null}
                 <a
                   className="vanta-file underline"
-                  href={`/api/blobs/${card.id}/${attachment.id}`}
+                  href={`/api/blobs/${specimen.id}/${attachment.id}`}
                 >
                   {attachment.filename}
                 </a>
@@ -135,7 +159,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
           event.preventDefault()
           setPending(true)
           try {
-            await updateCard({ data: { id: card.id, body } })
+            await updateSpecimen({ data: { id: specimen.id, body } })
             await router.invalidate()
           } finally {
             setPending(false)
@@ -146,7 +170,7 @@ export function CardDetail({ card }: { card: CatalogCard }) {
           Body
         </Label.Root>
         <p className="vanta-muted text-[14px]">
-          Markdown later. This field stays empty until the card exists.
+          Markdown later. This field stays empty until the specimen exists.
         </p>
         <textarea
           id="body"

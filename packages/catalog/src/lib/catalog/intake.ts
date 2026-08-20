@@ -1,19 +1,30 @@
 import { Schema } from 'effect'
-import { createCard } from './entity/card-entity'
-import { CardKind } from './schemas/card'
+import { createSpecimen } from './entity/specimen-entity'
+import { createEdge } from './entity/edge-entity'
 import { Guess, guessFromInput } from './schemas/guess'
-import type { Card } from './schemas/card'
-import type { CardEvent } from './schemas/events/card-events'
+import { EvidenceKind } from './schemas/specimen'
+import { decodeObservation, type Observation } from './schemas/observation'
+import type { Specimen } from './schemas/specimen'
+import type { SpecimenEvent } from './schemas/events/specimen-events'
 import type { Question } from './schemas/question'
 import type { Tag } from './schemas/tag'
 import { Tags } from './schemas/tag'
-import type { CardId, QuestionId, TagId } from './schemas/identifiers'
+import type { Edge } from './schemas/edge'
+import {
+  ObservationId,
+  QuestionId,
+  SpecimenId,
+  TagId,
+} from './schemas/identifiers'
 
 export const IntakeInput = Schema.Struct({
-  kind: CardKind,
+  kind: EvidenceKind,
   claim: Schema.NonEmptyString,
   tags: Tags,
   organismGuess: Schema.optional(Schema.NullOr(Guess)),
+  structureGuess: Schema.optional(Schema.NullOr(Guess)),
+  locality: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+  observedAt: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
   questions: Schema.Array(Schema.NonEmptyString),
 })
 export type IntakeInput = typeof IntakeInput.Type
@@ -21,10 +32,12 @@ export type IntakeInput = typeof IntakeInput.Type
 export const decodeIntake = Schema.decodeUnknownSync(IntakeInput)
 
 export type IntakeResult = {
-  card: Card
+  specimen: Specimen
+  observation: Observation
+  observationEdge: Edge
   tags: ReadonlyArray<Tag>
   questions: ReadonlyArray<Question>
-  events: ReadonlyArray<CardEvent>
+  events: ReadonlyArray<SpecimenEvent>
 }
 
 export class IntakeError extends Error {
@@ -35,7 +48,12 @@ export class IntakeError extends Error {
   }
 }
 
-export function fileCard(input: unknown, now = Date.now()): IntakeResult {
+export function optionalText(raw: string): string | null {
+  const value = raw.trim()
+  return value.length === 0 ? null : value
+}
+
+export function fileSpecimen(input: unknown, now = Date.now()): IntakeResult {
   let intake: IntakeInput
   try {
     intake = decodeIntake(input)
@@ -43,30 +61,61 @@ export function fileCard(input: unknown, now = Date.now()): IntakeResult {
     throw new IntakeError(issuesFromUnknown(error))
   }
 
-  const cardId = crypto.randomUUID() as CardId
+  const specimenId = Schema.decodeUnknownSync(SpecimenId)(crypto.randomUUID())
+  const observationId = Schema.decodeUnknownSync(ObservationId)(
+    crypto.randomUUID(),
+  )
   const tags: Tag[] = intake.tags.map((slug) => ({
-    id: crypto.randomUUID() as TagId,
+    id: Schema.decodeUnknownSync(TagId)(crypto.randomUUID()),
     slug,
   }))
   const questions: Question[] = intake.questions.map((text) => ({
-    id: crypto.randomUUID() as QuestionId,
-    cardId,
+    id: Schema.decodeUnknownSync(QuestionId)(crypto.randomUUID()),
+    specimenId,
     text,
   }))
 
-  const { card, event } = createCard(
+  const { specimen, event } = createSpecimen(
     {
-      id: cardId,
+      id: specimenId,
       kind: intake.kind,
       claim: intake.claim,
       organismGuess: intake.organismGuess ?? null,
+      structureGuess: intake.structureGuess ?? null,
+      locality: intake.locality ?? null,
+      observedAt: intake.observedAt ?? null,
       tagIds: tags.map((tag) => tag.id),
       questionIds: questions.map((question) => question.id),
+      observationIds: [observationId],
     },
     now,
   )
 
-  return { card, tags, questions, events: [event] }
+  const observation = decodeObservation({
+    id: observationId,
+    specimenId,
+    kind: intake.kind,
+    note: '',
+    attachmentIds: [],
+    createdAt: now,
+  })
+
+  const observationEdge = createEdge({
+    id: `edge_obs_${observationId}`,
+    kind: 'observation-of',
+    from: { _tag: 'observation', id: observationId },
+    to: { _tag: 'specimen', id: specimenId },
+    createdAt: now,
+  })
+
+  return {
+    specimen,
+    observation,
+    observationEdge,
+    tags,
+    questions,
+    events: [event],
+  }
 }
 
 export { guessFromInput }

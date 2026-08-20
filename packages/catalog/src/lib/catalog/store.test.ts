@@ -2,8 +2,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { fileCard } from './intake'
-import { CardTransitionError } from './entity/card-entity'
+import { fileSpecimen } from './intake'
+import { SpecimenTransitionError } from './entity/specimen-entity'
 import { CatalogStore } from './store.server'
 
 describe('CatalogStore', () => {
@@ -25,34 +25,35 @@ describe('CatalogStore', () => {
     expect(store().list()).toEqual([])
   })
 
-  it('inserts a card and reads it back', () => {
+  it('inserts a specimen and reads it back', () => {
     const catalog = store()
-    const filed = fileCard({
+    const filed = fileSpecimen({
       kind: 'artifact',
-      claim: 'Shark-skin sample parked until denticles are named.',
+      claim: 'This shark-skin sample, parked until denticles are named.',
       tags: ['denticle', 'drag', 'bench'],
       questions: ['Is this a denticle or a scale?'],
     })
     const view = catalog.insertIntake(filed)
-    expect(catalog.get(view.id)?.claim).toBe(filed.card.claim)
+    expect(catalog.get(view.id)?.claim).toBe(filed.specimen.claim)
     expect(catalog.get(view.id)?.questions).toEqual([
       'Is this a denticle or a scale?',
     ])
+    expect(catalog.get(view.id)?.observations).toHaveLength(1)
   })
 
   it('filters by kind, status, and tag slug', () => {
     const catalog = store()
     const picture = catalog.insertIntake(
-      fileCard({
+      fileSpecimen({
         kind: 'picture',
-        claim: 'Microscope still of a gecko toe.',
+        claim: 'This gecko toe under the scope.',
         tags: ['setae', 'gecko', 'live'],
         organismGuess: { label: 'Tokay gecko', guess: true },
         questions: [],
       }),
     )
     const note = catalog.insertIntake(
-      fileCard({
+      fileSpecimen({
         kind: 'note',
         claim: 'Need to check the analog against the mechanism.',
         tags: ['analog', 'mechanism', 'lab'],
@@ -66,46 +67,47 @@ describe('CatalogStore', () => {
     expect(catalog.list({ tag: 'setae' })[0]?.id).toBe(picture.id)
   })
 
-  it('stores an attachment blob next to the card', () => {
+  it('stores an attachment blob on the intake observation', () => {
     const catalog = store()
-    const card = catalog.insertIntake(
-      fileCard({
+    const specimen = catalog.insertIntake(
+      fileSpecimen({
         kind: 'picture',
-        claim: 'Dropped PNG of a lotus leaf.',
+        claim: 'Dropped PNG of this lotus leaf.',
         tags: ['lotus', 'png', 'drop'],
         questions: [],
       }),
     )
     const bytes = new TextEncoder().encode('not-a-real-png')
     const next = catalog.attach({
-      cardId: card.id,
+      specimenId: specimen.id,
       filename: 'lotus.png',
       mimeType: 'image/png',
       bytes,
     })
     expect(next?.attachments).toHaveLength(1)
-    const blob = catalog.readBlob(card.id, next?.attachments[0]?.id ?? '')
+    expect(next?.attachments[0]?.host._tag).toBe('observation')
+    const blob = catalog.readBlob(specimen.id, next?.attachments[0]?.id ?? '')
     expect(blob?.filename).toBe('lotus.png')
     expect(new TextDecoder().decode(blob?.bytes)).toBe('not-a-real-png')
   })
 
   it('rejects skipped status transitions', () => {
     const catalog = store()
-    const card = catalog.insertIntake(
-      fileCard({
+    const specimen = catalog.insertIntake(
+      fileSpecimen({
         kind: 'note',
         claim: 'Raw dump cannot jump to working.',
         tags: ['status', 'machine', 'test'],
         questions: [],
       }),
     )
-    expect(() => catalog.update(card.id, { status: 'working' })).toThrow(
-      CardTransitionError,
+    expect(() => catalog.update(specimen.id, { status: 'working' })).toThrow(
+      SpecimenTransitionError,
     )
-    expect(catalog.get(card.id)?.status).toBe('raw')
+    expect(catalog.get(specimen.id)?.status).toBe('raw')
   })
 
-  it('migrates a v1 catalog file on read', () => {
+  it('migrates a v1 catalog file into specimens', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'catalog-'))
     dirs.push(dir)
     writeFileSync(
@@ -138,10 +140,12 @@ describe('CatalogStore', () => {
     expect(view?.organismGuess).toEqual({ label: 'Tokay gecko', guess: true })
     expect(view?.tags).toEqual(['adhesion', 'setae', 'example'])
     expect(view?.questions).toEqual(['Setae or claws?'])
+    expect(view?.observations).toHaveLength(1)
 
     const raw = JSON.parse(
       readFileSync(path.join(dir, 'catalog.json'), 'utf8'),
-    ) as { version: number }
-    expect(raw.version).toBe(2)
+    ) as { version: number; specimens?: unknown[] }
+    expect(raw.version).toBe(3)
+    expect(raw.specimens).toHaveLength(1)
   })
 })

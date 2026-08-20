@@ -3,7 +3,24 @@ import { assertEdge, EdgeEndpointError, edgeEndpointsAllowed } from './edge'
 import { createEdge } from '../entity/edge-entity'
 
 describe('biomimetic edges', () => {
-  it('allows exhibits organism → structure', () => {
+  it('allows observation-of from observation to specimen', () => {
+    expect(
+      edgeEndpointsAllowed(
+        'observation-of',
+        { _tag: 'observation', id: 'obs_1' as never },
+        { _tag: 'specimen', id: 'sp_1' as never },
+      ),
+    ).toBe(true)
+  })
+
+  it('allows exhibits from specimen or organism to structure', () => {
+    expect(
+      edgeEndpointsAllowed(
+        'exhibits',
+        { _tag: 'specimen', id: 'sp_1' as never },
+        { _tag: 'structure', id: 'str_1' as never },
+      ),
+    ).toBe(true)
     expect(
       edgeEndpointsAllowed(
         'exhibits',
@@ -13,53 +30,46 @@ describe('biomimetic edges', () => {
     ).toBe(true)
   })
 
-  it('allows via from function or structure to mechanism', () => {
+  it('allows identified-as specimen → organism', () => {
     expect(
       edgeEndpointsAllowed(
-        'via',
-        { _tag: 'function', id: 'fn_1' as never },
-        { _tag: 'mechanism', id: 'mech_1' as never },
-      ),
-    ).toBe(true)
-    expect(
-      edgeEndpointsAllowed(
-        'via',
-        { _tag: 'structure', id: 'str_1' as never },
-        { _tag: 'mechanism', id: 'mech_1' as never },
+        'identified-as',
+        { _tag: 'specimen', id: 'sp_1' as never },
+        { _tag: 'organism', id: 'org_1' as never },
       ),
     ).toBe(true)
   })
 
-  it('allows depicts from a card onto analog or organism', () => {
+  it('allows inspires from specimen or mechanism to analog', () => {
     expect(
       edgeEndpointsAllowed(
-        'depicts',
-        { _tag: 'card', id: 'card_1' as never },
+        'inspires',
+        { _tag: 'specimen', id: 'sp_1' as never },
         { _tag: 'analog', id: 'an_1' as never },
       ),
     ).toBe(true)
   })
 
-  it('rejects inspires unless mechanism → analog', () => {
-    expect(() =>
-      assertEdge(
-        createEdge({
-          id: 'edge_bad' as never,
-          kind: 'inspires',
-          from: { _tag: 'card', id: 'card_1' as never },
-          to: { _tag: 'analog', id: 'an_1' as never },
-        }),
-      ),
-    ).toThrow(EdgeEndpointError)
-  })
-
-  it('rejects a card contained in itself', () => {
+  it('rejects a specimen contained in itself', () => {
     expect(
       edgeEndpointsAllowed(
         'contained-in',
-        { _tag: 'card', id: 'card_1' as never },
-        { _tag: 'card', id: 'card_1' as never },
+        { _tag: 'specimen', id: 'sp_1' as never },
+        { _tag: 'specimen', id: 'sp_1' as never },
       ),
     ).toBe(false)
+  })
+
+  it('rejects observation-of unless observation → specimen', () => {
+    expect(() =>
+      assertEdge(
+        createEdge({
+          id: 'edge_bad',
+          kind: 'observation-of',
+          from: { _tag: 'specimen', id: 'sp_1' as never },
+          to: { _tag: 'specimen', id: 'sp_2' as never },
+        }),
+      ),
+    ).toThrow(EdgeEndpointError)
   })
 })

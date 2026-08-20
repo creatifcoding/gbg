@@ -1,5 +1,5 @@
 import type { Attachment } from '../schemas/attachment'
-import type { AttachmentId, CardId } from '../schemas/identifiers'
+import type { AttachmentId, SpecimenId } from '../schemas/identifiers'
 import type { CatalogSnapshot } from '../models/catalog-snapshot'
 
 export function findAttachment(
@@ -9,11 +9,11 @@ export function findAttachment(
   return snapshot.attachments.find((item) => item.id === id)
 }
 
-export function attachmentsForCard(
+export function attachmentsForSpecimen(
   snapshot: CatalogSnapshot,
-  cardId: CardId | string,
+  specimenId: SpecimenId | string,
 ): Attachment[] {
-  return snapshot.attachments.filter((item) => item.cardId === cardId)
+  return snapshot.attachments.filter((item) => item.specimenId === specimenId)
 }
 
 export function insertAttachment(

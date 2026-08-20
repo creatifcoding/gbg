@@ -1,49 +1,52 @@
 import { describe, expect, it } from 'vitest'
 import {
-  CardTransitionError,
-  createCard,
-  transitionCard,
-} from './card-entity'
+  SpecimenTransitionError,
+  createSpecimen,
+  transitionSpecimen,
+} from './specimen-entity'
 import {
   AnalogTransitionError,
   createAnalog,
   transitionAnalog,
 } from './analog-entity'
-import type { AnalogId, CardId } from '../schemas/identifiers'
+import { Schema } from 'effect'
+import { AnalogId, SpecimenId } from '../schemas/identifiers'
 
-describe('CardEntity status machine', () => {
-  it('creates a card in raw', () => {
-    const { card, event } = createCard({
-      id: 'card_1' as CardId,
+describe('SpecimenEntity status machine', () => {
+  it('creates a specimen in raw', () => {
+    const { specimen, event } = createSpecimen({
+      id: Schema.decodeUnknownSync(SpecimenId)('sp_1'),
       kind: 'note',
       claim: 'Dump first.',
       organismGuess: null,
       tagIds: [],
       questionIds: [],
     })
-    expect(card.status).toBe('raw')
-    expect(event.type).toBe('CardCreated')
+    expect(specimen.status).toBe('raw')
+    expect(event.type).toBe('SpecimenCreated')
   })
 
   it('allows raw → filed and rejects raw → working', () => {
-    const { card } = createCard({
-      id: 'card_2' as CardId,
+    const { specimen } = createSpecimen({
+      id: Schema.decodeUnknownSync(SpecimenId)('sp_2'),
       kind: 'picture',
-      claim: 'Raw picture.',
+      claim: 'Raw picture of this leaf.',
       organismGuess: null,
       tagIds: [],
       questionIds: [],
     })
-    const filed = transitionCard(card, 'filed')
-    expect(filed.card.status).toBe('filed')
-    expect(() => transitionCard(card, 'working')).toThrow(CardTransitionError)
+    const filed = transitionSpecimen(specimen, 'filed')
+    expect(filed.specimen.status).toBe('filed')
+    expect(() => transitionSpecimen(specimen, 'working')).toThrow(
+      SpecimenTransitionError,
+    )
   })
 })
 
 describe('AnalogEntity status machine', () => {
   it('allows raw → working → tested and rejects raw → tested', () => {
     const { analog } = createAnalog({
-      id: 'an_1' as AnalogId,
+      id: Schema.decodeUnknownSync(AnalogId)('an_1'),
       claim: 'Tape analog of setae.',
     })
     expect(analog.status).toBe('raw')

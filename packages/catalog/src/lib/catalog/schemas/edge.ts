@@ -1,16 +1,22 @@
 import { Schema } from 'effect'
 import {
   AnalogId,
-  CardId,
   EdgeId,
   FunctionId,
   MechanismId,
+  ObservationId,
   OrganismId,
+  SpecimenId,
   StructureId,
 } from './identifiers'
 
-export const CardNode = Schema.TaggedStruct('card', { id: CardId })
-export type CardNode = typeof CardNode.Type
+export const SpecimenNode = Schema.TaggedStruct('specimen', { id: SpecimenId })
+export type SpecimenNode = typeof SpecimenNode.Type
+
+export const ObservationNode = Schema.TaggedStruct('observation', {
+  id: ObservationId,
+})
+export type ObservationNode = typeof ObservationNode.Type
 
 export const AnalogNode = Schema.TaggedStruct('analog', { id: AnalogId })
 export type AnalogNode = typeof AnalogNode.Type
@@ -28,7 +34,8 @@ export const FunctionNode = Schema.TaggedStruct('function', { id: FunctionId })
 export type FunctionNode = typeof FunctionNode.Type
 
 export const NodeRef = Schema.Union([
-  CardNode,
+  SpecimenNode,
+  ObservationNode,
   AnalogNode,
   OrganismNode,
   StructureNode,
@@ -38,6 +45,10 @@ export const NodeRef = Schema.Union([
 export type NodeRef = typeof NodeRef.Type
 
 export const EdgeKind = Schema.Literals([
+  'observation-of',
+  'same-lot',
+  'derived-from',
+  'identified-as',
   'exhibits',
   'performs',
   'via',
@@ -49,6 +60,10 @@ export const EdgeKind = Schema.Literals([
 export type EdgeKind = typeof EdgeKind.Type
 
 export const EDGE_KINDS = [
+  'observation-of',
+  'same-lot',
+  'derived-from',
+  'identified-as',
   'exhibits',
   'performs',
   'via',
@@ -91,8 +106,18 @@ export function edgeEndpointsAllowed(
   to: NodeRef,
 ): boolean {
   switch (kind) {
+    case 'observation-of':
+      return from._tag === 'observation' && to._tag === 'specimen'
+    case 'same-lot':
+    case 'derived-from':
+      return from._tag === 'specimen' && to._tag === 'specimen' && !sameNode(from, to)
+    case 'identified-as':
+      return from._tag === 'specimen' && to._tag === 'organism'
     case 'exhibits':
-      return from._tag === 'organism' && to._tag === 'structure'
+      return (
+        (from._tag === 'organism' || from._tag === 'specimen') &&
+        to._tag === 'structure'
+      )
     case 'performs':
       return from._tag === 'structure' && to._tag === 'function'
     case 'via':
@@ -101,12 +126,15 @@ export function edgeEndpointsAllowed(
         to._tag === 'mechanism'
       )
     case 'inspires':
-      return from._tag === 'mechanism' && to._tag === 'analog'
+      return (
+        (from._tag === 'mechanism' || from._tag === 'specimen') &&
+        to._tag === 'analog'
+      )
     case 'contained-in':
-      return from._tag === 'card' && to._tag === 'card' && !sameNode(from, to)
+      return from._tag === 'specimen' && to._tag === 'specimen' && !sameNode(from, to)
     case 'depicts':
       return (
-        from._tag === 'card' &&
+        from._tag === 'specimen' &&
         (to._tag === 'organism' ||
           to._tag === 'structure' ||
           to._tag === 'mechanism' ||

@@ -1,12 +1,19 @@
 import { Schema } from 'effect'
-import { AttachmentId, CardId } from './identifiers'
+import { AttachmentId, ObservationId, SpecimenId } from './identifiers'
 
 export const AttachmentKind = Schema.Literals(['image', 'file'] as const)
 export type AttachmentKind = typeof AttachmentKind.Type
 
+export const AttachmentHost = Schema.Union([
+  Schema.TaggedStruct('specimen', {}),
+  Schema.TaggedStruct('observation', { id: ObservationId }),
+])
+export type AttachmentHost = typeof AttachmentHost.Type
+
 export const Attachment = Schema.Struct({
   id: AttachmentId,
-  cardId: CardId,
+  specimenId: SpecimenId,
+  host: AttachmentHost,
   filename: Schema.NonEmptyString,
   mimeType: Schema.NonEmptyString,
   sizeBytes: Schema.Number,

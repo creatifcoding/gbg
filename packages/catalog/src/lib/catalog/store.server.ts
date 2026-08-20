@@ -2,20 +2,25 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { nanoid } from 'nanoid'
 import {
-  attachToCard,
-  setCardBody,
-  transitionCard,
-} from './entity/card-entity'
+  setSpecimenBody,
+  transitionSpecimen,
+} from './entity/specimen-entity'
+import { attachToObservation } from './entity/observation-entity'
 import { createEdge } from './entity/edge-entity'
 import {
-  hydrateCard,
+  hydrateSpecimen,
   matchesFilter,
-  type CardView,
+  type SpecimenView,
   type CatalogFilter,
-} from './models/card-view'
+} from './models/specimen-view'
 import type { CatalogSnapshot, ExampleFragment } from './models/catalog-snapshot'
 import { findAttachment, insertAttachment } from './repos/attachment-repo'
-import { appendEvents, findCard, upsertCard } from './repos/card-repo'
+import { appendEvents, findSpecimen, upsertSpecimen } from './repos/specimen-repo'
+import {
+  findObservation,
+  observationsForSpecimen,
+  upsertObservation,
+} from './repos/observation-repo'
 import { insertEdge } from './repos/edge-repo'
 import { insertEvents } from './repos/event-repo'
 import { catalogDataDir, fileExists, JsonCatalog } from './repos/json-catalog'
@@ -30,13 +35,13 @@ import {
   upsertTag,
 } from './repos/reference-repo'
 import { attachmentKindFromMime, decodeAttachment } from './schemas/attachment'
-import type { CardStatus } from './schemas/card'
+import type { SpecimenStatus } from './schemas/specimen'
 import type { CatalogEvent } from './schemas/events'
 import type { IntakeResult } from './intake'
 
-export type CardPatch = {
+export type SpecimenPatch = {
   body?: string
-  status?: CardStatus
+  status?: SpecimenStatus
 }
 
 export type StoredAttachment = {
@@ -68,23 +73,23 @@ export class CatalogStore {
     return this.json.read()
   }
 
-  list(filter: CatalogFilter = {}): CardView[] {
+  list(filter: CatalogFilter = {}): SpecimenView[] {
     const snapshot = this.json.read()
-    return snapshot.cards
-      .map((card) => hydrateCard(snapshot, card))
+    return snapshot.specimens
+      .map((specimen) => hydrateSpecimen(snapshot, specimen))
       .filter((view) => matchesFilter(view, filter))
   }
 
-  get(id: string): CardView | undefined {
+  get(id: string): SpecimenView | undefined {
     const snapshot = this.json.read()
-    const card = findCard(snapshot, id)
-    return card ? hydrateCard(snapshot, card) : undefined
+    const specimen = findSpecimen(snapshot, id)
+    return specimen ? hydrateSpecimen(snapshot, specimen) : undefined
   }
 
-  insertIntake(result: IntakeResult): CardView {
+  insertIntake(result: IntakeResult): SpecimenView {
     const snapshot = this.json.mutate((current) => {
       let next = current
-      const tagIds = result.card.tagIds.map((id) => {
+      const tagIds = result.specimen.tagIds.map((id) => {
         const draft = result.tags.find((tag) => tag.id === id)
         if (!draft) return id
         const existing = findTagBySlug(next, draft.slug)
@@ -95,88 +100,104 @@ export class CatalogStore {
       for (const question of result.questions) {
         next = insertQuestion(next, question)
       }
-      next = upsertCard(next, {
-        ...result.card,
+      next = upsertSpecimen(next, {
+        ...result.specimen,
         tagIds,
       })
+      next = upsertObservation(next, result.observation)
+      next = insertEdge(next, result.observationEdge)
       next = appendEvents(next, result.events)
       return next
     })
-    const card = findCard(snapshot, result.card.id)
-    if (!card) {
-      throw new Error(`Card ${result.card.id} missing after intake`)
+    const specimen = findSpecimen(snapshot, result.specimen.id)
+    if (!specimen) {
+      throw new Error(`Specimen ${result.specimen.id} missing after intake`)
     }
-    return hydrateCard(snapshot, card)
+    return hydrateSpecimen(snapshot, specimen)
   }
 
-  update(id: string, patch: CardPatch): CardView | undefined {
+  update(id: string, patch: SpecimenPatch): SpecimenView | undefined {
     let found = false
     const snapshot = this.json.mutate((current) => {
-      const card = findCard(current, id)
-      if (!card) return current
+      const specimen = findSpecimen(current, id)
+      if (!specimen) return current
       found = true
-      let nextCard = card
+      let nextSpecimen = specimen
       let next = current
       const events: CatalogEvent[] = []
       if (typeof patch.body === 'string') {
-        const updated = setCardBody(nextCard, patch.body)
-        nextCard = updated.card
+        const updated = setSpecimenBody(nextSpecimen, patch.body)
+        nextSpecimen = updated.specimen
         events.push(updated.event)
       }
       if (patch.status) {
-        const updated = transitionCard(nextCard, patch.status)
-        nextCard = updated.card
+        const updated = transitionSpecimen(nextSpecimen, patch.status)
+        nextSpecimen = updated.specimen
         events.push(updated.event)
       }
-      next = upsertCard(next, nextCard)
+      next = upsertSpecimen(next, nextSpecimen)
       next = appendEvents(next, events)
       return next
     })
     if (!found) return undefined
-    const card = findCard(snapshot, id)
-    return card ? hydrateCard(snapshot, card) : undefined
+    const specimen = findSpecimen(snapshot, id)
+    return specimen ? hydrateSpecimen(snapshot, specimen) : undefined
   }
 
   attach(input: {
-    cardId: string
+    specimenId: string
     filename: string
     mimeType: string
     bytes: Uint8Array
-  }): CardView | undefined {
+  }): SpecimenView | undefined {
     const current = this.json.read()
-    const card = findCard(current, input.cardId)
-    if (!card) return undefined
+    const specimen = findSpecimen(current, input.specimenId)
+    if (!specimen) return undefined
+
+    const dump =
+      observationsForSpecimen(current, specimen.id)[0] ??
+      findObservation(current, specimen.observationIds[0] ?? '')
 
     const attachment = decodeAttachment({
       id: nanoid(),
-      cardId: card.id,
+      specimenId: specimen.id,
+      host: dump
+        ? { _tag: 'observation', id: dump.id }
+        : { _tag: 'specimen' },
       filename: input.filename,
       mimeType: input.mimeType,
       sizeBytes: input.bytes.byteLength,
       kind: attachmentKindFromMime(input.mimeType),
     })
 
-    const dest = this.json.blobPath(card.id, attachment.id)
+    const dest = this.json.blobPath(specimen.id, attachment.id)
     mkdirSync(path.dirname(dest), { recursive: true })
     writeFileSync(dest, input.bytes)
 
     const snapshot = this.json.mutate((snap) => {
-      const live = findCard(snap, card.id)
+      const live = findSpecimen(snap, specimen.id)
       if (!live) return snap
       let next = insertAttachment(snap, attachment)
-      next = upsertCard(next, attachToCard(live, attachment.id))
+      if (dump) {
+        const liveObs = findObservation(next, dump.id)
+        if (liveObs) {
+          next = upsertObservation(next, attachToObservation(liveObs, attachment.id))
+        }
+      }
       return next
     })
-    const nextCard = findCard(snapshot, card.id)
-    return nextCard ? hydrateCard(snapshot, nextCard) : undefined
+    const nextSpecimen = findSpecimen(snapshot, specimen.id)
+    return nextSpecimen ? hydrateSpecimen(snapshot, nextSpecimen) : undefined
   }
 
-  readBlob(cardId: string, attachmentId: string): StoredAttachment | undefined {
+  readBlob(specimenId: string, attachmentId: string): StoredAttachment | undefined {
     const snapshot = this.json.read()
-    const card = findCard(snapshot, cardId)
+    const specimen = findSpecimen(snapshot, specimenId)
     const attachment = findAttachment(snapshot, attachmentId)
-    if (!card || !attachment || attachment.cardId !== card.id) return undefined
-    const dest = this.json.blobPath(card.id, attachment.id)
+    if (!specimen || !attachment || attachment.specimenId !== specimen.id) {
+      return undefined
+    }
+    const dest = this.json.blobPath(specimen.id, attachment.id)
     if (!fileExists(dest)) return undefined
     return {
       bytes: new Uint8Array(readFileSync(dest)),
@@ -189,7 +210,8 @@ export class CatalogStore {
     this.json.mutate((current) => {
       let next = current
       const have = {
-        cards: new Set(current.cards.map((item) => item.id)),
+        specimens: new Set(current.specimens.map((item) => item.id)),
+        observations: new Set(current.observations.map((item) => item.id)),
         analogs: new Set(current.analogs.map((item) => item.id)),
         organisms: new Set(current.organisms.map((item) => item.id)),
         structures: new Set(current.structures.map((item) => item.id)),
@@ -235,10 +257,15 @@ export class CatalogStore {
           next = putAnalog(next, analog)
         }
       }
-      for (const card of fragment.cards ?? []) {
-        if (!have.cards.has(card.id)) {
-          next = upsertCard(next, {
-            ...card,
+      for (const observation of fragment.observations ?? []) {
+        if (!have.observations.has(observation.id)) {
+          next = upsertObservation(next, observation)
+        }
+      }
+      for (const specimen of fragment.specimens ?? []) {
+        if (!have.specimens.has(specimen.id)) {
+          next = upsertSpecimen(next, {
+            ...specimen,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           })

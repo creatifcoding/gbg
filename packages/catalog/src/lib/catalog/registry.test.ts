@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ANALOG_STATUSES, CARD_STATUSES } from './schema'
+import { ANALOG_STATUSES, SPECIMEN_STATUSES } from './schema'
 import {
   ANALOG_STATUS_VISUAL,
   analogStatusVisual,
@@ -8,15 +8,15 @@ import {
 } from './registry'
 
 describe('STATUS_VISUAL', () => {
-  it('covers every card status', () => {
-    for (const status of CARD_STATUSES) {
+  it('covers every specimen status', () => {
+    for (const status of SPECIMEN_STATUSES) {
       expect(STATUS_VISUAL[status]).toBeDefined()
       expect(statusVisual(status).accent).toBeTruthy()
     }
   })
 
-  it('maps card statuses onto VANTA accents only', () => {
-    const accents = CARD_STATUSES.map((status) => STATUS_VISUAL[status].accent)
+  it('maps specimen statuses onto VANTA accents only', () => {
+    const accents = SPECIMEN_STATUSES.map((status) => STATUS_VISUAL[status].accent)
     expect(new Set(accents)).toEqual(new Set(['amber', 'cyan', 'emerald', 'rose']))
   })
 })

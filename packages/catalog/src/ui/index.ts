@@ -1,6 +1,6 @@
 export { Shell } from './shell'
 export { CatalogIndex } from './catalog-index'
-export { CardDetail } from './card-detail'
+export { SpecimenDetail } from './specimen-detail'
 export { IntakeDrop } from './intake-drop'
 export { ContextCard } from './context-card'
 export { FilterChips } from './filter-chips'

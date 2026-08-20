@@ -18,7 +18,7 @@ export const Route = createRootRoute({
         name: 'viewport',
         content: 'width=device-width, initial-scale=1',
       },
-      { title: 'Catalog. Biomedical intake' },
+      { title: 'Catalog. Biomimetic specimens' },
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

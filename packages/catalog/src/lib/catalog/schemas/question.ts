@@ -1,9 +1,9 @@
 import { Schema } from 'effect'
-import { CardId, QuestionId } from './identifiers'
+import { QuestionId, SpecimenId } from './identifiers'
 
 export const Question = Schema.Struct({
   id: QuestionId,
-  cardId: CardId,
+  specimenId: SpecimenId,
   text: Schema.NonEmptyString,
 })
 export type Question = typeof Question.Type

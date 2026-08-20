@@ -1,6 +1,6 @@
 import { VANTA_COLORS } from '~/components/portal/tokens'
-import type { AnalogStatus, CardKind, CardStatus } from './schema'
-import { ANALOG_STATUSES, CARD_KINDS, CARD_STATUSES } from './schema'
+import type { AnalogStatus, EvidenceKind, SpecimenStatus } from './schema'
+import { ANALOG_STATUSES, EVIDENCE_KINDS, SPECIMEN_STATUSES } from './schema'
 
 type CatalogIndicator = 'active' | 'pending' | 'inactive' | 'idle' | 'error'
 
@@ -12,7 +12,7 @@ type Visual = {
 }
 
 /**
- * Closed vocabularies for biomimetic catalog cards and analogs.
+ * Closed vocabularies for specimens and analogs.
  * Status maps onto VANTA accents. Do not invent a second palette.
  */
 export const STATUS_VISUAL = {
@@ -40,7 +40,7 @@ export const STATUS_VISUAL = {
     color: VANTA_COLORS.accent.rose,
     glow: VANTA_COLORS.accent.roseGlow,
   },
-} as const satisfies Record<CardStatus, Visual>
+} as const satisfies Record<SpecimenStatus, Visual>
 
 export const ANALOG_STATUS_VISUAL = {
   raw: {
@@ -74,9 +74,9 @@ export const KIND_LABEL = {
   dossier: 'dossier',
   artifact: 'artifact',
   note: 'note',
-} as const satisfies Record<CardKind, string>
+} as const satisfies Record<EvidenceKind, string>
 
-export function statusVisual(status: CardStatus) {
+export function statusVisual(status: SpecimenStatus) {
   return STATUS_VISUAL[status]
 }
 
@@ -84,12 +84,12 @@ export function analogStatusVisual(status: AnalogStatus) {
   return ANALOG_STATUS_VISUAL[status]
 }
 
-export function isRegisteredKind(value: string): value is CardKind {
-  return (CARD_KINDS as readonly string[]).includes(value)
+export function isRegisteredKind(value: string): value is EvidenceKind {
+  return (EVIDENCE_KINDS as readonly string[]).includes(value)
 }
 
-export function isRegisteredStatus(value: string): value is CardStatus {
-  return (CARD_STATUSES as readonly string[]).includes(value)
+export function isRegisteredStatus(value: string): value is SpecimenStatus {
+  return (SPECIMEN_STATUSES as readonly string[]).includes(value)
 }
 
 export function isRegisteredAnalogStatus(

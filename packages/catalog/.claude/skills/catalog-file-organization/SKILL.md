@@ -13,7 +13,7 @@ triggers:
 
 Catalog follows TMNL's iiot *layout* (`schemas` → `models` → `repos` → `entity`) without copying plant, line, sensor, Cluster actors, or shells.
 
-This package is biomimetic. Domain names are Card, Analog, Organism, Structure, Mechanism, Function, Attachment, Tag, Question, Edge.
+This package is biomimetic. The primary aggregate is Specimen. Observation, Attachment, Tag, and Question hang off it. Organism, Structure, Mechanism, Function, and Analog are optional reference-graph records.
 
 - `src/lib/` logic (schemas, models, repos, entity, intake, registry)
 - `src/components/` portal, primitives, testbeds
@@ -27,11 +27,11 @@ This package is biomimetic. Domain names are Card, Analog, Organism, Structure, 
 packages/catalog/
 ├── src/
 │   ├── lib/catalog/
-│   │   ├── schemas/         identifiers, Card, Analog, edges, events
-│   │   ├── models/          JSON snapshot v2, CardView
-│   │   ├── repos/           json-catalog, card/analog/edge/reference
-│   │   ├── entity/          Card/Analog status machines (no Cluster)
-│   │   ├── intake.ts        10-second fileCard
+│   │   ├── schemas/         identifiers, Specimen, Observation, Analog, edges
+│   │   ├── models/          JSON snapshot v3, SpecimenView
+│   │   ├── repos/           json-catalog, specimen/observation/analog/edge
+│   │   ├── entity/          Specimen/Analog status machines (no Cluster)
+│   │   ├── intake.ts        10-second fileSpecimen
 │   │   ├── registry.ts      VANTA status → accent
 │   │   ├── store.server.ts  facade over JsonCatalog
 │   │   ├── functions.ts     TanStack Start server functions
@@ -41,8 +41,8 @@ packages/catalog/
 │   │   ├── portal/          tokens.ts, VantaCard.tsx, index.ts
 │   │   ├── primitives/      badge.tsx
 │   │   └── testbed/         VantaCardTestbed.tsx, shared.tsx
-│   ├── ui/                  Shell, CatalogIndex, IntakeDrop, ContextCard
-│   ├── routes/              index, intake, cards.$cardId, testbed.vanta
+│   ├── ui/                  Shell, CatalogIndex, IntakeDrop, ContextCard, SpecimenDetail
+│   ├── routes/              index, intake, specimens.$specimenId, testbed.vanta
 │   └── styles/              app.css, transitions.css
 ├── .claude/skills/
 └── README.md
@@ -56,9 +56,9 @@ v1 RPCs are Start server functions, not Effect Cluster actors.
 
 | Need | Path |
 | --- | --- |
-| Card / Analog schemas | `src/lib/catalog/schemas/` |
+| Specimen / Analog schemas | `src/lib/catalog/schemas/` |
 | Edges | `src/lib/catalog/schemas/edge.ts` |
-| 10-second file | `src/lib/catalog/intake.ts` (`fileCard`) |
+| 10-second file | `src/lib/catalog/intake.ts` (`fileSpecimen`) |
 | Status machines | `src/lib/catalog/entity/` |
 | JSON snapshot | `src/lib/catalog/models/catalog-snapshot.ts` |
 | Status accents | `src/lib/catalog/registry.ts` |
@@ -79,7 +79,7 @@ Catalog skill map: `.claude/skills/SKILL_REGISTRY.md`
 
 ## Patterns
 
-Domain code stays in `lib/catalog`. Do not put `fileCard` in a component.
+Domain code stays in `lib/catalog`. Do not put `fileSpecimen` in a component.
 
 React composites stay in `ui/` or `components/`. Do not put JSX in `store.server.ts`.
 

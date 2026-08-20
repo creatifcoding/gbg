@@ -2,8 +2,12 @@ import { useRouter } from '@tanstack/react-router'
 import { useId, useState } from 'react'
 import * as Label from '@radix-ui/react-label'
 import * as Select from '@radix-ui/react-select'
-import { createCard } from '~/lib/catalog/functions'
-import { CARD_KINDS, type CardKind } from '~/lib/catalog/schema'
+import { createSpecimen } from '~/lib/catalog/functions'
+import {
+  EVIDENCE_KINDS,
+  isEvidenceKind,
+  type EvidenceKind,
+} from '~/lib/catalog/schema'
 import { IntakeError } from '~/lib/catalog/intake'
 import { SlidingTabs } from './sliding-tabs'
 
@@ -12,8 +16,11 @@ export function IntakeDrop() {
   const claimId = useId()
   const tagsId = useId()
   const organismId = useId()
+  const partId = useId()
+  const localityId = useId()
+  const observedId = useId()
   const questionsId = useId()
-  const [kind, setKind] = useState<CardKind>('note')
+  const [kind, setKind] = useState<EvidenceKind>('note')
   const [file, setFile] = useState<File | null>(null)
   const [hover, setHover] = useState(false)
   const [error, setError] = useState('')
@@ -40,10 +47,10 @@ export function IntakeDrop() {
         setPending(true)
         setError('')
         try {
-          const card = await createCard({ data })
+          const specimen = await createSpecimen({ data })
           await router.navigate({
-            to: '/cards/$cardId',
-            params: { cardId: card.id },
+            to: '/specimens/$specimenId',
+            params: { specimenId: specimen.id },
           })
         } catch (caught) {
           const message =
@@ -73,7 +80,7 @@ export function IntakeDrop() {
       >
         <p className="vanta-heading text-base">Drop a picture, dossier, or artifact</p>
         <p className="vanta-muted mt-2 text-[14px]">
-          One file is enough. Notes-only dumps work too.
+          One file is enough. Notes-only dumps work too. Filing creates a specimen.
         </p>
         <label className="vanta-chip mt-3 cursor-pointer">
           Choose file
@@ -88,12 +95,12 @@ export function IntakeDrop() {
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="vanta-label">Type</legend>
+        <legend className="vanta-label">How it arrived</legend>
         <SlidingTabs
-          ariaLabel="Card type"
+          ariaLabel="First evidence type"
           value={kind}
           onChange={setKind}
-          options={CARD_KINDS.map((value) => ({ value, label: value }))}
+          options={EVIDENCE_KINDS.map((value) => ({ value, label: value }))}
         />
         <KindSelect value={kind} onChange={setKind} />
       </fieldset>
@@ -102,7 +109,7 @@ export function IntakeDrop() {
         id={claimId}
         name="claim"
         label="One-line claim"
-        placeholder="What is this, in one sentence?"
+        placeholder="What is this specimen, in one sentence?"
         required
         error={error}
       />
@@ -110,14 +117,32 @@ export function IntakeDrop() {
         id={tagsId}
         name="tags"
         label="Tags (at least 3, comma-separated)"
-        placeholder="gel, western, blot"
+        placeholder="adhesion, setae, dump"
         required
       />
       <Field
         id={organismId}
         name="organism"
-        label="Organism guess (optional)"
+        label="Taxon guess (optional)"
         placeholder="leave blank"
+      />
+      <Field
+        id={partId}
+        name="part"
+        label="Part / structure (optional)"
+        placeholder="setae, leaf surface"
+      />
+      <Field
+        id={localityId}
+        name="locality"
+        label="Locality (optional)"
+        placeholder="where it came from"
+      />
+      <Field
+        id={observedId}
+        name="observedAt"
+        label="Collected / observed (optional)"
+        placeholder="when, if you know"
       />
       <div className="space-y-2">
         <Label.Root htmlFor={questionsId} className="vanta-label">
@@ -135,7 +160,7 @@ export function IntakeDrop() {
       <p className="t-error-msg vanta-error">{error}</p>
 
       <button type="submit" disabled={pending} className="vanta-btn-primary">
-        {pending ? 'Filing…' : 'File card'}
+        {pending ? 'Filing…' : 'File specimen'}
       </button>
     </form>
   )
@@ -180,18 +205,23 @@ function KindSelect({
   value,
   onChange,
 }: {
-  value: CardKind
-  onChange: (value: CardKind) => void
+  value: EvidenceKind
+  onChange: (value: EvidenceKind) => void
 }) {
   return (
-    <Select.Root value={value} onValueChange={(next) => onChange(next as CardKind)}>
-      <Select.Trigger aria-label="Card type" className="sr-only">
+    <Select.Root
+      value={value}
+      onValueChange={(next) => {
+        if (isEvidenceKind(next)) onChange(next)
+      }}
+    >
+      <Select.Trigger aria-label="First evidence type" className="sr-only">
         <Select.Value />
       </Select.Trigger>
       <Select.Portal>
         <Select.Content className="rounded-[4px] border border-[color:var(--vanta-border)] bg-[color:var(--vanta-elevated)] p-1">
           <Select.Viewport>
-            {CARD_KINDS.map((kind) => (
+            {EVIDENCE_KINDS.map((kind) => (
               <Select.Item
                 key={kind}
                 value={kind}

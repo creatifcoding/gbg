@@ -3,7 +3,7 @@ export * from './models'
 export * from './entity'
 
 export {
-  decodeCardView as decodeCard,
-  encodeCardView as encodeCard,
-} from './models/card-view'
+  decodeSpecimenView as decodeSpecimen,
+  encodeSpecimenView as encodeSpecimen,
+} from './models/specimen-view'
 export { guessLabel as organismLabel, guessFromInput } from './schemas/guess'

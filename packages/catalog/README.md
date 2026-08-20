@@ -1,6 +1,6 @@
 # @gbg/catalog
 
-Biomimetic research catalog. Dump a picture, dossier, artifact, or note and file it as a Card in one screen. Cards can later depict organisms, structures, mechanisms, functions, and engineered analogs. The package is not a generic biomedical file cabinet.
+Biomimetic research catalog. Dump a picture, dossier, artifact, or note and file it as a Specimen in one screen. A Specimen is a particular sample in hand or on record: this leaf, this foot, this slide, this photo. Organism, structure, mechanism, function, and analog stay optional later links. The package is not a generic biomedical file cabinet.
 
 Empty catalog is valid. The app does not invent citations or papers.
 
@@ -10,20 +10,21 @@ Empty catalog is valid. The app does not invent citations or papers.
 
 ## Product invariant
 
-Intake is one screen, no wizard. Filing produces a Card first:
+Intake is one screen, no wizard. Filing produces a Specimen first:
 
-- kind: `picture` | `dossier` | `artifact` | `note`
-- status machine: `raw` → `filed` → `working` → `dead` (skip-to-dead allowed; do not skip `filed`)
+- first evidence: `picture` | `dossier` | `artifact` | `note`
+- status machine: `raw` → `filed` → `working` → `dead` (dead is deaccessioned; skip-to-dead allowed; do not skip `filed`)
 - one-line claim
 - 3 or more tags
-- organism / structure / function guesses optional and marked `guess: true`
+- taxon / part guesses optional and marked `guess: true`
+- locality and collected/observed optional
 - open questions (may be empty)
 
-Body exists only after the Card exists. Taxonomy does not block intake.
+Intake also writes a CRUD Observation (`observation-of` the specimen). Body exists only after the Specimen exists. Taxonomy does not block intake.
 
-Analog is a separate event-sourced aggregate (`raw` → `working` → `tested` → `dead`) inspired by a Mechanism. Organism, Structure, Mechanism, Function, Attachment, Tag, and Question are reference-graph records. Edges are first-class (`exhibits`, `performs`, `via`, `inspires`, `contained-in`, `depicts`, `contradicts`).
+Analog is a separate event-sourced aggregate (`raw` → `working` → `tested` → `dead`). Organism, Structure, Mechanism, Function, Attachment, Tag, Question, and Observation are not event sourced. Edges are first-class (`observation-of`, `same-lot`, `derived-from`, `identified-as`, `exhibits`, `performs`, `via`, `inspires`, `contained-in`, `depicts`, `contradicts`).
 
-Deferred: Collection, kingdom/clade tree, Material separate from Structure, citations.
+Deferred: Collection, kingdom/clade tree, Material separate from Structure, citations, Preparation unless it stays cheap.
 
 ## Run
 
@@ -55,7 +56,7 @@ No cloud secrets. Auth is deferred.
 
 ## Persistence
 
-Local JSON at `packages/catalog/.data/catalog.json` (snapshot version 2). Blobs go in `.data/blobs/`. Override with `CATALOG_DATA_DIR`. Version 1 files migrate on read.
+Local JSON at `packages/catalog/.data/catalog.json` (snapshot version 3). Blobs go in `.data/blobs/`. Override with `CATALOG_DATA_DIR`. Version 1 and 2 files migrate on read.
 
 The schema does not mention Notion. A Notion adapter can sit later without changing intake.
 
@@ -100,11 +101,11 @@ Each recipe keeps its `prefers-reduced-motion` guard.
 ```
 packages/catalog/
   src/lib/catalog/
-    schemas/     branded IDs, Card, Analog, reference graph, edges, events
-    models/      snapshot v2, CardView
+    schemas/     branded IDs, Specimen, Observation, Analog, reference graph, edges
+    models/      snapshot v3, SpecimenView
     repos/       JSON document + find/upsert
-    entity/      Card/Analog status machines (no Cluster)
-    intake.ts    10-second fileCard
+    entity/      Specimen/Analog status machines (no Cluster)
+    intake.ts    10-second fileSpecimen
     functions.ts Start server functions
   src/components/portal/     VANTA tokens + VantaCard (cloned from tmnl portal)
   src/components/primitives/ token-driven Badge
@@ -139,4 +140,4 @@ Package-local skills live in `.claude/skills/`. Registry: `.claude/skills/SKILL_
 
 ## Example cards
 
-The catalog boots empty. The index has a button that loads marked example cards (gecko setae, lotus leaf, unknown scale) plus a gecko-tape Analog fixture. They are labeled as synthetic UI fixtures. They are not papers.
+The catalog boots empty. The index has a button that loads marked example specimens (gecko toe, lotus leaf, unknown scale) plus a gecko-tape Analog fixture. They are labeled as synthetic UI fixtures. They are not papers.

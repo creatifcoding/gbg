@@ -11,9 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as IntakeRouteImport } from './routes/intake'
-import { Route as CardsCardIdRouteImport } from './routes/cards.$cardId'
+import { Route as SpecimensSpecimenIdRouteImport } from './routes/specimens.$specimenId'
 import { Route as TestbedVantaRouteImport } from './routes/testbed.vanta'
-import { Route as ApiBlobsCardIdAttachmentIdRouteImport } from './routes/api/blobs.$cardId.$attachmentId'
+import { Route as ApiBlobsSpecimenIdAttachmentIdRouteImport } from './routes/api/blobs.$specimenId.$attachmentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -25,9 +25,9 @@ const IntakeRoute = IntakeRouteImport.update({
   path: '/intake',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CardsCardIdRoute = CardsCardIdRouteImport.update({
-  id: '/cards/$cardId',
-  path: '/cards/$cardId',
+const SpecimensSpecimenIdRoute = SpecimensSpecimenIdRouteImport.update({
+  id: '/specimens/$specimenId',
+  path: '/specimens/$specimenId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TestbedVantaRoute = TestbedVantaRouteImport.update({
@@ -35,65 +35,65 @@ const TestbedVantaRoute = TestbedVantaRouteImport.update({
   path: '/testbed/vanta',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiBlobsCardIdAttachmentIdRoute =
-  ApiBlobsCardIdAttachmentIdRouteImport.update({
-    id: '/api/blobs/$cardId/$attachmentId',
-    path: '/api/blobs/$cardId/$attachmentId',
+const ApiBlobsSpecimenIdAttachmentIdRoute =
+  ApiBlobsSpecimenIdAttachmentIdRouteImport.update({
+    id: '/api/blobs/$specimenId/$attachmentId',
+    path: '/api/blobs/$specimenId/$attachmentId',
     getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/intake': typeof IntakeRoute
-  '/cards/$cardId': typeof CardsCardIdRoute
+  '/specimens/$specimenId': typeof SpecimensSpecimenIdRoute
   '/testbed/vanta': typeof TestbedVantaRoute
-  '/api/blobs/$cardId/$attachmentId': typeof ApiBlobsCardIdAttachmentIdRoute
+  '/api/blobs/$specimenId/$attachmentId': typeof ApiBlobsSpecimenIdAttachmentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/intake': typeof IntakeRoute
-  '/cards/$cardId': typeof CardsCardIdRoute
+  '/specimens/$specimenId': typeof SpecimensSpecimenIdRoute
   '/testbed/vanta': typeof TestbedVantaRoute
-  '/api/blobs/$cardId/$attachmentId': typeof ApiBlobsCardIdAttachmentIdRoute
+  '/api/blobs/$specimenId/$attachmentId': typeof ApiBlobsSpecimenIdAttachmentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/intake': typeof IntakeRoute
-  '/cards/$cardId': typeof CardsCardIdRoute
+  '/specimens/$specimenId': typeof SpecimensSpecimenIdRoute
   '/testbed/vanta': typeof TestbedVantaRoute
-  '/api/blobs/$cardId/$attachmentId': typeof ApiBlobsCardIdAttachmentIdRoute
+  '/api/blobs/$specimenId/$attachmentId': typeof ApiBlobsSpecimenIdAttachmentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/intake'
-    | '/cards/$cardId'
+    | '/specimens/$specimenId'
     | '/testbed/vanta'
-    | '/api/blobs/$cardId/$attachmentId'
+    | '/api/blobs/$specimenId/$attachmentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/intake'
-    | '/cards/$cardId'
+    | '/specimens/$specimenId'
     | '/testbed/vanta'
-    | '/api/blobs/$cardId/$attachmentId'
+    | '/api/blobs/$specimenId/$attachmentId'
   id:
     | '__root__'
     | '/'
     | '/intake'
-    | '/cards/$cardId'
+    | '/specimens/$specimenId'
     | '/testbed/vanta'
-    | '/api/blobs/$cardId/$attachmentId'
+    | '/api/blobs/$specimenId/$attachmentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   IntakeRoute: typeof IntakeRoute
-  CardsCardIdRoute: typeof CardsCardIdRoute
+  SpecimensSpecimenIdRoute: typeof SpecimensSpecimenIdRoute
   TestbedVantaRoute: typeof TestbedVantaRoute
-  ApiBlobsCardIdAttachmentIdRoute: typeof ApiBlobsCardIdAttachmentIdRoute
+  ApiBlobsSpecimenIdAttachmentIdRoute: typeof ApiBlobsSpecimenIdAttachmentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -112,11 +112,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntakeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cards/$cardId': {
-      id: '/cards/$cardId'
-      path: '/cards/$cardId'
-      fullPath: '/cards/$cardId'
-      preLoaderRoute: typeof CardsCardIdRouteImport
+    '/specimens/$specimenId': {
+      id: '/specimens/$specimenId'
+      path: '/specimens/$specimenId'
+      fullPath: '/specimens/$specimenId'
+      preLoaderRoute: typeof SpecimensSpecimenIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/testbed/vanta': {
@@ -126,11 +126,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TestbedVantaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/blobs/$cardId/$attachmentId': {
-      id: '/api/blobs/$cardId/$attachmentId'
-      path: '/api/blobs/$cardId/$attachmentId'
-      fullPath: '/api/blobs/$cardId/$attachmentId'
-      preLoaderRoute: typeof ApiBlobsCardIdAttachmentIdRouteImport
+    '/api/blobs/$specimenId/$attachmentId': {
+      id: '/api/blobs/$specimenId/$attachmentId'
+      path: '/api/blobs/$specimenId/$attachmentId'
+      fullPath: '/api/blobs/$specimenId/$attachmentId'
+      preLoaderRoute: typeof ApiBlobsSpecimenIdAttachmentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -139,9 +139,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   IntakeRoute: IntakeRoute,
-  CardsCardIdRoute: CardsCardIdRoute,
+  SpecimensSpecimenIdRoute: SpecimensSpecimenIdRoute,
   TestbedVantaRoute: TestbedVantaRoute,
-  ApiBlobsCardIdAttachmentIdRoute: ApiBlobsCardIdAttachmentIdRoute,
+  ApiBlobsSpecimenIdAttachmentIdRoute: ApiBlobsSpecimenIdAttachmentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

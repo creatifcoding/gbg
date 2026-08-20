@@ -20,7 +20,7 @@ import {
   type VantaCardVariant,
 } from '~/components/portal'
 import { STATUS_VISUAL } from '~/lib/catalog/registry'
-import { CARD_STATUSES } from '~/lib/catalog/schema'
+import { SPECIMEN_STATUSES } from '~/lib/catalog/schema'
 import { SectionLabel } from './shared'
 
 function TypographySpecimen() {
@@ -126,7 +126,7 @@ function CatalogStatusShowcase() {
         raw, filed, working, and dead reuse VANTA amber, cyan, emerald, and rose.
       </VantaCard.Body>
       <div className="mt-4 grid gap-4 sm:grid-cols-4">
-        {CARD_STATUSES.map((status) => {
+        {SPECIMEN_STATUSES.map((status) => {
           const visual = STATUS_VISUAL[status]
           return (
             <div key={status} className="space-y-2">
@@ -154,9 +154,9 @@ function CatalogCardExample() {
         <VantaCard.Title>NOTE</VantaCard.Title>
         <VantaCard.Indicator status="pending" label="RAW" />
       </VantaCard.Header>
-      <VantaCard.Subtitle>unknown organism</VantaCard.Subtitle>
+      <VantaCard.Subtitle>unlinked taxon</VantaCard.Subtitle>
       <VantaCard.Body>
-        One-line claim lives here. Tags and open questions can exist at dump. Organism is an optional guess. Body waits.
+        One-line claim lives here. Tags and open questions can exist at dump. Taxon is an optional guess. Body waits.
       </VantaCard.Body>
       <VantaCard.Divider />
       <div className="grid grid-cols-3 gap-4">
@@ -296,7 +296,7 @@ export function VantaCardTestbed() {
           <GlowVariants />
         </section>
         <section>
-          <SectionLabel>Catalog card composition</SectionLabel>
+          <SectionLabel>Specimen row composition</SectionLabel>
           <CatalogCardExample />
         </section>
         <section>

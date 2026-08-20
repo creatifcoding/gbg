@@ -36,10 +36,10 @@ triggers:
 | `catalog-typography-discipline` | 12px floor, Geo / Grotesk / Mono | font size, 12px floor |
 | `catalog-file-organization` | lib vs components vs ui vs skills | where is, file structure |
 | `catalog-testbed-patterns` | `/testbed/*` Start file routes | testbed |
-| `catalog-registry-patterns` | STATUS_VISUAL, CARD_KINDS | registry, status |
+| `catalog-registry-patterns` | STATUS_VISUAL, EVIDENCE_KINDS | registry, status |
 | `react-compound-components` | VantaCard Object.assign slots | VantaCard, compound |
 | `grounded-research` | Verify tmnl tokens and catalog schema first | research, verify |
-| `catalog-intake` | 10-second dump then file | intake, fileCard, dump |
+| `catalog-intake` | 10-second dump then file a Specimen | intake, fileSpecimen, dump |
 
 ## Subsystem map
 
@@ -75,4 +75,4 @@ Tmnl skills for slider, data-manager, overlays, commands, AG-Grid, animation dri
 
 1. New testbed: add or update `catalog-testbed-patterns`
 2. New visual token: update color + design-token skills, copy from tmnl portal tokens
-3. Intake rule change: update `catalog-intake` and `fileCard` tests together
+3. Intake rule change: update `catalog-intake` and `fileSpecimen` tests together

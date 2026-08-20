@@ -1,11 +1,11 @@
 import { Schema } from 'effect'
 import { AnalogEvent } from './analog-events'
-import { CardEvent } from './card-events'
+import { SpecimenEvent } from './specimen-events'
 
-export * from './card-events'
+export * from './specimen-events'
 export * from './analog-events'
 
-export const CatalogEvent = Schema.Union([CardEvent, AnalogEvent])
+export const CatalogEvent = Schema.Union([SpecimenEvent, AnalogEvent])
 export type CatalogEvent = typeof CatalogEvent.Type
 
 export const decodeCatalogEvent = Schema.decodeUnknownSync(CatalogEvent)

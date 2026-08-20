@@ -48,7 +48,7 @@ Styling comes from `VANTA_CARD_VARIANTS` and `VANTA_TYPOGRAPHY.preset`.
     <VantaCard.Title>{card.kind}</VantaCard.Title>
     <VantaCard.Indicator status={visual.indicator} label={card.status} />
   </VantaCard.Header>
-  <VantaCard.Subtitle>{organismLabel(card.organismGuess)}</VantaCard.Subtitle>
+  <VantaCard.Subtitle>{organismLabel(specimen.organismGuess)}</VantaCard.Subtitle>
   <VantaCard.Body>{card.claim}</VantaCard.Body>
 </VantaCard>
 ```

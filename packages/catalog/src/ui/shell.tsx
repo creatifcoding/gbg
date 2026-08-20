@@ -20,7 +20,7 @@ export function Shell({
             <Link to="/testbed/vanta">Testbed</Link>
           </nav>
           <p className="vanta-muted mt-10 text-[12px] leading-5">
-            Dump first. File a card in one screen. Notes wait until the card exists.
+            Dump first. File a specimen in one screen. Body waits until the specimen exists.
           </p>
         </aside>
         <main className="min-w-0 flex-1">{children}</main>

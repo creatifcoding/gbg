@@ -1,7 +1,10 @@
 import { Schema } from 'effect'
 
-export const CardId = Schema.String.pipe(Schema.brand('CardId'))
-export type CardId = typeof CardId.Type
+export const SpecimenId = Schema.String.pipe(Schema.brand('SpecimenId'))
+export type SpecimenId = typeof SpecimenId.Type
+
+export const ObservationId = Schema.String.pipe(Schema.brand('ObservationId'))
+export type ObservationId = typeof ObservationId.Type
 
 export const AnalogId = Schema.String.pipe(Schema.brand('AnalogId'))
 export type AnalogId = typeof AnalogId.Type

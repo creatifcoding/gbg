@@ -1,11 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getCatalogStore } from '~/lib/catalog/store.server'
 
-export const Route = createFileRoute('/api/blobs/$cardId/$attachmentId')({
+export const Route = createFileRoute('/api/blobs/$specimenId/$attachmentId')({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const blob = getCatalogStore().readBlob(params.cardId, params.attachmentId)
+        const blob = getCatalogStore().readBlob(
+          params.specimenId,
+          params.attachmentId,
+        )
         if (!blob) {
           return new Response('Not found', { status: 404 })
         }

@@ -1,5 +1,6 @@
 export * from './json-catalog'
-export * from './card-repo'
+export * from './specimen-repo'
+export * from './observation-repo'
 export * from './analog-repo'
 export * from './edge-repo'
 export * from './attachment-repo'

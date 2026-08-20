@@ -13,9 +13,12 @@ import {
 } from '../models/catalog-snapshot'
 import {
   decodeV1CatalogFile,
+  decodeV2CatalogFile,
   migrateV1,
+  migrateV2,
   snapshotLooksLikeV1,
-} from '../models/migrate-v1'
+  snapshotLooksLikeV2,
+} from '../models/migrate'
 
 export class JsonCatalog {
   readonly dataDir: string
@@ -36,6 +39,11 @@ export class JsonCatalog {
     const raw = JSON.parse(readFileSync(this.catalogPath, 'utf8')) as unknown
     if (snapshotLooksLikeV1(raw)) {
       const migrated = migrateV1(decodeV1CatalogFile(raw))
+      this.write(migrated)
+      return migrated
+    }
+    if (snapshotLooksLikeV2(raw)) {
+      const migrated = migrateV2(decodeV2CatalogFile(raw))
       this.write(migrated)
       return migrated
     }
@@ -60,8 +68,8 @@ export class JsonCatalog {
     this.write(emptySnapshot())
   }
 
-  blobPath(cardId: string, attachmentId: string): string {
-    return path.join(this.blobsDir, cardId, attachmentId)
+  blobPath(specimenId: string, attachmentId: string): string {
+    return path.join(this.blobsDir, specimenId, attachmentId)
   }
 }
 

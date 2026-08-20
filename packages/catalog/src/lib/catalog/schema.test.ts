@@ -1,46 +1,58 @@
 import { describe, expect, it } from 'vitest'
-import { decodeIntake, fileCard, IntakeError } from './intake'
+import { decodeIntake, fileSpecimen, IntakeError } from './intake'
 import {
-  decodeCard,
+  decodeSpecimen,
   guessFromInput,
   organismLabel,
   parseTags,
 } from './schema'
 
 describe('intake invariant', () => {
-  it('files a raw card from type, claim, and 3 tags without an organism', () => {
-    const filed = fileCard(
+  it('files a raw specimen from type, claim, and 3 tags without a taxon', () => {
+    const filed = fileSpecimen(
       {
         kind: 'picture',
-        claim: 'Gecko toe pad dumped before the analog is designed.',
+        claim: 'This gecko toe pad, dumped before the analog is designed.',
         tags: ['adhesion', 'setae', 'dump'],
         questions: ['What surface was the toe on?'],
       },
       1_700_000_000_000,
     )
 
-    expect(filed.card.status).toBe('raw')
-    expect(filed.card.body).toBe('')
-    expect(filed.card.example).toBe(false)
-    expect(filed.card.organismGuess).toBeNull()
+    expect(filed.specimen.status).toBe('raw')
+    expect(filed.specimen.body).toBe('')
+    expect(filed.specimen.example).toBe(false)
+    expect(filed.specimen.organismGuess).toBeNull()
+    expect(filed.specimen.locality).toBeNull()
     expect(filed.tags).toHaveLength(3)
-    expect(filed.card.createdAt).toBe(1_700_000_000_000)
-    expect(filed.events[0]?.type).toBe('CardCreated')
+    expect(filed.specimen.createdAt).toBe(1_700_000_000_000)
+    expect(filed.events[0]?.type).toBe('SpecimenCreated')
+    expect(filed.observation.specimenId).toBe(filed.specimen.id)
+    expect(filed.observationEdge.kind).toBe('observation-of')
   })
 
-  it('marks a provided organism as a guess, not a reference node', () => {
-    const filed = fileCard({
+  it('marks a provided taxon as a guess, not a required Organism record', () => {
+    const filed = fileSpecimen({
       kind: 'note',
-      claim: 'Lotus leaf wetting still a hypothesis.',
+      claim: 'This lotus leaf, wetting still a hypothesis.',
       tags: ['wetting', 'lotus', 'leaf'],
       organismGuess: { label: 'Nelumbo nucifera', guess: true },
+      structureGuess: { label: 'leaf surface', guess: true },
+      locality: 'pond margin',
+      observedAt: 'June dump',
       questions: [],
     })
 
-    expect(filed.card.organismGuess).toEqual({
+    expect(filed.specimen.organismGuess).toEqual({
       label: 'Nelumbo nucifera',
       guess: true,
     })
+    expect(filed.specimen.structureGuess).toEqual({
+      label: 'leaf surface',
+      guess: true,
+    })
+    expect(filed.specimen.locality).toBe('pond margin')
+    expect(filed.specimen.observedAt).toBe('June dump')
   })
 
   it('rejects fewer than 3 tags', () => {
@@ -54,7 +66,7 @@ describe('intake invariant', () => {
     ).toThrow()
 
     expect(() =>
-      fileCard({
+      fileSpecimen({
         kind: 'note',
         claim: 'Too thin',
         tags: ['one', 'two'],
@@ -65,7 +77,7 @@ describe('intake invariant', () => {
 
   it('rejects an empty claim', () => {
     expect(() =>
-      fileCard({
+      fileSpecimen({
         kind: 'note',
         claim: '',
         tags: ['a', 'b', 'c'],
@@ -74,7 +86,7 @@ describe('intake invariant', () => {
     ).toThrow(IntakeError)
   })
 
-  it('treats blank organism input as no guess', () => {
+  it('treats blank taxon input as no guess', () => {
     expect(guessFromInput('')).toBeNull()
     expect(guessFromInput('unknown')).toBeNull()
     expect(organismLabel(guessFromInput('Tokay gecko'))).toBe('Tokay gecko')
@@ -89,31 +101,33 @@ describe('intake invariant', () => {
     ])
   })
 
-  it('hydrates a card view from intake records', () => {
-    const filed = fileCard({
+  it('hydrates a specimen view from intake records', () => {
+    const filed = fileSpecimen({
       kind: 'dossier',
       claim: 'Folder of lotus notes, not a paper.',
       tags: ['notes', 'lotus', 'wetting'],
       organismGuess: { label: 'Nelumbo nucifera', guess: true },
       questions: [],
     })
-    const view = decodeCard({
-      id: filed.card.id,
-      kind: filed.card.kind,
-      status: filed.card.status,
-      claim: filed.card.claim,
-      body: filed.card.body,
-      organismGuess: filed.card.organismGuess,
-      structureGuess: filed.card.structureGuess,
-      functionGuess: filed.card.functionGuess,
+    const view = decodeSpecimen({
+      id: filed.specimen.id,
+      kind: filed.specimen.kind,
+      status: filed.specimen.status,
+      claim: filed.specimen.claim,
+      body: filed.specimen.body,
+      organismGuess: filed.specimen.organismGuess,
+      structureGuess: filed.specimen.structureGuess,
+      locality: filed.specimen.locality,
+      observedAt: filed.specimen.observedAt,
       tags: filed.tags.map((tag) => tag.slug),
       questions: filed.questions.map((question) => question.text),
+      observations: [filed.observation],
       attachments: [],
-      example: filed.card.example,
-      createdAt: filed.card.createdAt,
-      updatedAt: filed.card.updatedAt,
+      example: filed.specimen.example,
+      createdAt: filed.specimen.createdAt,
+      updatedAt: filed.specimen.updatedAt,
     })
-    expect(view.id).toBe(filed.card.id)
+    expect(view.id).toBe(filed.specimen.id)
     expect(view.tags).toHaveLength(3)
   })
 })
