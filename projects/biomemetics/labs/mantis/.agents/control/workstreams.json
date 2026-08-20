@@ -1,6 +1,14 @@
 {
   "version": 1,
   "workspace": "projects/biomemetics/labs/mantis",
+  "github": {
+    "repository": "creatifcoding/gbg",
+    "epicIssue": 15,
+    "bootstrapPullRequest": 20,
+    "bootstrapBranch": "feat/mantis-biomemetics-lab",
+    "baseBranch": "master",
+    "baseSha": "5890649d28f4b452d2e3bd928f90e36839d82300"
+  },
   "mutationPolicy": "The orchestrator owns this graph. Issue agents read it and modify only their declared write set.",
   "modelPolicy": {
     "planner": { "model": "grok-4.6", "effort": "xhigh", "fast": false },
@@ -17,8 +25,10 @@
     {
       "id": "mantis-00-workspace",
       "title": "Bootstrap the durable mantis biomemetics workspace",
-      "status": "local-draft",
+      "status": "review",
       "role": "planner",
+      "issue": 15,
+      "pullRequest": 20,
       "dependencies": [],
       "writeSet": ["projects/biomemetics/labs/mantis/**"],
       "acceptance": ["scripts/verify-core.sh", "scripts/verify-fabrication.sh"]
@@ -28,6 +38,7 @@
       "title": "Add governed lab-evidence component attachment to SpecimenDB",
       "status": "blocked",
       "role": "implementer",
+      "issue": 16,
       "dependencies": ["mantis-00-workspace", "gbg-pr-12-merged"],
       "writeSet": [
         "packages/specimendb/src/**",
@@ -41,6 +52,7 @@
       "title": "Build and characterize the complete indexed powered-video B27+B50 coupon",
       "status": "proposed",
       "role": "implementer",
+      "issue": 18,
       "dependencies": ["mantis-00-workspace"],
       "writeSet": [
         "projects/biomemetics/labs/mantis/terrarium/ee/**",
@@ -54,6 +66,7 @@
       "title": "Resolve pinch-lift carriage, latch, contact sequence, and tolerances",
       "status": "proposed",
       "role": "implementer",
+      "issue": 17,
       "dependencies": ["mantis-00-workspace"],
       "writeSet": [
         "projects/biomemetics/labs/mantis/terrarium/cad/**",
@@ -65,6 +78,7 @@
       "title": "Admit mantis media and derive evidence without invented identity",
       "status": "proposed",
       "role": "implementer",
+      "issue": 19,
       "dependencies": ["mantis-00-workspace", "mantis-01-specimendb-bridge"],
       "writeSet": [
         "projects/biomemetics/labs/mantis/observations/**",
