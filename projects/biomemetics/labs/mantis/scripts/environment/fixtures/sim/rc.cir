@@ -1,0 +1,7 @@
+* mantis doctor RC transient fixture (tau = R*C = 1ms)
+V1 in 0 DC 1
+R1 in out 1k
+C1 out 0 1u
+.tran 10u 5m
+.print tran v(out)
+.end

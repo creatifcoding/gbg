@@ -1,0 +1,93 @@
+name: Mantis Lab CI
+
+# Same command surface as local workers (issue #21 / mantis-00a-runtime).
+# No apt, ad-hoc pip/npm, or hidden user-profile dependencies.
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'nix/mantis-lab.nix'
+      - 'projects/biomemetics/labs/mantis/flake.nix'
+      - 'projects/biomemetics/labs/mantis/flake.lock'
+      - 'projects/biomemetics/labs/mantis/scripts/environment/**'
+      - 'projects/biomemetics/labs/mantis/contracts/**'
+      - 'projects/biomemetics/labs/mantis/workspace.json'
+      - 'projects/biomemetics/labs/mantis/terrarium/MANIFEST.sha256'
+      - '.github/workflows/mantis-lab.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'nix/mantis-lab.nix'
+      - 'projects/biomemetics/labs/mantis/flake.nix'
+      - 'projects/biomemetics/labs/mantis/flake.lock'
+      - 'projects/biomemetics/labs/mantis/scripts/environment/**'
+      - 'projects/biomemetics/labs/mantis/contracts/**'
+      - 'projects/biomemetics/labs/mantis/workspace.json'
+      - 'projects/biomemetics/labs/mantis/terrarium/MANIFEST.sha256'
+      - '.github/workflows/mantis-lab.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mantis-lab-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  doctor:
+    name: mantis doctor (mantis-all)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v9
+
+      - name: Evaluate mantis shells
+        run: |
+          nix build .#checks.x86_64-linux.mantis-shells-evaluate --print-build-logs
+
+      - name: Enter mantis-core and show command surface
+        run: |
+          nix develop .#mantis-core --command bash -lc 'mantis --help || mantis help || true; which python3 jq rg cargo bun'
+
+      - name: Run mantis doctor in mantis-all
+        run: |
+          nix develop .#mantis-all --command bash -lc 'mantis doctor'
+
+      - name: Upload doctor report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mantis-doctor-report
+          path: .worktree-state/**/doctor/
+          if-no-files-found: warn
+
+  scoped-shells:
+    name: scoped shell smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        shell:
+          - mantis-core
+          - mantis-ee
+          - mantis-cad
+          - mantis-sim
+          - mantis-review
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v9
+
+      - name: Enter ${{ matrix.shell }}
+        run: |
+          nix develop .#${{ matrix.shell }} --command bash -lc 'echo MANTIS_SHELL=$MANTIS_SHELL; echo STATE=$MANTIS_STATE_DIR; test -n "$MANTIS_STATE_DIR"; test -d "$CARGO_TARGET_DIR"'

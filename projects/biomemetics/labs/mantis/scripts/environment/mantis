@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Mantis lab command surface (issue #21).
+# Usage:
+#   mantis doctor
+#   mantis check <workstream-id>
+#   mantis export <domain>
+#   mantis evidence <run>
+# shellcheck shell=bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+mantis_env_init
+
+usage() {
+  cat <<'EOF'
+mantis — locked engineering command surface
+
+  mantis doctor                 Non-mutating workflow preflight + digested report
+  mantis check <workstream-id>  Environment gate for a workstream id
+  mantis export <domain>        Export preflight for domain (ee|cad|sim|review|core)
+  mantis evidence <run>         Locate/verify a doctor or evidence run id
+
+Environment shells (from gbg root flake):
+  nix develop .#mantis-core
+  nix develop .#mantis-ee
+  nix develop .#mantis-cad
+  nix develop .#mantis-sim
+  nix develop .#mantis-review
+  nix develop .#mantis-all      # local integration only
+EOF
+}
+
+cmd_doctor() {
+  exec bash "$SCRIPT_DIR/doctor.sh"
+}
+
+cmd_check() {
+  local id="${1:-}"
+  if [ -z "$id" ]; then
+    echo "usage: mantis check <workstream-id>" >&2
+    exit 2
+  fi
+  exec bash "$SCRIPT_DIR/check.sh" "$id"
+}
+
+cmd_export() {
+  local domain="${1:-}"
+  if [ -z "$domain" ]; then
+    echo "usage: mantis export <domain>" >&2
+    exit 2
+  fi
+  exec bash "$SCRIPT_DIR/export.sh" "$domain"
+}
+
+cmd_evidence() {
+  local run="${1:-}"
+  if [ -z "$run" ]; then
+    echo "usage: mantis evidence <run>" >&2
+    exit 2
+  fi
+  exec bash "$SCRIPT_DIR/evidence.sh" "$run"
+}
+
+main() {
+  local cmd="${1:-}"
+  if [ -z "$cmd" ]; then
+    usage
+    exit 2
+  fi
+  shift || true
+  case "$cmd" in
+    doctor) cmd_doctor "$@" ;;
+    check) cmd_check "$@" ;;
+    export) cmd_export "$@" ;;
+    evidence) cmd_evidence "$@" ;;
+    -h | --help | help) usage ;;
+    *)
+      echo "unknown command: $cmd" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"

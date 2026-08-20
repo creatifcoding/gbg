@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ParameterSet",
+  "parameterSetId": "BAD ID",
+  "workspaceRef": "biomemetics.mantis",
+  "revision": "doctor-v1",
+  "parameters": {
+    "fixture.length": {
+      "status": "measured",
+      "value": 1
+    }
+  }
+}
