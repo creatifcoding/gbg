@@ -42,7 +42,7 @@ describe('strict Effect v4 package guardrails', () => {
         if (bannedImport.test(line)) {
           violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
         }
-        if (line.includes("from '@gbg/tmnl") || line.includes('from "@gbg/tmnl')) {
+        if (line.includes("from '" + "@gbg/tmnl") || line.includes('from "' + "@gbg/tmnl")) {
           violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
         }
       }

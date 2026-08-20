@@ -5,7 +5,7 @@
  * @module @tmnl/specimendb/repos/duckdb
  */
 
-import { DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBInstance, type DuckDBValue } from '@duckdb/node-api';
 import * as Context from 'effect/Context';
 import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
@@ -16,11 +16,11 @@ export interface DuckDbClientShape {
   readonly run: (sql: string) => Effect.Effect<void, CatalogError>;
   readonly runValues: (
     sql: string,
-    values: ReadonlyArray<unknown>,
+    values: ReadonlyArray<DuckDBValue>,
   ) => Effect.Effect<void, CatalogError>;
   readonly query: (
     sql: string,
-    values?: ReadonlyArray<unknown>,
+    values?: ReadonlyArray<DuckDBValue>,
   ) => Effect.Effect<ReadonlyArray<Record<string, unknown>>, CatalogError>;
 }
 
@@ -80,21 +80,21 @@ export class DuckDbClient extends Context.Service<DuckDbClient, DuckDbClientShap
           catch: (cause) => fail('run', cause),
         }).pipe(Effect.asVoid);
 
-      const runValues = (sql: string, values: ReadonlyArray<unknown>) =>
+      const runValues = (sql: string, values: ReadonlyArray<DuckDBValue>) =>
         Effect.tryPromise({
           try: async () => {
             const prepared = await connection.prepare(sql);
-            prepared.bind(values as unknown[]);
+            prepared.bind([...values]);
             await prepared.run();
           },
           catch: (cause) => fail('runValues', cause),
         });
 
-      const query = (sql: string, values?: ReadonlyArray<unknown>) =>
+      const query = (sql: string, values?: ReadonlyArray<DuckDBValue>) =>
         Effect.tryPromise({
           try: async () => {
             const reader = values
-              ? await connection.runAndReadAll(sql, values as unknown[])
+              ? await connection.runAndReadAll(sql, [...values])
               : await connection.runAndReadAll(sql);
             return reader.getRowObjectsJson() as Array<Record<string, unknown>>;
           },
