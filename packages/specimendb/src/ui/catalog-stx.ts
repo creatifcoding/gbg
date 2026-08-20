@@ -140,10 +140,19 @@ export const createCatalog = (client: SpecimenRpcClient): CatalogSurface => {
     });
   });
 
-  const selectFromList = (specimenId: SpecimenId) => {
-    const item = store.get().items.find((row) => row.id === specimenId) ?? null;
-    patch({ selectedId: specimenId, selected: item });
-  };
+  const selectEffect = (specimenId: SpecimenId) =>
+    Effect.gen(function* () {
+      patch({ selectedId: specimenId });
+      const outcome = yield* Effect.result(client.Get({ specimenId }));
+      if (Result.isFailure(outcome)) {
+        patch({
+          selected: null,
+          listError: messageOf(outcome.failure),
+        });
+        return;
+      }
+      patch({ selected: outcome.success, listError: null });
+    });
 
   const intakeEffect = (file: File) =>
     Effect.gen(function* () {
@@ -198,16 +207,13 @@ export const createCatalog = (client: SpecimenRpcClient): CatalogSurface => {
         previews,
       });
       yield* listEffect;
-      selectFromList(intakeOutcome.success.specimenId);
+      yield* selectEffect(intakeOutcome.success.specimenId);
     });
 
   return {
     store,
     list: () => Effect.runPromise(listEffect),
-    select: (specimenId) => {
-      selectFromList(specimenId);
-      return Promise.resolve();
-    },
+    select: (specimenId) => Effect.runPromise(selectEffect(specimenId)),
     intakeFile: (file) => Effect.runPromise(intakeEffect(file)),
     intakeFiles: async (files) => {
       for (const file of files) {

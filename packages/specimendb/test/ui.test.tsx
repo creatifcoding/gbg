@@ -136,12 +136,15 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.queryByTestId('rail-query')).toBeNull();
     expect(view.queryByTestId('rail-filters')).toBeNull();
     expect(view.container.textContent).not.toContain('Q QUERY ACCESSION ID');
-    expect(calls.get).toBe(0);
+    expect(calls.get).toBeGreaterThan(0);
 
+    const getsAfterIntake = calls.get;
     await act(async () => {
       fireEvent.click(view.getByTestId('specimen-card'));
     });
-    expect(calls.get).toBe(0);
+    await waitFor(() => {
+      expect(calls.get).toBeGreaterThan(getsAfterIntake);
+    });
     expect(view.getByTestId('detail-id').textContent).toContain(id);
     expect(view.getByTestId('detail-locality').textContent).toBe('unknown');
     expect(view.getByTestId('detail-status').getAttribute('data-status')).toBe('raw');
@@ -290,7 +293,11 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     let items: Specimen[] = [];
     const client: SpecimenRpcClient = {
       List: () => Effect.succeed(items),
-      Get: () => Effect.die('Get is not a v1 now-slot'),
+      Get: (payload) => {
+        const hit = items.find((row) => row.id === payload.specimenId);
+        if (hit === undefined) return Effect.succeed(specimen);
+        return Effect.succeed(hit);
+      },
       Intake: ({ filename }) => {
         const next: Specimen = {
           ...specimen,
@@ -400,5 +407,28 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(css).toContain('::-webkit-scrollbar');
     expect(css).not.toContain('scrollbar-width: none');
     expect(css).not.toMatch(/::-webkit-scrollbar\s*\{[^}]*display:\s*none/);
+  });
+
+  it('does not restyle both pages into one Inter / IBM Plex / charcoal token sheet', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/catalog.css'), 'utf8');
+    expect(css).not.toContain('--charcoal-100');
+    expect(css).not.toContain('--font-sans');
+    expect(css).not.toContain('--font-mono');
+    expect(css).toMatch(/\.sdb-terminal\s*\{[^}]*font-family:\s*Inter/s);
+    expect(css).toMatch(/\.sdb-workbench\s*\{[^}]*IBM Plex Mono/s);
+    expect(css).toContain('ui-monospace');
+    expect(css).toContain('background-size: 24px 24px');
+    expect(css).toContain('rgba(255, 255, 255, 0.02)');
+    expect(css).toContain('width: 1.5px');
+    expect(css).toContain('height: 1.5px');
+    expect(css).toContain('height: 48px');
+    expect(css).toContain('height: 208px');
+    expect(css).toContain('height: 160px');
+    expect(css).toContain('box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5)');
+    expect(css).toContain('border: 1px dashed #333');
+    expect(css).toContain('color: #888');
+    expect(css).toContain('border: 1px solid #222');
   });
 });

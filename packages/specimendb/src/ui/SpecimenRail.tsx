@@ -14,19 +14,7 @@ import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSur
 import { AccessionQuery, StatusFilters } from './catalog-controls.js';
 import { claimLine, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
-import {
-  CubeMark,
-  DnaMark,
-  GridMark,
-  HexMark,
-  PinMark,
-  PlusMark,
-  ShutterMark,
-  SlidersMark,
-  TerminalMark,
-  UploadMark,
-  ViewportMark,
-} from './marks.js';
+import { ViewportMark } from './marks.js';
 import './catalog.css';
 
 type SpecimenRailContextValue = {
@@ -114,17 +102,17 @@ function SpecimenRailStrip() {
   return (
     <aside className="sdb-w-strip">
       <span className="sdb-w-icon" data-active="true">
-        <CubeMark />
+        <i className="ph ph-cube" />
       </span>
       <button type="button" className="sdb-w-icon" onClick={bind.open} aria-label="intake">
-        <PlusMark />
+        <i className="ph ph-plus" />
       </button>
       <span className="sdb-w-icon">
-        <GridMark />
+        <i className="ph ph-squares-four" />
       </span>
       <span className="sdb-w-icon-spacer" />
       <span className="sdb-w-icon">
-        <SlidersMark />
+        <i className="ph ph-sliders" />
       </span>
     </aside>
   );
@@ -147,7 +135,7 @@ function SpecimenRailHeader() {
     <header className="sdb-w-rail-header">
       <h1>SpecimenDB // Core</h1>
       <span className="sdb-w-icon" data-testid="rail-online" data-online={online ? 'true' : 'false'}>
-        <SlidersMark />
+        <i className="ph ph-sliders" />
         <span hidden>{online ? 'ONLINE' : 'OFFLINE'}</span>
       </span>
     </header>
@@ -183,7 +171,7 @@ function SpecimenRailIntake() {
         <span className="sdb-w-corner sdb-w-corner-tr" />
         <span className="sdb-w-corner sdb-w-corner-bl" />
         <span className="sdb-w-corner sdb-w-corner-br" />
-        <UploadMark className="sdb-t-upload" />
+        <i className="ph ph-upload-simple sdb-t-upload" />
         <span className="sdb-w-zone-copy">
           {intakeStatus === 'dropping'
             ? 'INTAKE_IN_FLIGHT'
@@ -218,7 +206,7 @@ function SpecimenRailList() {
 function WorkbenchWell() {
   return (
     <div className="sdb-w-well">
-      <ShutterMark className="sdb-w-shutter" />
+      <i className="ph ph-aperture sdb-w-shutter" />
       <span className="sdb-w-well-cap" />
     </div>
   );
@@ -238,7 +226,7 @@ function WorkbenchCardChrome() {
       <div className="sdb-w-card-body">
         <p className="sdb-w-claim" data-testid="claim" />
         <div className="sdb-w-locality">
-          <PinMark />
+          <i className="ph ph-map-pin" />
           <span data-testid="locality">unknown</span>
         </div>
         <div className="sdb-w-tags">
@@ -281,7 +269,7 @@ function SpecimenRailCard({ specimen }: { readonly specimen: Specimen }) {
           {claimLine(specimen)}
         </p>
         <div className="sdb-w-locality">
-          <PinMark />
+          <i className="ph ph-map-pin" />
           <span data-testid="locality">{localityLabel(specimen)}</span>
         </div>
         <div className="sdb-w-tags">
@@ -317,7 +305,7 @@ function SpecimenRailDetail() {
           </p>
           {selected !== null ? (
             <p className="sdb-w-locality">
-              <PinMark />
+              <i className="ph ph-map-pin" />
               <span data-testid="detail-locality">{localityLabel(selected)}</span>
             </p>
           ) : null}
@@ -356,7 +344,7 @@ function SpecimenRailProperties() {
       <section className="sdb-w-prop">
         <div className="sdb-w-prop-head">
           <span>CLASSIFICATION</span>
-          <DnaMark />
+          <i className="ph ph-dna" />
         </div>
         <dl>
           {CLASSIFICATION_ROWS.map((row) => (
@@ -370,7 +358,7 @@ function SpecimenRailProperties() {
       <section className="sdb-w-prop">
         <div className="sdb-w-prop-head">
           <span>STRUCTURAL METRICS</span>
-          <HexMark />
+          <i className="ph ph-hexagon" />
         </div>
         <dl>
           {METRIC_ROWS.map((row) => (
@@ -392,7 +380,7 @@ function SpecimenRailProperties() {
       <section className="sdb-w-prop">
         <div className="sdb-w-prop-head">
           <span>OBSERVATION LOG</span>
-          <TerminalMark />
+          <i className="ph ph-terminal-window" />
         </div>
         <p className="sdb-w-obs" />
       </section>

@@ -1,42 +1,8 @@
-/* SpecimenDB Terminal (/intake) and Workbench (/rail). Not a mashed two-column shell. */
+/* Terminal (/intake) and Workbench (/rail) are separate HTML pages.
+   No shared Inter/IBM Plex/charcoal token sheet. */
 
-.sdb-terminal,
-.sdb-workbench {
-  --void: #000000;
-  --card: #0a0a0a;
-  --charcoal-100: #d4d4d4;
-  --charcoal-200: #333333;
-  --charcoal-300: #525252;
-  --charcoal-400: #737373;
-  --charcoal-500: #a3a3a3;
-  --offwhite: #f5f5f5;
-  --raw: #fbbf24;
-  --filed: #22d3ee;
-  --working: #34d399;
-  --dead: #fb7185;
-  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  box-sizing: border-box;
-  display: flex;
-  width: 100%;
-  min-height: 100vh;
-  height: 100vh;
-  margin: 0;
-  overflow: hidden;
-  background: var(--void);
-  color: var(--offwhite);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.sdb-terminal *,
-.sdb-terminal *::before,
-.sdb-terminal *::after,
-.sdb-workbench *,
-.sdb-workbench *::before,
-.sdb-workbench *::after {
-  box-sizing: border-box;
+.sdb-file-input {
+  display: none;
 }
 
 /* Terminal 4px scrollbar chrome. Visible on every overflow. Do not hide. */
@@ -78,61 +44,44 @@
   background: #555555;
 }
 
-.sdb-file-input {
-  display: none;
-}
-
-.sdb-query {
-  width: 100%;
-  margin: 0;
-  padding: 10px 16px;
-  border: 0;
-  border-bottom: 1px solid var(--charcoal-200);
-  background: #000;
-  color: var(--offwhite);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.sdb-query::placeholder {
-  color: var(--charcoal-400);
-}
-
-.sdb-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--charcoal-200);
-}
-
-.sdb-filters button {
-  margin: 0;
-  padding: 4px 8px;
-  border: 1px solid var(--charcoal-200);
-  background: transparent;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-radius: 0;
-}
-
-.sdb-filters button[data-active='true'] {
-  color: var(--offwhite);
-  border-color: var(--charcoal-300);
-}
-
 .tech-grid {
   background-color: #000;
   background-image:
-    linear-gradient(#333 1px, transparent 1px),
-    linear-gradient(90deg, #333 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.sdb-error {
+  margin: 0;
+  color: #fb7185;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+/* --- Terminal page: Inter body + ui-monospace chrome --- */
+
+.sdb-terminal {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  color: #d4d4d4;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sdb-terminal *,
+.sdb-terminal *::before,
+.sdb-terminal *::after {
+  box-sizing: border-box;
 }
 
 .sdb-pill {
@@ -142,76 +91,37 @@
   padding: 3px 6px;
   border: 1px solid currentColor;
   border-radius: 0;
-  font-family: var(--font-mono);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   font-weight: 500;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .sdb-pill[data-status='raw'] {
-  color: var(--raw);
+  color: #fbbf24;
   background: rgba(251, 191, 36, 0.12);
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.22);
 }
 
 .sdb-pill[data-status='filed'] {
-  color: var(--filed);
+  color: #22d3ee;
   background: rgba(34, 211, 238, 0.12);
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.22);
 }
 
 .sdb-pill[data-status='working'] {
-  color: var(--working);
+  color: #34d399;
   background: rgba(52, 211, 153, 0.12);
   box-shadow: 0 0 10px rgba(52, 211, 153, 0.22);
 }
 
 .sdb-pill[data-status='dead'] {
-  color: var(--dead);
+  color: #fb7185;
   background: rgba(251, 113, 133, 0.12);
   box-shadow: 0 0 10px rgba(251, 113, 133, 0.22);
 }
-
-.sdb-status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.sdb-status-dot[data-status='raw'] {
-  color: var(--raw);
-}
-.sdb-status-dot[data-status='filed'] {
-  color: var(--filed);
-}
-.sdb-status-dot[data-status='working'] {
-  color: var(--working);
-}
-.sdb-status-dot[data-status='dead'] {
-  color: var(--dead);
-}
-
-.sdb-status-sq {
-  width: 5px;
-  height: 5px;
-  background: currentColor;
-}
-
-.sdb-error {
-  margin: 0;
-  color: var(--dead);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-/* --- Terminal page (shot 2 / IntakeDrop) --- */
 
 .sdb-t-rail {
   display: flex;
@@ -221,7 +131,7 @@
   height: 100%;
   overflow: hidden;
   background: #000;
-  border-right: 1px solid var(--charcoal-200);
+  border-right: 1px solid #333;
 }
 
 .sdb-t-rail-header {
@@ -231,16 +141,16 @@
   gap: 12px;
   height: 56px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--charcoal-200);
+  border-bottom: 1px solid #333;
 }
 
 .sdb-t-rail-header h1 {
   margin: 0;
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  color: #a3a3a3;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -248,7 +158,9 @@
   display: block;
   width: 16px;
   height: 16px;
-  color: var(--charcoal-400);
+  font-size: 16px;
+  line-height: 1;
+  color: #737373;
 }
 
 .sdb-t-list {
@@ -271,8 +183,8 @@
   cursor: pointer;
   color: inherit;
   font: inherit;
-  background: var(--card);
-  border: 1px solid var(--charcoal-200);
+  background: #0a0a0a;
+  border: 1px solid #333;
   border-radius: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
@@ -294,13 +206,12 @@ button.sdb-t-card {
   position: relative;
   height: 208px;
   overflow: hidden;
-  background: #000;
+  background: #0a0a0a;
 }
 
 .sdb-t-well-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.2;
   pointer-events: none;
 }
 
@@ -318,6 +229,8 @@ button.sdb-t-card {
   left: 50%;
   width: 48px;
   height: 48px;
+  font-size: 48px;
+  line-height: 1;
   color: #525252;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -330,10 +243,10 @@ button.sdb-t-card {
   padding: 2px 6px;
   background: rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 8px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -352,8 +265,8 @@ button.sdb-t-card {
 }
 
 .sdb-t-locality {
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.04em;
 }
@@ -361,7 +274,8 @@ button.sdb-t-card {
 .sdb-t-claim {
   min-height: 2.4em;
   margin: 0;
-  color: var(--offwhite);
+  color: #d4d4d4;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: -0.025em;
@@ -369,8 +283,8 @@ button.sdb-t-card {
 }
 
 .sdb-t-id {
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   letter-spacing: 0.04em;
   word-break: break-all;
@@ -389,10 +303,10 @@ button.sdb-t-card {
   padding: 2px 6px;
   background: #000;
   border: 1px solid #222;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #888;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -413,29 +327,29 @@ button.sdb-t-card {
   justify-content: space-between;
   height: 48px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--charcoal-200);
+  border-bottom: 1px solid #333;
 }
 
 .sdb-t-brand {
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
 }
 
 .sdb-t-sys {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--working);
-  font-family: var(--font-mono);
+  color: #34d399;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
 }
 
 .sdb-t-sys[data-online='false'] {
-  color: var(--dead);
+  color: #fb7185;
 }
 
 .sdb-t-sys-sq {
@@ -479,20 +393,21 @@ button.sdb-t-card {
 .sdb-t-zone-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.18;
   pointer-events: none;
 }
 
 .sdb-t-upload {
   width: 28px;
   height: 28px;
-  color: var(--charcoal-400);
+  font-size: 28px;
+  line-height: 1;
+  color: #737373;
 }
 
 .sdb-t-protocol {
   position: relative;
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.2em;
@@ -501,8 +416,8 @@ button.sdb-t-card {
 
 .sdb-t-sub {
   position: relative;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -512,7 +427,7 @@ button.sdb-t-card {
   display: flex;
   flex-direction: column;
   gap: 0;
-  border: 1px solid var(--charcoal-200);
+  border: 1px solid #333;
 }
 
 .sdb-t-detail-head {
@@ -522,14 +437,14 @@ button.sdb-t-card {
   gap: 12px;
   min-height: 48px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--charcoal-200);
+  border-bottom: 1px solid #333;
 }
 
 .sdb-t-detail-id {
   min-height: 1em;
   margin: 0;
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -543,8 +458,8 @@ button.sdb-t-card {
 }
 
 .sdb-t-live-feed {
-  color: var(--working);
-  font-family: var(--font-mono);
+  color: #34d399;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.2em;
 }
@@ -557,8 +472,8 @@ button.sdb-t-card {
 .sdb-t-cell {
   min-height: 76px;
   padding: 16px;
-  border-right: 1px solid var(--charcoal-200);
-  border-bottom: 1px solid var(--charcoal-200);
+  border-right: 1px solid #333;
+  border-bottom: 1px solid #333;
 }
 
 .sdb-t-cell:nth-child(3n) {
@@ -567,8 +482,8 @@ button.sdb-t-card {
 
 .sdb-t-kicker {
   margin-bottom: 8px;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -576,8 +491,8 @@ button.sdb-t-card {
 
 .sdb-t-cell-value {
   min-height: 1.2em;
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 13px;
 }
 
@@ -595,14 +510,14 @@ button.sdb-t-card {
 }
 
 .sdb-t-wave {
-  border-right: 1px solid var(--charcoal-200);
+  border-right: 1px solid #333;
 }
 
 .sdb-t-panel-head {
   padding: 8px 16px;
-  border-bottom: 1px solid var(--charcoal-200);
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  border-bottom: 1px solid #333;
+  color: #a3a3a3;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -618,12 +533,108 @@ button.sdb-t-card {
   min-height: 192px;
   padding: 16px;
   overflow: auto;
-  font-family: var(--font-mono);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   line-height: 1.7;
 }
 
-/* --- Workbench page (shot 3 / SpecimenRail) --- */
+/* --- Workbench page: IBM Plex Mono chrome + Inter claim line --- */
+
+.sdb-workbench {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sdb-workbench *,
+.sdb-workbench *::before,
+.sdb-workbench *::after {
+  box-sizing: border-box;
+}
+
+.sdb-query {
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid #333;
+  background: #000;
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-query::placeholder {
+  color: #737373;
+}
+
+.sdb-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+}
+
+.sdb-filters button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.sdb-filters button[data-active='true'] {
+  color: #d4d4d4;
+  border-color: #525252;
+}
+
+.sdb-status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sdb-status-dot[data-status='raw'] {
+  color: #fbbf24;
+}
+.sdb-status-dot[data-status='filed'] {
+  color: #22d3ee;
+}
+.sdb-status-dot[data-status='working'] {
+  color: #34d399;
+}
+.sdb-status-dot[data-status='dead'] {
+  color: #fb7185;
+}
+
+.sdb-status-sq {
+  width: 1.5px;
+  height: 1.5px;
+  background: currentColor;
+}
 
 .sdb-w-strip {
   display: flex;
@@ -635,7 +646,7 @@ button.sdb-t-card {
   height: 100%;
   padding: 24px 0;
   background: #000;
-  border-right: 1px solid var(--charcoal-200);
+  border-right: 1px solid #333;
 }
 
 .sdb-w-icon {
@@ -646,9 +657,11 @@ button.sdb-t-card {
   height: 32px;
   padding: 0;
   cursor: pointer;
-  color: var(--charcoal-400);
+  color: #737373;
   background: transparent;
   border: 0;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .sdb-w-icon svg {
@@ -657,7 +670,7 @@ button.sdb-t-card {
 }
 
 .sdb-w-icon[data-active='true'] {
-  color: var(--offwhite);
+  color: #d4d4d4;
 }
 
 .sdb-w-icon-spacer {
@@ -672,7 +685,7 @@ button.sdb-t-card {
   height: 100%;
   overflow: hidden;
   background: #000;
-  border-right: 1px solid var(--charcoal-200);
+  border-right: 1px solid #525252;
 }
 
 .sdb-w-rail-header {
@@ -680,19 +693,19 @@ button.sdb-t-card {
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
+  height: 48px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--charcoal-200);
+  border-bottom: 1px solid #333;
 }
 
 .sdb-w-rail-header h1 {
   margin: 0;
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  color: #a3a3a3;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: none;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .sdb-w-list {
@@ -707,16 +720,17 @@ button.sdb-t-card {
 .sdb-w-card {
   display: flex;
   flex-direction: column;
+  gap: 12px;
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 12px;
   overflow: hidden;
   text-align: left;
   cursor: pointer;
   color: inherit;
   font: inherit;
-  background: #000;
-  border: 1px solid var(--charcoal-200);
+  background: #0a0a0a;
+  border: 1px solid #525252;
   border-radius: 0;
 }
 
@@ -726,7 +740,7 @@ button.sdb-w-card {
 
 .sdb-w-card:hover,
 .sdb-w-card[data-selected='true'] {
-  border-color: var(--charcoal-100);
+  border-color: #d4d4d4;
 }
 
 .sdb-w-card[data-empty='true'] {
@@ -738,14 +752,14 @@ button.sdb-w-card {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--charcoal-200);
+  padding: 0;
+  border: 0;
 }
 
 .sdb-w-id {
   min-height: 1em;
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px;
   letter-spacing: 0.08em;
   word-break: break-all;
@@ -755,7 +769,8 @@ button.sdb-w-card {
   position: relative;
   height: 160px;
   overflow: hidden;
-  background: #050505;
+  background: #000;
+  border: 1px solid #333;
 }
 
 .sdb-w-well img {
@@ -772,6 +787,8 @@ button.sdb-w-card {
   left: 50%;
   width: 56px;
   height: 56px;
+  font-size: 56px;
+  line-height: 1;
   color: #2a2a2a;
   transform: translate(-50%, -50%);
 }
@@ -780,21 +797,25 @@ button.sdb-w-card {
   position: absolute;
   bottom: 12px;
   left: 16px;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .sdb-w-card-body {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
 }
 
 .sdb-w-claim {
   min-height: 1.4em;
-  margin: 0 0 12px;
-  color: var(--charcoal-100);
+  margin: 0;
+  color: #d4d4d4;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   letter-spacing: -0.025em;
   line-height: 1.5;
@@ -804,15 +825,18 @@ button.sdb-w-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  margin: 0;
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
 }
 
-.sdb-w-locality svg {
+.sdb-w-locality svg,
+.sdb-w-locality .ph {
   width: 12px;
   height: 12px;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .sdb-w-tags {
@@ -824,10 +848,10 @@ button.sdb-w-card {
 .sdb-w-tag {
   min-width: 32px;
   min-height: 14px;
-  color: var(--charcoal-300);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  color: #525252;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
 }
 
 .sdb-w-main {
@@ -878,36 +902,36 @@ button.sdb-w-card {
 .sdb-w-corner-tl {
   top: -1px;
   left: -1px;
-  border-top: 1px solid var(--charcoal-400);
-  border-left: 1px solid var(--charcoal-400);
+  border-top: 1px solid #737373;
+  border-left: 1px solid #737373;
 }
 
 .sdb-w-corner-tr {
   top: -1px;
   right: -1px;
-  border-top: 1px solid var(--charcoal-400);
-  border-right: 1px solid var(--charcoal-400);
+  border-top: 1px solid #737373;
+  border-right: 1px solid #737373;
 }
 
 .sdb-w-corner-bl {
   bottom: -1px;
   left: -1px;
-  border-bottom: 1px solid var(--charcoal-400);
-  border-left: 1px solid var(--charcoal-400);
+  border-bottom: 1px solid #737373;
+  border-left: 1px solid #737373;
 }
 
 .sdb-w-corner-br {
   right: -1px;
   bottom: -1px;
-  border-right: 1px solid var(--charcoal-400);
-  border-bottom: 1px solid var(--charcoal-400);
+  border-right: 1px solid #737373;
+  border-bottom: 1px solid #737373;
 }
 
 .sdb-w-zone-copy {
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -937,8 +961,8 @@ button.sdb-w-card {
 .sdb-w-detail-id {
   min-height: 1.1em;
   margin: 0 0 8px;
-  color: var(--offwhite);
-  font-family: var(--font-mono);
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 28px;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -948,7 +972,8 @@ button.sdb-w-card {
 .sdb-w-detail-claim {
   min-height: 1.2em;
   margin: 0;
-  color: var(--charcoal-400);
+  color: #737373;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 13px;
 }
 
@@ -959,14 +984,14 @@ button.sdb-w-card {
 
 .sdb-w-actions button {
   padding: 6px 10px;
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  color: #a3a3a3;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: default;
   background: transparent;
-  border: 1px solid var(--charcoal-200);
+  border: 1px solid #333;
 }
 
 .sdb-w-viewport {
@@ -975,7 +1000,7 @@ button.sdb-w-card {
   flex: 1;
   flex-direction: column;
   min-height: 360px;
-  border: 1px solid var(--charcoal-200);
+  border: 1px solid #333;
 }
 
 .sdb-w-viewport-head,
@@ -984,8 +1009,8 @@ button.sdb-w-card {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  color: #a3a3a3;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   letter-spacing: 0.2em;
 }
@@ -1006,7 +1031,7 @@ button.sdb-w-card {
 }
 
 .sdb-w-active {
-  color: var(--working);
+  color: #34d399;
 }
 
 .sdb-w-props {
@@ -1017,7 +1042,7 @@ button.sdb-w-card {
   height: 100%;
   overflow: auto;
   background: #000;
-  border-left: 1px solid var(--charcoal-200);
+  border-left: 1px solid #333;
 }
 
 .sdb-w-props-header {
@@ -1026,9 +1051,9 @@ button.sdb-w-card {
   align-items: center;
   height: 48px;
   padding: 0 16px;
-  border-bottom: 1px solid var(--charcoal-200);
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  border-bottom: 1px solid #333;
+  color: #a3a3a3;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1036,7 +1061,7 @@ button.sdb-w-card {
 
 .sdb-w-prop {
   padding: 16px;
-  border-bottom: 1px solid var(--charcoal-200);
+  border-bottom: 1px solid #333;
 }
 
 .sdb-w-prop-head {
@@ -1044,17 +1069,20 @@ button.sdb-w-card {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  color: var(--charcoal-500);
-  font-family: var(--font-mono);
+  color: #a3a3a3;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
-.sdb-w-prop-head svg {
+.sdb-w-prop-head svg,
+.sdb-w-prop-head .ph {
   width: 14px;
   height: 14px;
-  color: var(--charcoal-400);
+  font-size: 14px;
+  line-height: 1;
+  color: #737373;
 }
 
 .sdb-w-row {
@@ -1062,8 +1090,8 @@ button.sdb-w-card {
   justify-content: space-between;
   gap: 12px;
   padding: 6px 0;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px;
 }
 
@@ -1077,15 +1105,15 @@ button.sdb-w-card {
   min-height: 1em;
   min-width: 48px;
   margin: 0;
-  color: var(--offwhite);
+  color: #d4d4d4;
   text-align: right;
 }
 
 .sdb-w-obs {
   min-height: 4.5em;
   margin: 0;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px;
   line-height: 1.6;
 }
@@ -1093,9 +1121,9 @@ button.sdb-w-card {
 .sdb-w-updated {
   margin-top: auto;
   padding: 16px;
-  color: var(--charcoal-400);
-  font-family: var(--font-mono);
+  color: #737373;
+  font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }

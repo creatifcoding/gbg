@@ -13,7 +13,6 @@ import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { claimLine, imgSrcLabel, mediaLabel, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
-import { CrosshairMark, DatabaseMark, UploadMark } from './marks.js';
 import './catalog.css';
 
 type IntakeDropContextValue = {
@@ -99,7 +98,7 @@ function IntakeDropRoot({ catalog, children }: IntakeDropProps) {
 function IntakeDropHeader() {
   return (
     <header className="sdb-t-rail-header">
-      <DatabaseMark className="sdb-t-mark" />
+      <i className="ph ph-database sdb-t-mark" />
       <h1>Local Catalog</h1>
     </header>
   );
@@ -145,7 +144,7 @@ function IntakeDropZone() {
         onDrop={bind.onDrop}
       >
         <span className="sdb-t-zone-grid tech-grid" />
-        <UploadMark className="sdb-t-upload" />
+        <i className="ph ph-upload-simple sdb-t-upload" />
         <span className="sdb-t-protocol">
           {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'Initiate_Intake_Protocol'}
         </span>
@@ -187,7 +186,7 @@ function TerminalWell({
     <div className="sdb-t-well">
       <span className="sdb-t-well-grid tech-grid" />
       {preview !== undefined ? <img src={preview} alt="" data-testid="media-bytes" /> : null}
-      <CrosshairMark className="sdb-t-crosshair" />
+      <i className="ph ph-crosshair sdb-t-crosshair" />
       <span className="sdb-t-imgsrc">{caption}</span>
     </div>
   );

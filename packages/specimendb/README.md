@@ -24,8 +24,8 @@ Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag,
 
 | Component | RPC |
 |---|---|
-| `IntakeDrop` | `Intake` (drop or pick a real file). New records land as Status `raw`. |
-| `SpecimenRail` | `List()` on mount, `Get()` on select. |
+| `IntakeDrop` | `Intake` (drop or pick a real file). `List` fills Local Catalog. `Get` on select. New records land as Status `raw`. |
+| `SpecimenRail` | `List()` on mount, query/filter, `Get()` on select, `Intake` from the top well. |
 
 Locality in the rail is the word `unknown` unless the file actually had EXIF GPS. The UI does not invent coordinates, elevation, temperature, taxon, ML confidence, or accession strings.
 
