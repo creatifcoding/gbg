@@ -1,0 +1,109 @@
+name: mantis-lab
+
+on:
+  pull_request:
+    paths:
+      - "projects/biomemetics/labs/mantis/flake.nix"
+      - "projects/biomemetics/labs/mantis/flake.lock"
+      - "projects/biomemetics/labs/mantis/.envrc"
+      - "projects/biomemetics/labs/mantis/nix/**"
+      - "projects/biomemetics/labs/mantis/scripts/environment/**"
+      - "projects/biomemetics/labs/mantis/docs/ENVIRONMENT.md"
+      - "projects/biomemetics/labs/mantis/evidence/runs/environment/**"
+      - "projects/biomemetics/labs/mantis/contracts/**"
+      - "projects/biomemetics/labs/mantis/workspace.json"
+      - ".github/workflows/mantis-lab.yml"
+  push:
+    paths:
+      - "projects/biomemetics/labs/mantis/flake.nix"
+      - "projects/biomemetics/labs/mantis/flake.lock"
+      - "projects/biomemetics/labs/mantis/.envrc"
+      - "projects/biomemetics/labs/mantis/nix/**"
+      - "projects/biomemetics/labs/mantis/scripts/environment/**"
+      - "projects/biomemetics/labs/mantis/docs/ENVIRONMENT.md"
+      - "projects/biomemetics/labs/mantis/evidence/runs/environment/**"
+      - ".github/workflows/mantis-lab.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: mantis-lab-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nested-flake:
+    name: Nested lab flake (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+            supported: true
+    env:
+      MANTIS_LAB: projects/biomemetics/labs/mantis
+      MANTIS_ISOLATION_ROOT: ${{ github.workspace }}/../mantis-lab-ci/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Record platform support
+        run: |
+          echo "CI system: ${{ matrix.system }}"
+          echo "Supported on this runner: ${{ matrix.supported }}"
+          echo "UNSUPPORTED_PLATFORM on this workflow: aarch64-linux, aarch64-darwin, x86_64-darwin"
+          echo "Those flake outputs are not executed here; a local worker on those systems must run doctor, which names missing tools instead of skipping them."
+
+      - name: Lab lock digest
+        id: lock
+        run: |
+          digest="$(sha256sum "$MANTIS_LAB/flake.lock" | awk '{print $1}')"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "flake.lock sha256=$digest"
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Cache Nix by lab lock digest only
+        uses: actions/cache@v4.2.3
+        with:
+          path: ~/.cache/nix
+          key: mantis-lab-${{ matrix.system }}-${{ steps.lock.outputs.digest }}
+
+      - name: Flake metadata (no lock rewrite)
+        run: nix flake metadata ./"$MANTIS_LAB" --no-write-lock-file
+
+      - name: Flake check (no lock rewrite)
+        run: nix flake check ./"$MANTIS_LAB" --no-write-lock-file
+
+      - name: Prove lock unchanged after metadata/check
+        run: git diff --exit-code -- "$MANTIS_LAB/flake.nix" "$MANTIS_LAB/flake.lock"
+
+      - name: mantis doctor (core)
+        run: nix develop ./"$MANTIS_LAB"#mantis-core --command mantis doctor
+
+      - name: Narrow shell checks
+        working-directory: ${{ env.MANTIS_LAB }}
+        run: |
+          nix develop .#mantis-ee --command mantis check environment-ee
+          nix develop .#mantis-cad --command mantis check environment-cad
+          nix develop .#mantis-sim --command mantis check environment-sim
+          nix develop .#mantis-review --command mantis check environment-review
+          nix develop .#mantis-assistant --command mantis check environment-assistant
+          nix develop .#mantis-assistant-eval --command mantis check environment-assistant-eval
+          nix develop .#mantis-edge --command mantis check environment-edge
+          nix develop .#mantis-analysis --command mantis check environment-analysis
+          nix develop .#mantis-fabrication --command mantis check environment-fabrication
+
+      - name: Repeat metadata/check for non-mutation
+        run: |
+          nix flake metadata ./"$MANTIS_LAB" --no-write-lock-file
+          nix flake check ./"$MANTIS_LAB" --no-write-lock-file
+          git diff --exit-code -- "$MANTIS_LAB/flake.nix" "$MANTIS_LAB/flake.lock"
+
+      - name: Upload doctor report
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: mantis-doctor-${{ matrix.system }}
+          path: ${{ env.MANTIS_ISOLATION_ROOT }}/result/
+          if-no-files-found: warn
+          retention-days: 14

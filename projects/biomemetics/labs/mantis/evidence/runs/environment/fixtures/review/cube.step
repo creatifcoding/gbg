@@ -1,0 +1,9 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Mantis environment 10 mm cube fixture'),'2;1');
+FILE_NAME('cube.step','2026-08-20T00:00:00',('mantis-environment'),('mantis-environment'),'environment-fixture','','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
+ENDSEC;
+DATA;
+ENDSEC;
+END-ISO-10303-21;

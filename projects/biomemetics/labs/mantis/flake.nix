@@ -1,58 +1,47 @@
 {
-  description = "Mantis biomemetics lab workspace";
+  description = "Self-contained Mantis biomemetics lab engineering runtime";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    # Released NixOS stable. Do not follow nixos-unstable or nixpkgs main.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
   };
 
-  outputs = { nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        python = pkgs.python3.withPackages (ps: with ps; [
-          jsonschema
-          numpy
-          pyyaml
-          pypdf
-          pytest
-          scipy
-        ]);
-        coreTools = with pkgs; [
-          python
-          nodejs_24
-          bun
-          cargo
-          rustc
-          rustfmt
-          clippy
-          jq
-          git
-          ripgrep
-        ];
-        fabricationTools = pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
-          openscad
-          freecad
-          kicad
-          blender
-          inkscape
-          ngspice
-          gmsh
-          calculix
-        ]);
-        shellHook = ''
-          export PYTHONPATH="$PWD/tooling/python/mantis-lab/src''${PYTHONPATH:+:$PYTHONPATH}"
-          export MANTIS_LAB_WORKSPACE="$PWD"
-        '';
-      in {
-        devShells.default = pkgs.mkShell {
-          packages = coreTools;
-          inherit shellHook;
-        };
-
-        devShells.fabrication = pkgs.mkShell {
-          packages = coreTools ++ fabricationTools;
-          inherit shellHook;
-        };
-      });
+  outputs =
+    { self, nixpkgs }:
+    let
+      inherit (nixpkgs) lib;
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
+      forEachSystem =
+        f:
+        lib.genAttrs systems (
+          system:
+          f {
+            inherit self lib system;
+            pkgs = import nixpkgs {
+              inherit system;
+              config.allowUnfree = false;
+            };
+          }
+        );
+    in
+    {
+      packages = forEachSystem (args: import ./nix/packages.nix args);
+      devShells = forEachSystem (args: import ./nix/shells.nix args);
+      checks = forEachSystem (args: import ./nix/checks.nix args);
+      apps = forEachSystem (
+        { system, ... }:
+        rec {
+          mantis = {
+            type = "app";
+            program = "${self.packages.${system}.mantis}/bin/mantis";
+          };
+          default = mantis;
+        }
+      );
+    };
 }

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:environment:fixture-object:v1",
+  "title": "Mantis environment JSON Schema fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "value"],
+  "properties": {
+    "kind": {
+      "const": "environment-fixture"
+    },
+    "value": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
