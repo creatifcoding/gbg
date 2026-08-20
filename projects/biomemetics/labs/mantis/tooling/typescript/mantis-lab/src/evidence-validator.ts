@@ -275,14 +275,18 @@ const validateArtifacts = (value: unknown, errors: string[]): void => {
       isNonBlank(artifact.mediaType),
       `/artifacts/${index}/mediaType is required`,
     );
-    const hasPath = isNonBlank(artifact.path);
-    const hasUri = isNonBlank(artifact.uri);
-    push(errors, hasPath !== hasUri, `/artifacts/${index} requires path xor uri`);
-    if (hasPath) {
+    const path = isNonBlank(artifact.path) ? artifact.path : undefined;
+    const uri = isNonBlank(artifact.uri) ? artifact.uri : undefined;
+    push(
+      errors,
+      (path !== undefined) !== (uri !== undefined),
+      `/artifacts/${index} requires path xor uri`,
+    );
+    if (path !== undefined) {
       push(
         errors,
-        !artifact.path.startsWith('/') &&
-          !artifact.path.split('/').includes('..') &&
+        !path.startsWith('/') &&
+          !path.split('/').includes('..') &&
           isSha256(artifact.sha256),
         `/artifacts/${index}/path or sha256 is invalid`,
       );
@@ -290,9 +294,9 @@ const validateArtifacts = (value: unknown, errors: string[]): void => {
     if (artifact.sha256 !== undefined) {
       push(errors, isSha256(artifact.sha256), `/artifacts/${index}/sha256 is invalid`);
     }
-    if (hasUri) {
+    if (uri !== undefined) {
       try {
-        new URL(artifact.uri);
+        new URL(uri);
       } catch {
         errors.push(`/artifacts/${index}/uri is invalid`);
       }
