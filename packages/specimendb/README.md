@@ -1,6 +1,6 @@
 # @tmnl/specimendb
 
-ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in a DuckDB file database and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
+Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in a DuckDB file database and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
 
 Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality and taxon are never invented.
 
