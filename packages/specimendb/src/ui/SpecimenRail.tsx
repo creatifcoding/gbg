@@ -359,7 +359,7 @@ function SpecimenRailProperties() {
     <aside className="sdb-w-props" data-testid="properties-log">
       <header className="sdb-w-props-header">PROPERTIES LOG</header>
       <section className="sdb-w-prop">
-        <div className="sdb-w-prop-head">
+        <div className="sdb-w-prop-head" data-testid="kicker">
           <span>CLASSIFICATION</span>
           <i className="ph ph-dna" />
         </div>
@@ -373,7 +373,7 @@ function SpecimenRailProperties() {
         </dl>
       </section>
       <section className="sdb-w-prop">
-        <div className="sdb-w-prop-head">
+        <div className="sdb-w-prop-head" data-testid="kicker">
           <span>STRUCTURAL METRICS</span>
           <i className="ph ph-hexagon" />
         </div>
@@ -395,7 +395,7 @@ function SpecimenRailProperties() {
         </dl>
       </section>
       <section className="sdb-w-prop">
-        <div className="sdb-w-prop-head">
+        <div className="sdb-w-prop-head" data-testid="kicker">
           <span>OBSERVATION LOG</span>
           <i className="ph ph-terminal-window" />
         </div>

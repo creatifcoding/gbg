@@ -161,6 +161,14 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).toContain('SPECIMEN_DB');
     expect(view.container.textContent).toContain('SYS_ONLINE');
     expect(view.container.textContent).toContain('Local Catalog');
+    expect(view.getAllByTestId('kicker').map((node) => node.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'CLASS / ORDER',
+      'EXTRACTION VECTOR',
+      'THERMAL BASE',
+      'SPECTROSCOPY',
+      'CELLULAR VIABILITY',
+      'PROTOCOL ID',
+    ]);
     expect(view.getByTestId('card-chrome')).toBeTruthy();
     expect(view.container.textContent).not.toContain('DRAG_AND_DROP_ASSETS');
     expect(view.container.className).not.toContain('sdb-shell');
@@ -231,6 +239,11 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.getByTestId('rail-filters').textContent).toContain('RAW');
     expect(view.getByTestId('rail-filters').textContent).toContain('FILED');
     expect(view.getByTestId('rail-filters').textContent).toContain('WORKING');
+    expect(view.getAllByTestId('kicker').map((node) => node.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'CLASSIFICATION',
+      'STRUCTURAL METRICS',
+      'OBSERVATION LOG',
+    ]);
     const html = view.container.textContent ?? '';
     for (const banned of BANISHED) {
       expect(html).not.toContain(banned);
@@ -388,6 +401,73 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.getByTestId('locality').textContent).toBe('unknown');
   });
 
+  it('Workbench no-GPS JPEG files raw + unknown and rail status chrome Promotes to filed', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    let specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+    };
+    let items: Specimen[] = [];
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed(items),
+      Get: () => Effect.succeed(items[0] ?? specimen),
+      Intake: ({ filename }) => {
+        const next: Specimen = {
+          ...specimen,
+          components: [
+            ...specimen.components,
+            {
+              _tag: 'Media' as const,
+              kind: 'jpeg' as const,
+              filename,
+              assetPath: `memory://${id}/${filename}`,
+              mediaType: 'image/jpeg',
+              byteLength: 1,
+            },
+          ],
+        };
+        specimen = next;
+        items = [next];
+        return Effect.succeed({ specimenId: id, components: next.components });
+      },
+      Promote: () => {
+        const next = nextStatus(statusOf(specimen) ?? 'raw');
+        specimen = {
+          ...specimen,
+          components: specimen.components.map((component) =>
+            component._tag === 'Status' ? new StatusComponent({ value: next }) : component,
+          ),
+        };
+        items = [specimen];
+        return Effect.succeed(specimen);
+      },
+    };
+
+    const view = render(React.createElement(WorkbenchPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('card-chrome')).toBeTruthy();
+    });
+    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
+    await act(async () => {
+      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
+    });
+    await waitFor(() => {
+      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+    });
+    expect(view.getByTestId('locality').textContent).toBe('unknown');
+    expect(view.container.textContent).not.toContain('SP-2023-084');
+    expect(view.queryByTestId('media-bytes')).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(view.getByTestId('status-pill'));
+    });
+    await waitFor(() => {
+      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('filed');
+    });
+    expect(view.getByTestId('locality').textContent).toBe('unknown');
+  });
+
   it('shows unknown locality for a real JPEG without EXIF GPS, and real coords when GPS exists', async () => {
     await Effect.runPromise(
       Effect.scoped(
@@ -475,11 +555,12 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(css).toContain('ui-monospace');
     expect(css).toContain('background-size: 24px 24px');
     expect(css).toContain('rgba(255, 255, 255, 0.02)');
-    expect(css).toContain('width: 1.5px');
-    expect(css).toContain('height: 1.5px');
+    expect(css).toContain('width: 6px');
+    expect(css).toContain('height: 6px');
     expect(css).toContain('height: 48px');
     expect(css).toContain('height: 208px');
     expect(css).toContain('height: 160px');
+    expect(css).toContain('width: 420px');
     expect(css).toContain('box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5)');
     expect(css).toContain('border: 1px dashed #333');
     expect(css).toContain('color: #888');

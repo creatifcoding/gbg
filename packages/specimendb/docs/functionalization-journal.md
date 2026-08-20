@@ -24,6 +24,8 @@ Now-bind this cut:
 
 Get on select is live on every page that lists cards (same RPC as List). Status chrome on a real card calls Promote (`raw → filed → working → dead`). Empty card chrome does not. A no-GPS drop must produce a branded `SpecimenId`, Status `raw`, Claim if attached, Media bytes, locality `unknown`. Every other strip stays empty / unknown / chrome.
 
+Visual lock this cut: `/intake` is the Variant Terminal HTML and `/rail` is the Variant Workbench HTML. Density, type, kickers, and 4px scrollbars stay. Do not mash them into one shell. Assay / Dactyl / Catalog / Accession stay full pages. `/capture/` stays the static phone page.
+
 Do not fill F-017 / F-040 / F-085 / F-093 taxon, F-008 / F-033 / F-050 / F-071 / F-081 / F-094 / F-104 coords, F-014 / F-029 / F-046 / F-067 / F-077 / F-092 / F-099 fake ids, F-091 seed rows.
 
 ---

@@ -308,7 +308,9 @@ function IntakeDropDetail() {
       <div className="sdb-t-metrics">
         {METRIC_KICKERS.map((kicker) => (
           <div className="sdb-t-cell" key={kicker}>
-            <div className="sdb-t-kicker">{kicker}</div>
+            <div className="sdb-t-kicker" data-testid="kicker">
+              {kicker}
+            </div>
             <div className="sdb-t-cell-value" />
           </div>
         ))}
