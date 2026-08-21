@@ -7,7 +7,7 @@ export { loadCorpus, loadRegistry, validateInstance } from './contracts.ts';
 export {
   OPENROUTER_CREDENTIAL_REQUIRED,
   OpenRouterGateError,
-  createLiveOpenRouterLane,
+  createLiveLunaLane,
   usedBetaImportPaths,
 } from './mastra-adapter.ts';
 export type { ModelLane } from './mastra-adapter.ts';
