@@ -41,6 +41,7 @@
         "cwd": "packages/specimendb"
       }
     },
+    "clean": {
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run clean",
