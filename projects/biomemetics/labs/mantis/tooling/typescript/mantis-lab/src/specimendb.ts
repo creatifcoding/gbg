@@ -25,6 +25,56 @@ export {
   type EvidenceValidationSuccess,
 } from './evidence-validator.ts';
 
+/**
+ * Published catalog identifier. Matches `@tmnl/specimendb` `Schema.String.pipe(
+ * Schema.brand('SpecimenId'))`. This client never mints one.
+ */
+export type SpecimenId = string & { readonly __brand: 'SpecimenId' };
+
+export const trustSpecimenId = (id: string): SpecimenId => id as SpecimenId;
+
+/** Local evidence run layout. Attach never copies these into a store. */
+export const LOCAL_EVIDENCE_RUN = {
+  root: 'evidence/runs',
+  layout: [
+    'run.json',
+    'inputs/',
+    'raw/',
+    'derived/',
+    'report.json',
+    'evidence-record.json',
+  ],
+} as const;
+
+const LOCAL_EVIDENCE_RECORD_REF =
+  /^evidence\/runs\/[A-Za-z0-9][A-Za-z0-9._-]*\/[a-fA-F0-9]{7,40}\/[A-Za-z0-9][A-Za-z0-9._-]*\/evidence-record\.json$/;
+
+export const isLocalEvidenceRecordRef = (ref: string): boolean =>
+  LOCAL_EVIDENCE_RECORD_REF.test(ref);
+
+const LAB_AS_SPECIMEN_IDS = new Set([
+  'biomemetics.mantis',
+  'mantis-lab',
+  'projects/biomemetics/labs/mantis',
+]);
+
+const FORBIDDEN_CALLER_LOCALITY_KEYS = [
+  'locality',
+  'gps',
+  'geo',
+  'latitude',
+  'longitude',
+  'altitudeMeters',
+] as const;
+
+const FORBIDDEN_CALLER_TAXON_KEYS = ['taxon'] as const;
+
+const FORBIDDEN_CALLER_PROSE_KEYS = [
+  'component',
+  'components',
+  'analogTarget',
+] as const;
+
 export interface ExistingSpecimen {
   readonly id: string;
 }
@@ -66,12 +116,53 @@ export interface ComponentProjection {
 }
 
 /**
- * Read-only seam for @tmnl/specimendb. The current package provides
- * get/list/intake but no governed append-components API, so no write method is
- * representable here.
+ * Read-only seam for @tmnl/specimendb Get. Intake is not exposed here: this
+ * workspace is not a Specimen and this client does not insert one.
  */
 export interface SpecimenDbPort {
   readonly get: (specimenId: string) => Promise<ExistingSpecimen>;
+}
+
+/**
+ * Governed Attach RPC payload. SpecimenId + one reviewed claim-bound component.
+ * No locality, GPS, taxon, or caller prose.
+ */
+export interface AttachPayload {
+  readonly specimenId: SpecimenId;
+  readonly component: SpecimenComponentDraft;
+  readonly provenance: ProjectionProvenance;
+}
+
+export type AttachMode = 'stub' | 'rpc';
+
+export interface AttachResult {
+  readonly specimenId: SpecimenId;
+  readonly evidenceId: string;
+  readonly claimRefs: readonly string[];
+  readonly localityMutated: false;
+  readonly taxonMutated: false;
+  readonly storeWrite: false;
+  readonly mode: AttachMode;
+}
+
+/**
+ * Published Attach RPC shape (`Rpc.make('Attach', …)` on `@tmnl/specimendb`).
+ * Payload is SpecimenId + attachable component. Provenance stays on this client.
+ */
+export const AttachRpcContract = {
+  name: 'Attach',
+  liveRpcs: ['Intake', 'Get', 'List', 'Promote', 'Attach'] as const,
+  payload: {
+    specimenId: 'SpecimenId',
+    component: 'AttachableComponent',
+  },
+  success: 'Specimen',
+  error: 'AttachError',
+  neverCalls: ['Intake', 'List', 'Promote'] as const,
+} as const;
+
+export interface SpecimenDbAttachPort extends SpecimenDbPort {
+  readonly attach: (payload: AttachPayload) => Promise<AttachResult>;
 }
 
 export type EvidenceOmissionReason =
@@ -112,6 +203,35 @@ export interface AttachmentPlan extends ProjectionResult {
   readonly blockers: readonly AttachmentBlocker[];
   readonly executable: false;
   readonly blocker: 'specimendb-attach-unavailable';
+}
+
+export type AttachRefusalReason =
+  | EvidenceOmissionReason
+  | 'invented-locality'
+  | 'invented-taxon'
+  | 'lab-as-specimen'
+  | 'unverified-evidence'
+  | 'caller-component-prose'
+  | 'evidence-not-local-run'
+  | 'no-admissible-evidence'
+  | 'source-class-relabeled';
+
+export class AttachRefused extends Error {
+  readonly _tag = 'AttachRefused';
+  readonly reasons: readonly AttachRefusalReason[];
+  readonly evidenceId: string | undefined;
+
+  constructor(reasons: readonly AttachRefusalReason[], evidenceId?: string) {
+    super(`AttachRefused: ${reasons.join(',')}`);
+    this.name = 'AttachRefused';
+    this.reasons = reasons;
+    this.evidenceId = evidenceId;
+  }
+}
+
+export interface GovernedAttachInput {
+  readonly specimenId: string;
+  readonly artifact: LabArtifact;
 }
 
 const sourceBasis: Readonly<Record<EvidenceSourceClass, EvidenceBasis>> = {
@@ -342,5 +462,217 @@ export const planAttachment = async (
     blockers,
     executable: false,
     blocker: 'specimendb-attach-unavailable',
+  };
+};
+
+const hasOwn = (value: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const decodeSpecimenId = (id: string): SpecimenId => {
+  if (!isNonBlank(id)) {
+    throw new TypeError('specimenId must be supplied explicitly');
+  }
+  if (LAB_AS_SPECIMEN_IDS.has(id.trim())) {
+    throw new AttachRefused(['lab-as-specimen']);
+  }
+  return trustSpecimenId(id);
+};
+
+const refusalFromOmissions = (
+  omissions: readonly EvidenceOmission[],
+): AttachRefusalReason[] => {
+  const reasons: AttachRefusalReason[] = [];
+  for (const omission of omissions) {
+    for (const reason of omission.reasons) {
+      reasons.push(reason);
+      if (
+        reason === 'review-not-accepted' ||
+        reason === 'review-metadata-missing' ||
+        reason === 'artifact-status-not-admitted'
+      ) {
+        reasons.push('unverified-evidence');
+      }
+      if (reason === 'evidence-basis-mismatch') {
+        reasons.push('source-class-relabeled');
+      }
+    }
+  }
+  return [...new Set(reasons)];
+};
+
+/**
+ * Governed attach client. Calls only `port.attach` with a reviewed claim-bound
+ * payload. The official stub never writes a store, never inserts a Specimen,
+ * and never mutates locality or taxon.
+ */
+export const attachEvidence = async (
+  port: SpecimenDbAttachPort,
+  input: GovernedAttachInput,
+  validator: EvidenceRuntimeValidator,
+): Promise<readonly AttachResult[]> => {
+  for (const key of FORBIDDEN_CALLER_LOCALITY_KEYS) {
+    if (hasOwn(input, key)) {
+      throw new AttachRefused(['invented-locality']);
+    }
+  }
+  for (const key of FORBIDDEN_CALLER_TAXON_KEYS) {
+    if (hasOwn(input, key)) {
+      throw new AttachRefused(['invented-taxon']);
+    }
+  }
+  for (const key of FORBIDDEN_CALLER_PROSE_KEYS) {
+    if (hasOwn(input, key)) {
+      throw new AttachRefused(['caller-component-prose']);
+    }
+  }
+
+  const specimenId = decodeSpecimenId(input.specimenId);
+  const specimen = await port.get(specimenId);
+  if (specimen.id !== specimenId) {
+    throw new Error('SpecimenDB returned a different specimen id');
+  }
+
+  const projected = projectComponents(input.artifact, validator);
+  if (projected.omissions.length > 0) {
+    const reasons = refusalFromOmissions(projected.omissions);
+    throw new AttachRefused(
+      reasons.length > 0 ? reasons : ['no-admissible-evidence'],
+      projected.omissions[0]?.evidenceId,
+    );
+  }
+  if (projected.projections.length === 0) {
+    throw new AttachRefused(['no-admissible-evidence']);
+  }
+
+  for (const evidence of input.artifact.evidence) {
+    if (!isLocalEvidenceRecordRef(evidence.recordRef)) {
+      throw new AttachRefused(
+        ['evidence-not-local-run'],
+        evidence.id,
+      );
+    }
+  }
+
+  const receipts: AttachResult[] = [];
+  for (const projection of projected.projections) {
+    const payload: AttachPayload = {
+      specimenId,
+      component: projection.component,
+      provenance: projection.provenance,
+    };
+    const receipt = await port.attach(payload);
+    receipts.push({
+      specimenId,
+      evidenceId: payload.provenance.evidenceId,
+      claimRefs: payload.provenance.claimRefs,
+      localityMutated: false,
+      taxonMutated: false,
+      storeWrite: false,
+      mode: receipt.mode,
+    });
+  }
+  return receipts;
+};
+
+export interface StubAttachPort extends SpecimenDbAttachPort {
+  readonly calls: readonly AttachPayload[];
+}
+
+/**
+ * In-memory Attach stub. No PGlite, no file store, no Specimen insert.
+ */
+export const createStubAttachPort = (
+  specimens: readonly ExistingSpecimen[],
+): StubAttachPort => {
+  const calls: AttachPayload[] = [];
+  return {
+    get: async (specimenId) => {
+      const found = specimens.find((specimen) => specimen.id === specimenId);
+      if (found === undefined) {
+        throw new Error(`Specimen not found: ${specimenId}`);
+      }
+      return found;
+    },
+    attach: async (payload) => {
+      calls.push(payload);
+      return {
+        specimenId: payload.specimenId,
+        evidenceId: payload.provenance.evidenceId,
+        claimRefs: payload.provenance.claimRefs,
+        localityMutated: false,
+        taxonMutated: false,
+        storeWrite: false,
+        mode: 'stub',
+      };
+    },
+    get calls() {
+      return calls;
+    },
+  };
+};
+
+/**
+ * Live `@tmnl/specimendb/rpc` surface as exported on main (`SpecimenRpcs`:
+ * Intake, Get, List, Promote) plus the Attach operation this client calls.
+ * Wrap Effect RPC with `Effect.runPromise` at composition. No PGlite import.
+ */
+export const LiveSpecimenRpcs = {
+  Intake: 'Intake',
+  Get: 'Get',
+  List: 'List',
+  Promote: 'Promote',
+  Attach: 'Attach',
+} as const;
+
+export interface LiveSpecimenRpc {
+  readonly Get: (payload: {
+    readonly specimenId: string;
+  }) => Promise<{ readonly id: string }>;
+  readonly Attach: (payload: {
+    readonly specimenId: string;
+    readonly component: SpecimenComponentDraft;
+  }) => Promise<{
+    readonly id: string;
+    readonly components?: readonly { readonly _tag: string }[];
+  }>;
+  /** Present on the live catalog. This port must never call it. */
+  readonly Intake?: (payload: unknown) => Promise<unknown>;
+  readonly List?: () => Promise<unknown>;
+  readonly Promote?: (payload: { readonly specimenId: string }) => Promise<unknown>;
+}
+
+export type CatalogAttachRpc = LiveSpecimenRpc;
+
+export const createRpcAttachPort = (
+  client: LiveSpecimenRpc,
+): SpecimenDbAttachPort => {
+  if (typeof client.Get !== 'function' || typeof client.Attach !== 'function') {
+    throw new TypeError(
+      'live Specimen RPC must expose Get and Attach; Intake is not an attach path',
+    );
+  }
+  return {
+    get: async (specimenId) => {
+      const specimen = await client.Get({ specimenId });
+      return { id: specimen.id };
+    },
+    attach: async (payload) => {
+      const specimen = await client.Attach({
+        specimenId: payload.specimenId,
+        component: payload.component,
+      });
+      if (specimen.id !== payload.specimenId) {
+        throw new Error('SpecimenDB returned a different specimen id');
+      }
+      return {
+        specimenId: payload.specimenId,
+        evidenceId: payload.provenance.evidenceId,
+        claimRefs: payload.provenance.claimRefs,
+        localityMutated: false,
+        taxonMutated: false,
+        storeWrite: false,
+        mode: 'rpc',
+      };
+    },
   };
 };
