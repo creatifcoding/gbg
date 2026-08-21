@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import * as Effect from 'effect/Effect';
-import * as Either from 'effect/Either';
+import * as Result from 'effect/Result';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { SqlClient } from 'effect/unstable/sql/SqlClient';
 import { layer } from '../src/layers.js';
@@ -165,10 +165,10 @@ describe('AppendActivity / GetByRef', () => {
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(ActivityRpcs);
         yield* client.AppendActivity(originalActivity());
-        const dup = yield* Effect.either(client.AppendActivity(originalActivity()));
-        expect(Either.isLeft(dup)).toBe(true);
-        if (Either.isLeft(dup)) {
-          expect(dup.left._tag).toBe('ActivityAppendError');
+        const dup = yield* Effect.result(client.AppendActivity(originalActivity()));
+        expect(Result.isFailure(dup)).toBe(true);
+        if (Result.isFailure(dup)) {
+          expect(dup.failure._tag).toBe('ActivityAppendError');
         }
       }) as Effect.Effect<unknown, unknown, never>,
     );
@@ -179,10 +179,10 @@ describe('AppendActivity / GetByRef', () => {
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(ActivityRpcs);
         const sheet = decodeLabEntity(load('sheet-s01-pr58.json'));
-        const result = yield* Effect.either(client.AppendActivity(sheet));
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left._tag).toBe('ActivityAppendError');
+        const result = yield* Effect.result(client.AppendActivity(sheet));
+        expect(Result.isFailure(result)).toBe(true);
+        if (Result.isFailure(result)) {
+          expect(result.failure._tag).toBe('ActivityAppendError');
         }
       }) as Effect.Effect<unknown, unknown, never>,
     );
@@ -207,12 +207,12 @@ describe('AppendActivity / GetByRef', () => {
         const original = originalActivity();
         yield* client.AppendActivity(original);
         const sql = yield* SqlClient;
-        const update = yield* Effect.either(
+        const update = yield* Effect.result(
           sql.unsafe(`UPDATE lab_activities SET why = 'tampered'`),
         );
-        expect(Either.isLeft(update)).toBe(true);
-        const del = yield* Effect.either(sql.unsafe(`DELETE FROM lab_activities`));
-        expect(Either.isLeft(del)).toBe(true);
+        expect(Result.isFailure(update)).toBe(true);
+        const del = yield* Effect.result(sql.unsafe(`DELETE FROM lab_activities`));
+        expect(Result.isFailure(del)).toBe(true);
 
         const still = yield* client.GetByRef({ ref: original.ref });
         expect(still).toHaveLength(1);

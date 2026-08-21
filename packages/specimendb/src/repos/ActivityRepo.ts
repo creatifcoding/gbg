@@ -12,7 +12,7 @@ import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
 import * as Schema from 'effect/Schema';
 import { SqlClient } from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import { SqlError } from 'effect/unstable/sql/SqlError';
 import { ActivityAppendError, CatalogError } from '../schemas/errors.js';
 import { type EntityRef } from '../schemas/identifiers.js';
 import { decodeLabEntity, LabEntity } from '../schemas/provenance.js';
@@ -64,6 +64,7 @@ const generatedOf = (entity: LabEntity): ReadonlyArray<EntityRef> =>
   uniqueRefs(entity.what?.generated ?? entity.generated ?? []);
 
 const isUniqueViolation = (error: SqlError): boolean =>
+  error.reason._tag === 'UniqueViolation' ||
   /unique|duplicate key|already exists/i.test(error.message);
 
 const encodeActivity = Schema.encodeUnknownSync(LabEntity);
