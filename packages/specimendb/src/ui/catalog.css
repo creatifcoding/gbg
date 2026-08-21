@@ -393,8 +393,6 @@ button.sdb-t-card {
 }
 
 .sdb-t-upload {
-
-.sdb-t-upload {
   width: 28px;
   height: 28px;
   font-size: 28px;
@@ -483,7 +481,7 @@ button.sdb-t-card {
   color: #737373;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -628,9 +626,10 @@ button.sdb-t-card {
   color: #fb7185;
 }
 
+/* Tailwind w-1.5 / h-1.5 = 6px. Not 1.5px. */
 .sdb-status-sq {
-  width: 1.5px;
-  height: 1.5px;
+  width: 6px;
+  height: 6px;
   background: currentColor;
 }
 
@@ -992,6 +991,10 @@ button.sdb-w-card {
   border: 1px solid #333;
 }
 
+.sdb-w-actions button[data-export] {
+  cursor: pointer;
+}
+
 .sdb-w-viewport {
   position: relative;
   display: flex;
@@ -1070,7 +1073,7 @@ button.sdb-w-card {
   color: #a3a3a3;
   font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 9px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 

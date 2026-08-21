@@ -1,0 +1,10 @@
+{
+  "_tag": "LabEntity",
+  "ref": "gbg:sheet:S01@pr58",
+  "kind": "sheet",
+  "label": "S01",
+  "class": "projected",
+  "bytes": {
+    "gitSha": "b64d101e805e7f3ab760d15ad38d13d359c7dce1"
+  }
+}

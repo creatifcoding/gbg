@@ -1,5 +1,7 @@
 # RFC — Canonical TLA Package Suites (Layer-Compositional)
 
+> **SUPERSEDED IN PART (2026-08-20).** Naming, barrels, frozen `Msh` aggregate, and industrial sequencing are law in [`tla-module-rose-tree-rfc.md`](./tla-module-rose-tree-rfc.md). A TLA is a module in a cluster package, not `@tmnl/<tla>`. Frozen `export const Msh = {…}` is not public API. `dmn` is lifted from iiot; `iot` is the first consumer. **Still in force here:** §0.3 Kind A/B, Layer doctrine companion, cluster *readiness* notes in §2–§7 that have not been re-audited.
+
 **Status:** Draft for Prime ratification · **Date:** 2026-07-03 · **Author:** Val (synthesis of a 12-agent Opus 4.8 + Sonnet workflow: 2 grounding agents, 5 cluster designers at high effort, 5 adversarial judges)
 **Companions:** [`effect-v4-layer-doctrine.md`](effect-v4-layer-doctrine.md) (the verified v4 Layer doctrine this RFC builds on) · [`latent-systems-map.md`](latent-systems-map.md) (all boundary evidence; §4c = adversarially-verified facts) · [`../metaprompts/extract-latent-system.metaprompt.md`](../metaprompts/extract-latent-system.metaprompt.md) (execution protocol per pass)
 **Judge verdicts:** transport ACCEPT (9/9/9) · state, runtime, morph, industrial ACCEPT_WITH_REVISIONS — all judge errata are folded into this synthesis and marked ⚠ where they changed a designer's claim.
@@ -14,13 +16,13 @@
 
 The four existing TLAs (stx, msh, pct, lnk) diverge on nearly every convention (verified by the grounding pass with file:line cites — see workflow journal). This RFC ratifies:
 
-1. **Naming:** `@tmnl/<tla>` — exactly 3 lowercase letters, consonant-leaning. `@gbg/*` stays app-tier. A TLA is earned by owning **one architectural layer** in the composition stack.
-2. **Service definition:** v4 `Context.Service<Self, Shape>()('<tag>')` two-generic class form, universally. **Tag-string shape standardized** (4 incompatible shapes exist today): `@tmnl/<pkg>/<seam>/<Name>` — source-path-shaped, no `services/` segment, no `Service` suffix in the tag. (Fixes lnk's own `MshBridgeDiagnostics.ts:35` convention bug.)
+1. **Naming (SUPERSEDED 2026-08-20):** was `@tmnl/<tla>` exactly 3 letters. Law is now [`tla-module-rose-tree-rfc.md`](./tla-module-rose-tree-rfc.md): TLA = module; cluster = npm name (`@tmnl/design`, `@tmnl/shell`, …). Never mint `@tmnl/<tla>`. 4-letter keystones (`addr`, `shll`, `mrph`) are allowed. `@gbg/tmnl` stays app-tier.
+2. **Service definition:** v4 `Context.Service<Self, Shape>()('<tag>')` two-generic class form, universally. **Tag-string shape (amended 2026-08-20):** `@tmnl/<cluster>/<tla>/<seam>/<Name>` — e.g. `@tmnl/transport/msh/nats/Connection`. Still no `services/` segment, no `Service` suffix in the tag.
 3. **Class naming:** `Service`-suffixed classes for genuine services (`NatsConnectionService` style); unsuffixed reserved for handles/values (`Lnk`, `Wire`).
 4. **Layer factories:** `static readonly layer` (+ `layerFrom<Deps>` where injection matters, `layerConfig(input)` for parameterized, `layerTest` mandatory) on the class. The `Default.ts`-file idiom (pct) and bare `xxxLayer` free functions are deprecated; free `XxxLive` consts survive only as sugar aliases.
-5. **Barrels:** namespaced `export * as X` (msh's flat `export *` hit a real collision at `msh/src/index.ts:16`) + **one frozen aggregate object** per package (`Msh`-pattern: `export const Xxx = {...} as const` mapping every Service/layer pair).
+5. **Barrels (SUPERSEDED 2026-08-20):** namespaced `export * as X` stays. Frozen aggregate object (`export const Msh = {…} as const`) is **not** public API. Law: `export * as Msh from './Msh.js'`. Ban `export * from` on cluster indexes. See [`tla-module-rose-tree-rfc.md`](./tla-module-rose-tree-rfc.md).
 6. **Test layers:** every package ships `layerTest` siblings — **no existing package has one today** (house gap, verified). In-memory-impl-as-test-layer (lnk's `InMemoryWire`) is the model; per-test isolation via `Effect.provide(layer, { local: true })` (v4-new), `Layer.fresh` reserved for tests.
-7. **NX:** every TLA registers a `project.json` with `tags: ["scope:tmnl","type:lib","domain:<real-domain>","effect:v4"]` — **pct currently has none** (fix), and the `domain:` taxonomy gets real values (msh=transport, not `domain:data`).
+7. **NX (amended 2026-08-20):** one `project.json` **per cluster**, not per TLA. Tags stay `scope:tmnl`, `type:lib`, plus cluster domain. TLAs are source roots / tags, not Nx projects.
 8. **Effect pinning:** `"effect-v4": "npm:effect@4.0.0-beta.59"` npm alias, no tsconfig path mapping (effect-sui's is redundant — remove). Peer-alias convention unified: peer under the alias name (lnk-style `effect-atom-react-v4`), not the real npm name. `effect-vitest-v4` mandatory (pct lacks it).
 9. **Doctrine compliance** (headline v4 facts, all verified in the doctrine doc): **there is no `Layer.scoped`** (scoped construction folds into `Layer.effect`); `Layer.succeed(Tag)(value)` is curried; `Context.Service` `make` does **not** auto-generate `.Default` and `dependencies` is gone — layers are hand-composed with `Layer.provide`; the shared MemoMap dedups **by layer identity**; `unstable/*` (rpc, http, sql, cluster, schema, ai) may break between betas — pin exact and treat those Layer signatures as semver-exempt.
 
@@ -111,6 +113,8 @@ The keystone is **`Stx.RegistryLayer`** — the ONE Layer stx grows (an L0 `Atom
 - `pragma` → `packages/pragma` (Rust, non-TLA). Deprecations: `ai` DELETE, `nex` DELETE, `rag` ARCHIVE (optional future cog tool), `editor-ai` ARCHIVE. `agents/tasks` (78 files) routes OUT to the chat suite (U1) — it's task-log rendering, not runtime. A future cog↔rig shared kernel is explicitly NOT proposed (zero shared code today).
 
 ## §7 — Industrial domain suite: `dmn` + `iot` + `geo` + `ams` + `sio` (+ deferred `srm`)
+
+> **SEQUENCING SUPERSEDED 2026-08-20.** Do not author greenfield `dmn` then geo-first. Lift `dmn` from iiot into `@tmnl/domain`; **`iot` is the first consumer**. Instance-as-domain is `@tmnl/addr`, not `dmn`. See [`tla-module-rose-tree-rfc.md`](./tla-module-rose-tree-rfc.md) §6. Readiness notes below are not a re-audit.
 
 ⚠ Judge-hedged framing: the four verticals show strong **directory-structure isomorphism** (es-core universal 4/4; facade 3/4; realtime 1.5/4) — the "one pattern" claim is *inferred from that isomorphism*, and its keystone `dmn` does not exist yet. Treat the Triptych as the working hypothesis the `dmn` authoring pass must prove, not settled fact.
 

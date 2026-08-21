@@ -1,0 +1,1701 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">SpecimenDB</title>
+    
+    <script src="https://unpkg.com/@phosphor-icons/web" vid="6"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="7">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&amp;family=JetBrains+Mono:wght@100;400;500&amp;display=swap" rel="stylesheet" vid="9">
+    <style vid="10">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            color: #d4d4d8;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1f1f22;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+
+        
+        .scanlines {
+            position: relative;
+        }
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+    </style>
+
+  <style type="text/css">
+*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  tab-size: 4; /* 3 */
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.pointer-events-none {
+  pointer-events: none;
+}
+.absolute {
+  position: absolute;
+}
+.relative {
+  position: relative;
+}
+.inset-0 {
+  inset: 0px;
+}
+.bottom-1 {
+  bottom: 0.25rem;
+}
+.bottom-6 {
+  bottom: 1.5rem;
+}
+.left-0 {
+  left: 0px;
+}
+.left-1 {
+  left: 0.25rem;
+}
+.left-1\/2 {
+  left: 50%;
+}
+.left-6 {
+  left: 1.5rem;
+}
+.right-0 {
+  right: 0px;
+}
+.right-1 {
+  right: 0.25rem;
+}
+.right-2 {
+  right: 0.5rem;
+}
+.right-6 {
+  right: 1.5rem;
+}
+.top-0 {
+  top: 0px;
+}
+.top-1 {
+  top: 0.25rem;
+}
+.top-1\/2 {
+  top: 50%;
+}
+.top-2 {
+  top: 0.5rem;
+}
+.z-10 {
+  z-index: 10;
+}
+.z-20 {
+  z-index: 20;
+}
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+.-ml-4 {
+  margin-left: -1rem;
+}
+.-ml-8 {
+  margin-left: -2rem;
+}
+.-mt-1 {
+  margin-top: -0.25rem;
+}
+.-mt-4 {
+  margin-top: -1rem;
+}
+.-mt-8 {
+  margin-top: -2rem;
+}
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
+}
+.ml-2 {
+  margin-left: 0.5rem;
+}
+.mt-1 {
+  margin-top: 0.25rem;
+}
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.block {
+  display: block;
+}
+.flex {
+  display: flex;
+}
+.grid {
+  display: grid;
+}
+.aspect-\[16\/9\] {
+  aspect-ratio: 16/9;
+}
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+.h-1 {
+  height: 0.25rem;
+}
+.h-1\.5 {
+  height: 0.375rem;
+}
+.h-1\/3 {
+  height: 33.333333%;
+}
+.h-14 {
+  height: 3.5rem;
+}
+.h-16 {
+  height: 4rem;
+}
+.h-2 {
+  height: 0.5rem;
+}
+.h-2\/3 {
+  height: 66.666667%;
+}
+.h-24 {
+  height: 6rem;
+}
+.h-3\/4 {
+  height: 75%;
+}
+.h-32 {
+  height: 8rem;
+}
+.h-4 {
+  height: 1rem;
+}
+.h-64 {
+  height: 16rem;
+}
+.h-8 {
+  height: 2rem;
+}
+.h-\[1px\] {
+  height: 1px;
+}
+.h-full {
+  height: 100%;
+}
+.h-screen {
+  height: 100vh;
+}
+.w-1 {
+  width: 0.25rem;
+}
+.w-1\.5 {
+  width: 0.375rem;
+}
+.w-1\/3 {
+  width: 33.333333%;
+}
+.w-16 {
+  width: 4rem;
+}
+.w-2 {
+  width: 0.5rem;
+}
+.w-2\/3 {
+  width: 66.666667%;
+}
+.w-24 {
+  width: 6rem;
+}
+.w-3\/4 {
+  width: 75%;
+}
+.w-4 {
+  width: 1rem;
+}
+.w-8 {
+  width: 2rem;
+}
+.w-\[1px\] {
+  width: 1px;
+}
+.w-\[380px\] {
+  width: 380px;
+}
+.w-full {
+  width: 100%;
+}
+.w-screen {
+  width: 100vw;
+}
+.max-w-2xl {
+  max-width: 42rem;
+}
+.max-w-6xl {
+  max-width: 72rem;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+@keyframes pulse {
+
+  50% {
+    opacity: .5;
+  }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.flex-col {
+  flex-direction: column;
+}
+.items-end {
+  align-items: flex-end;
+}
+.items-center {
+  align-items: center;
+}
+.justify-end {
+  justify-content: flex-end;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-1 {
+  gap: 0.25rem;
+}
+.gap-1\.5 {
+  gap: 0.375rem;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.gap-6 {
+  gap: 1.5rem;
+}
+.gap-8 {
+  gap: 2rem;
+}
+.space-y-1\.5 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.375rem * var(--tw-space-y-reverse));
+}
+.space-y-12 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(3rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(3rem * var(--tw-space-y-reverse));
+}
+.space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+.rounded-full {
+  border-radius: 9999px;
+}
+.rounded-none {
+  border-radius: 0px;
+}
+.border {
+  border-width: 1px;
+}
+.border-\[0\.5px\] {
+  border-width: 0.5px;
+}
+.border-b {
+  border-bottom-width: 1px;
+}
+.border-l {
+  border-left-width: 1px;
+}
+.border-r {
+  border-right-width: 1px;
+}
+.border-t {
+  border-top-width: 1px;
+}
+.border-dashed {
+  border-style: dashed;
+}
+.border-amber-900\/40 {
+  border-color: rgb(120 53 15 / 0.4);
+}
+.border-cyan-900\/40 {
+  border-color: rgb(22 78 99 / 0.4);
+}
+.border-emerald-500 {
+  --tw-border-opacity: 1;
+  border-color: rgb(16 185 129 / var(--tw-border-opacity, 1));
+}
+.border-emerald-500\/30 {
+  border-color: rgb(16 185 129 / 0.3);
+}
+.border-emerald-900\/30 {
+  border-color: rgb(6 78 59 / 0.3);
+}
+.border-emerald-900\/40 {
+  border-color: rgb(6 78 59 / 0.4);
+}
+.border-emerald-900\/50 {
+  border-color: rgb(6 78 59 / 0.5);
+}
+.border-emerald-900\/80 {
+  border-color: rgb(6 78 59 / 0.8);
+}
+.border-rose-900\/40 {
+  border-color: rgb(136 19 55 / 0.4);
+}
+.border-zinc-600 {
+  --tw-border-opacity: 1;
+  border-color: rgb(82 82 91 / var(--tw-border-opacity, 1));
+}
+.border-zinc-700 {
+  --tw-border-opacity: 1;
+  border-color: rgb(63 63 70 / var(--tw-border-opacity, 1));
+}
+.border-zinc-800 {
+  --tw-border-opacity: 1;
+  border-color: rgb(39 39 42 / var(--tw-border-opacity, 1));
+}
+.border-zinc-800\/50 {
+  border-color: rgb(39 39 42 / 0.5);
+}
+.border-zinc-900 {
+  --tw-border-opacity: 1;
+  border-color: rgb(24 24 27 / var(--tw-border-opacity, 1));
+}
+.bg-\[\#020202\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(2 2 2 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#030303\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(3 3 3 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#050505\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 5 5 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#080808\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(8 8 8 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#0a0a0a\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#0f0f11\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(15 15 17 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#111\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 17 17 / var(--tw-bg-opacity, 1));
+}
+.bg-amber-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
+}
+.bg-black {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
+}
+.bg-black\/80 {
+  background-color: rgb(0 0 0 / 0.8);
+}
+.bg-cyan-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(6 182 212 / var(--tw-bg-opacity, 1));
+}
+.bg-emerald-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
+}
+.bg-emerald-500\/20 {
+  background-color: rgb(16 185 129 / 0.2);
+}
+.bg-emerald-950\/20 {
+  background-color: rgb(2 44 34 / 0.2);
+}
+.bg-rose-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(244 63 94 / var(--tw-bg-opacity, 1));
+}
+.bg-zinc-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(113 113 122 / var(--tw-bg-opacity, 1));
+}
+.bg-zinc-700 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(63 63 70 / var(--tw-bg-opacity, 1));
+}
+.bg-zinc-700\/50 {
+  background-color: rgb(63 63 70 / 0.5);
+}
+.bg-zinc-800\/30 {
+  background-color: rgb(39 39 42 / 0.3);
+}
+.bg-zinc-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(24 24 27 / var(--tw-bg-opacity, 1));
+}
+.bg-zinc-900\/50 {
+  background-color: rgb(24 24 27 / 0.5);
+}
+.bg-zinc-950 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(9 9 11 / var(--tw-bg-opacity, 1));
+}
+.bg-\[radial-gradient\(ellipse_at_center\2c _var\(--tw-gradient-stops\)\)\] {
+  background-image: radial-gradient(ellipse at center, var(--tw-gradient-stops));
+}
+.bg-\[url\(\'data\:image\/svg\+xml\;base64\2c PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJub25lIi8\+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz4KPC9zdmc\+\'\)\] {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJub25lIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz4KPC9zdmc+');
+}
+.from-zinc-800 {
+  --tw-gradient-from: #27272a var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(39 39 42 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.to-black {
+  --tw-gradient-to: #000 var(--tw-gradient-to-position);
+}
+.p-10 {
+  padding: 2.5rem;
+}
+.p-2 {
+  padding: 0.5rem;
+}
+.p-3 {
+  padding: 0.75rem;
+}
+.p-4 {
+  padding: 1rem;
+}
+.p-5 {
+  padding: 1.25rem;
+}
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.px-5 {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+.px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.pb-0\.5 {
+  padding-bottom: 0.125rem;
+}
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+.pb-20 {
+  padding-bottom: 5rem;
+}
+.pl-4 {
+  padding-left: 1rem;
+}
+.pt-1 {
+  padding-top: 0.25rem;
+}
+.pt-3 {
+  padding-top: 0.75rem;
+}
+.text-center {
+  text-align: center;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+.text-\[10px\] {
+  font-size: 10px;
+}
+.text-\[13px\] {
+  font-size: 13px;
+}
+.text-\[9px\] {
+  font-size: 9px;
+}
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.font-light {
+  font-weight: 300;
+}
+.font-medium {
+  font-weight: 500;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.leading-relaxed {
+  line-height: 1.625;
+}
+.leading-snug {
+  line-height: 1.375;
+}
+.tracking-\[0\.2em\] {
+  letter-spacing: 0.2em;
+}
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+.tracking-widest {
+  letter-spacing: 0.1em;
+}
+.text-amber-500 {
+  --tw-text-opacity: 1;
+  color: rgb(245 158 11 / var(--tw-text-opacity, 1));
+}
+.text-cyan-500 {
+  --tw-text-opacity: 1;
+  color: rgb(6 182 212 / var(--tw-text-opacity, 1));
+}
+.text-emerald-500 {
+  --tw-text-opacity: 1;
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
+.text-rose-500 {
+  --tw-text-opacity: 1;
+  color: rgb(244 63 94 / var(--tw-text-opacity, 1));
+}
+.text-zinc-100 {
+  --tw-text-opacity: 1;
+  color: rgb(244 244 245 / var(--tw-text-opacity, 1));
+}
+.text-zinc-300 {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 216 / var(--tw-text-opacity, 1));
+}
+.text-zinc-400 {
+  --tw-text-opacity: 1;
+  color: rgb(161 161 170 / var(--tw-text-opacity, 1));
+}
+.text-zinc-500 {
+  --tw-text-opacity: 1;
+  color: rgb(113 113 122 / var(--tw-text-opacity, 1));
+}
+.text-zinc-600 {
+  --tw-text-opacity: 1;
+  color: rgb(82 82 91 / var(--tw-text-opacity, 1));
+}
+.text-zinc-700 {
+  --tw-text-opacity: 1;
+  color: rgb(63 63 70 / var(--tw-text-opacity, 1));
+}
+.text-zinc-800 {
+  --tw-text-opacity: 1;
+  color: rgb(39 39 42 / var(--tw-text-opacity, 1));
+}
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.opacity-20 {
+  opacity: 0.2;
+}
+.opacity-30 {
+  opacity: 0.3;
+}
+.opacity-50 {
+  opacity: 0.5;
+}
+.opacity-60 {
+  opacity: 0.6;
+}
+.opacity-80 {
+  opacity: 0.8;
+}
+.opacity-\[0\.03\] {
+  opacity: 0.03;
+}
+.shadow-\[0_0_8px_rgba\(16\2c 185\2c 129\2c 0\.4\)\] {
+  --tw-shadow: 0 0 8px rgba(16,185,129,0.4);
+  --tw-shadow-colored: 0 0 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_8px_rgba\(244\2c 63\2c 94\2c 0\.4\)\] {
+  --tw-shadow: 0 0 8px rgba(244,63,94,0.4);
+  --tw-shadow-colored: 0 0 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_8px_rgba\(245\2c 158\2c 11\2c 0\.4\)\] {
+  --tw-shadow: 0 0 8px rgba(245,158,11,0.4);
+  --tw-shadow-colored: 0 0 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_8px_rgba\(6\2c 182\2c 212\2c 0\.4\)\] {
+  --tw-shadow: 0 0 8px rgba(6,182,212,0.4);
+  --tw-shadow-colored: 0 0 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_2px_8px_rgba\(0\2c 0\2c 0\2c 0\.8\)\] {
+  --tw-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  --tw-shadow-colored: 0 2px 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[4px_0_24px_rgba\(0\2c 0\2c 0\2c 0\.8\)\] {
+  --tw-shadow: 4px 0 24px rgba(0,0,0,0.8);
+  --tw-shadow-colored: 4px 0 24px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.backdrop-blur-sm {
+  --tw-backdrop-blur: blur(4px);
+  -webkit-backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+  backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+}
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.selection\:bg-cyan-900\/50 *::selection {
+  background-color: rgb(22 78 99 / 0.5);
+}
+.selection\:text-cyan-100 *::selection {
+  --tw-text-opacity: 1;
+  color: rgb(207 250 254 / var(--tw-text-opacity, 1));
+}
+.selection\:bg-cyan-900\/50::selection {
+  background-color: rgb(22 78 99 / 0.5);
+}
+.selection\:text-cyan-100::selection {
+  --tw-text-opacity: 1;
+  color: rgb(207 250 254 / var(--tw-text-opacity, 1));
+}
+.hover\:border-zinc-600:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(82 82 91 / var(--tw-border-opacity, 1));
+}
+.hover\:border-zinc-700:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(63 63 70 / var(--tw-border-opacity, 1));
+}
+.hover\:border-zinc-800:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(39 39 42 / var(--tw-border-opacity, 1));
+}
+.hover\:bg-\[\#111111\]:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 17 17 / var(--tw-bg-opacity, 1));
+}
+.hover\:text-zinc-300:hover {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 216 / var(--tw-text-opacity, 1));
+}
+.hover\:opacity-100:hover {
+  opacity: 1;
+}
+.group:hover .group-hover\:text-zinc-300 {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 216 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-zinc-400 {
+  --tw-text-opacity: 1;
+  color: rgb(161 161 170 / var(--tw-text-opacity, 1));
+}
+@media (min-width: 1280px) {
+
+  .xl\:col-span-4 {
+    grid-column: span 4 / span 4;
+  }
+
+  .xl\:col-span-8 {
+    grid-column: span 8 / span 8;
+  }
+
+  .xl\:grid-cols-12 {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}* {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  </style></head>
+<body class="h-screen w-screen overflow-hidden flex bg-black selection:bg-cyan-900/50 selection:text-cyan-100 antialiased" vid="11">
+
+    
+    <aside class="w-[380px] flex flex-col border-r border-zinc-900 bg-[#030303] flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.8)]" vid="12">
+        
+        
+        <header class="h-14 border-b border-zinc-900 flex items-center px-5 justify-between font-mono text-xs uppercase tracking-widest bg-black" vid="13">
+            <div class="flex items-center gap-2 text-zinc-400" vid="14">
+                <i class="ph ph-hexagon text-zinc-500" vid="15"></i>
+                <span class="text-zinc-300 font-medium tracking-[0.2em]" vid="16">SPECIMEN_DB</span>
+            </div>
+            <span class="text-zinc-600" vid="17">SYS.09</span>
+        </header>
+
+        
+        <div class="p-4 border-b border-zinc-900 bg-[#050505]" vid="18">
+            <div class="border border-dashed border-zinc-800 bg-[#0a0a0a] hover:bg-[#111111] hover:border-zinc-600 transition-colors cursor-pointer h-24 flex flex-col items-center justify-center text-center gap-1.5 group relative overflow-hidden" vid="19">
+                <i class="ph ph-download-simple text-xl text-zinc-600 group-hover:text-zinc-400" vid="20"></i>
+                <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest group-hover:text-zinc-300" vid="21">Intake Drop Zone</span>
+                
+                <div class="absolute top-1 left-1 w-2 h-2 border-t border-l border-zinc-700 opacity-50" vid="22"></div>
+                <div class="absolute top-1 right-1 w-2 h-2 border-t border-r border-zinc-700 opacity-50" vid="23"></div>
+                <div class="absolute bottom-1 left-1 w-2 h-2 border-b border-l border-zinc-700 opacity-50" vid="24"></div>
+                <div class="absolute bottom-1 right-1 w-2 h-2 border-b border-r border-zinc-700 opacity-50" vid="25"></div>
+            </div>
+        </div>
+
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#020202]" vid="26">
+            
+            
+            <article class="bg-[#0a0a0a] border border-zinc-600 cursor-pointer group relative" vid="27">
+                
+                <div class="h-32 w-full bg-zinc-900 relative overflow-hidden" vid="28">
+                    <div class="absolute inset-0 bg-[#111] opacity-50" vid="29"></div>
+                    
+                    <div class="absolute top-1/2 left-1/2 w-8 h-8 -ml-4 -mt-4 border border-zinc-800/50 rounded-full flex items-center justify-center pointer-events-none" vid="30">
+                         <div class="w-1 h-1 bg-zinc-700/50 rounded-full" vid="31"></div>
+                    </div>
+                    
+                    
+                    <div class="absolute top-2 right-2 flex items-center gap-1.5 bg-black text-[9px] font-mono px-2 py-1 uppercase tracking-wider border border-emerald-900/40 text-emerald-500 shadow-[0_2px_8px_rgba(0,0,0,0.8)]" vid="32">
+                        <div class="w-1.5 h-1.5 rounded-none bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" vid="33"></div>
+                        WORKING
+                    </div>
+                </div>
+
+                <div class="p-4 flex flex-col gap-3" vid="34">
+                    
+                    <p class="text-[13px] text-zinc-300 leading-snug font-medium line-clamp-3" vid="35">
+                        Odontodactylus scyllarus dactyl club exhibits extreme impact resistance via highly ordered helicoidal chitin architecture. Assessing for ceramic composite biomimicry.
+                    </p>
+
+                    
+                    <div class="flex gap-1.5 font-mono text-[9px] uppercase tracking-wider" vid="36">
+                        <span class="bg-zinc-900 text-zinc-400 px-1.5 py-0.5 border border-zinc-800" vid="37">kinematics</span>
+                        <span class="bg-zinc-900 text-zinc-400 px-1.5 py-0.5 border border-zinc-800" vid="38">materials</span>
+                        <span class="bg-zinc-900 text-zinc-400 px-1.5 py-0.5 border border-zinc-800" vid="39">marine</span>
+                    </div>
+
+                    
+                    <div class="flex justify-between items-end text-[10px] font-mono mt-1 border-t border-zinc-900 pt-3" vid="40">
+                        <span class="text-zinc-500" vid="41">ID: OD-2394</span>
+                        <span class="text-zinc-600" vid="42">GPS: -14.23, 143.51</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-[#080808] border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer group relative opacity-80 hover:opacity-100" vid="43">
+                <div class="h-32 w-full bg-zinc-900 relative overflow-hidden" vid="44">
+                    <div class="absolute inset-0 bg-[#0a0a0a]" vid="45"></div>
+                    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJub25lIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz4KPC9zdmc+')]" vid="46"></div>
+                    
+                    
+                    <div class="absolute top-2 right-2 flex items-center gap-1.5 bg-black text-[9px] font-mono px-2 py-1 uppercase tracking-wider border border-amber-900/40 text-amber-500" vid="47">
+                        <div class="w-1.5 h-1.5 rounded-none bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]" vid="48"></div>
+                        RAW
+                    </div>
+                </div>
+
+                <div class="p-4 flex flex-col gap-3" vid="49">
+                    <p class="text-[13px] text-zinc-400 group-hover:text-zinc-300 leading-snug font-medium line-clamp-3" vid="50">
+                        Uncharacterized mycelial network exhibiting rapid structural stiffening under localized mechanical stress. Suspected non-Newtonian fluid dynamics within hyphae.
+                    </p>
+
+                    <div class="flex gap-1.5 font-mono text-[9px] uppercase tracking-wider" vid="51">
+                        <span class="bg-zinc-900/50 text-zinc-500 px-1.5 py-0.5 border border-zinc-800/50" vid="52">mycology</span>
+                        <span class="bg-zinc-900/50 text-zinc-500 px-1.5 py-0.5 border border-zinc-800/50" vid="53">rheology</span>
+                        <span class="bg-zinc-900/50 text-zinc-500 px-1.5 py-0.5 border border-zinc-800/50" vid="54">stress-resp</span>
+                    </div>
+
+                    <div class="flex justify-between items-end text-[10px] font-mono mt-1 border-t border-zinc-900 pt-3" vid="55">
+                        <span class="text-zinc-600" vid="56">ID: PX-1102</span>
+                        <span class="text-zinc-700" vid="57">unknown</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-[#080808] border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer group relative opacity-80 hover:opacity-100" vid="58">
+                <div class="h-32 w-full bg-zinc-900 relative overflow-hidden" vid="59">
+                    <div class="absolute inset-0 bg-[#0f0f11]" vid="60"></div>
+                    <div class="absolute top-1/2 left-0 w-full h-[1px] bg-zinc-800/30" vid="61"></div>
+                    
+                    
+                    <div class="absolute top-2 right-2 flex items-center gap-1.5 bg-black text-[9px] font-mono px-2 py-1 uppercase tracking-wider border border-cyan-900/40 text-cyan-500" vid="62">
+                        <div class="w-1.5 h-1.5 rounded-none bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]" vid="63"></div>
+                        FILED
+                    </div>
+                </div>
+
+                <div class="p-4 flex flex-col gap-3" vid="64">
+                    <p class="text-[13px] text-zinc-400 group-hover:text-zinc-300 leading-snug font-medium line-clamp-3" vid="65">
+                        Strigiformes primary feather leading edge micro-serrations recorded during silent flight approach. Acoustic dampening profiles archived for fluid dynamic modeling.
+                    </p>
+
+                    <div class="flex gap-1.5 font-mono text-[9px] uppercase tracking-wider" vid="66">
+                        <span class="bg-zinc-900/50 text-zinc-500 px-1.5 py-0.5 border border-zinc-800/50" vid="67">acoustics</span>
+                        <span class="bg-zinc-900/50 text-zinc-500 px-1.5 py-0.5 border border-zinc-800/50" vid="68">aero</span>
+                        <span class="bg-zinc-900/50 text-zinc-500 px-1.5 py-0.5 border border-zinc-800/50" vid="69">avian</span>
+                    </div>
+
+                    <div class="flex justify-between items-end text-[10px] font-mono mt-1 border-t border-zinc-900 pt-3" vid="70">
+                        <span class="text-zinc-600" vid="71">ID: AV-092</span>
+                        <span class="text-zinc-600" vid="72">GPS: 45.12, -122.98</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-[#050505] border border-zinc-900 hover:border-zinc-800 transition-colors cursor-pointer group relative opacity-60 hover:opacity-100" vid="73">
+                <div class="h-32 w-full bg-zinc-950 relative overflow-hidden flex items-center justify-center" vid="74">
+                    <i class="ph ph-warning-circle text-zinc-800 text-3xl" vid="75"></i>
+                    
+                    
+                    <div class="absolute top-2 right-2 flex items-center gap-1.5 bg-black text-[9px] font-mono px-2 py-1 uppercase tracking-wider border border-rose-900/40 text-rose-500" vid="76">
+                        <div class="w-1.5 h-1.5 rounded-none bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" vid="77"></div>
+                        DEAD
+                    </div>
+                </div>
+
+                <div class="p-4 flex flex-col gap-3" vid="78">
+                    <p class="text-[13px] text-zinc-500 group-hover:text-zinc-400 leading-snug font-medium line-clamp-3" vid="79">
+                        Nephila clavipes dragline silk sample degraded post-extraction. Tensile strength readings compromised by uncontrolled humidity exposure during transit protocols.
+                    </p>
+
+                    <div class="flex gap-1.5 font-mono text-[9px] uppercase tracking-wider" vid="80">
+                        <span class="bg-black text-zinc-600 px-1.5 py-0.5 border border-zinc-900" vid="81">polymer</span>
+                        <span class="bg-black text-zinc-600 px-1.5 py-0.5 border border-zinc-900" vid="82">tensile</span>
+                        <span class="bg-black text-zinc-600 px-1.5 py-0.5 border border-zinc-900" vid="83">corrupt</span>
+                    </div>
+
+                    <div class="flex justify-between items-end text-[10px] font-mono mt-1 border-t border-zinc-900 pt-3" vid="84">
+                        <span class="text-zinc-700" vid="85">ID: AR-7734</span>
+                        <span class="text-zinc-700" vid="86">unknown</span>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+    </aside>
+
+    
+    <main class="flex-1 flex flex-col relative bg-black scanlines" vid="87">
+        
+        
+        <div class="absolute inset-0 pointer-events-none opacity-[0.03]" style="background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 64px 64px;" vid="88">
+        </div>
+
+        
+        <header class="h-14 border-b border-zinc-900 flex items-center px-8 justify-between font-mono text-xs z-10 bg-black/80 backdrop-blur-sm" vid="89">
+            <nav class="flex items-center gap-3 text-zinc-600 uppercase tracking-widest" vid="90">
+                <span class="hover:text-zinc-300 cursor-pointer transition-colors" vid="91">Catalog</span>
+                <span vid="92">/</span>
+                <span class="hover:text-zinc-300 cursor-pointer transition-colors" vid="93">Arthropoda</span>
+                <span vid="94">/</span>
+                <span class="text-emerald-500 border-b border-emerald-500/30 pb-0.5" vid="95">OD-2394</span>
+            </nav>
+            <div class="flex gap-6" vid="96">
+                <button class="text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" vid="97">
+                    <i class="ph ph-sliders-horizontal text-sm" vid="98"></i>
+                    <span class="uppercase tracking-widest text-[10px]" vid="99">Adjust Parameters</span>
+                </button>
+                <button class="text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" vid="100">
+                    <i class="ph ph-export text-sm" vid="101"></i>
+                    <span class="uppercase tracking-widest text-[10px]" vid="102">Export Dataset</span>
+                </button>
+            </div>
+        </header>
+
+        
+        <div class="flex-1 overflow-y-auto p-10 z-10 custom-scrollbar" vid="103">
+            <div class="max-w-6xl mx-auto space-y-12 pb-20" vid="104">
+                
+                
+                <header class="space-y-4" vid="105">
+                    <div class="flex items-center gap-4" vid="106">
+                        <h1 class="text-3xl font-light text-zinc-100 tracking-tight" vid="107">Odontodactylus scyllarus</h1>
+                        <span class="bg-zinc-900 border border-zinc-700 text-zinc-400 font-mono text-[10px] px-2 py-1 uppercase tracking-widest" vid="108">Class: Stomatopoda</span>
+                    </div>
+                    <p class="font-mono text-zinc-500 text-sm max-w-2xl leading-relaxed" vid="109">
+                        Dactyl club mechanics &amp; structural characterization. Primary focus on impact dissipation through anisotropic architectural scaling.
+                    </p>
+                </header>
+
+                
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8" vid="110">
+                    
+                    
+                    <div class="xl:col-span-8 space-y-6" vid="111">
+                        
+                        
+                        <figure class="aspect-[16/9] bg-[#050505] border border-zinc-800 relative group overflow-hidden" vid="112">
+                            
+                            <div class="absolute inset-0 bg-[#0a0a0a]" vid="113"></div>
+                            
+                            
+                            <div class="absolute bottom-6 left-6 font-mono text-[10px] text-zinc-500 bg-black px-2 py-1 border border-zinc-900 z-10 uppercase tracking-widest" vid="114">
+                                CAM_04 // RAW_FRAME_893.DNG
+                            </div>
+                            
+                            
+                            <div class="absolute bottom-6 right-6 flex flex-col items-end gap-1 z-10" vid="115">
+                                <div class="w-24 h-[1px] bg-zinc-500 flex justify-between" vid="116">
+                                    <div class="w-[1px] h-2 bg-zinc-500 -mt-1" vid="117"></div>
+                                    <div class="w-[1px] h-2 bg-zinc-500 -mt-1" vid="118"></div>
+                                </div>
+                                <span class="font-mono text-[10px] text-zinc-500" vid="119">10 mm</span>
+                            </div>
+
+                            
+                            <div class="absolute inset-0 pointer-events-none opacity-20" vid="120">
+                                <div class="absolute top-1/2 left-0 w-full h-[1px] bg-emerald-500" vid="121"></div>
+                                <div class="absolute left-1/2 top-0 w-[1px] h-full bg-emerald-500" vid="122"></div>
+                                <div class="absolute top-1/2 left-1/2 w-16 h-16 -ml-8 -mt-8 border border-emerald-500 rounded-none" vid="123"></div>
+                            </div>
+                        </figure>
+
+                        
+                        <div class="grid grid-cols-3 gap-6" vid="124">
+                            
+                            <div class="aspect-square border border-zinc-900 bg-[#030303] p-3 flex flex-col" vid="125">
+                                <header class="flex justify-between items-center mb-3" vid="126">
+                                    <span class="font-mono text-[9px] uppercase tracking-widest text-zinc-600" vid="127">SEM_SCAN_01</span>
+                                    <i class="ph ph-scan text-zinc-700" vid="128"></i>
+                                </header>
+                                <div class="flex-1 bg-zinc-950 border border-zinc-900 relative" vid="129">
+                                    
+                                    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-800 to-black opacity-30" vid="130"></div>
+                                </div>
+                            </div>
+                            
+                            
+                            <div class="aspect-square border border-zinc-900 bg-[#030303] p-3 flex flex-col" vid="131">
+                                <header class="flex justify-between items-center mb-3" vid="132">
+                                    <span class="font-mono text-[9px] uppercase tracking-widest text-zinc-600" vid="133">CT_SLICE_Y</span>
+                                    <i class="ph ph-stack text-zinc-700" vid="134"></i>
+                                </header>
+                                <div class="flex-1 bg-zinc-950 border border-zinc-900 relative flex items-center justify-center" vid="135">
+                                    <div class="w-3/4 h-3/4 border-[0.5px] border-emerald-900/30 rounded-full flex items-center justify-center" vid="136">
+                                        <div class="w-2/3 h-2/3 border-[0.5px] border-emerald-900/50 rounded-full flex items-center justify-center" vid="137">
+                                             <div class="w-1/3 h-1/3 border-[0.5px] border-emerald-900/80 rounded-full bg-emerald-950/20" vid="138"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            
+                            <div class="aspect-square border border-zinc-900 bg-[#030303] p-3 flex flex-col" vid="139">
+                                <header class="flex justify-between items-center mb-3" vid="140">
+                                    <span class="font-mono text-[9px] uppercase tracking-widest text-zinc-600" vid="141">SPECTRA_XYZ</span>
+                                    <i class="ph ph-chart-line text-zinc-700" vid="142"></i>
+                                </header>
+                                <div class="flex-1 relative border-l border-b border-zinc-800 ml-2 mb-2" vid="143">
+                                    <svg class="absolute inset-0 w-full h-full p-2" preserveAspectRatio="none" viewBox="0 0 100 100" vid="144">
+                                        
+                                        <line x1="0" y1="25" x2="100" y2="25" stroke="#111" stroke-width="0.5" vid="145"></line>
+                                        <line x1="0" y1="50" x2="100" y2="50" stroke="#111" stroke-width="0.5" vid="146"></line>
+                                        <line x1="0" y1="75" x2="100" y2="75" stroke="#111" stroke-width="0.5" vid="147"></line>
+                                        
+                                        <polyline fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="bevel" points="0,95 15,85 25,30 35,10 45,40 55,70 70,85 100,90" vid="148"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="xl:col-span-4 space-y-6" vid="149">
+                        
+                        
+                        <div class="border border-zinc-800 bg-[#050505] p-5" vid="150">
+                            <h3 class="font-mono text-zinc-500 uppercase tracking-widest text-[10px] mb-4 flex items-center gap-2" vid="151">
+                                <div class="w-1.5 h-1.5 bg-zinc-700" vid="152"></div>
+                                Morphological Metrics
+                            </h3>
+                            
+                            <dl class="space-y-3 font-mono text-xs" vid="153">
+                                <div class="flex justify-between border-b border-zinc-900 pb-2" vid="154">
+                                    <dt class="text-zinc-600" vid="155">Specimen Mass</dt>
+                                    <dd class="text-zinc-300" vid="156">42.80 <span class="text-zinc-600" vid="157">g</span></dd>
+                                </div>
+                                <div class="flex justify-between border-b border-zinc-900 pb-2" vid="158">
+                                    <dt class="text-zinc-600" vid="159">Impact Velocity (Peak)</dt>
+                                    <dd class="text-zinc-300" vid="160">23.4 <span class="text-zinc-600" vid="161">m/s</span></dd>
+                                </div>
+                                <div class="flex justify-between border-b border-zinc-900 pb-2" vid="162">
+                                    <dt class="text-zinc-600" vid="163">Peak Force Generated</dt>
+                                    <dd class="text-zinc-300" vid="164">1.50 <span class="text-zinc-600" vid="165">kN</span></dd>
+                                </div>
+                                <div class="flex justify-between border-b border-zinc-900 pb-2" vid="166">
+                                    <dt class="text-zinc-600" vid="167">C-Axis Modulus</dt>
+                                    <dd class="text-zinc-300" vid="168">85.2 <span class="text-zinc-600" vid="169">GPa</span></dd>
+                                </div>
+                                <div class="flex justify-between pt-1" vid="170">
+                                    <dt class="text-zinc-600" vid="171">Helicoidal Pitch Angle</dt>
+                                    <dd class="text-zinc-300 text-emerald-500" vid="172">15.5°</dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        
+                         <div class="border border-zinc-800 bg-[#050505] p-5" vid="173">
+                            <h3 class="font-mono text-zinc-500 uppercase tracking-widest text-[10px] mb-4 flex items-center gap-2" vid="174">
+                                <div class="w-1.5 h-1.5 bg-zinc-700" vid="175"></div>
+                                Collection Context
+                            </h3>
+                            <dl class="grid grid-cols-2 gap-4 font-mono text-xs" vid="176">
+                                <div vid="177">
+                                    <dt class="text-zinc-600 mb-1" vid="178">Depth</dt>
+                                    <dd class="text-zinc-300" vid="179">-12.4 <span class="text-zinc-600" vid="180">m</span></dd>
+                                </div>
+                                <div vid="181">
+                                    <dt class="text-zinc-600 mb-1" vid="182">Salinity</dt>
+                                    <dd class="text-zinc-300" vid="183">35.2 <span class="text-zinc-600" vid="184">ppt</span></dd>
+                                </div>
+                                <div vid="185">
+                                    <dt class="text-zinc-600 mb-1" vid="186">Temp (In-situ)</dt>
+                                    <dd class="text-zinc-300" vid="187">24.8 <span class="text-zinc-600" vid="188">°C</span></dd>
+                                </div>
+                                <div vid="189">
+                                    <dt class="text-zinc-600 mb-1" vid="190">Substrate</dt>
+                                    <dd class="text-zinc-300 uppercase" vid="191">Coral Rubble</dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        
+                        <div class="border border-zinc-800 bg-black p-5 h-64 flex flex-col relative overflow-hidden" vid="192">
+                            
+                            <div class="absolute top-0 right-0 w-4 h-4 border-l border-b border-zinc-800 bg-[#050505]" vid="193"></div>
+                            
+                            <h3 class="font-mono text-zinc-600 uppercase tracking-widest text-[10px] mb-4 flex justify-between items-center border-b border-zinc-900 pb-2" vid="194">
+                                <span vid="195">Sys_Log // Live Compute</span>
+                                <span class="w-2 h-2 rounded-full bg-emerald-500/20 border border-emerald-500 animate-pulse" vid="196"></span>
+                            </h3>
+                            
+                            <div class="flex-1 font-mono text-[10px] text-zinc-500 space-y-1.5 leading-relaxed overflow-y-auto custom-scrollbar flex flex-col justify-end pb-2" vid="197">
+                                <div vid="198">&gt; Loading morphology dataset... <span class="text-zinc-400" vid="199">[OK]</span></div>
+                                <div vid="200">&gt; Initializing finite element stress tensor array... <span class="text-zinc-400" vid="201">[OK]</span></div>
+                                <div vid="202">&gt; Mapping helicoidal chitin fibers to volumetric grid...</div>
+                                <div class="text-zinc-400 pl-4" vid="203">Progress: [||||||||--] 82%</div>
+                                <div class="text-zinc-400 pl-4" vid="204">Progress: [|||||||||-] 94%</div>
+                                <div vid="205">&gt; Mapping complete.</div>
+                                <div class="text-emerald-500" vid="206">&gt; Executing impact simulation (1.5kN impulse)...</div>
+                                <div vid="207">&gt; Tracking energy dissipation through herringbone layers...</div>
+                                <div class="text-amber-500" vid="208">&gt; WARN: Micro-fracture threshold approached at L-4 interface.</div>
+                                <div vid="209">&gt; Recalibrating toughness metrics based on crack deflection.</div>
+                                <div class="text-zinc-300" vid="210">&gt; Awaiting manual verification of Bouligand structure integrity.<span class="animate-pulse" vid="211">_</span></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+
+</body></html>
