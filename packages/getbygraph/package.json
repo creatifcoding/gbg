@@ -4,7 +4,5 @@
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
-  "dependencies": {
-    "effect": "4.0.0-beta.93"
-  }
+  "dependencies": {}
 }
