@@ -31,29 +31,39 @@ const walk = async (root: string): Promise<string[]> => {
 const bannedImport =
   /^\s*(?:import(?:\s+type)?\s+.*\s+from\s+['"](?:effect-v[34]|@gbg\/tmnl|@tmnl\/tmnl)(?:\/|['"])|import\s*\(\s*['"](?:effect-v[34]|@gbg\/tmnl)(?:\/|['"]))/;
 
+const bannedPersistence = [
+  '@effect/sql-pglite',
+  '@electric-sql/pglite',
+  '@duckdb/',
+  "from 'duckdb'",
+  'from "duckdb"',
+];
+
 describe('strict Effect v4 package guardrails', () => {
-  it('does not import tmnl, effect-v3, or the retired effect-v4 alias', async () => {
+  it('does not import tmnl, effect-v3, PGlite, or DuckDB', async () => {
     const files = await walk(packageRoot);
     const violations: string[] = [];
     for (const file of files) {
+      const rel = relative(packageRoot, file);
       const lines = (await readFile(file, 'utf8')).split('\n');
       for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index]!;
         if (bannedImport.test(line)) {
-          violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
+          violations.push(`${rel}:${index + 1}: ${line.trim()}`);
         }
-        if (
-          relative(packageRoot, file).startsWith('src/') &&
-          (line.includes('@duckdb/') || line.includes("from 'duckdb'") || line.includes('from "duckdb"'))
-        ) {
-          violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
+        if (rel.startsWith('src/')) {
+          for (const needle of bannedPersistence) {
+            if (line.includes(needle)) {
+              violations.push(`${rel}:${index + 1}: ${line.trim()}`);
+            }
+          }
         }
       }
     }
     expect(violations).toEqual([]);
   });
 
-  it('pins Effect to the msh / effect-smol v4 beta', async () => {
+  it('pins Effect and @effect/sql-pg to the msh v4 beta', async () => {
     const pkg = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8')) as {
       dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
@@ -61,8 +71,42 @@ describe('strict Effect v4 package guardrails', () => {
     expect(pkg.dependencies.effect).toBe('4.0.0-beta.93');
     expect(pkg.devDependencies['@effect/vitest']).toBe('4.0.0-beta.93');
     expect(pkg.dependencies.effect?.startsWith('3.')).toBe(false);
-    expect(pkg.dependencies['@effect/sql-pglite']).toBe('4.0.0-beta.93');
+    expect(pkg.dependencies['@effect/sql-pg']).toBe('4.0.0-beta.93');
+    expect(pkg.dependencies['@effect/sql-pglite']).toBeUndefined();
+    expect(pkg.dependencies['@electric-sql/pglite']).toBeUndefined();
     expect(pkg.dependencies['@duckdb/node-api']).toBeUndefined();
     expect(pkg.dependencies.duckdb).toBeUndefined();
+  });
+
+  it('does not ship leftover specimens migrator', async () => {
+    const files = await walk(join(packageRoot, 'src'));
+    const violations: string[] = [];
+    for (const file of files) {
+      const rel = relative(packageRoot, file);
+      const text = await readFile(file, 'utf8');
+      if (/'0001_specimens'/.test(text) || /\bCREATE TABLE IF NOT EXISTS specimens\b/.test(text)) {
+        violations.push(`${rel}: leftover specimens migrator`);
+      }
+      if (/\bspecimen_id TEXT NOT NULL\b/.test(text)) {
+        violations.push(`${rel}: leftover specimen_id column`);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('does not ship an edges table or Cypher/AGE query path', async () => {
+    const files = await walk(join(packageRoot, 'src'));
+    const violations: string[] = [];
+    for (const file of files) {
+      const rel = relative(packageRoot, file);
+      const text = await readFile(file, 'utf8');
+      if (/\bCREATE TABLE IF NOT EXISTS edges\b/.test(text) || /\bFROM edges\b/.test(text)) {
+        violations.push(`${rel}: edges table`);
+      }
+      if (/\bcypher\b/i.test(text) || /\bag_catalog\b/i.test(text) || /\bpgGraph\b/.test(text)) {
+        violations.push(`${rel}: Cypher/AGE/pgGraph`);
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

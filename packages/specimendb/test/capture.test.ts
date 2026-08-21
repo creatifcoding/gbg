@@ -47,6 +47,8 @@ describe('phone capture /capture', () => {
     expect(script).not.toContain('unpkg');
     expect(script).not.toContain('Intake');
     expect(script).not.toContain('PGlite');
+    expect(script).not.toContain('sql-pg');
+    expect(script).not.toContain('postgres://');
     expect(script).not.toMatch(/fetch\(\s*['"]https?:\/\//);
 
     const exiftool = readFileSync(join(captureRoot, 'vendor/exiftool.js'), 'utf8');

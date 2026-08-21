@@ -14,5 +14,6 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts', 'test/**/*.test.tsx'],
     environmentMatchGlobs: [['**/*.tsx', 'happy-dom']],
+    fileParallelism: false,
   },
 });
