@@ -1,5 +1,11 @@
 # getbygraph
 
-`@gbg/graph`. Graph is a projection of `Used` / `Generated` components.
+This library was generated with [Nx](https://nx.dev).
 
-Live path: SQL `usedBy` / `generated` over `components`. AGE Cypher MERGE is an empty well (`projectToAge` fails until that bind is recorded against a live extension). Do not treat the SQL walk as Cypher.
+## Building
+
+Run `nx build getbygraph` to build the library.
+
+## Running unit tests
+
+Run `nx test getbygraph` to execute the unit tests via [Vitest](https://vitest.dev/).

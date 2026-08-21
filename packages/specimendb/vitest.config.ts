@@ -7,7 +7,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@tmnl/stx': path.resolve(__dirname, '../stx/src/index.ts'),
-      '@gbg/graph': path.resolve(__dirname, '../getbygraph/src/index.ts'),
     },
   },
   test: {
