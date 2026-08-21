@@ -11,9 +11,9 @@ test('missing OPENROUTER_API_KEY fails closed and ignores OPENAI_API_KEY', () =>
       '--experimental-strip-types',
       '--input-type=module',
       '-e',
-      `import { createLiveLunaLane, OpenRouterGateError, OPENROUTER_CREDENTIAL_REQUIRED } from ${JSON.stringify(adapter)};
+      `import { createLiveOpenRouterLane, OpenRouterGateError, OPENROUTER_CREDENTIAL_REQUIRED } from ${JSON.stringify(adapter)};
 try {
-  createLiveLunaLane();
+  createLiveOpenRouterLane();
   process.exit(2);
 } catch (error) {
   process.exit(

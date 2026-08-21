@@ -27,7 +27,6 @@ test('beta Mastra/AG-UI/CopilotKit imports stay in mastra-adapter.ts', () => {
       );
     }
   }
-  assert.ok(usedBetaImportPaths.includes('@mastra/core/llm'));
   assert.ok(usedBetaImportPaths.includes('@mastra/core/agent-controller'));
   assert.ok(usedBetaImportPaths.includes('@mastra/observability'));
   assert.ok(usedBetaImportPaths.includes('@ag-ui/mastra/copilotkit'));

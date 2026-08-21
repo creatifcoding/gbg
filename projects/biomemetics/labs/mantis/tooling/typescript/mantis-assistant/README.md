@@ -24,17 +24,15 @@ npm run typecheck
 ```
 
 `npm test` is the proof. It calls `agent.generate` and the in-process
-CopilotRuntime bind against OpenRouter `openai/gpt-5.6-luna` with reasoning
-effort `max`. `createFakeModel` is not the passing path.
+CopilotRuntime bind against the Mastra OpenRouter gateway string
+`openrouter/deepseek/deepseek-v4-flash-0731`. `createFakeModel` is not the
+passing path.
 
 ## Live OpenRouter lane
 
-The coordinator and eval agents use Mastra's OpenAI-compatible model config
-against `https://openrouter.ai/api/v1`. The model id is `openai/gpt-5.6-luna`.
-Reasoning effort is `max`. The credential is `OPENROUTER_API_KEY` only.
-
-`@mastra/core@1.61.0` does not list `openrouter/openai/gpt-5.6-luna` in its
-model-router catalog, so the lane does not use that magic string.
+The coordinator and eval agents use the documented Mastra model-router string.
+Mastra reads `OPENROUTER_API_KEY` from the environment. There is no custom
+OpenAI-compatible url object and no extra OpenRouter package.
 
 A missing or empty `OPENROUTER_API_KEY` fails closed with
 `OPENROUTER_CREDENTIAL_REQUIRED`. The lane does not skip, does not read

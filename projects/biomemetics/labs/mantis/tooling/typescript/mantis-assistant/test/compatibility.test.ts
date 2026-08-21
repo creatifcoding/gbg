@@ -14,10 +14,8 @@ const matrix = loadLabJson(
   lanes: {
     prove: {
       model: string;
-      reasoningEffort: string;
       provider: string;
       credential: string;
-      baseUrl: string;
       network: boolean;
       credentials: boolean;
       openaiApiKey: boolean;
@@ -44,19 +42,17 @@ test('compatibility matrix is the A0 required set', () => {
     'trace-redaction-run-correlation',
     'deterministic-eval-invocation',
     'in-process-agui-bind',
-    'openrouter-luna-generate',
+    'openrouter-generate',
   ]);
 });
 
-test('compatibility matrix proves live OpenRouter Luna, not a fake model', () => {
+test('compatibility matrix proves live OpenRouter DeepSeek, not a fake model', () => {
   assert.equal(matrix.network, true);
   assert.equal(matrix.credentials, true);
   assert.deepEqual(matrix.lanes.prove, {
-    model: 'openai/gpt-5.6-luna',
-    reasoningEffort: 'max',
-    provider: 'openrouter openai-compatible',
+    model: 'openrouter/deepseek/deepseek-v4-flash-0731',
+    provider: 'mastra openrouter gateway',
     credential: 'OPENROUTER_API_KEY',
-    baseUrl: 'https://openrouter.ai/api/v1',
     network: true,
     credentials: true,
     openaiApiKey: false,

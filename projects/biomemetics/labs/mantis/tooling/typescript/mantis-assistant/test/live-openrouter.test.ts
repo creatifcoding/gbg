@@ -7,28 +7,23 @@ import {
   authenticatedInProcessAguiRoundTrip,
   collectOpenRouterProof,
   createAdapterHarness,
-  createLiveLunaLane,
-  liveLunaLaneIdentity,
+  createLiveOpenRouterLane,
+  liveOpenRouterLaneIdentity,
 } from '../src/mastra-adapter.ts';
 import { PINS } from '../src/pins.ts';
 import type { SessionBinding } from '../src/types.ts';
 
-test('live lane config is OpenRouter openai-compatible Luna at max reasoning', () => {
-  const identity = liveLunaLaneIdentity(createLiveLunaLane());
+test('live lane is the Mastra OpenRouter DeepSeek model-router string', () => {
+  const identity = liveOpenRouterLaneIdentity(createLiveOpenRouterLane());
   assert.deepEqual(identity, {
-    kind: 'live-luna',
-    providerId: 'openrouter',
-    modelId: PINS.liveModel,
-    url: PINS.liveBaseUrl,
-    reasoningLevel: 'max',
-    hasApiKey: true,
+    kind: 'live-openrouter',
+    model: PINS.liveModel,
   });
-  assert.equal(PINS.liveModel, 'openai/gpt-5.6-luna');
-  assert.equal(PINS.liveReasoningLevel, 'max');
+  assert.equal(PINS.liveModel, 'openrouter/deepseek/deepseek-v4-flash-0731');
 });
 
 test(
-  'OpenRouter Luna generate and in-process AG-UI bind are the proof',
+  'OpenRouter DeepSeek generate and in-process AG-UI bind are the proof',
   { timeout: 180_000 },
   async (t) => {
     const harness = await createAdapterHarness(new FakeClock());
@@ -46,7 +41,7 @@ test(
       resourceId: 'principal.fixture.care-space-01',
       careSubjectId: 'care.fixture-cup-01',
       mode: 'care',
-      threadId: 'care:fixture-cup-01:conversation-live-luna',
+      threadId: 'care:fixture-cup-01:conversation-live-openrouter',
       scope: 'web',
     };
     const roundTrip = await authenticatedInProcessAguiRoundTrip(harness, binding);
