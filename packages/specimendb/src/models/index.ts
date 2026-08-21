@@ -1,8 +1,7 @@
 /**
  * Persistence models. Schema is the source of truth; the repo stores these.
  *
- * Entity + Component are the ECS tables. LabEntityModel is the provenance
- * document shape — not a `lab_entities` / `lab_activities` table. No edges table.
+ * LabEntityModel is the provenance row shape. No lab_entities table yet (#61).
  *
  * @module @tmnl/specimendb/models
  */
@@ -17,6 +16,3 @@ export {
 } from '../schemas/specimen.js';
 
 export { LabEntityModel } from './LabEntityModel.js';
-export { EntityModel } from './EntityModel.js';
-export { ComponentModel } from './ComponentModel.js';
-export { catalogMigrationLoader, catalogMigrations } from './_migrations.js';

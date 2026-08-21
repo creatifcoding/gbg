@@ -8,14 +8,6 @@
  */
 
 import * as Schema from 'effect/Schema';
-import { EntityRef } from './identifiers.js';
-import {
-  Agent,
-  EntityKind,
-  HonestyClass,
-  ProvenanceWhat,
-  ProvenanceWhen,
-} from './provenance.js';
 
 export const SpecimenStatus = Schema.Literals(['raw', 'filed', 'working', 'dead'] as const);
 export type SpecimenStatus = typeof SpecimenStatus.Type;
@@ -124,68 +116,6 @@ export class ObservationComponent extends Schema.TaggedClass<ObservationComponen
   text: Schema.String,
 }) {}
 
-/** Kind also lives as `entities.kind`. Attach this later; intake does not. */
-export class KindComponent extends Schema.TaggedClass<KindComponent>()('Kind', {
-  value: EntityKind,
-}) {}
-
-/** Honesty class. Attach later; intake does not invent it. */
-export class ClassComponent extends Schema.TaggedClass<ClassComponent>()('Class', {
-  value: HonestyClass,
-}) {}
-
-/** PROV relations as a component. Attach later. */
-export class ProvenanceComponent extends Schema.TaggedClass<ProvenanceComponent>()('Provenance', {
-  used: Schema.optional(Schema.Array(EntityRef)),
-  generated: Schema.optional(Schema.Array(EntityRef)),
-  wasGeneratedBy: Schema.optional(EntityRef),
-  wasAssociatedWith: Schema.optional(Schema.Array(Agent)),
-  wasDerivedFrom: Schema.optional(Schema.Array(EntityRef)),
-  wasInvalidatedBy: Schema.optional(EntityRef),
-}) {}
-
-/** W7 on Kind=activity. Attach later; required on the provenance record, not at entity mint. */
-export class W7Component extends Schema.TaggedClass<W7Component>()('W7', {
-  who: Schema.optional(Schema.Array(Agent)),
-  what: Schema.optional(ProvenanceWhat),
-  when: Schema.optional(ProvenanceWhen),
-  where: Schema.optional(Schema.String),
-  why: Schema.optional(Schema.String),
-  how: Schema.optional(Schema.String),
-}) {}
-
-/** PROV used. Attach on an activity; target is the entity that was used. */
-export class UsedComponent extends Schema.TaggedClass<UsedComponent>()('Used', {
-  target: EntityRef,
-}) {}
-
-/** PROV generated. Attach on an activity; target is the entity that was generated. */
-export class GeneratedComponent extends Schema.TaggedClass<GeneratedComponent>()('Generated', {
-  target: EntityRef,
-}) {}
-
-export const COMPONENT_KINDS = [
-  'Status',
-  'Claim',
-  'Media',
-  'Exif',
-  'Locality',
-  'Taxon',
-  'Structure',
-  'Mechanism',
-  'Function',
-  'AnalogLink',
-  'Tag',
-  'Question',
-  'Observation',
-  'Kind',
-  'Class',
-  'Provenance',
-  'W7',
-  'Used',
-  'Generated',
-] as const;
-
 export const Component = Schema.Union([
   StatusComponent,
   ClaimComponent,
@@ -200,14 +130,22 @@ export const Component = Schema.Union([
   TagComponent,
   QuestionComponent,
   ObservationComponent,
-  KindComponent,
-  ClassComponent,
-  ProvenanceComponent,
-  W7Component,
-  UsedComponent,
-  GeneratedComponent,
 ]);
 export type Component = typeof Component.Type;
 
-export const ComponentKind = Schema.Literals(COMPONENT_KINDS);
+export const ComponentKind = Schema.Literals([
+  'Status',
+  'Claim',
+  'Media',
+  'Exif',
+  'Locality',
+  'Taxon',
+  'Structure',
+  'Mechanism',
+  'Function',
+  'AnalogLink',
+  'Tag',
+  'Question',
+  'Observation',
+] as const);
 export type ComponentKind = typeof ComponentKind.Type;

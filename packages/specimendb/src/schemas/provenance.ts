@@ -22,7 +22,7 @@ import {
 } from './identifiers.js';
 
 /** v1 kinds. Later kinds are a schema change, not a new table. */
-export const ENTITY_KINDS = [
+export const EntityKind = Schema.Literals([
   'specimen',
   'sheet',
   'solid',
@@ -35,9 +35,7 @@ export const ENTITY_KINDS = [
   'analog',
   'view',
   'activity',
-] as const;
-
-export const EntityKind = Schema.Literals(ENTITY_KINDS);
+] as const);
 export type EntityKind = typeof EntityKind.Type;
 
 /**

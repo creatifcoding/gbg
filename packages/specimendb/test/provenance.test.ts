@@ -150,7 +150,7 @@ describe('LabEntity fixtures', () => {
   });
 });
 
-describe('LabEntityModel (provenance document, not lab_entities)', () => {
+describe('LabEntityModel (no table)', () => {
   it('exposes json / insert variants without a lab_entities table', () => {
     expect(LabEntityModel.json).toBeDefined();
     expect(LabEntityModel.insert).toBeDefined();

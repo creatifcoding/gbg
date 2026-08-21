@@ -1,10 +1,8 @@
 /**
  * Persistence-shaped lab entity. Same fields as the provenance record.
  *
- * The ECS row is EntityModel (`entities.id` = EntityRef). This model is the
- * provenance document, not a `lab_entities` / `lab_activities` table. Do not
- * call SqlModel.makeRepository here. Pin stays `@effect/sql-pg` / `effect`
- * 4.0.0-beta.93.
+ * No `lab_entities` table in this cut (#61). Do not call SqlModel.makeRepository
+ * here. Pin stays `@effect/sql-pg` / `effect` 4.0.0-beta.93.
  *
  * @module @tmnl/specimendb/models/LabEntityModel
  */

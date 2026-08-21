@@ -17,11 +17,6 @@ export type SpecimenId = typeof SpecimenId.Type;
 
 export const trustSpecimenId = (id: string): SpecimenId => id as SpecimenId;
 
-export const ComponentId = Schema.String.pipe(Schema.brand('ComponentId'));
-export type ComponentId = typeof ComponentId.Type;
-
-export const trustComponentId = (id: string): ComponentId => id as ComponentId;
-
 /**
  * `gbg:<kind>:<local>` with optional `@<rev>`.
  * Local may contain colons (`gbg:run:doctor:<run-id>`).

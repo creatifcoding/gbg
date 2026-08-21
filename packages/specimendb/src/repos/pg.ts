@@ -1,7 +1,7 @@
 /**
  * Postgres L1 — `@effect/sql-pg` client + Effect SQL Migrator.
  *
- * Provides `SqlClient`. Repos talk that tag.
+ * Provides `SqlClient`. SpecimenRepo talks that tag.
  * Shape copied from tmnl iiot (PgClient.layer + Migrator.fromRecord).
  * Do not import `@tmnl/tmnl` or iiot runtime.
  *
@@ -12,8 +12,36 @@ import { PgClient, PgMigrator } from '@effect/sql-pg';
 import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
 import * as Redacted from 'effect/Redacted';
-import { catalogMigrationLoader } from '../models/_migrations.js';
+import { SqlClient } from 'effect/unstable/sql/SqlClient';
 import { CatalogConfigTag, type CatalogPg } from '../schemas/config.js';
+
+const migrations = {
+  // Leftover specimens / specimen_id. Sibling Goal replaces this migrator.
+  '0001_specimens': Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS specimens (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL
+      )
+    `);
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS components (
+        id TEXT PRIMARY KEY,
+        specimen_id TEXT NOT NULL REFERENCES specimens(id),
+        kind TEXT NOT NULL,
+        payload JSONB NOT NULL,
+        attached_at TEXT NOT NULL
+      )
+    `);
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_components_specimen ON components(specimen_id)`,
+    );
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_components_specimen_kind ON components(specimen_id, kind)`,
+    );
+  }),
+} as const;
 
 /** Default: postgres://specimendb:specimendb_dev@127.0.0.1:5434/specimendb */
 export const DEFAULT_CATALOG_PG: CatalogPg = {
@@ -62,7 +90,7 @@ export const PgFromConfig = Layer.unwrap(
  */
 export const CatalogMigratorLive = Layer.effectDiscard(
   PgMigrator.make({})({
-    loader: catalogMigrationLoader,
+    loader: PgMigrator.fromRecord(migrations),
     table: 'specimendb_migrations',
   }),
 );
