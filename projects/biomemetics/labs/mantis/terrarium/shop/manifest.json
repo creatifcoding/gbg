@@ -1008,7 +1008,7 @@
     "lab": {
       "branch": "feat/mantis-biomemetics-lab",
       "pr": 20,
-      "sha": "e3ef24199ae1593becc6d2de2c1208cfda125eda"
+      "sha": "6feb3a4a10a052826c6fcdfa153137745fd80095"
     },
     "projectedSheets": {
       "head": "b64d101e805e7f3ab760d15ad38d13d359c7dce1",

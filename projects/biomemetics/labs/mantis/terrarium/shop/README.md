@@ -5,7 +5,7 @@ stacked chain:
 
 `PR 34 (CAD-01 STEP) → PR 36 (CAD-02 carriage) → PR 45 (theoretical sheets) → PR 58 (projected sheets)`
 
-onto `feat/mantis-biomemetics-lab` (PR 20).
+onto `feat/mantis-biomemetics-lab` (PR 20 @ `6feb3a4a`).
 
 It is **not** SHOP-RELEASE. It is **not** QUALIFIED. It is **not** first-article.
 Do not order parts from it. Do not energize anything from it.

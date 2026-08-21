@@ -11,7 +11,7 @@ QUALIFIED is not claimed. No order. No energize.
 | CAD-02 carriage | PR 36 / #29 | Already merged to lab. Python/CSG only on merge; **theoretical/UNVERIFIED**. B27/B50 proxies. Does **not** admit PR 34 STEP as a released parent. |
 | Theoretical sheets | PR 45 / #41 | Closed on deleted CAD-02 base. Branch `cursor/mantis-schematics-s00-s11-0b50` still present. |
 | Projected sheets | PR 58 | Already merged into PR 45 (`ce04b6a1`). S00–S06/S10 projected; S08/S09 diagrams. |
-| This pack | stacked onto lab | Merge of 45/58 into `feat/mantis-biomemetics-lab` was clean. CAD-01 STEP blobs unchanged. Carriage/binder STEP taken from existing PR 58 OCCT exports. |
+| This pack | stacked onto lab @ `6feb3a4a` | Merge of 45/58 into `feat/mantis-biomemetics-lab` was clean, then restacked after lab absorbed master. CAD-01 STEP blobs unchanged. Carriage/binder STEP taken from existing PR 58 OCCT exports. |
 
 PR 57 (Nix runtime) stays unmerged: nested-lab CI is red. No DuckDB. No second
 catalog. SpecimenDB look was not restyled.

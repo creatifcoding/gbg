@@ -17,7 +17,7 @@ export. Do not regenerate STEP for the index.
 
 | Ref | SHA / note |
 |---|---|
-| Lab integration | `feat/mantis-biomemetics-lab` @ `e3ef24199ae1593becc6d2de2c1208cfda125eda` |
+| Lab integration | `feat/mantis-biomemetics-lab` @ `6feb3a4a10a052826c6fcdfa153137745fd80095` |
 | CAD-02 merge on lab | PR 36 @ `c5ad7648cb160a4391238ccd57983970d6132225` |
 | CAD-01 STEP (unchanged blobs) | `fe8f875a80b37a1003f05f3a0190fbe2f0417842` PR 34 / #28 |
 | Operator waiver | Attested CAD-02 model in `cad/src/carriage/MODEL-ATTESTATION.md` |
