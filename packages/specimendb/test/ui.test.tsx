@@ -510,25 +510,25 @@ describe('six full pages', () => {
       name: 'Assay',
       Page: AssayPage,
       testId: 'working-panel',
-      copy: ['INITIATE_INTAKE_PROTOCOL', 'CURRENT_FOCUS_RECORD', 'WORKING SET', 'CH-01'],
+      copy: ['INITIATE_INTAKE_PROTOCOL', 'CURRENT_FOCUS_RECORD', 'VIEWPORT_01', 'INSTRUMENT_READOUT', 'ENV_CONTEXT', 'OBSERVATION_LOG', 'CH_01_VIS'],
     },
     {
       name: 'Dactyl',
       Page: DactylPage,
       testId: 'dactyl-grid',
-      copy: ['DACTYL // ANALOG CARD', 'ACTIVE QUEUE', 'DROP_FIELD_MEDIA'],
+      copy: ['INITIATE INTAKE', 'Active Queue', 'SYSTEM.CORE'],
     },
     {
       name: 'Catalog',
       Page: CatalogPage,
       testId: 'app-shell',
-      copy: ['SPECIMEN_DB / CATALOG', 'Drop specimen media', 'Catalog'],
+      copy: ['SPECIMEN_DB / CATALOG', 'Intake Drop Zone', 'SPECIMEN_DB'],
     },
     {
       name: 'Accession',
       Page: AccessionPage,
       testId: 'dossier-view',
-      copy: ['PHOTO RAIL', 'Taxonomy', 'Field metrics', 'Spectral grid', 'Observer log'],
+      copy: ['PHOTO RAIL', 'TAXONOMY_DATA', 'FIELD_METRICS', 'SPECTRAL_ANALYSIS', 'OBSERVER_LOG'],
     },
   ];
 
