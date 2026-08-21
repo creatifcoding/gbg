@@ -1,8 +1,9 @@
 /**
  * Persistence-shaped lab entity. Same fields as the provenance record.
  *
- * No `lab_entities` table in this cut (#61). Do not call SqlModel.makeRepository
- * here. Pin stays `@effect/sql-pglite` / `effect` 4.0.0-beta.93.
+ * Activity log tables (`lab_activities` / `lab_used` / `lab_generated`) store
+ * the JSON payload; this model is the row shape, not a SqlModel repository.
+ * Pin stays `@effect/sql-pglite` / `effect` 4.0.0-beta.93.
  *
  * @module @tmnl/specimendb/models/LabEntityModel
  */
@@ -41,6 +42,7 @@ export class LabEntityModel extends Model.Class<LabEntityModel>('LabEntityModel'
   where: Schema.optional(Schema.String),
   why: Schema.optional(Schema.String),
   how: Schema.optional(Schema.String),
+  supersedes: Schema.optional(EntityRef),
   specimenId: Schema.optional(SpecimenId),
   payloadSchemaId: Schema.optional(Schema.String),
   payload: Schema.optional(Schema.Unknown),

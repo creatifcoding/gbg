@@ -9,7 +9,8 @@
  * W7 (who / what / when / where / why / how) lives on Kind=activity.
  * Honesty class lives on the generated entity. Operations are entities.
  *
- * EVA bind, PGlite tables, and activity-log RPC are later cuts (#61 / #76).
+ * The activity log (#61) persists these records append-only in PGlite.
+ * EVA bind is a later cut (#76 / #82).
  *
  * @module @tmnl/specimendb/schemas/provenance
  */
@@ -140,6 +141,11 @@ const labEntityFields = {
   where: Schema.optional(Schema.String),
   why: Schema.optional(Schema.String),
   how: Schema.optional(Schema.String),
+  /**
+   * Prior activity this record supersedes. Corrections are new rows.
+   * The superseded activity is not updated.
+   */
+  supersedes: Schema.optional(EntityRef),
 
   /** Existing SpecimenId when kind=specimen. Same brand; not a fork. */
   specimenId: Schema.optional(SpecimenId),
@@ -157,9 +163,13 @@ const activityHasW7 = Schema.makeFilter<{
   readonly where?: string;
   readonly why?: string;
   readonly how?: string;
+  readonly supersedes?: EntityRef;
   readonly specimenId?: SpecimenId;
   readonly ref: EntityRef;
 }>((entity) => {
+  if (entity.supersedes !== undefined && entity.kind !== 'activity') {
+    return 'supersedes is only valid on kind=activity';
+  }
   if (entity.kind === 'activity') {
     if (
       entity.who === undefined ||
@@ -199,3 +209,9 @@ export const LabEntityRecord = LabEntity.pipe(Schema.check(activityHasW7));
 
 export const decodeLabEntity = Schema.decodeUnknownSync(LabEntityRecord);
 export const decodeDoctorReportPayload = Schema.decodeUnknownSync(DoctorReportPayload);
+
+/** Get-by-ref query: activity itself, used edge, generated edge, or supersedes. */
+export const GetByRefPayload = Schema.Struct({
+  ref: EntityRef,
+});
+export type GetByRefPayload = typeof GetByRefPayload.Type;

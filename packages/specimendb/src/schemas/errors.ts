@@ -5,7 +5,7 @@
  */
 
 import * as Schema from 'effect/Schema';
-import { SpecimenId } from './identifiers.js';
+import { EntityRef, SpecimenId } from './identifiers.js';
 
 export class CatalogError extends Schema.TaggedErrorClass<CatalogError>(
   '@tmnl/specimendb/CatalogError',
@@ -28,4 +28,13 @@ export class IntakeError extends Schema.TaggedErrorClass<IntakeError>(
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
+export class ActivityAppendError extends Schema.TaggedErrorClass<ActivityAppendError>(
+  '@tmnl/specimendb/ActivityAppendError',
+)('ActivityAppendError', {
+  message: Schema.String,
+  ref: Schema.optional(EntityRef),
+  cause: Schema.optional(Schema.Unknown),
+}) {}
+
 export type SpecimenRpcError = CatalogError | SpecimenNotFoundError | IntakeError;
+export type ActivityRpcError = CatalogError | ActivityAppendError;

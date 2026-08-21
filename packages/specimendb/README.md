@@ -12,6 +12,8 @@ Understanding is attaching components later. A JPEG or HEIC with no GPS still fi
 | `Get` | Fetch one specimen by `SpecimenId`. |
 | `List` | List specimens. No required filters. |
 | `Promote` | Write Status one step: `raw → filed → working → dead`. Dead stays dead. Same Specimen type. |
+| `AppendActivity` | Append a `kind=activity` LabEntity (W7 required). Same PGlite. No UPDATE of who/when. Corrections are a new ref that `supersedes`. |
+| `GetByRef` | Activities where the ref is the activity, a used entity, a generated entity, or the row being superseded. Empty list if none. |
 
 ## Components
 
@@ -56,3 +58,5 @@ Static page in [`capture/`](./capture/), also served at `/capture/` on the testb
 ## Versions
 
 Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pglite@4.0.0-beta.93` (peers that pin) plus `@electric-sql/pglite@0.4.5`. Do not take `@effect/sql-pglite@4.0.0-beta.107`; it peers `effect@^4.0.0-beta.107` and would fight msh. The repo talks `SqlClient`. L1 is PGlite. There is no DuckDB driver and no `@effect/sql-duckdb`.
+
+Activity log tables (`lab_activities`, `lab_used`, `lab_generated`) live in that same catalog. They are append-only. There is no second catalog.

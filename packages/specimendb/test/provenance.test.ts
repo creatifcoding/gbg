@@ -106,6 +106,14 @@ describe('LabEntity fixtures', () => {
     expect(entity.where).toBe('unknown');
   });
 
+  it('parses a correction activity that supersedes the STEP export', () => {
+    const entity = decodeLabEntity(load('activity-freecad-part-occt-corrected.json'));
+    expect(entity.ref).toBe('gbg:activity:freecad-part-occt-corrected@fe8f875a');
+    expect(entity.supersedes).toBe('gbg:activity:freecad-part-occt@fe8f875a');
+    expect(entity.who?.[0]?.label).toBe('creatifcoding');
+    expect(entity.when?.startedAt).toBe('2026-08-21T01:00:00Z');
+  });
+
   it('wraps PR 57 doctor-report.v1.json without forking it', () => {
     const entity = decodeLabEntity(load('run-doctor-pr57.json'));
     expect(entity.ref).toBe('gbg:run:doctor:pr57-fixture');
@@ -145,6 +153,16 @@ describe('LabEntity fixtures', () => {
         kind: 'activity',
         label: 'export_carriage_step.py',
         class: 'theoretical',
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects supersedes on a non-activity', () => {
+    const sheet = load('sheet-s01-pr58.json') as Record<string, unknown>;
+    expect(
+      decodeFails({
+        ...sheet,
+        supersedes: 'gbg:activity:freecad-part-occt@fe8f875a',
       }),
     ).toBe(true);
   });
