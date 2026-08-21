@@ -9,7 +9,7 @@
  * W7 (who / what / when / where / why / how) lives on Kind=activity.
  * Honesty class lives on the generated entity. Operations are entities.
  *
- * EVA bind, PGlite tables, and activity-log RPC are later cuts (#61 / #76).
+ * EVA bind, activity-log RPC are later cuts (#61 / #76). Catalog SoT is Postgres.
  *
  * @module @tmnl/specimendb/schemas/provenance
  */

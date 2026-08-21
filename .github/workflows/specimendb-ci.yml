@@ -1,0 +1,58 @@
+name: specimendb CI
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'packages/specimendb/**'
+      - '.github/workflows/specimendb-ci.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'packages/specimendb/**'
+      - '.github/workflows/specimendb-ci.yml'
+  workflow_dispatch:
+
+env:
+  WORKING_DIR: packages/specimendb
+  SPECIMENDB_PG_HOST: 127.0.0.1
+  SPECIMENDB_PG_PORT: '5434'
+  SPECIMENDB_PG_DATABASE: specimendb
+  SPECIMENDB_PG_USER: specimendb
+  SPECIMENDB_PG_PASSWORD: specimendb_dev
+
+jobs:
+  test:
+    name: Typecheck and test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: specimendb
+          POSTGRES_PASSWORD: specimendb_dev
+          POSTGRES_DB: specimendb
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U specimendb -d specimendb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run typecheck
+
+      - name: Test
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run test:run

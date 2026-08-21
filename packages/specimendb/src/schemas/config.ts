@@ -8,9 +8,20 @@ import * as Context from 'effect/Context';
 import * as Layer from 'effect/Layer';
 import * as Schema from 'effect/Schema';
 
+export const CatalogPgSchema = Schema.Struct({
+  host: Schema.String,
+  port: Schema.Number,
+  database: Schema.String,
+  username: Schema.String,
+  /** Redacted at `@effect/sql-pg` PgClient.layer. */
+  password: Schema.String,
+  maxConnections: Schema.optional(Schema.Number),
+});
+export type CatalogPg = typeof CatalogPgSchema.Type;
+
 export const CatalogConfigSchema = Schema.Struct({
-  /** PGlite data directory, or `memory://` for an in-memory catalog. */
-  dataDir: Schema.String,
+  /** Postgres connection for `@effect/sql-pg`. Default host port 5434. */
+  pg: CatalogPgSchema,
   assetsRoot: Schema.String,
 });
 export type CatalogConfig = typeof CatalogConfigSchema.Type;

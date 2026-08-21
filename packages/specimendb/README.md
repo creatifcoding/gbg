@@ -1,6 +1,6 @@
 # @tmnl/specimendb
 
-Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in PGlite and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
+Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in Postgres and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
 
 Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality is attached as `unknown` unless EXIF GPS or capture-page geo actually arrived. Sidecar JSON is always written next to the original. Taxon is never invented.
 
@@ -40,7 +40,7 @@ Status pills: `raw` amber, `filed` cyan, `working` emerald, `dead` rose. Assay u
 
 ## Testbed
 
-In-memory Intake/Get/List/Promote client (same EXIF/locality rules, no PGlite rewrite):
+In-memory Intake/Get/List/Promote client (same EXIF/locality rules, no Postgres in the Vite process):
 
 ```sh
 cd packages/specimendb
@@ -51,8 +51,8 @@ Opens Vite at `https://localhost:4177` (self-signed). Routes: `/intake`, `/rail`
 
 ## Field capture
 
-Static page in [`capture/`](./capture/), also served at `/capture/` on the testbed (HTTPS). Stamp GPS + DateTimeOriginal into a JPEG in the browser and download `specimen-YYYYMMDD-HHmmss.jpg`. Denied geo → locality unknown; GPS is not invented. The photo never uploads. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to PGlite or RPC.
+Static page in [`capture/`](./capture/), also served at `/capture/` on the testbed (HTTPS). Stamp GPS + DateTimeOriginal into a JPEG in the browser and download `specimen-YYYYMMDD-HHmmss.jpg`. Denied geo → locality unknown; GPS is not invented. The photo never uploads. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to Postgres or RPC.
 
 ## Versions
 
-Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pglite@4.0.0-beta.93` (peers that pin) plus `@electric-sql/pglite@0.4.5`. Do not take `@effect/sql-pglite@4.0.0-beta.107`; it peers `effect@^4.0.0-beta.107` and would fight msh. The repo talks `SqlClient`. L1 is PGlite. There is no DuckDB driver and no `@effect/sql-duckdb`.
+Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pg@4.0.0-beta.93` (peers that pin). Do not take `@effect/sql-pglite@4.0.0-beta.107`. The repo talks `SqlClient`. L1 is Postgres. There is no DuckDB driver and no `@effect/sql-duckdb`. Intake/Get/List tests need a Postgres connection (`SPECIMENDB_PG_*`, default `127.0.0.1:5434`). Memory RPC testbed stays in-memory. Capture does not talk to PG.

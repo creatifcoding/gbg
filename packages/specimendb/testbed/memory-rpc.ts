@@ -1,6 +1,6 @@
 /**
  * Node-only: existing SpecimenRpcs handlers over the in-memory repo.
- * Used by vitest. The Vite page uses memory-client.ts so it never loads PGlite.
+ * Used by vitest. The Vite page uses memory-client.ts so it never loads Postgres.
  *
  * @module
  */

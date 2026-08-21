@@ -1,5 +1,5 @@
 /**
- * Intake / Get / List over PGlite.
+ * Intake / Get / List over Postgres (`@effect/sql-pg`).
  * JPEG/HEIC without GPS file as raw, locality unknown, sidecar always written.
  */
 
@@ -9,26 +9,44 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
+import { SqlClient } from 'effect/unstable/sql/SqlClient';
 import { heicWithoutGps, jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { gpsFromExif, extractExifTags } from '../src/media/exif.js';
+import { catalogPgFromEnv } from '../src/repos/pg.js';
 import { exifOf, localityOf, localityStateOf, mediaOf, nextStatus, statusOf } from '../src/schemas/specimen.js';
 import { specimenSurface } from '../src/surface.js';
 import { layer } from '../src/layers.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
 
+const pgUnavailable = (cause: unknown): Error => {
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  return new Error(
+    `Intake/Get/List tests need Postgres at SPECIMENDB_PG_* (default 127.0.0.1:5434). ${detail}`,
+    { cause },
+  );
+};
+
 const runCatalog = async (program: Effect.Effect<unknown, unknown, never>) => {
   const root = await mkdtemp(join(tmpdir(), 'specimendb-'));
   try {
     await Effect.runPromise(
-      Effect.scoped(program).pipe(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const sql = yield* SqlClient;
+          yield* sql.unsafe(`TRUNCATE TABLE components, specimens CASCADE`);
+          yield* program;
+        }),
+      ).pipe(
         Effect.provide(
           layer({
-            dataDir: 'memory://',
+            pg: catalogPgFromEnv(),
             assetsRoot: join(root, 'assets'),
           }),
         ),
       ) as Effect.Effect<unknown>,
     );
+  } catch (cause) {
+    throw pgUnavailable(cause);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

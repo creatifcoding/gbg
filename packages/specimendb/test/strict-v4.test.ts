@@ -31,29 +31,39 @@ const walk = async (root: string): Promise<string[]> => {
 const bannedImport =
   /^\s*(?:import(?:\s+type)?\s+.*\s+from\s+['"](?:effect-v[34]|@gbg\/tmnl|@tmnl\/tmnl)(?:\/|['"])|import\s*\(\s*['"](?:effect-v[34]|@gbg\/tmnl)(?:\/|['"]))/;
 
+const bannedPersistence = [
+  '@effect/sql-pglite',
+  '@electric-sql/pglite',
+  '@duckdb/',
+  "from 'duckdb'",
+  'from "duckdb"',
+];
+
 describe('strict Effect v4 package guardrails', () => {
-  it('does not import tmnl, effect-v3, or the retired effect-v4 alias', async () => {
+  it('does not import tmnl, effect-v3, PGlite, or DuckDB', async () => {
     const files = await walk(packageRoot);
     const violations: string[] = [];
     for (const file of files) {
+      const rel = relative(packageRoot, file);
       const lines = (await readFile(file, 'utf8')).split('\n');
       for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index]!;
         if (bannedImport.test(line)) {
-          violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
+          violations.push(`${rel}:${index + 1}: ${line.trim()}`);
         }
-        if (
-          relative(packageRoot, file).startsWith('src/') &&
-          (line.includes('@duckdb/') || line.includes("from 'duckdb'") || line.includes('from "duckdb"'))
-        ) {
-          violations.push(`${relative(packageRoot, file)}:${index + 1}: ${line.trim()}`);
+        if (rel.startsWith('src/') || rel.startsWith('test/')) {
+          for (const needle of bannedPersistence) {
+            if (line.includes(needle)) {
+              violations.push(`${rel}:${index + 1}: ${line.trim()}`);
+            }
+          }
         }
       }
     }
     expect(violations).toEqual([]);
   });
 
-  it('pins Effect to the msh / effect-smol v4 beta', async () => {
+  it('pins Effect and @effect/sql-pg to the msh v4 beta', async () => {
     const pkg = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8')) as {
       dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
@@ -61,7 +71,9 @@ describe('strict Effect v4 package guardrails', () => {
     expect(pkg.dependencies.effect).toBe('4.0.0-beta.93');
     expect(pkg.devDependencies['@effect/vitest']).toBe('4.0.0-beta.93');
     expect(pkg.dependencies.effect?.startsWith('3.')).toBe(false);
-    expect(pkg.dependencies['@effect/sql-pglite']).toBe('4.0.0-beta.93');
+    expect(pkg.dependencies['@effect/sql-pg']).toBe('4.0.0-beta.93');
+    expect(pkg.dependencies['@effect/sql-pglite']).toBeUndefined();
+    expect(pkg.dependencies['@electric-sql/pglite']).toBeUndefined();
     expect(pkg.dependencies['@duckdb/node-api']).toBeUndefined();
     expect(pkg.dependencies.duckdb).toBeUndefined();
   });

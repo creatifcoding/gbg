@@ -1,6 +1,6 @@
 /**
  * Browser-safe in-memory Intake/Get/List/Promote client.
- * Same EXIF/locality rules as the catalog. Does not import PGlite or node:fs.
+ * Same EXIF/locality rules as the catalog. Does not import Postgres or node:fs.
  *
  * @module
  */

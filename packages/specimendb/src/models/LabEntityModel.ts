@@ -2,7 +2,7 @@
  * Persistence-shaped lab entity. Same fields as the provenance record.
  *
  * No `lab_entities` table in this cut (#61). Do not call SqlModel.makeRepository
- * here. Pin stays `@effect/sql-pglite` / `effect` 4.0.0-beta.93.
+ * here. Pin stays `@effect/sql-pg` / `effect` 4.0.0-beta.93.
  *
  * @module @tmnl/specimendb/models/LabEntityModel
  */
