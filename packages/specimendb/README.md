@@ -69,3 +69,5 @@ Static page in [`capture/`](./capture/), also served at `/capture/` on the testb
 ## Versions
 
 Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pg@4.0.0-beta.93` (peers that pin). Do not take `@effect/sql-pglite@4.0.0-beta.107`. The repo talks `SqlClient`. L1 is Postgres (`entities` + `components`). There is no DuckDB driver and no `@effect/sql-duckdb`. Intake/Get/List tests need a Postgres connection (`SPECIMENDB_PG_*`, default `127.0.0.1:5434`). Memory RPC testbed stays in-memory. Capture does not talk to PG.
+
+EVA `query(sql)` over `entities` / `components` returns Arrow. `@gbg/graph` walks Used / Generated as SQL. AGE Cypher MERGE is not on this branch.
