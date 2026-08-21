@@ -133,7 +133,6 @@ export async function openCatalogResources(options: {
               : String(options.root),
           );
 
-  // Accept either mantis root or workflows root.
   const workflowsRoot = existsSync(
     path.join(mantisRoot, "assistant", "workflows"),
   )
@@ -221,12 +220,6 @@ export async function openCatalogResources(options: {
       admissions.set(admission.toolId, admission);
       admissions.set(admission.assayId, admission);
     }
-  }
-
-  // Prefer live assistant/tools assays if present.
-  const liveTools = path.join(resolvedMantis, "assistant", "tools");
-  if (existsSync(liveTools)) {
-    // Live tree is preferred when present; fixtures already cover A3.
   }
 
   const caseFiles: CatalogCase[] = [];

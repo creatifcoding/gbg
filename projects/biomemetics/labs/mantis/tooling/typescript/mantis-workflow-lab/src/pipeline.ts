@@ -349,7 +349,6 @@ function closeAssay(ctx: CheckCtx): CheckResult {
     });
   }
 
-  // Graph tools must also resolve even if omitted from referencedPrimitives.
   for (let i = 0; i < ctx.record.definition.graph.length; i += 1) {
     const node = ctx.record.definition.graph[i];
     if (!node || node.type !== "tool" || node.toolId === undefined) continue;
@@ -782,7 +781,6 @@ function expireRow(ctx: CheckCtx): CheckResult {
   };
 }
 
-/** Private transition law. Not exported from package index. */
 const STAGE_TABLE: readonly StageRow[] = [
   {
     from: "draft",
@@ -911,11 +909,6 @@ function appendHistory(
   return [...record.history, entry];
 }
 
-/**
- * Apply consecutive matching stage-table rows for this actor until blocked.
- * When `stopAt` is set, halt after transitioning to that stage.
- * Not exported from package index.
- */
 export function advanceRecord(
   record: AdmissionRecord,
   catalog: CatalogResources,

@@ -18,7 +18,6 @@ export function sha256Hex(payload: string | Uint8Array): string {
   return createHash("sha256").update(payload).digest("hex");
 }
 
-/** A3 content digest: sha256 of canonical JSON with `digest` omitted. */
 export function contentDigest(definition: Record<string, unknown>): string {
   const { digest: _omit, ...rest } = definition;
   return sha256Hex(canonicalJson(rest));

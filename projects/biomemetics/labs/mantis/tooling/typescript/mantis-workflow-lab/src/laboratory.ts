@@ -555,7 +555,6 @@ async function runCatalogWith(
         continue;
       }
 
-      // reject-identity
       if (evaluation.kind !== "closed") {
         ok = false;
         cases.push({

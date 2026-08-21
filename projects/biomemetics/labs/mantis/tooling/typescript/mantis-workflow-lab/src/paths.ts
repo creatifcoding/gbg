@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-/** Package `src/` → mantis lab root (`projects/.../mantis`). */
 export function defaultMantisRoot(): string {
   return path.resolve(fileURLToPath(new URL("../../../../", import.meta.url)));
 }
