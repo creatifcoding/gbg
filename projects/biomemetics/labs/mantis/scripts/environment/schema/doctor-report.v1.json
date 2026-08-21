@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:environment-doctor-report:v1",
+  "title": "Mantis environment doctor report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "command",
+    "startedAt",
+    "completedAt",
+    "runner",
+    "lab",
+    "tools",
+    "shells",
+    "checks",
+    "fixtures",
+    "blockers",
+    "ok",
+    "failed"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "MantisEnvironmentDoctorReport" },
+    "command": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "minLength": 1 },
+    "completedAt": { "type": "string", "minLength": 1 },
+    "ok": { "type": "boolean" },
+    "failed": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "independentVerification": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["command", "exitStatus", "ok"],
+      "properties": {
+        "command": { "type": "string" },
+        "exitStatus": { "type": "integer" },
+        "ok": { "type": "boolean" },
+        "detail": { "type": "string" },
+        "secondPassExitStatus": { "type": "integer" },
+        "secondPassDetail": { "type": "string" }
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityClass", "isolationRoot"],
+      "properties": {
+        "identityClass": {
+          "type": "string",
+          "enum": ["github-actions", "cursor-cloud", "local"]
+        },
+        "shell": { "type": ["string", "null"] },
+        "isolationRoot": { "type": "string", "minLength": 1 }
+      }
+    },
+    "lab": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryPath", "flakeLock", "git", "nix"],
+      "properties": {
+        "repositoryPath": { "const": "projects/biomemetics/labs/mantis" },
+        "flakeLock": { "type": "object", "additionalProperties": true },
+        "git": { "type": "object", "additionalProperties": true },
+        "nix": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "shells": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "workstream", "status", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "workstream": { "type": "string" },
+          "status": { "enum": ["pass", "fail", "blocked", "unsupported"] },
+          "detail": { "type": "string" },
+          "blocker_type": { "type": ["string", "null"] },
+          "owning_issue": { "type": ["integer", "null"] },
+          "owning_workstream": { "type": ["string", "null"] },
+          "command": { "type": ["string", "null"] },
+          "exit_status": { "type": ["integer", "null"] },
+          "fixture_path": { "type": ["string", "null"] },
+          "fixture_sha256": { "type": ["string", "null"] },
+          "output_sha256": { "type": ["string", "null"] },
+          "tool": { "type": ["string", "null"] },
+          "tool_version": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "minLength": 64, "maxLength": 64 }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    }
+  }
+}

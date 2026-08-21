@@ -1,0 +1,10 @@
+* Mantis environment DC divider. V(out) must be 1.0 V.
+V1 in 0 DC 2
+R1 in out 1k
+R2 out 0 1k
+.control
+set noaskquit
+op
+print v(out)
+.endc
+.end

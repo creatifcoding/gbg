@@ -1,0 +1,14 @@
+{
+  "algorithm": "sha256",
+  "artifacts": [
+    {
+      "bytes": 27,
+      "id": "environment:payload",
+      "path": "evidence/runs/environment/fixtures/manifest/payload.txt",
+      "role": "environment-fixture",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "unverified"
+    }
+  ],
+  "schemaVersion": 1
+}
