@@ -1,0 +1,30 @@
+{
+  "id": "golden-care.ambiguous-photo.v1",
+  "title": "Ambiguous temporary-housing photo — feeding, supply, transit",
+  "claim": "A photo of an unfamiliar mantis in a cup creates a local CareSubject, never a catalog Specimen. Visible facts stay Observations. Taxon remains unknown. Photo does not write locality. Recommendations are not feedings.",
+  "housing": "temporary-cup",
+  "catalogSpecimen": false,
+  "photo": {
+    "role": "synthetic-jpeg-with-gps-app1",
+    "visibleFacts": [
+      "A small insect is visible inside a translucent cup.",
+      "Raptorial forelegs are visible in the frame.",
+      "Wings are not apparent at this resolution.",
+      "No scale bar is present, so body length is not measured."
+    ],
+    "doesNotEstablish": ["taxon", "locality", "health-diagnosis", "body-length"]
+  },
+  "taxon": {
+    "status": "unknown",
+    "reason": "photo-does-not-establish-taxon"
+  },
+  "locality": null,
+  "supplyTransit": {
+    "feeders": [
+      { "name": "Fixture feeder stock (not a live shop)", "availability": "current-fixture" }
+    ],
+    "transit": [
+      { "name": "Fixture public-transit option (not a navigation launch)", "availability": "current-fixture" }
+    ]
+  }
+}

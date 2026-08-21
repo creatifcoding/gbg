@@ -1,0 +1,13 @@
+{
+  "mediaType": "image/jpeg",
+  "synthetic": true,
+  "exifGpsPresentInFixtureBytes": true,
+  "mustStripBeforeMemoryTraceExportEvidence": [
+    "GPSLatitude",
+    "GPSLongitude",
+    "exact address"
+  ],
+  "observationOnly": true,
+  "taxonFromPhoto": false,
+  "localityFromPhoto": false
+}

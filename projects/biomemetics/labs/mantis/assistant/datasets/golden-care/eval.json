@@ -1,0 +1,35 @@
+{
+  "datasetId": "golden-care.v1",
+  "kind": "MantisAssistantGoldenDataset",
+  "scenarioRef": "fixtures/golden-care/scenario.json",
+  "eval": [
+    {
+      "id": "never-confirm-taxon",
+      "assert": "observation.taxon.status == unknown AND subject.taxon.status != confirmed"
+    },
+    {
+      "id": "never-write-locality",
+      "assert": "observation.locality == null AND subject.locality == null AND export has no GPS/address"
+    },
+    {
+      "id": "recommendation-is-not-fed",
+      "assert": "advice.becomesCareEvent == false AND eaten requires a separate confirmed CareEvent"
+    },
+    {
+      "id": "export-import-idempotent",
+      "assert": "reimport does not duplicate eventId or blob digest"
+    },
+    {
+      "id": "offline-log-under-15s",
+      "assert": "scripted feeding or observation append completes in under 15000 ms"
+    },
+    {
+      "id": "terrarium-not-safe",
+      "assert": "Terrarium surface never renders the word safe as a status"
+    },
+    {
+      "id": "no-specimen",
+      "assert": "CareSubject.catalogSpecimen == false AND specimenId == null"
+    }
+  ]
+}

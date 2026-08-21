@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "sourceId": "pretes-1999-praying-mantids",
+      "title": "The Praying Mantids",
+      "citation": "Prete, F.R., Wells, H., Wells, P.H., and Hurd, L.E. (eds). 1999. The Praying Mantids. Johns Hopkins University Press.",
+      "applicability": "Order-level Mantodea background. Not species-specific. Not a CarePlan for an unidentified animal in temporary housing.",
+      "reviewed": true,
+      "claims": [
+        {
+          "id": "predatory-live-prey",
+          "text": "Mantises are predatory and typically take live prey. Exact prey identity and count depend on taxon and instar.",
+          "numerical": false,
+          "applicableWhen": "order-level; taxon unknown"
+        },
+        {
+          "id": "numerical-withheld",
+          "text": "Numerical feeding prescriptions require a reviewed CarePlan applicable to a known life stage.",
+          "numerical": true,
+          "applicableWhen": "never-when-taxon-unknown"
+        }
+      ]
+    }
+  ]
+}
