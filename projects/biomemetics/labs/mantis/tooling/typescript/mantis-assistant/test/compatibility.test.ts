@@ -7,7 +7,23 @@ import { redactTracePayload } from '../src/mastra-adapter.ts';
 
 const matrix = loadLabJson(
   'projects/biomemetics/labs/mantis/assistant/evals/compatibility-matrix.json',
-) as { cases: string[] };
+) as {
+  cases: string[];
+  lanes: {
+    ci: { model: string; network: boolean; credentials: boolean; node: string };
+    live: {
+      model: string;
+      reasoningLevel: string;
+      credential: string;
+      optIn: string;
+      network: boolean;
+      credentials: boolean;
+      node: string;
+      apiKey: boolean;
+      cursorCredentials: boolean;
+    };
+  };
+};
 
 test('compatibility matrix is the A0 required set', () => {
   assert.deepEqual(matrix.cases, [
@@ -25,6 +41,24 @@ test('compatibility matrix is the A0 required set', () => {
     'deterministic-eval-invocation',
     'in-process-agui-bind',
   ]);
+});
+
+test('compatibility matrix keeps CI fake and live OAuth lanes explicit', () => {
+  assert.deepEqual(matrix.lanes.ci, {
+    model: 'mantis-fake-model@1.0.0',
+    network: false,
+    credentials: false,
+    node: '>=22.14.0',
+  });
+  assert.equal(matrix.lanes.live.model, 'gpt-5.6-luna');
+  assert.equal(matrix.lanes.live.reasoningLevel, 'max');
+  assert.equal(matrix.lanes.live.credential, 'Codex or ChatGPT subscription OAuth');
+  assert.equal(matrix.lanes.live.optIn, 'MASTRA_LIVE=1');
+  assert.equal(matrix.lanes.live.network, true);
+  assert.equal(matrix.lanes.live.credentials, true);
+  assert.equal(matrix.lanes.live.node, '>=22.19.0');
+  assert.equal(matrix.lanes.live.apiKey, false);
+  assert.equal(matrix.lanes.live.cursorCredentials, false);
 });
 
 test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t) => {

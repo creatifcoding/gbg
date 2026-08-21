@@ -4,7 +4,13 @@ export { resolveToolPolicy, canSwitchMode, loadToolPolicy } from './policy.ts';
 export { redactSensitive, asAssistantMemory } from './privacy.ts';
 export { FakeClock } from './clock.ts';
 export { loadCorpus, loadRegistry, validateInstance } from './contracts.ts';
-export { usedBetaImportPaths } from './mastra-adapter.ts';
+export {
+  CODEX_SUBSCRIPTION_AUTH_REQUIRED,
+  CODEX_SUBSCRIPTION_LIVE_DISABLED,
+  CodexSubscriptionError,
+  createCodexSubscriptionModel,
+  usedBetaImportPaths,
+} from './mastra-adapter.ts';
 export { effectPin } from './effect-pin.ts';
 export type {
   CapabilityEntry,

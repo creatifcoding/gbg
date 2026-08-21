@@ -19,6 +19,8 @@ export const PINS = {
   node: '>=22.14.0',
   controllerConfig: 'mantis-controller@0.1.0',
   fakeModel: 'mantis-fake-model@1.0.0',
+  liveModel: 'openai/gpt-5.6-luna',
+  liveReasoningLevel: 'max',
 } as const;
 
 export type PinName = keyof typeof PINS;

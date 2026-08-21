@@ -119,6 +119,54 @@ export const createFakeModel = (text = FAKE_MODEL_TEXT) => ({
   },
 });
 
+export const LIVE_LUNA_DISABLED = 'LIVE_LUNA_DISABLED' as const;
+export const LIVE_LUNA_CREDENTIAL_REQUIRED = 'LIVE_LUNA_CREDENTIAL_REQUIRED' as const;
+
+export type LiveLunaErrorCode =
+  | typeof LIVE_LUNA_DISABLED
+  | typeof LIVE_LUNA_CREDENTIAL_REQUIRED;
+
+export class LiveLunaError extends Error {
+  readonly code: LiveLunaErrorCode;
+
+  constructor(code: LiveLunaErrorCode) {
+    super(code);
+    this.name = 'LiveLunaError';
+    this.code = code;
+  }
+}
+
+type AgentConfig = ConstructorParameters<typeof Agent>[0];
+
+type ModelLane =
+  | {
+      readonly kind: 'fake';
+      readonly model: ReturnType<typeof createFakeModel>;
+    }
+  | {
+      readonly kind: 'live-luna';
+      readonly model: 'openai/gpt-5.6-luna';
+      readonly defaultOptions: NonNullable<AgentConfig['defaultOptions']>;
+    };
+
+export const createLiveLunaLane = (): Extract<ModelLane, { kind: 'live-luna' }> => {
+  if (process.env.MASTRA_LIVE !== '1') {
+    throw new LiveLunaError(LIVE_LUNA_DISABLED);
+  }
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    throw new LiveLunaError(LIVE_LUNA_CREDENTIAL_REQUIRED);
+  }
+  return {
+    kind: 'live-luna',
+    model: PINS.liveModel,
+    defaultOptions: {
+      providerOptions: {
+        openai: { reasoningEffort: PINS.liveReasoningLevel },
+      },
+    },
+  };
+};
+
 export interface SideEffectCounter {
   externalEffectCount: number;
 }
@@ -218,6 +266,7 @@ const mark = (
 
 export const createAdapterHarness = async (
   clock = new FakeClock(),
+  lane: ModelLane = { kind: 'fake', model: createFakeModel() },
 ): Promise<AdapterHarness> => {
   const capabilities: CapabilityEntry[] = [];
   const sideEffects: SideEffectCounter = { externalEffectCount: 0 };
@@ -243,7 +292,8 @@ export const createAdapterHarness = async (
     name: 'mantis-coordinator',
     instructions:
       'You are the mantis coordinator. Emit CareAdvice only. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
-    model: fakeModel,
+    model: lane.model,
+    ...(lane.kind === 'live-luna' ? { defaultOptions: lane.defaultOptions } : {}),
     tools: {
       'care-source-read': tools.careSourceRead,
       'supply-transit-read': tools.supplyTransitRead,

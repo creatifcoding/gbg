@@ -1,9 +1,29 @@
 {
   "schemaVersion": "1.0.0",
   "kind": "EvalProgram",
-  "description": "Deterministic A0 compatibility matrix. Model-graded scorers are not required. A beta capability that cannot be pinned and proven is QUARANTINED_UPSTREAM.",
+  "description": "A0 compatibility matrix. CI uses the fake model and deterministic fixtures. The live lane consumes Codex or ChatGPT subscription OAuth only.",
   "network": false,
   "credentials": false,
+  "lanes": {
+    "ci": {
+      "model": "mantis-fake-model@1.0.0",
+      "network": false,
+      "credentials": false,
+      "node": ">=22.14.0"
+    },
+    "live": {
+      "model": "gpt-5.6-luna",
+      "reasoningLevel": "max",
+      "credential": "Codex or ChatGPT subscription OAuth",
+      "credentialSource": "Mastra Code AuthStorage or Codex CLI auth.json",
+      "optIn": "MASTRA_LIVE=1",
+      "network": true,
+      "credentials": true,
+      "node": ">=22.19.0",
+      "apiKey": false,
+      "cursorCredentials": false
+    }
+  },
   "cases": [
     "agui-streaming-reconnect",
     "controller-modes-isolated-sessions",
