@@ -228,10 +228,12 @@ test('compatibility matrix against pinned Mastra', { timeout: 300_000 }, async (
     const roundTrip = await controller.aguiRoundTrip();
     assert.equal(roundTrip.unauthenticatedStatus, 401);
     assert.ok(
-      (roundTrip.authenticatedText.includes('CareAdvice') ||
-        roundTrip.eventTypes.length > 0) &&
+      roundTrip.authenticatedText.includes('CareAdvice') &&
         !roundTrip.authenticatedText.includes(FAKE_MODEL_TEXT),
-      JSON.stringify(roundTrip),
+      JSON.stringify({
+        eventTypes: roundTrip.eventTypes,
+        text: roundTrip.authenticatedText.slice(0, 400),
+      }),
     );
   });
 
@@ -258,16 +260,12 @@ test('compatibility matrix against pinned Mastra', { timeout: 300_000 }, async (
     assert.equal(roundTrip.bind.basePath, fixture.basePath);
     assert.equal(roundTrip.bind.agentId, fixture.agentId);
     assert.equal('runtimeUrl' in roundTrip.bind, false);
-    if (capability?.status === 'QUARANTINED_UPSTREAM') {
-      assert.ok((capability.detail ?? '').length > 0);
-      return;
-    }
+    assert.equal(capability?.status, 'proven');
     assert.ok(
-      (roundTrip.authenticatedText.includes('CareAdvice') ||
-        roundTrip.eventTypes.length > 0) &&
+      roundTrip.authenticatedText.includes('CareAdvice') &&
         !roundTrip.authenticatedText.includes(FAKE_MODEL_TEXT),
       JSON.stringify({
-        authenticatedText: roundTrip.authenticatedText,
+        authenticatedText: roundTrip.authenticatedText.slice(0, 400),
         eventTypes: roundTrip.eventTypes,
       }),
     );

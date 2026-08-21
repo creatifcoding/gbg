@@ -52,8 +52,7 @@ test(
     assert.equal(roundTrip.unauthenticatedStatus, 401);
     assert.equal('runtimeUrl' in roundTrip.bind, false);
     assert.ok(
-      (roundTrip.authenticatedText.includes('CareAdvice') ||
-        roundTrip.eventTypes.length > 0) &&
+      roundTrip.authenticatedText.includes('CareAdvice') &&
         !roundTrip.authenticatedText.includes(FAKE_MODEL_TEXT),
       JSON.stringify({
         eventTypes: roundTrip.eventTypes,
