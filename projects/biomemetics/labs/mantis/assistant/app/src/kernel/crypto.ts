@@ -5,12 +5,13 @@ export const bytesToHex = (bytes: ArrayBuffer | Uint8Array): string => {
   return Array.from(view, (b) => b.toString(16).padStart(2, '0')).join('');
 };
 
-export const sha256Bytes = async (data: BufferSource): Promise<string> => {
+export const sha256Bytes = async (data: Uint8Array): Promise<string> => {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) {
     throw new Error('WebCrypto subtle is required for content addressing');
   }
-  const digest = await subtle.digest('SHA-256', data);
+  const copy = Uint8Array.from(data);
+  const digest = await subtle.digest('SHA-256', copy as unknown as ArrayBuffer);
   return bytesToHex(digest);
 };
 

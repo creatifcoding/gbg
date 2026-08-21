@@ -10,8 +10,17 @@ export default defineConfig({
       includeAssets: ['icons/keeper.svg'],
       manifest: false,
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,webmanifest,json,woff2}'],
+        globPatterns: [
+          'index.html',
+          'manifest.webmanifest',
+          'icons/**',
+          'assets/index-*.js',
+          'assets/index-*.css',
+          'assets/virtual_pwa-register-*.js',
+        ],
+        globIgnores: ['**/copilotkit-*.js'],
         navigateFallback: 'index.html',
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === 'document',
@@ -22,6 +31,18 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@copilotkit') || id.includes('node_modules/katex') || id.includes('node_modules/mermaid')) {
+            return 'copilotkit';
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     port: 5178,
   },

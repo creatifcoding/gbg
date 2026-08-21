@@ -1,21 +1,37 @@
-import { CopilotKit } from '@copilotkit/react-core';
-import type { ReactNode } from 'react';
+import { type ComponentType, type ReactNode, useEffect, useState } from 'react';
 import { a0Bridge } from '../contracts/a0';
+
+type CopilotKitComponent = ComponentType<{
+  runtimeUrl: string;
+  showDevConsole: boolean;
+  children?: ReactNode;
+}>;
 
 /**
  * CopilotKit is the AG-UI surface. Mastra is consumed via A0.
- * When A0 has not bound a runtime URL, the host does not invent a model
- * fallback — the Ask well stays empty and local fixture cards still work.
+ * When A0 has not bound a runtime URL, CopilotKit stays unloaded and the Ask
+ * well stays empty. No silent model fallback.
  */
 export function CopilotHost({ children }: { children: ReactNode }) {
   const url = a0Bridge.aguiUrl;
-  if (!url || a0Bridge.mastra === 'empty') {
-    return <>{children}</>;
-  }
+  const [Kit, setKit] = useState<CopilotKitComponent | null>(null);
+
+  useEffect(() => {
+    if (!url || a0Bridge.mastra === 'empty') return;
+    let cancelled = false;
+    void import('@copilotkit/react-core').then((mod) => {
+      if (!cancelled) setKit(() => mod.CopilotKit as CopilotKitComponent);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!Kit || !url) return <>{children}</>;
   return (
-    <CopilotKit runtimeUrl={url} showDevConsole={false}>
+    <Kit runtimeUrl={url} showDevConsole={false}>
       {children}
-    </CopilotKit>
+    </Kit>
   );
 }
 

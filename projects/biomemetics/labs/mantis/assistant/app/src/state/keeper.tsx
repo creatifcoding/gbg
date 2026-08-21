@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { lookupCareAdvice, lookupSupplyTransit, type SupplyHit } from '../adapters/care';
+import { lookupCareAdvice, lookupSupplyTransit, locationGrant, type SupplyHit } from '../adapters/care';
 import type { LocationGrant } from '../contracts/types';
 import {
   createCareSubject,
@@ -56,7 +56,7 @@ export function KeeperProvider({
   store: injected,
 }: {
   children: ReactNode;
-  store?: EventStore;
+  store?: EventStore | undefined;
 }) {
   const [log, setLog] = useState<KeeperLog | null>(null);
   const [model, setModel] = useState<ReadModel>(foldEvents([]));
@@ -226,7 +226,6 @@ export function KeeperProvider({
   }, [ensureSubject, log, online, refresh]);
 
   const requestLocation = useCallback(async () => {
-    const { locationGrant } = await import('../adapters/care');
     const next = locationGrant(nowIso());
     setGrant(next);
     setLocationMode('granted');

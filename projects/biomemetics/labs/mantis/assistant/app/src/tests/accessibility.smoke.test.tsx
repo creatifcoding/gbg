@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../kernel/log';
 import { App } from '../ui/App';
@@ -18,7 +18,9 @@ describe('accessibility smoke', () => {
 
   it('renders the terrarium as an empty well, never as safe', async () => {
     render(<App store={new MemoryStore()} />);
-    screen.getByRole('button', { name: 'Terrarium' }).click();
+    await act(async () => {
+      screen.getByRole('button', { name: 'Terrarium' }).click();
+    });
     expect(await screen.findByRole('heading', { name: 'Telemetry well' })).toBeInTheDocument();
     expect(screen.getByText(/this well is empty/i)).toBeInTheDocument();
     expect(screen.getByRole('status').textContent?.toLowerCase()).toContain('unavailable');
@@ -27,7 +29,9 @@ describe('accessibility smoke', () => {
 
   it('keeps feeding controls named for a screen reader', async () => {
     render(<App store={new MemoryStore()} />);
-    screen.getByRole('button', { name: 'Observe' }).click();
+    await act(async () => {
+      screen.getByRole('button', { name: 'Observe' }).click();
+    });
     expect(await screen.findByRole('button', { name: 'Offered' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Eaten' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refused' })).toBeInTheDocument();
