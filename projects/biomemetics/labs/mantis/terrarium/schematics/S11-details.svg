@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
-<rect width="420" height="297" fill="#fcfcfb"/>
+<rect width="420" height="297" fill="#ffffff"/>
 <defs>
   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
   <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
@@ -10,92 +10,178 @@
     .thin { stroke:#15171a; stroke-width:.28; fill:none; }
     .med { stroke:#15171a; stroke-width:.55; fill:none; }
     .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
-    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.22; stroke-dasharray:1.6 1.1; fill:none; }
     .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
     .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .hlr { stroke:#15171a; stroke-width:.45; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .hlr-keep { stroke:#c63333; stroke-width:.4; fill:none; stroke-dasharray:3.5 2; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
-<rect x="12" y="14" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
-<text x="16" y="22" font-size="2.8" font-weight="bold" text-anchor="start">K - POGO BORE / TRAVEL</text>
-<text x="128" y="22" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
-<rect x="145" y="14" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
-<text x="149" y="22" font-size="2.8" font-weight="bold" text-anchor="start">L - STRIP WIPE</text>
-<text x="261" y="22" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
-<rect x="278" y="14" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
-<text x="282" y="22" font-size="2.8" font-weight="bold" text-anchor="start">M - PINCH SPRING POCKET</text>
-<text x="394" y="22" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
-<rect x="12" y="125" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
-<text x="16" y="133" font-size="2.8" font-weight="bold" text-anchor="start">N - INTERNAL CSI / SERDES RELIEF</text>
-<text x="128" y="133" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
-<rect x="145" y="125" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
-<text x="149" y="133" font-size="2.8" font-weight="bold" text-anchor="start">P - MAGNET POCKET</text>
-<text x="261" y="133" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
-<rect x="278" y="125" width="120" height="98" rx="1.5" class="med" fill="#ffffff"/>
-<text x="282" y="133" font-size="2.8" font-weight="bold" text-anchor="start">Q - 250/500 JOINT</text>
-<text x="394" y="133" font-size="2.1" font-weight="bold" text-anchor="end">NTS - DO NOT SCALE</text>
-<rect x="38" y="38" width="30" height="52" rx="0" class="cut"/>
-<rect x="48" y="43" width="10" height="30" rx="0" class="metal"/>
-<circle cx="53" cy="79" r="6" class="metal"/>
-<line x1="53" y1="85" x2="53" y2="95" class="med"/>
-<line x1="48" y1="90" x2="48" y2="101" class="thin"/>
-<line x1="58" y1="90" x2="58" y2="101" class="thin"/>
-<line x1="48" y1="101" x2="58" y2="101" class="dim"/>
-<text x="53.0" y="99.6" font-size="2.7" font-weight="normal" text-anchor="middle">BORE +0.20 TARGET</text>
-<text x="75" y="48" font-size="2.15" font-weight="bold" text-anchor="start">0.60 WORK COMPRESSION TARGET</text>
-<text x="75" y="56" font-size="2.3" font-weight="normal" text-anchor="start">OVERTRAVEL UNVERIFIED</text>
-<text x="75" y="64" font-size="2.3" font-weight="bold" text-anchor="start" fill="#b52d2d">SELECT POGO SERIES</text>
+<rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
+<text x="12" y="14" font-size="3.2" font-weight="bold" text-anchor="start">K - B27 POGO ARRAY PROXY</text>
+<text x="12" y="17.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1  |  OCCT HLR</text>
+<text x="12" y="21.4" font-size="2.0" font-weight="normal" text-anchor="start">UNVERIFIED series</text>
+<path d="M160.700 28.000 L160.637 28.000 L160.452 28.000 L160.154 28.000 L159.758 28.000 L159.285 28.000 L158.757 28.000 L158.200 28.000 L157.644 28.000 L157.115 28.000 L156.642 28.000 L156.245 28.000 L155.947 28.000 L155.762 28.000 L155.700 28.000" class="hidden"/>
+<path d="M160.700 58.000 L160.637 58.000 L160.452 58.000 L160.154 58.000 L159.758 58.000 L159.285 58.000 L158.757 58.000 L158.200 58.000 L157.644 58.000 L157.115 58.000 L156.642 58.000 L156.245 58.000 L155.947 58.000 L155.762 58.000 L155.700 58.000" class="hidden"/>
+<path d="M148.000 28.000 L147.938 28.000 L147.752 28.000 L147.454 28.000 L147.059 28.000 L146.584 28.000 L146.056 28.000 L145.500 28.000 L144.944 28.000 L144.416 28.000 L143.942 28.000 L143.546 28.000 L143.248 28.000 L143.062 28.000 L143.000 28.000" class="hidden"/>
+<path d="M148.000 58.000 L147.938 58.000 L147.752 58.000 L147.454 58.000 L147.059 58.000 L146.584 58.000 L146.056 58.000 L145.500 58.000 L144.944 58.000 L144.416 58.000 L143.942 58.000 L143.546 58.000 L143.248 58.000 L143.062 58.000 L143.000 58.000" class="hidden"/>
+<path d="M135.300 28.000 L135.238 28.000 L135.053 28.000 L134.755 28.000 L134.358 28.000 L133.885 28.000 L133.356 28.000 L132.800 28.000 L132.243 28.000 L131.716 28.000 L131.242 28.000 L130.846 28.000 L130.548 28.000 L130.363 28.000 L130.300 28.000" class="hidden"/>
+<path d="M135.300 58.000 L135.238 58.000 L135.053 58.000 L134.755 58.000 L134.358 58.000 L133.885 58.000 L133.356 58.000 L132.800 58.000 L132.243 58.000 L131.716 58.000 L131.242 58.000 L130.846 58.000 L130.548 58.000 L130.363 58.000 L130.300 58.000" class="hidden"/>
+<path d="M122.600 28.000 L122.538 28.000 L122.352 28.000 L122.054 28.000 L121.658 28.000 L121.184 28.000 L120.656 28.000 L120.100 28.000 L119.543 28.000 L119.016 28.000 L118.541 28.000 L118.145 28.000 L117.847 28.000 L117.662 28.000 L117.600 28.000" class="hidden"/>
+<path d="M122.600 58.000 L122.538 58.000 L122.352 58.000 L122.054 58.000 L121.658 58.000 L121.184 58.000 L120.656 58.000 L120.100 58.000 L119.543 58.000 L119.016 58.000 L118.541 58.000 L118.145 58.000 L117.847 58.000 L117.662 58.000 L117.600 58.000" class="hidden"/>
+<path d="M109.900 28.000 L109.837 28.000 L109.653 28.000 L109.355 28.000 L108.959 28.000 L108.484 28.000 L107.957 28.000 L107.400 28.000 L106.844 28.000 L106.315 28.000 L105.841 28.000 L105.445 28.000 L105.147 28.000 L104.963 28.000 L104.900 28.000" class="hidden"/>
+<path d="M109.900 58.000 L109.837 58.000 L109.653 58.000 L109.355 58.000 L108.959 58.000 L108.484 58.000 L107.957 58.000 L107.400 58.000 L106.844 58.000 L106.315 58.000 L105.841 58.000 L105.445 58.000 L105.147 58.000 L104.963 58.000 L104.900 58.000" class="hidden"/>
+<path d="M97.200 28.000 L97.137 28.000 L96.953 28.000 L96.654 28.000 L96.258 28.000 L95.784 28.000 L95.257 28.000 L94.700 28.000 L94.144 28.000 L93.615 28.000 L93.142 28.000 L92.745 28.000 L92.448 28.000 L92.263 28.000 L92.200 28.000" class="hidden"/>
+<path d="M97.200 58.000 L97.137 58.000 L96.953 58.000 L96.654 58.000 L96.258 58.000 L95.784 58.000 L95.257 58.000 L94.700 58.000 L94.144 58.000 L93.615 58.000 L93.142 58.000 L92.745 58.000 L92.448 58.000 L92.263 58.000 L92.200 58.000" class="hidden"/>
+<path d="M84.500 28.000 L84.438 28.000 L84.252 28.000 L83.954 28.000 L83.558 28.000 L83.085 28.000 L82.556 28.000 L82.000 28.000 L81.444 28.000 L80.916 28.000 L80.441 28.000 L80.046 28.000 L79.748 28.000 L79.562 28.000 L79.500 28.000" class="hidden"/>
+<path d="M84.500 58.000 L84.438 58.000 L84.252 58.000 L83.954 58.000 L83.558 58.000 L83.085 58.000 L82.556 58.000 L82.000 58.000 L81.444 58.000 L80.916 58.000 L80.441 58.000 L80.046 58.000 L79.748 58.000 L79.562 58.000 L79.500 58.000" class="hidden"/>
+<path d="M71.800 28.000 L71.738 28.000 L71.553 28.000 L71.255 28.000 L70.858 28.000 L70.385 28.000 L69.856 28.000 L69.300 28.000 L68.743 28.000 L68.215 28.000 L67.742 28.000 L67.346 28.000 L67.047 28.000 L66.862 28.000 L66.800 28.000" class="hidden"/>
+<path d="M71.800 58.000 L71.738 58.000 L71.553 58.000 L71.255 58.000 L70.858 58.000 L70.385 58.000 L69.856 58.000 L69.300 58.000 L68.743 58.000 L68.215 58.000 L67.742 58.000 L67.346 58.000 L67.047 58.000 L66.862 58.000 L66.800 58.000" class="hidden"/>
+<path d="M59.100 28.000 L59.038 28.000 L58.852 28.000 L58.554 28.000 L58.158 28.000 L57.684 28.000 L57.157 28.000 L56.600 28.000 L56.044 28.000 L55.516 28.000 L55.041 28.000 L54.645 28.000 L54.348 28.000 L54.163 28.000 L54.100 28.000" class="hidden"/>
+<path d="M59.100 58.000 L59.038 58.000 L58.852 58.000 L58.554 58.000 L58.158 58.000 L57.684 58.000 L57.157 58.000 L56.600 58.000 L56.044 58.000 L55.516 58.000 L55.041 58.000 L54.645 58.000 L54.348 58.000 L54.163 58.000 L54.100 58.000" class="hidden"/>
+<path d="M46.400 28.000 L46.337 28.000 L46.153 28.000 L45.855 28.000 L45.459 28.000 L44.984 28.000 L44.456 28.000 L43.900 28.000 L43.343 28.000 L42.816 28.000 L42.341 28.000 L41.945 28.000 L41.648 28.000 L41.463 28.000 L41.400 28.000" class="hidden"/>
+<path d="M46.400 58.000 L46.337 58.000 L46.153 58.000 L45.855 58.000 L45.459 58.000 L44.984 58.000 L44.456 58.000 L43.900 58.000 L43.343 58.000 L42.816 58.000 L42.341 58.000 L41.945 58.000 L41.648 58.000 L41.463 58.000 L41.400 58.000" class="hidden"/>
+<path d="M21.000 28.000 L20.938 28.000 L20.753 28.000 L20.454 28.000 L20.058 28.000 L19.584 28.000 L19.056 28.000 L18.500 28.000 L17.944 28.000 L17.416 28.000 L16.942 28.000 L16.546 28.000 L16.247 28.000 L16.062 28.000 L16.000 28.000" class="hidden"/>
+<path d="M21.000 58.000 L20.938 58.000 L20.753 58.000 L20.454 58.000 L20.058 58.000 L19.584 58.000 L19.056 58.000 L18.500 58.000 L17.944 58.000 L17.416 58.000 L16.942 58.000 L16.546 58.000 L16.247 58.000 L16.062 58.000 L16.000 58.000" class="hidden"/>
+<path d="M33.700 28.000 L33.638 28.000 L33.453 28.000 L33.154 28.000 L32.758 28.000 L32.285 28.000 L31.756 28.000 L31.200 28.000 L30.643 28.000 L30.116 28.000 L29.642 28.000 L29.245 28.000 L28.948 28.000 L28.763 28.000 L28.700 28.000" class="hidden"/>
+<path d="M33.700 58.000 L33.638 58.000 L33.453 58.000 L33.154 58.000 L32.758 58.000 L32.285 58.000 L31.756 58.000 L31.200 58.000 L30.643 58.000 L30.116 58.000 L29.642 58.000 L29.245 58.000 L28.948 58.000 L28.763 58.000 L28.700 58.000" class="hidden"/>
+<path d="M155.700 28.000 L155.762 28.000 L155.947 28.000 L156.245 28.000 L156.642 28.000 L157.115 28.000 L157.644 28.000 L158.200 28.000 L158.757 28.000 L159.285 28.000 L159.758 28.000 L160.154 28.000 L160.452 28.000 L160.637 28.000 L160.700 28.000" class="hlr"/>
+<path d="M160.700 58.000 L160.700 28.000" class="hlr"/>
+<path d="M155.700 58.000 L155.762 58.000 L155.947 58.000 L156.245 58.000 L156.642 58.000 L157.115 58.000 L157.644 58.000 L158.200 58.000 L158.757 58.000 L159.285 58.000 L159.758 58.000 L160.154 58.000 L160.452 58.000 L160.637 58.000 L160.700 58.000" class="hlr"/>
+<path d="M143.000 28.000 L143.062 28.000 L143.248 28.000 L143.546 28.000 L143.942 28.000 L144.416 28.000 L144.944 28.000 L145.500 28.000 L146.056 28.000 L146.584 28.000 L147.059 28.000 L147.454 28.000 L147.752 28.000 L147.938 28.000 L148.000 28.000" class="hlr"/>
+<path d="M148.000 58.000 L148.000 28.000" class="hlr"/>
+<path d="M143.000 58.000 L143.062 58.000 L143.248 58.000 L143.546 58.000 L143.942 58.000 L144.416 58.000 L144.944 58.000 L145.500 58.000 L146.056 58.000 L146.584 58.000 L147.059 58.000 L147.454 58.000 L147.752 58.000 L147.938 58.000 L148.000 58.000" class="hlr"/>
+<path d="M130.300 28.000 L130.363 28.000 L130.548 28.000 L130.846 28.000 L131.242 28.000 L131.716 28.000 L132.243 28.000 L132.800 28.000 L133.356 28.000 L133.885 28.000 L134.358 28.000 L134.755 28.000 L135.053 28.000 L135.238 28.000 L135.300 28.000" class="hlr"/>
+<path d="M135.300 58.000 L135.300 28.000" class="hlr"/>
+<path d="M130.300 58.000 L130.363 58.000 L130.548 58.000 L130.846 58.000 L131.242 58.000 L131.716 58.000 L132.243 58.000 L132.800 58.000 L133.356 58.000 L133.885 58.000 L134.358 58.000 L134.755 58.000 L135.053 58.000 L135.238 58.000 L135.300 58.000" class="hlr"/>
+<path d="M117.600 28.000 L117.662 28.000 L117.847 28.000 L118.145 28.000 L118.541 28.000 L119.016 28.000 L119.543 28.000 L120.100 28.000 L120.656 28.000 L121.184 28.000 L121.658 28.000 L122.054 28.000 L122.352 28.000 L122.538 28.000 L122.600 28.000" class="hlr"/>
+<path d="M122.600 58.000 L122.600 28.000" class="hlr"/>
+<path d="M117.600 58.000 L117.662 58.000 L117.847 58.000 L118.145 58.000 L118.541 58.000 L119.016 58.000 L119.543 58.000 L120.100 58.000 L120.656 58.000 L121.184 58.000 L121.658 58.000 L122.054 58.000 L122.352 58.000 L122.538 58.000 L122.600 58.000" class="hlr"/>
+<path d="M104.900 28.000 L104.963 28.000 L105.147 28.000 L105.445 28.000 L105.841 28.000 L106.315 28.000 L106.844 28.000 L107.400 28.000 L107.957 28.000 L108.484 28.000 L108.959 28.000 L109.355 28.000 L109.653 28.000 L109.837 28.000 L109.900 28.000" class="hlr"/>
+<path d="M109.900 58.000 L109.900 28.000" class="hlr"/>
+<path d="M104.900 58.000 L104.963 58.000 L105.147 58.000 L105.445 58.000 L105.841 58.000 L106.315 58.000 L106.844 58.000 L107.400 58.000 L107.957 58.000 L108.484 58.000 L108.959 58.000 L109.355 58.000 L109.653 58.000 L109.837 58.000 L109.900 58.000" class="hlr"/>
+<path d="M92.200 28.000 L92.263 28.000 L92.448 28.000 L92.745 28.000 L93.142 28.000 L93.615 28.000 L94.144 28.000 L94.700 28.000 L95.257 28.000 L95.784 28.000 L96.258 28.000 L96.654 28.000 L96.953 28.000 L97.137 28.000 L97.200 28.000" class="hlr"/>
+<path d="M97.200 58.000 L97.200 28.000" class="hlr"/>
+<path d="M92.200 58.000 L92.263 58.000 L92.448 58.000 L92.745 58.000 L93.142 58.000 L93.615 58.000 L94.144 58.000 L94.700 58.000 L95.257 58.000 L95.784 58.000 L96.258 58.000 L96.654 58.000 L96.953 58.000 L97.137 58.000 L97.200 58.000" class="hlr"/>
+<path d="M79.500 28.000 L79.562 28.000 L79.748 28.000 L80.046 28.000 L80.441 28.000 L80.916 28.000 L81.444 28.000 L82.000 28.000 L82.556 28.000 L83.085 28.000 L83.558 28.000 L83.954 28.000 L84.252 28.000 L84.438 28.000 L84.500 28.000" class="hlr"/>
+<path d="M84.500 58.000 L84.500 28.000" class="hlr"/>
+<path d="M79.500 58.000 L79.562 58.000 L79.748 58.000 L80.046 58.000 L80.441 58.000 L80.916 58.000 L81.444 58.000 L82.000 58.000 L82.556 58.000 L83.085 58.000 L83.558 58.000 L83.954 58.000 L84.252 58.000 L84.438 58.000 L84.500 58.000" class="hlr"/>
+<path d="M66.800 28.000 L66.862 28.000 L67.047 28.000 L67.346 28.000 L67.742 28.000 L68.215 28.000 L68.743 28.000 L69.300 28.000 L69.856 28.000 L70.385 28.000 L70.858 28.000 L71.255 28.000 L71.553 28.000 L71.738 28.000 L71.800 28.000" class="hlr"/>
+<path d="M71.800 58.000 L71.800 28.000" class="hlr"/>
+<path d="M66.800 58.000 L66.862 58.000 L67.047 58.000 L67.346 58.000 L67.742 58.000 L68.215 58.000 L68.743 58.000 L69.300 58.000 L69.856 58.000 L70.385 58.000 L70.858 58.000 L71.255 58.000 L71.553 58.000 L71.738 58.000 L71.800 58.000" class="hlr"/>
+<path d="M54.100 28.000 L54.163 28.000 L54.348 28.000 L54.645 28.000 L55.041 28.000 L55.516 28.000 L56.044 28.000 L56.600 28.000 L57.157 28.000 L57.684 28.000 L58.158 28.000 L58.554 28.000 L58.852 28.000 L59.038 28.000 L59.100 28.000" class="hlr"/>
+<path d="M59.100 58.000 L59.100 28.000" class="hlr"/>
+<path d="M54.100 58.000 L54.163 58.000 L54.348 58.000 L54.645 58.000 L55.041 58.000 L55.516 58.000 L56.044 58.000 L56.600 58.000 L57.157 58.000 L57.684 58.000 L58.158 58.000 L58.554 58.000 L58.852 58.000 L59.038 58.000 L59.100 58.000" class="hlr"/>
+<path d="M41.400 28.000 L41.463 28.000 L41.648 28.000 L41.945 28.000 L42.341 28.000 L42.816 28.000 L43.343 28.000 L43.900 28.000 L44.456 28.000 L44.984 28.000 L45.459 28.000 L45.855 28.000 L46.153 28.000 L46.337 28.000 L46.400 28.000" class="hlr"/>
+<path d="M46.400 58.000 L46.400 28.000" class="hlr"/>
+<path d="M41.400 58.000 L41.463 58.000 L41.648 58.000 L41.945 58.000 L42.341 58.000 L42.816 58.000 L43.343 58.000 L43.900 58.000 L44.456 58.000 L44.984 58.000 L45.459 58.000 L45.855 58.000 L46.153 58.000 L46.337 58.000 L46.400 58.000" class="hlr"/>
+<path d="M16.000 28.000 L16.062 28.000 L16.247 28.000 L16.546 28.000 L16.942 28.000 L17.416 28.000 L17.944 28.000 L18.500 28.000 L19.056 28.000 L19.584 28.000 L20.058 28.000 L20.454 28.000 L20.753 28.000 L20.938 28.000 L21.000 28.000" class="hlr"/>
+<path d="M21.000 58.000 L21.000 28.000" class="hlr"/>
+<path d="M16.000 58.000 L16.062 58.000 L16.247 58.000 L16.546 58.000 L16.942 58.000 L17.416 58.000 L17.944 58.000 L18.500 58.000 L19.056 58.000 L19.584 58.000 L20.058 58.000 L20.454 58.000 L20.753 58.000 L20.938 58.000 L21.000 58.000" class="hlr"/>
+<path d="M28.700 28.000 L28.763 28.000 L28.948 28.000 L29.245 28.000 L29.642 28.000 L30.116 28.000 L30.643 28.000 L31.200 28.000 L31.756 28.000 L32.285 28.000 L32.758 28.000 L33.154 28.000 L33.453 28.000 L33.638 28.000 L33.700 28.000" class="hlr"/>
+<path d="M33.700 58.000 L33.700 28.000" class="hlr"/>
+<path d="M28.700 58.000 L28.763 58.000 L28.948 58.000 L29.245 58.000 L29.642 58.000 L30.116 58.000 L30.643 58.000 L31.200 58.000 L31.756 58.000 L32.285 58.000 L32.758 58.000 L33.154 58.000 L33.453 58.000 L33.638 58.000 L33.700 58.000" class="hlr"/>
+<path d="M155.700 58.000 L155.700 28.000" class="hlr"/>
+<path d="M143.000 58.000 L143.000 28.000" class="hlr"/>
+<path d="M130.300 58.000 L130.300 28.000" class="hlr"/>
+<path d="M117.600 58.000 L117.600 28.000" class="hlr"/>
+<path d="M104.900 58.000 L104.900 28.000" class="hlr"/>
+<path d="M92.200 58.000 L92.200 28.000" class="hlr"/>
+<path d="M79.500 58.000 L79.500 28.000" class="hlr"/>
+<path d="M66.800 58.000 L66.800 28.000" class="hlr"/>
+<path d="M54.100 58.000 L54.100 28.000" class="hlr"/>
+<path d="M41.400 58.000 L41.400 28.000" class="hlr"/>
+<path d="M16.000 58.000 L16.000 28.000" class="hlr"/>
+<path d="M28.700 58.000 L28.700 28.000" class="hlr"/>
+<text x="16" y="68" font-size="2.1" font-weight="bold" text-anchor="start">0.60 WORK / 1.20 LIFT TARGET</text>
+<text x="16" y="76" font-size="2.1" font-weight="normal" text-anchor="start">THROW 2.2 / NEED 1.8</text>
+<text x="16" y="84" font-size="2.1" font-weight="bold" text-anchor="start" fill="#ba3d3d">POGO SERIES UNVERIFIED #23</text>
+<text x="145" y="14" font-size="3.2" font-weight="bold" text-anchor="start">L - STRIP WIPE</text>
+<text x="145" y="17.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<text x="145" y="21.4" font-size="2.0" font-weight="normal" text-anchor="start">No B19 STEP — diagram only</text>
 <rect x="160" y="72" width="92" height="8" rx="0" class="metal"/>
 <path d="M170 45 Q182 35 194 45 L194 68" class="med"/>
 <circle cx="194" cy="71" r="3" class="metal"/>
 <line x1="194" y1="71" x2="224" y2="71" class="motion"/>
-<path d="M194 68 C204 62 214 62 224 68" class="phantom"/>
-<text x="206" y="90" font-size="2.4" font-weight="bold" text-anchor="middle">P01-P08 WIPE 0.8 TARGET</text>
-<text x="206" y="98" font-size="2.2" font-weight="bold" text-anchor="middle">P09-P12 VERTICAL SEAT; NO WIPE</text>
-<rect x="303" y="36" width="44" height="58" rx="0" class="cut"/>
-<path d="M316 40 C304 50 328 59 316 68 C304 78 328 86 316 94" class="med"/>
-<line x1="340" y1="40" x2="340" y2="92" class="phantom"/>
-<text x="354" y="48" font-size="2.3" font-weight="bold" text-anchor="start">POCKET +0.30</text>
-<text x="354" y="56" font-size="2.3" font-weight="normal" text-anchor="start">NO SHARP ROOT</text>
-<text x="354" y="64" font-size="2.3" font-weight="normal" text-anchor="start">10k CYCLE TARGET</text>
-<rect x="31" y="149" width="26" height="44" rx="0" class="cut"/>
-<path d="M57 170 C72 170 78 182 94 182" class="med"/>
-<path d="M57 176 C70 176 75 188 94 188" class="med"/>
-<rect x="57" y="164" width="18" height="18" rx="0" class="plastic"/>
-<line x1="94" y1="170" x2="105" y2="170" class="thin"/>
-<line x1="94" y1="188" x2="105" y2="188" class="thin"/>
-<line x1="105" y1="170" x2="105" y2="188" class="dim"/>
-<text x="103.3" y="179.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 103.3 179.0)">Rmin 10 TARGET</text>
-<text x="26" y="205" font-size="2.3" font-weight="bold" text-anchor="start">CLAMP FPC INSULATION, NEVER CONDUCTORS</text>
-<rect x="166" y="148" width="64" height="48" rx="0" class="cut"/>
-<rect x="184" y="160" width="28" height="22" rx="1" class="metal"/>
-<line x1="184" y1="182" x2="184" y2="207" class="thin"/>
-<line x1="212" y1="182" x2="212" y2="207" class="thin"/>
-<line x1="184" y1="207" x2="212" y2="207" class="dim"/>
-<text x="198.0" y="205.6" font-size="2.7" font-weight="normal" text-anchor="middle">MAGNET SIZE UNVERIFIED</text>
-<text x="151" y="215" font-size="2.2" font-weight="bold" text-anchor="start">CAPTURE LIP; MAGNET DOES NOT DEFINE NYMPH SEAL</text>
-<rect x="293" y="150" width="36" height="44" rx="0" class="cut"/>
-<rect x="346" y="150" width="36" height="44" rx="0" class="cut"/>
-<rect x="320" y="159" width="35" height="26" rx="0" class="metal"/>
-<circle cx="326" cy="172" r="3" class="heavy" fill="#fff"/>
-<circle cx="349" cy="172" r="3" class="heavy" fill="#fff"/>
-<line x1="320" y1="185" x2="320" y2="207" class="thin"/>
-<line x1="355" y1="185" x2="355" y2="207" class="thin"/>
-<line x1="320" y1="207" x2="355" y2="207" class="dim"/>
-<text x="337.5" y="205.6" font-size="2.7" font-weight="normal" text-anchor="middle">22 REF</text>
-<text x="338" y="217" font-size="2.2" font-weight="bold" text-anchor="middle">SHEAR KEY + TWO M3; FACE CASSETTE NOT STRUCTURAL</text>
-<rect x="12" y="232" width="393" height="15.0" rx="1.2" class="med" fill="#fff6d9"/>
-<text x="15" y="236.4" font-size="2.8" font-weight="bold" text-anchor="start">DETAIL RELEASE RULE</text>
-<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Every value marked TARGET/REF/UNVERIFIED requires coupon or vendor-drawing closure before STEP release.</text>
-<text x="15" y="245" font-size="2.45" font-weight="normal" text-anchor="start">Critical first articles: pogo bore coupon, strip wipe coupon, latch pull-off coupon, nymph-gap feeler check.</text>
+<text x="206" y="90" font-size="2.3" font-weight="bold" text-anchor="middle">P01-P08 WIPE 0.8 TARGET</text>
+<text x="206" y="98" font-size="2.1" font-weight="bold" text-anchor="middle">P09-P12 VERTICAL SEAT; NO WIPE</text>
+<text x="278" y="14" font-size="3.2" font-weight="bold" text-anchor="start">M - B25 SPRING POCKET</text>
+<text x="278" y="17.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1  |  OCCT HLR</text>
+<path d="M290.000 108.000 L290.000 28.000" class="hidden"/>
+<path d="M290.000 28.000 L340.000 28.000" class="hidden"/>
+<path d="M330.000 28.000 L329.624 28.000 L328.514 28.000 L326.728 28.000 L324.353 28.000 L321.509 28.000 L318.338 28.000 L315.000 28.000 L311.662 28.000 L308.491 28.000 L305.647 28.000 L303.272 28.000 L301.486 28.000 L300.376 28.000 L300.000 28.000" class="hidden"/>
+<path d="M300.000 28.000 L300.376 28.000 L301.486 28.000 L303.272 28.000 L305.647 28.000 L308.491 28.000 L311.662 28.000 L315.000 28.000 L318.338 28.000 L321.509 28.000 L324.353 28.000 L326.728 28.000 L328.514 28.000 L329.624 28.000 L330.000 28.000" class="hidden"/>
+<path d="M290.000 108.000 L340.000 108.000" class="hidden"/>
+<path d="M340.000 108.000 L340.000 28.000" class="hidden"/>
+<path d="M330.000 108.000 L329.624 108.000 L328.514 108.000 L326.728 108.000 L324.353 108.000 L321.509 108.000 L318.338 108.000 L315.000 108.000 L311.662 108.000 L308.491 108.000 L305.647 108.000 L303.272 108.000 L301.486 108.000 L300.376 108.000 L300.000 108.000" class="hidden"/>
+<path d="M300.000 108.000 L300.376 108.000 L301.486 108.000 L303.272 108.000 L305.647 108.000 L308.491 108.000 L311.662 108.000 L315.000 108.000 L318.338 108.000 L321.509 108.000 L324.353 108.000 L326.728 108.000 L328.514 108.000 L329.624 108.000 L330.000 108.000" class="hidden"/>
+<path d="M330.000 108.000 L330.000 28.000" class="hidden"/>
+<path d="M300.000 108.000 L300.000 28.000" class="hidden"/>
+<path d="M290.000 108.000 L290.000 28.000" class="hlr"/>
+<path d="M290.000 108.000 L340.000 108.000" class="hlr"/>
+<path d="M290.000 28.000 L340.000 28.000" class="hlr"/>
+<path d="M340.000 108.000 L340.000 28.000" class="hlr"/>
+<text x="348" y="36" font-size="2.2" font-weight="bold" text-anchor="start">POCKET +0.30</text>
+<text x="348" y="44" font-size="2.2" font-weight="normal" text-anchor="start">NO SHARP ROOT</text>
+<text x="348" y="52" font-size="2.2" font-weight="normal" text-anchor="start">10k CYCLE TARGET</text>
+<text x="12" y="112" font-size="3.2" font-weight="bold" text-anchor="start">N - B34 CSI CLAMP</text>
+<text x="12" y="115.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1  |  OCCT HLR</text>
+<text x="12" y="119.4" font-size="2.0" font-weight="normal" text-anchor="start">Camera FPC length UNVERIFIED</text>
+<path d="M16.000 143.000 L16.000 128.000" class="hidden"/>
+<path d="M96.000 143.000 L96.000 128.000" class="hidden"/>
+<path d="M16.000 143.000 L96.000 143.000" class="hidden"/>
+<path d="M16.000 128.000 L96.000 128.000" class="hidden"/>
+<path d="M16.000 143.000 L16.000 128.000" class="hlr"/>
+<path d="M96.000 143.000 L96.000 128.000" class="hlr"/>
+<path d="M16.000 143.000 L96.000 143.000" class="hlr"/>
+<path d="M16.000 128.000 L96.000 128.000" class="hlr"/>
+<text x="16" y="156" font-size="2.2" font-weight="bold" text-anchor="start">CLAMP FPC INSULATION, NEVER CONDUCTORS</text>
+<text x="16" y="164" font-size="2.2" font-weight="normal" text-anchor="start" fill="#ba3d3d">CSI KO 12 UNVERIFIED</text>
+<text x="145" y="112" font-size="3.2" font-weight="bold" text-anchor="start">P - MAGNET POCKET</text>
+<text x="145" y="115.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<text x="145" y="119.4" font-size="2.0" font-weight="normal" text-anchor="start">No magnet STEP — UNVERIFIED</text>
+<rect x="166" y="132" width="64" height="40" rx="0" class="cut"/>
+<rect x="184" y="142" width="28" height="20" rx="1" class="metal"/>
+<text x="151" y="182" font-size="2.0" font-weight="bold" text-anchor="start">CAPTURE LIP; MAGNET DOES NOT DEFINE NYMPH SEAL</text>
+<text x="278" y="112" font-size="3.2" font-weight="bold" text-anchor="start">Q - B03 250/500 JOINT</text>
+<text x="278" y="115.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1  |  OCCT HLR</text>
+<path d="M290.000 248.000 L290.000 128.000" class="hidden"/>
+<path d="M400.000 248.000 L400.000 128.000" class="hidden"/>
+<path d="M290.000 248.000 L400.000 248.000" class="hidden"/>
+<path d="M290.000 128.000 L400.000 128.000" class="hidden"/>
+<path d="M290.000 248.000 L290.000 128.000" class="hlr"/>
+<path d="M400.000 248.000 L400.000 128.000" class="hlr"/>
+<path d="M290.000 248.000 L400.000 248.000" class="hlr"/>
+<path d="M290.000 128.000 L400.000 128.000" class="hlr"/>
+<text x="290" y="182" font-size="2.0" font-weight="bold" text-anchor="start">SHEAR KEY; FACE CASSETTE NOT STRUCTURAL</text>
+<rect x="12" y="198" width="393" height="19.0" rx="0" class="med" fill="#ffffff"/>
+<text x="15" y="202.4" font-size="2.8" font-weight="bold" text-anchor="start">DETAIL RELEASE RULE</text>
+<text x="15" y="207" font-size="2.45" font-weight="normal" text-anchor="start">Projected callouts are HLR of unique-part STEP. TARGET/REF/UNVERIFIED still need coupon or vendor drawing before #31.</text>
+<text x="15" y="211" font-size="2.45" font-weight="normal" text-anchor="start">B20 keep-out lives on S10. Base CAD-02 cdd523c55a63. CAD-01 fe8f875a80b3. EE-23..26 PRs 37-40 read-only.</text>
+<text x="15" y="215" font-size="2.45" font-weight="normal" text-anchor="start">Wipe, magnet, and camera-module details remain diagrams: no sourced STEP this run.</text>
+<line x1="12" y1="241" x2="62.0" y2="241" class="heavy"/>
+<line x1="12.0" y1="239.2" x2="12.0" y2="242.8" class="med"/>
+<text x="12.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">0</text>
+<line x1="22.0" y1="239.2" x2="22.0" y2="242.8" class="med"/>
+<text x="22.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">2</text>
+<line x1="32.0" y1="239.2" x2="32.0" y2="242.8" class="med"/>
+<text x="32.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">4</text>
+<line x1="42.0" y1="239.2" x2="42.0" y2="242.8" class="med"/>
+<text x="42.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">6</text>
+<line x1="52.0" y1="239.2" x2="52.0" y2="242.8" class="med"/>
+<text x="52.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">8</text>
+<line x1="62.0" y1="239.2" x2="62.0" y2="242.8" class="med"/>
+<text x="62.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">10</text>
+<text x="65.0" y="241.6" font-size="2.1" font-weight="normal" text-anchor="start">mm  @ 5:1</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -105,20 +191,20 @@
 <line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">DETAIL BLOW-UPS</text>
-<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
-<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="13" y="280.0" font-size="2.8" font-weight="bold" text-anchor="start" fill="#ba3d3d">DRAFT CAD - NOT SHOP-RELEASE (#31) / NOT FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
-<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">5:1 / DIAGRAM</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41P</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">12 OF 12 / S11</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">DRAFT CAD</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S11</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
@@ -128,6 +214,14 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
-<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="ref"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle">TRUE-SCALE HLR</text>
+<line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
+<text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
+<line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
+<text x="208" y="279.7" font-size="1.7" font-weight="normal" text-anchor="start">motion</text>
+<rect x="198" y="281.2" width="8" height="3.2" rx="0" class="keepout"/>
+<text x="208" y="283.8" font-size="1.7" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="198" y1="287.2" x2="206" y2="287.2" class="med" stroke="#0a7891"/>
+<text x="208" y="288.4" font-size="1.7" font-weight="normal" text-anchor="start">net</text>
 </svg>
