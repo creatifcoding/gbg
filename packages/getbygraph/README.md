@@ -1,11 +1,7 @@
 # getbygraph
 
-This library was generated with [Nx](https://nx.dev).
+`@gbg/graph`. Graph is a projection of `Used` / `Generated` components. Components remain what systems write. There is no second source of truth and no edges table in specimendb.
 
-## Building
+SQL walk always works (`usedBy`, `generated`, `edges`). When Apache AGE is loaded (the #94 Timescale+AGE image), `projectToAge` MERGEs that projection into graph `lab_catalog`.
 
-Run `nx build getbygraph` to build the library.
-
-## Running unit tests
-
-Run `nx test getbygraph` to execute the unit tests via [Vitest](https://vitest.dev/).
+Keep `getbygraph()` for the stub test.
