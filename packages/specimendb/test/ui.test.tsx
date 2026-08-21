@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
-import { StatusComponent, LocalityComponent } from '../src/schemas/components.js';
+import { StatusComponent, LocalityComponent, ExifComponent } from '../src/schemas/components.js';
 import { trustSpecimenId } from '../src/schemas/identifiers.js';
 import { localityOf, nextStatus, statusOf } from '../src/schemas/specimen.js';
 import type { Specimen } from '../src/schemas/specimen.js';
@@ -204,8 +204,10 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       expect(calls.get).toBeGreaterThan(getsAfterIntake);
     });
     expect(view.getByTestId('detail-id').textContent).toContain(id);
+    expect(view.getByTestId('protocol-id').textContent).toBe(id);
     expect(view.getByTestId('detail-locality').textContent).toBe('unknown');
     expect(view.getByTestId('detail-status').getAttribute('data-status')).toBe('raw');
+    expect(view.queryByTestId('detail-exif')).toBeNull();
 
     const html = view.container.textContent ?? '';
     for (const banned of BANISHED) {
@@ -255,6 +257,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     await waitFor(() => {
       expect(terminal.getByTestId('card-chrome')).toBeTruthy();
     });
+    expect(terminal.getByTestId('protocol-id').textContent).toBe('');
     expect(terminal.container.textContent).not.toContain('NO RECORDS');
     expect(terminal.container.textContent).not.toContain('NO SELECTION');
     terminal.unmount();
@@ -263,6 +266,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     await waitFor(() => {
       expect(workbench.getByTestId('card-chrome')).toBeTruthy();
     });
+    expect(workbench.getByTestId('last-updated').textContent).toBe('LAST_UPDATED');
     expect(workbench.container.textContent).not.toContain('NO RECORDS');
     expect(workbench.container.textContent).not.toContain('NO SELECTION');
   });
@@ -399,6 +403,100 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.getByTestId('claim').textContent).toBe('');
     expect(view.queryByTestId('media-bytes')).toBeNull();
     expect(view.getByTestId('locality').textContent).toBe('unknown');
+    expect(view.getByTestId('last-updated').textContent).toBe(`LAST_UPDATED ${specimen.createdAt}`);
+    expect(view.getByTestId('last-updated').textContent).not.toContain('14m AGO');
+  });
+
+  it('Workbench EXPORT DB dumps List JSON and RUN SIM stays inert', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+    };
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([specimen]),
+      Get: () => Effect.succeed(specimen),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
+    };
+
+    const blobs: Blob[] = [];
+    const realCreate = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = (obj) => {
+      if (obj instanceof Blob) blobs.push(obj);
+      return realCreate(obj);
+    };
+    const downloads: string[] = [];
+    const realClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function clickStub(this: HTMLAnchorElement) {
+      downloads.push(this.download);
+    };
+
+    try {
+      const view = render(React.createElement(WorkbenchPage, { client }));
+      await waitFor(() => {
+        expect(view.getByTestId('specimen-id').textContent).toBe(id);
+      });
+
+      await act(async () => {
+        fireEvent.click(view.getByTestId('run-sim'));
+      });
+      expect(blobs).toHaveLength(0);
+      expect(downloads).toHaveLength(0);
+
+      await act(async () => {
+        fireEvent.click(view.getByTestId('export-db'));
+      });
+      expect(blobs).toHaveLength(1);
+      expect(downloads).toEqual(['specimendb-catalog.json']);
+      const text = await blobs[0]!.text();
+      const dumped = JSON.parse(text) as ReadonlyArray<{ readonly id: string; readonly createdAt: string }>;
+      expect(dumped).toHaveLength(1);
+      expect(dumped[0]?.id).toBe(id);
+      expect(dumped[0]?.createdAt).toBe(specimen.createdAt);
+      expect(text).not.toContain('SP-2023-084');
+      expect(text).not.toContain('14m AGO');
+    } finally {
+      URL.createObjectURL = realCreate;
+      HTMLAnchorElement.prototype.click = realClick;
+    }
+  });
+
+  it('Terminal PROTOCOL ID and process log bind branded id and arrived EXIF tags', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [
+        new StatusComponent({ value: 'raw' }),
+        new LocalityComponent({ state: 'unknown' }),
+        new ExifComponent({
+          tags: { DateTimeOriginal: '2026:08:20 12:00:00', Make: 'FieldCam', GPSLatitude: 37 },
+        }),
+      ],
+    };
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([specimen]),
+      Get: () => Effect.succeed(specimen),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
+    };
+    const view = render(React.createElement(TerminalPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('specimen-id').textContent).toBe(id);
+    });
+    await act(async () => {
+      fireEvent.click(view.getByTestId('specimen-card'));
+    });
+    await waitFor(() => {
+      expect(view.getByTestId('protocol-id').textContent).toBe(id);
+    });
+    const lines = view.getAllByTestId('detail-exif').map((node) => node.textContent);
+    expect(lines).toContain('DateTimeOriginal 2026:08:20 12:00:00');
+    expect(lines).toContain('Make FieldCam');
+    expect(view.container.textContent).not.toContain('GPSLatitude');
+    expect(view.container.textContent).not.toContain('SP-2023-084');
   });
 
   it('Workbench no-GPS JPEG files raw + unknown and rail status chrome Promotes to filed', async () => {
@@ -812,6 +910,10 @@ describe('six full pages', () => {
       'F-101',
       'F-102',
       'F-105',
+      'F-110',
+      'F-111',
+      'F-112',
+      'F-113',
     ]) {
       expect(journal).toContain(id);
     }
@@ -823,5 +925,10 @@ describe('six full pages', () => {
     expect(journal).toContain('F-108');
     expect(journal).toContain('F-109');
     expect(journal).toContain('Promote');
+    const synth = readFileSync(resolve(process.cwd(), 'docs/page-function-synth.md'), 'utf8');
+    expect(synth).toContain('Page-function synth');
+    expect(synth).toContain('GetMedia');
+    expect(synth).toContain('EXECUTE ASSAY');
+    expect(synth).toContain('capture→store');
   });
 });

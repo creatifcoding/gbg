@@ -176,3 +176,14 @@ Static HTML + vendored ExifTool WASM. Not a React surface. Does not call PGlite,
 | F-108 | stamp + download | — | now | on-device `writeMetadata`; no upload; no Intake |
 | F-109 | ExifTool WASM | — | now | `vendor/`; no CDN at shot time |
 
+## Strips found after the first walk
+
+The strip journal is the floor. `docs/page-function-synth.md` is the product bag (export, assay execute, edit meta, analog edges, media layers, capture→intake, viewer, filters, last-modified, owner, …). Do not rewrite verdicts above. These rows are new glass that already had a well, now filled from store data that already exists.
+
+| ID | Strip | Component | Verdict | Bind |
+|---|---|---|---|---|
+| F-110 | Terminal `PROTOCOL ID` value | SpecimenId | now | selected branded id. F-014 still kills SP- / SEQ- theater |
+| F-111 | Workbench `EXPORT DB` | Specimen list | now | download `specimendb-catalog.json` of List items. Empty catalog is `[]`. F-045 chrome was the button type; RUN SIM stays inert |
+| F-112 | Workbench `LAST_UPDATED` | createdAt / Exif DateTimeOriginal | now | `LAST_UPDATED` + ISO, or DateTimeOriginal when that tag arrived. Never the constant `14m AGO` |
+| F-113 | Terminal process log EXIF lines | Exif | now | Make / Model / DateTimeOriginal when tags arrived. GPS stays on the locality line |
+

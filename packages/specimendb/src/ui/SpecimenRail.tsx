@@ -12,7 +12,7 @@ import type { Specimen } from '../schemas/specimen.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
 import { AccessionQuery, StatusFilters } from './catalog-controls.js';
-import { claimLine, tagSlots } from './catalog-view.js';
+import { claimLine, downloadCatalogJson, lastUpdatedLine, tagSlots } from './catalog-view.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
 import { ViewportMark } from './marks.js';
 import './catalog.css';
@@ -329,8 +329,17 @@ function SpecimenRailDetail() {
           ) : null}
         </div>
         <div className="sdb-w-actions">
-          <button type="button">EXPORT DB</button>
-          <button type="button">RUN SIM</button>
+          <button
+            type="button"
+            data-testid="export-db"
+            data-export="true"
+            onClick={() => downloadCatalogJson(catalog.store.get().items)}
+          >
+            EXPORT DB
+          </button>
+          <button type="button" data-testid="run-sim">
+            RUN SIM
+          </button>
         </div>
       </div>
       <div className="sdb-w-viewport">
@@ -355,6 +364,12 @@ function SpecimenRailDetail() {
 }
 
 function SpecimenRailProperties() {
+  const { catalog } = useRail();
+  const selected = useFocus(
+    catalog.store,
+    at<CatalogState['selected']>(catalog.store.lens.selected),
+  );
+
   return (
     <aside className="sdb-w-props" data-testid="properties-log">
       <header className="sdb-w-props-header">PROPERTIES LOG</header>
@@ -401,7 +416,9 @@ function SpecimenRailProperties() {
         </div>
         <p className="sdb-w-obs" />
       </section>
-      <div className="sdb-w-updated">LAST_UPDATED</div>
+      <div className="sdb-w-updated" data-testid="last-updated">
+        {lastUpdatedLine(selected)}
+      </div>
     </aside>
   );
 }
