@@ -90,7 +90,8 @@ in a separate process after writing the report.
 `--no-write-lock-file`. Doctor and the narrow-shell checks run from
 `projects/biomemetics/labs/mantis` so the lab is the shell cwd. Isolation is
 `$RUNNER_TEMP/mantis-lab-ci/<run-id>` (no `..` segment; artifact upload
-rejects relative pathing). Nix cache keys are the lab `flake.lock` digest.
+rejects relative pathing; job `env` cannot use the `runner` context). Nix
+cache keys are the lab `flake.lock` digest.
 Cache restore is never treated as a passing check.
 
 `nix develop` from the gbg repository root used to export `MANTIS_LAB_ROOT=$PWD`,
