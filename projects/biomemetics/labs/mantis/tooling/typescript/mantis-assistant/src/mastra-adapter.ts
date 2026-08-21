@@ -13,10 +13,12 @@ import { EventType, type BaseEvent, type RunAgentInput } from '@ag-ui/core';
 import { MastraAgent } from '@ag-ui/mastra';
 import { registerCopilotKit } from '@ag-ui/mastra/copilotkit';
 import { CopilotRuntime, createCopilotRuntimeHandler, type CopilotRuntimeOptions } from '@copilotkit/runtime/v2';
+import { getAuthStorage, openaiCodexProvider } from '@mastra/code-sdk/providers/openai-codex';
 import { Agent } from '@mastra/core/agent';
 import { createDurableAgent } from '@mastra/core/agent/durable';
 import { AgentController } from '@mastra/core/agent-controller';
 import { runEvals } from '@mastra/core/evals';
+import type { MastraModelConfig } from '@mastra/core/llm';
 import { Mastra } from '@mastra/core/mastra';
 import { InMemoryStore } from '@mastra/core/storage';
 import { createTool } from '@mastra/core/tools';
@@ -119,21 +121,73 @@ export const createFakeModel = (text = FAKE_MODEL_TEXT) => ({
   },
 });
 
-export const LIVE_LUNA_QUARANTINED_UPSTREAM = 'LIVE_LUNA_QUARANTINED_UPSTREAM' as const;
-export const LIVE_LUNA_GAP =
-  'QUARANTINED_UPSTREAM: @mastra/core@1.61.0 has no ChatGPT/Codex OAuth provider or subscription token store; the openai-codex provider lives in Mastra Code outside the pinned A0 dependency set.';
+export const CODEX_SUBSCRIPTION_LIVE_DISABLED = 'CODEX_SUBSCRIPTION_LIVE_DISABLED' as const;
+export const CODEX_SUBSCRIPTION_AUTH_REQUIRED = 'CODEX_SUBSCRIPTION_AUTH_REQUIRED' as const;
 
-export class LiveLunaQuarantinedError extends Error {
-  readonly code = LIVE_LUNA_QUARANTINED_UPSTREAM;
+export type CodexSubscriptionGateCode =
+  | typeof CODEX_SUBSCRIPTION_LIVE_DISABLED
+  | typeof CODEX_SUBSCRIPTION_AUTH_REQUIRED;
 
-  constructor() {
-    super(LIVE_LUNA_GAP);
-    this.name = 'LiveLunaQuarantinedError';
+export class CodexSubscriptionGateError extends Error {
+  readonly code: CodexSubscriptionGateCode;
+
+  constructor(code: CodexSubscriptionGateCode) {
+    super(code);
+    this.name = 'CodexSubscriptionGateError';
+    this.code = code;
   }
 }
 
-export const createLiveLunaLane = (): never => {
-  throw new LiveLunaQuarantinedError();
+export type ModelLane =
+  | {
+      readonly kind: 'fake';
+      readonly model: ReturnType<typeof createFakeModel>;
+    }
+  | {
+      readonly kind: 'live-luna';
+      readonly model: MastraModelConfig;
+    };
+
+const isCodexOAuthCredential = (value: unknown): boolean => {
+  if (!value || typeof value !== 'object') return false;
+  const credential = value as {
+    type?: unknown;
+    access?: unknown;
+    refresh?: unknown;
+    expires?: unknown;
+  };
+  return (
+    credential.type === 'oauth' &&
+    typeof credential.access === 'string' &&
+    credential.access.length > 0 &&
+    typeof credential.refresh === 'string' &&
+    credential.refresh.length > 0 &&
+    typeof credential.expires === 'number' &&
+    Number.isFinite(credential.expires)
+  );
+};
+
+const requireCodexSubscription = () => {
+  const authStorage = getAuthStorage();
+  authStorage.reload();
+  if (!isCodexOAuthCredential(authStorage.get('openai-codex'))) {
+    throw new CodexSubscriptionGateError(CODEX_SUBSCRIPTION_AUTH_REQUIRED);
+  }
+  return authStorage;
+};
+
+export const createLiveLunaLane = (): Extract<ModelLane, { kind: 'live-luna' }> => {
+  if (process.env.MASTRA_LIVE !== '1') {
+    throw new CodexSubscriptionGateError(CODEX_SUBSCRIPTION_LIVE_DISABLED);
+  }
+  const authStorage = requireCodexSubscription();
+  return {
+    kind: 'live-luna',
+    model: openaiCodexProvider(PINS.liveModel, {
+      thinkingLevel: PINS.liveReasoningLevel,
+      authStorage,
+    }),
+  };
 };
 
 export interface SideEffectCounter {
@@ -235,6 +289,7 @@ const mark = (
 
 export const createAdapterHarness = async (
   clock = new FakeClock(),
+  lane: ModelLane = { kind: 'fake', model: createFakeModel() },
 ): Promise<AdapterHarness> => {
   const capabilities: CapabilityEntry[] = [];
   const sideEffects: SideEffectCounter = { externalEffectCount: 0 };
@@ -260,7 +315,7 @@ export const createAdapterHarness = async (
     name: 'mantis-coordinator',
     instructions:
       'You are the mantis coordinator. Emit CareAdvice only. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
-    model: fakeModel,
+    model: lane.model,
     tools: {
       'care-source-read': tools.careSourceRead,
       'supply-transit-read': tools.supplyTransitRead,
@@ -1272,6 +1327,7 @@ export const authenticatedInProcessAguiRoundTrip = async (
 };
 
 export const usedBetaImportPaths = [
+  '@mastra/code-sdk/providers/openai-codex',
   '@mastra/core/agent',
   '@mastra/core/agent/durable',
   '@mastra/core/agent-controller',

@@ -1,6 +1,7 @@
 /** Exact A0 package pins. Change only with a compatibility re-proof. */
 export const PINS = {
   mastraCore: '1.61.0',
+  mastraCodeSdk: '1.4.0',
   mastraClientJs: '1.42.0',
   mastraMemory: '1.27.0',
   mastraObservability: '1.17.1',
@@ -17,8 +18,11 @@ export const PINS = {
   zod: '3.25.76',
   packageManager: 'npm@10.9.7',
   node: '>=22.14.0',
+  liveNode: '>=22.19.0',
   controllerConfig: 'mantis-controller@0.1.0',
   fakeModel: 'mantis-fake-model@1.0.0',
+  liveModel: 'gpt-5.6-luna',
+  liveReasoningLevel: 'max',
   liveModel: 'openai/gpt-5.6-luna',
   liveReasoningLevel: 'max',
 } as const;

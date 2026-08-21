@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "kind": "EvalProgram",
-  "description": "A0 compatibility matrix. CI uses the fake model. The requested live Luna lane is quarantined until the pinned OAuth provider exists.",
+  "description": "A0 compatibility matrix. CI uses the fake model. The opt-in live lane consumes a Codex or ChatGPT subscription session.",
   "network": false,
   "credentials": false,
   "lanes": {
@@ -13,11 +13,14 @@
     "live": {
       "model": "openai/gpt-5.6-luna",
       "reasoningEffort": "max",
-      "provider": "Mastra Code openai-codex pattern",
-      "status": "QUARANTINED_UPSTREAM",
-      "gap": "@mastra/core@1.61.0 has no ChatGPT/Codex OAuth provider or subscription token store",
+      "provider": "@mastra/code-sdk@1.4.0 openai-codex",
+      "credential": "Mastra Code auth.json openai-codex OAuth",
       "optIn": "MASTRA_LIVE=1",
-      "loginStatus": "LOGIN_NEEDED after the provider is pinned",
+      "network": true,
+      "credentials": true,
+      "node": ">=22.19.0",
+      "apiKey": false,
+      "emptyWell": "CODEX_SUBSCRIPTION_AUTH_REQUIRED",
       "cursorPlanTokens": false
     }
   },

@@ -5,12 +5,13 @@ export { redactSensitive, asAssistantMemory } from './privacy.ts';
 export { FakeClock } from './clock.ts';
 export { loadCorpus, loadRegistry, validateInstance } from './contracts.ts';
 export {
-  LIVE_LUNA_GAP,
-  LIVE_LUNA_QUARANTINED_UPSTREAM,
-  LiveLunaQuarantinedError,
+  CODEX_SUBSCRIPTION_AUTH_REQUIRED,
+  CODEX_SUBSCRIPTION_LIVE_DISABLED,
+  CodexSubscriptionGateError,
   createLiveLunaLane,
   usedBetaImportPaths,
 } from './mastra-adapter.ts';
+export type { ModelLane } from './mastra-adapter.ts';
 export { effectPin } from './effect-pin.ts';
 export type {
   CapabilityEntry,

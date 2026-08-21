@@ -26,6 +26,7 @@ test('package.json pins match PINS', () => {
     packageManager: string;
   };
   assert.equal(pkg.dependencies['@mastra/core'], PINS.mastraCore);
+  assert.equal(pkg.dependencies['@mastra/code-sdk'], PINS.mastraCodeSdk);
   assert.equal(pkg.dependencies['@mastra/client-js'], PINS.mastraClientJs);
   assert.equal(pkg.dependencies['@mastra/memory'], PINS.mastraMemory);
   assert.equal(pkg.dependencies['@mastra/observability'], PINS.mastraObservability);
@@ -54,6 +55,7 @@ test('installed package versions match the lock pins', () => {
       ) as { version: string }
     ).version;
   assert.equal(installed('@mastra/core'), PINS.mastraCore);
+  assert.equal(installed('@mastra/code-sdk'), PINS.mastraCodeSdk);
   assert.equal(installed('@mastra/memory'), PINS.mastraMemory);
   assert.equal(installed('@mastra/observability'), PINS.mastraObservability);
   assert.equal(installed('@mastra/evals'), PINS.mastraEvals);

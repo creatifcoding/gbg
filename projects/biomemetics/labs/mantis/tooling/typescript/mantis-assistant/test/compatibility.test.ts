@@ -15,11 +15,14 @@ const matrix = loadLabJson(
       model: string;
       reasoningEffort: string;
       provider: string;
-      status: string;
-      gap: string;
+      credential: string;
       optIn: string;
-      loginStatus: string;
+      network: boolean;
+      credentials: boolean;
+      node: string;
+      apiKey: boolean;
       cursorPlanTokens: boolean;
+      emptyWell: string;
     };
   };
 };
@@ -42,7 +45,7 @@ test('compatibility matrix is the A0 required set', () => {
   ]);
 });
 
-test('compatibility matrix keeps CI fake and live quarantine explicit', () => {
+test('compatibility matrix keeps CI fake and live Codex lanes explicit', () => {
   assert.deepEqual(matrix.lanes.ci, {
     model: 'mantis-fake-model@1.0.0',
     network: false,
@@ -50,15 +53,18 @@ test('compatibility matrix keeps CI fake and live quarantine explicit', () => {
   });
   assert.equal(matrix.lanes.live.model, 'openai/gpt-5.6-luna');
   assert.equal(matrix.lanes.live.reasoningEffort, 'max');
-  assert.equal(matrix.lanes.live.provider, 'Mastra Code openai-codex pattern');
-  assert.equal(matrix.lanes.live.status, 'QUARANTINED_UPSTREAM');
+  assert.equal(matrix.lanes.live.provider, '@mastra/code-sdk@1.4.0 openai-codex');
   assert.equal(
-    matrix.lanes.live.gap,
-    '@mastra/core@1.61.0 has no ChatGPT/Codex OAuth provider or subscription token store',
+    matrix.lanes.live.credential,
+    'Mastra Code auth.json openai-codex OAuth',
   );
   assert.equal(matrix.lanes.live.optIn, 'MASTRA_LIVE=1');
-  assert.equal(matrix.lanes.live.loginStatus, 'LOGIN_NEEDED after the provider is pinned');
+  assert.equal(matrix.lanes.live.network, true);
+  assert.equal(matrix.lanes.live.credentials, true);
+  assert.equal(matrix.lanes.live.node, '>=22.19.0');
+  assert.equal(matrix.lanes.live.apiKey, false);
   assert.equal(matrix.lanes.live.cursorPlanTokens, false);
+  assert.equal(matrix.lanes.live.emptyWell, 'CODEX_SUBSCRIPTION_AUTH_REQUIRED');
 });
 
 test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t) => {

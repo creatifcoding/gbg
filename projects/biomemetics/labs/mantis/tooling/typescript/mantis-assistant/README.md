@@ -30,14 +30,17 @@ in-memory storage. They do not use live credentials or network model providers.
 CI uses `createFakeModel`, fake tools, and no credentials. The existing
 33-test proof remains offline.
 
-The requested live lane is `QUARANTINED_UPSTREAM`. The pinned
-`@mastra/core@1.61.0` model router does not expose the ChatGPT or Codex OAuth
-provider used by Mastra Code. The official `openai-codex` provider lives
-outside this package's pinned A0 dependency set, so this harness does not
-start OAuth, read a pasted key, or call a Cursor endpoint.
+The live lane is opt-in. Run `MASTRA_LIVE=1 npm run test:live` after the user
+has authenticated through Mastra Code's Codex or ChatGPT subscription flow.
+The test skips without `MASTRA_LIVE=1`.
 
-Run `MASTRA_LIVE=1 npm run test:live` to inspect the quarantine assertion. The
-test skips without the opt-in. It reports
-`LIVE_LUNA_QUARANTINED_UPSTREAM` with the exact provider gap. `LOGIN_NEEDED`
-applies only after a pinned provider can consume the user's existing
-Codex or ChatGPT subscription session.
+The lane uses the pinned `@mastra/code-sdk@1.4.0` `openai-codex` provider with
+model `gpt-5.6-luna` and reasoning level `max`. The provider reads the
+subscription OAuth record from Mastra Code `auth.json` and owns token refresh.
+The lane never starts login, prints credentials, or accepts an API-key
+credential.
+
+The package's fake CI lane supports Node `>=22.14.0`. The live provider package
+declares Node `>=22.19.0`. A missing subscription session fails closed with
+`CODEX_SUBSCRIPTION_AUTH_REQUIRED`. The in-process AG-UI bind remains
+`MastraAgent.getLocalAgents` into `CopilotRuntime`; it has no `runtimeUrl`.

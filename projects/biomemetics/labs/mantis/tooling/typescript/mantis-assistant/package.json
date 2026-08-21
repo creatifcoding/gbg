@@ -25,6 +25,7 @@
     "@copilotkit/runtime": "1.68.3",
     "@copilotkit/shared": "1.68.3",
     "@mastra/client-js": "1.42.0",
+    "@mastra/code-sdk": "1.4.0",
     "@mastra/core": "1.61.0",
     "@mastra/evals": "1.9.0",
     "@mastra/libsql": "1.21.1",
