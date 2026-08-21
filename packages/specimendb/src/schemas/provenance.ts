@@ -9,7 +9,8 @@
  * W7 (who / what / when / where / why / how) lives on Kind=activity.
  * Honesty class lives on the generated entity. Operations are entities.
  *
- * EVA bind, PGlite tables, and activity-log RPC are later cuts (#61 / #76).
+ * Catalog SoT is Postgres (`entities` + `components`). Activity append is a
+ * system: Used / Generated / Supersedes hang on `entity_id`.
  *
  * @module @tmnl/specimendb/schemas/provenance
  */
@@ -22,7 +23,7 @@ import {
 } from './identifiers.js';
 
 /** v1 kinds. Later kinds are a schema change, not a new table. */
-export const EntityKind = Schema.Literals([
+export const ENTITY_KIND_VALUES = [
   'specimen',
   'sheet',
   'solid',
@@ -35,8 +36,21 @@ export const EntityKind = Schema.Literals([
   'analog',
   'view',
   'activity',
-] as const);
+  'contract',
+  'catalog',
+  'html',
+] as const;
+
+export const EntityKind = Schema.Literals(ENTITY_KIND_VALUES);
 export type EntityKind = typeof EntityKind.Type;
+
+/**
+ * Second-order discriminator on a kind. Column + Type component.
+ * Vocabulary is kind-local (solid: assembly|part|fixture, sheet: projected|diagram, …).
+ * Not a third table. Not a global enum.
+ */
+export const EntityType = Schema.String.check(Schema.isMinLength(1));
+export type EntityType = typeof EntityType.Type;
 
 /**
  * Honesty class. Travels on the generated entity. A Look PNG cannot promote it.
@@ -119,13 +133,15 @@ const labEntityFields = {
   ref: EntityRef,
   /** Kind is data. */
   kind: EntityKind,
+  /** Second-order discriminator on kind. Column + Type component. */
+  type: Schema.optional(EntityType),
   /** Human name. Not the id. */
   label: Schema.String.check(Schema.isMinLength(1)),
   /** Honesty class. Required on every record. */
   class: HonestyClass,
   bytes: Schema.optional(ContentAddress),
 
-  // PROV relations (refs). Queryable edges; not a second catalog.
+  // PROV relations (refs). Queryable relation components; not a second catalog.
   used: Schema.optional(Schema.Array(EntityRef)),
   generated: Schema.optional(Schema.Array(EntityRef)),
   wasGeneratedBy: Schema.optional(EntityRef),
@@ -140,6 +156,12 @@ const labEntityFields = {
   where: Schema.optional(Schema.String),
   why: Schema.optional(Schema.String),
   how: Schema.optional(Schema.String),
+
+  /**
+   * Prior activity this record supersedes. Corrections are a new entity.
+   * The system attaches a Supersedes component; it does not rewrite the old ref.
+   */
+  supersedes: Schema.optional(EntityRef),
 
   /** Existing SpecimenId when kind=specimen. Same brand; not a fork. */
   specimenId: Schema.optional(SpecimenId),
@@ -157,9 +179,13 @@ const activityHasW7 = Schema.makeFilter<{
   readonly where?: string;
   readonly why?: string;
   readonly how?: string;
+  readonly supersedes?: EntityRef;
   readonly specimenId?: SpecimenId;
   readonly ref: EntityRef;
 }>((entity) => {
+  if (entity.supersedes !== undefined && entity.kind !== 'activity') {
+    return 'supersedes is only valid on kind=activity';
+  }
   if (entity.kind === 'activity') {
     if (
       entity.who === undefined ||
@@ -199,3 +225,9 @@ export const LabEntityRecord = LabEntity.pipe(Schema.check(activityHasW7));
 
 export const decodeLabEntity = Schema.decodeUnknownSync(LabEntityRecord);
 export const decodeDoctorReportPayload = Schema.decodeUnknownSync(DoctorReportPayload);
+
+/** Get-by-ref: the activity itself, Used target, Generated target, or Supersedes. */
+export const GetByRefPayload = Schema.Struct({
+  ref: EntityRef,
+});
+export type GetByRefPayload = typeof GetByRefPayload.Type;

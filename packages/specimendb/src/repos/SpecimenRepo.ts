@@ -1,7 +1,9 @@
 /**
  * SpecimenRepo — ECS persistence: entity row + attached components.
  *
- * Talks `SqlClient`. L1 is PGlite (`@effect/sql-pglite`).
+ * Talks `SqlClient`. L1 is Postgres (`@effect/sql-pg`).
+ * Intake / Promote / nextStatus / eat-file EXIF stay this loop; rows are
+ * `entities.id` + `components.entity_id` (not a `specimens` table).
  *
  * @module @tmnl/specimendb/repos/SpecimenRepo
  */
@@ -20,16 +22,20 @@ import {
   gpsFromExif,
   toExiftoolSidecar,
 } from '../media/exif.js';
+import { CatalogError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
 import {
-  CatalogError,
-  IntakeError,
-  SpecimenNotFoundError,
-} from '../schemas/errors.js';
-import { trustSpecimenId, type SpecimenId } from '../schemas/identifiers.js';
+  specimenIdFromRef,
+  specimenRefFromId,
+  trustEntityRef,
+  trustSpecimenId,
+  type EntityRef,
+  type SpecimenId,
+} from '../schemas/identifiers.js';
 import {
   ClaimComponent,
   Component,
   ExifComponent,
+  KindComponent,
   LocalityComponent,
   MediaComponent,
   StatusComponent,
@@ -42,6 +48,7 @@ import {
   nextStatus,
   statusOf,
 } from '../schemas/specimen.js';
+import { isoOf } from './_decode.js';
 
 export interface SpecimenRepoShape {
   readonly intake: (
@@ -99,6 +106,15 @@ const rowsToComponents = (
     return out;
   });
 
+const asSpecimen = (
+  entityId: EntityRef,
+  createdAt: string,
+  components: ReadonlyArray<typeof Component.Type>,
+): typeof Specimen.Type => {
+  const specimenId = specimenIdFromRef(entityId) ?? trustSpecimenId(entityId);
+  return { id: specimenId, createdAt, components };
+};
+
 export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShape>()(
   '@tmnl/specimendb/SpecimenRepo',
 ) {
@@ -109,159 +125,169 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
       const assets = yield* AssetStore;
 
       const insertComponent = (
-        specimenId: SpecimenId,
+        entityId: EntityRef,
         kind: ComponentKind,
         component: typeof Component.Type,
         attachedAt: string,
       ) =>
         sql`
-          INSERT INTO components (id, specimen_id, kind, payload, attached_at)
+          INSERT INTO components (id, entity_id, kind, payload, attached_at)
           VALUES (
             ${randomUUID()},
-            ${specimenId},
+            ${entityId},
             ${kind},
             ${JSON.stringify(component)}::jsonb,
-            ${attachedAt}
+            ${attachedAt}::timestamptz
           )
         `.pipe(Effect.asVoid, Effect.mapError(catalogError('insertComponent')));
 
-      const loadSpecimen = (id: SpecimenId, createdAt: string) =>
+      const loadSpecimen = (entityId: EntityRef, createdAt: string) =>
         Effect.gen(function* () {
           const componentRows = yield* sql<Record<string, unknown>>`
-            SELECT payload FROM components WHERE specimen_id = ${id} ORDER BY attached_at ASC
+            SELECT payload FROM components WHERE entity_id = ${entityId} ORDER BY attached_at ASC
           `.pipe(Effect.mapError(catalogError('loadComponents')));
           const components = yield* rowsToComponents(componentRows);
-          return { id, createdAt, components } satisfies typeof Specimen.Type;
+          return asSpecimen(entityId, createdAt, components);
         });
 
       const intake = Effect.fn('@tmnl/specimendb/SpecimenRepo.intake')(function* (
         payload: typeof IntakePayload.Type,
       ) {
-          const specimenId = trustSpecimenId(randomUUID());
-          const createdAt = nowIso();
-          const kind = detectMediaKind(payload.bytes, payload.filename, payload.mediaType);
-          const stored = yield* assets.storeOriginal(specimenId, payload.filename, payload.bytes);
-          const tags = extractExifTags(payload.bytes, kind);
-          const gps = gpsFromExif(tags);
+        const specimenId = trustSpecimenId(randomUUID());
+        const entityId = specimenRefFromId(specimenId);
+        const createdAt = nowIso();
+        const kind = detectMediaKind(payload.bytes, payload.filename, payload.mediaType);
+        const stored = yield* assets.storeOriginal(specimenId, payload.filename, payload.bytes);
+        const tags = extractExifTags(payload.bytes, kind);
+        const gps = gpsFromExif(tags);
 
-          const components: Array<typeof Component.Type> = [
-            new StatusComponent({ value: 'raw' }),
-            new MediaComponent({
-              kind,
-              filename: stored.filename,
-              assetPath: stored.assetPath,
-              mediaType: payload.mediaType ?? (kind === 'jpeg' ? 'image/jpeg' : kind === 'heic' ? 'image/heic' : 'application/octet-stream'),
-              byteLength: payload.bytes.byteLength,
-            }),
-          ];
+        const components: Array<typeof Component.Type> = [
+          new KindComponent({ value: 'specimen' }),
+          new StatusComponent({ value: 'raw' }),
+          new MediaComponent({
+            kind,
+            filename: stored.filename,
+            assetPath: stored.assetPath,
+            mediaType:
+              payload.mediaType ??
+              (kind === 'jpeg' ? 'image/jpeg' : kind === 'heic' ? 'image/heic' : 'application/octet-stream'),
+            byteLength: payload.bytes.byteLength,
+          }),
+        ];
 
-          if (payload.claim !== undefined || payload.title !== undefined) {
-            components.push(
-              new ClaimComponent({
-                text: payload.claim ?? payload.title ?? '',
-                ...(payload.title !== undefined ? { title: payload.title } : {}),
-              }),
-            );
-          }
-
-          yield* assets.writeSidecar(stored.sidecarPath, toExiftoolSidecar(stored.filename, tags));
+        if (payload.claim !== undefined || payload.title !== undefined) {
           components.push(
-            new ExifComponent({
-              tags,
-              sidecarPath: stored.sidecarPath,
+            new ClaimComponent({
+              text: payload.claim ?? payload.title ?? '',
+              ...(payload.title !== undefined ? { title: payload.title } : {}),
             }),
           );
+        }
 
-          if (gps !== undefined) {
-            components.push(
-              new LocalityComponent({
-                state: 'fixed',
-                latitude: gps.latitude,
-                longitude: gps.longitude,
-                ...(gps.altitudeMeters !== undefined ? { altitudeMeters: gps.altitudeMeters } : {}),
-                source: 'exif',
-              }),
-            );
-          } else if (payload.geo !== undefined) {
-            components.push(
-              new LocalityComponent({
-                state: 'fixed',
-                latitude: payload.geo.latitude,
-                longitude: payload.geo.longitude,
-                ...(payload.geo.altitudeMeters !== undefined
-                  ? { altitudeMeters: payload.geo.altitudeMeters }
-                  : {}),
-                ...(payload.geo.accuracyMeters !== undefined
-                  ? { accuracyMeters: payload.geo.accuracyMeters }
-                  : {}),
-                source: 'capture-page',
-              }),
-            );
-          } else {
-            components.push(new LocalityComponent({ state: 'unknown' }));
-          }
+        yield* assets.writeSidecar(stored.sidecarPath, toExiftoolSidecar(stored.filename, tags));
+        components.push(
+          new ExifComponent({
+            tags,
+            sidecarPath: stored.sidecarPath,
+          }),
+        );
 
-          yield* sql`
-            INSERT INTO specimens (id, created_at) VALUES (${specimenId}, ${createdAt})
-          `.pipe(Effect.asVoid, Effect.mapError(catalogError('insertSpecimen')));
+        if (gps !== undefined) {
+          components.push(
+            new LocalityComponent({
+              state: 'fixed',
+              latitude: gps.latitude,
+              longitude: gps.longitude,
+              ...(gps.altitudeMeters !== undefined ? { altitudeMeters: gps.altitudeMeters } : {}),
+              source: 'exif',
+            }),
+          );
+        } else if (payload.geo !== undefined) {
+          components.push(
+            new LocalityComponent({
+              state: 'fixed',
+              latitude: payload.geo.latitude,
+              longitude: payload.geo.longitude,
+              ...(payload.geo.altitudeMeters !== undefined
+                ? { altitudeMeters: payload.geo.altitudeMeters }
+                : {}),
+              ...(payload.geo.accuracyMeters !== undefined
+                ? { accuracyMeters: payload.geo.accuracyMeters }
+                : {}),
+              source: 'capture-page',
+            }),
+          );
+        } else {
+          components.push(new LocalityComponent({ state: 'unknown' }));
+        }
 
-          for (const component of components) {
-            yield* insertComponent(specimenId, component._tag, component, createdAt);
-          }
+        yield* sql`
+          INSERT INTO entities (id, kind, type, created_at)
+          VALUES (${entityId}, ${'specimen'}, ${null}, ${createdAt}::timestamptz)
+        `.pipe(Effect.asVoid, Effect.mapError(catalogError('insertSpecimen')));
 
-          return { specimenId, components } satisfies typeof IntakeResult.Type;
-        });
+        for (const component of components) {
+          yield* insertComponent(entityId, component._tag, component, createdAt);
+        }
+
+        return { specimenId, components } satisfies typeof IntakeResult.Type;
+      });
 
       const get = Effect.fn('@tmnl/specimendb/SpecimenRepo.get')(function* (
         specimenId: SpecimenId,
       ) {
-          const rows = yield* sql<{ id: string; created_at: string }>`
-            SELECT id, created_at FROM specimens WHERE id = ${specimenId}
-          `.pipe(Effect.mapError(catalogError('get')));
-          const row = rows[0];
-          if (row === undefined) {
-            return yield* new SpecimenNotFoundError({ specimenId });
-          }
-          return yield* loadSpecimen(specimenId, row.created_at);
-        });
+        const entityId = specimenRefFromId(specimenId);
+        const rows = yield* sql<{ id: string; created_at: unknown }>`
+          SELECT id, created_at FROM entities
+          WHERE id = ${entityId} AND kind = ${'specimen'}
+        `.pipe(Effect.mapError(catalogError('get')));
+        const row = rows[0];
+        if (row === undefined) {
+          return yield* new SpecimenNotFoundError({ specimenId });
+        }
+        return yield* loadSpecimen(entityId, isoOf(row.created_at));
+      });
 
       const list = Effect.fn('@tmnl/specimendb/SpecimenRepo.list')(function* () {
-          const rows = yield* sql<{ id: string; created_at: string }>`
-            SELECT id, created_at FROM specimens ORDER BY created_at ASC
-          `.pipe(Effect.mapError(catalogError('list')));
-          const specimens: Array<typeof Specimen.Type> = [];
-          for (const row of rows) {
-            specimens.push(yield* loadSpecimen(trustSpecimenId(row.id), row.created_at));
-          }
-          return specimens;
-        });
+        const rows = yield* sql<{ id: string; created_at: unknown }>`
+          SELECT id, created_at FROM entities
+          WHERE kind = ${'specimen'}
+          ORDER BY created_at ASC
+        `.pipe(Effect.mapError(catalogError('list')));
+        const specimens: Array<typeof Specimen.Type> = [];
+        for (const row of rows) {
+          specimens.push(yield* loadSpecimen(trustEntityRef(row.id), isoOf(row.created_at)));
+        }
+        return specimens;
+      });
 
       const promote = Effect.fn('@tmnl/specimendb/SpecimenRepo.promote')(function* (
         specimenId: SpecimenId,
       ) {
-          const specimen = yield* get(specimenId);
-          const current = statusOf(specimen) ?? 'raw';
-          if (current === 'dead') return specimen;
-          const next = nextStatus(current);
-          const updated = new StatusComponent({ value: next });
-          const attachedAt = nowIso();
-          const existing = yield* sql<{ id: string }>`
-            SELECT id FROM components
-            WHERE specimen_id = ${specimenId} AND kind = ${'Status'}
-            LIMIT 1
-          `.pipe(Effect.mapError(catalogError('promote')));
-          const row = existing[0];
-          if (row === undefined) {
-            yield* insertComponent(specimenId, 'Status', updated, attachedAt);
-          } else {
-            yield* sql`
-              UPDATE components
-              SET payload = ${JSON.stringify(updated)}::jsonb, attached_at = ${attachedAt}
-              WHERE id = ${row.id}
-            `.pipe(Effect.asVoid, Effect.mapError(catalogError('promote')));
-          }
-          return yield* get(specimenId);
-        });
+        const specimen = yield* get(specimenId);
+        const current = statusOf(specimen) ?? 'raw';
+        if (current === 'dead') return specimen;
+        const next = nextStatus(current);
+        const updated = new StatusComponent({ value: next });
+        const attachedAt = nowIso();
+        const entityId = specimenRefFromId(specimenId);
+        const existing = yield* sql<{ id: string }>`
+          SELECT id FROM components
+          WHERE entity_id = ${entityId} AND kind = ${'Status'}
+          LIMIT 1
+        `.pipe(Effect.mapError(catalogError('promote')));
+        const row = existing[0];
+        if (row === undefined) {
+          yield* insertComponent(entityId, 'Status', updated, attachedAt);
+        } else {
+          yield* sql`
+            UPDATE components
+            SET payload = ${JSON.stringify(updated)}::jsonb, attached_at = ${attachedAt}::timestamptz
+            WHERE id = ${row.id}
+          `.pipe(Effect.asVoid, Effect.mapError(catalogError('promote')));
+        }
+        return yield* get(specimenId);
+      });
 
       return SpecimenRepo.of({ intake, get, list, promote });
     }),

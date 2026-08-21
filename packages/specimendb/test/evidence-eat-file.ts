@@ -10,6 +10,7 @@ import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { layer } from '../src/layers.js';
+import { catalogPgFromEnv } from '../src/repos/pg.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
 import { exifOf, localityOf, mediaOf, statusOf } from '../src/schemas/specimen.js';
 import { specimenSurface } from '../src/surface.js';
@@ -62,7 +63,7 @@ const report = await Effect.runPromise(
   ).pipe(
     Effect.provide(
       layer({
-        dataDir: 'memory://',
+        pg: catalogPgFromEnv(),
         assetsRoot,
       }),
     ),

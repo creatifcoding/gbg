@@ -8,6 +8,8 @@
  */
 
 import * as Schema from 'effect/Schema';
+import { EntityRef } from './identifiers.js';
+import { EntityKind, EntityType, HonestyClass } from './provenance.js';
 
 export const SpecimenStatus = Schema.Literals(['raw', 'filed', 'working', 'dead'] as const);
 export type SpecimenStatus = typeof SpecimenStatus.Type;
@@ -46,6 +48,31 @@ export type ExifTags = typeof ExifTags.Type;
 
 export class StatusComponent extends Schema.TaggedClass<StatusComponent>()('Status', {
   value: SpecimenStatus,
+}) {}
+
+/** Kind is a component (and a column on `entities`). Not a privileged type. */
+export class KindComponent extends Schema.TaggedClass<KindComponent>()('Kind', {
+  value: EntityKind,
+}) {}
+
+/** Type is a component (and a column on `entities`). Kind-local discriminator. */
+export class TypeComponent extends Schema.TaggedClass<TypeComponent>()('Type', {
+  value: EntityType,
+}) {}
+
+/** Honesty class from LabEntity.class. Never upgrade on seed. */
+export class HonestyComponent extends Schema.TaggedClass<HonestyComponent>()('Honesty', {
+  value: HonestyClass,
+}) {}
+
+/**
+ * Content address. Path is a locator, not an id.
+ * Lab seed cites in-tree bytes; it does not copy them into specimen AssetStore.
+ */
+export class BytesComponent extends Schema.TaggedClass<BytesComponent>()('Bytes', {
+  gitSha: Schema.optional(Schema.String),
+  digest: Schema.optional(Schema.String),
+  path: Schema.optional(Schema.String),
 }) {}
 
 /** 10-second one-liner. Optional. */
@@ -116,8 +143,60 @@ export class ObservationComponent extends Schema.TaggedClass<ObservationComponen
   text: Schema.String,
 }) {}
 
+/**
+ * Relationships are components a system walks (`Used` / `Generated` / …).
+ * Each holds a target EntityRef. There is no third table.
+ */
+const relationFields = { target: EntityRef };
+
+export class UsedComponent extends Schema.TaggedClass<UsedComponent>()('Used', relationFields) {}
+export class GeneratedComponent extends Schema.TaggedClass<GeneratedComponent>()('Generated', relationFields) {}
+export class ExhibitsComponent extends Schema.TaggedClass<ExhibitsComponent>()('Exhibits', relationFields) {}
+export class PerformsComponent extends Schema.TaggedClass<PerformsComponent>()('Performs', relationFields) {}
+export class ViaComponent extends Schema.TaggedClass<ViaComponent>()('Via', relationFields) {}
+export class InspiresComponent extends Schema.TaggedClass<InspiresComponent>()('Inspires', relationFields) {}
+export class DepictsComponent extends Schema.TaggedClass<DepictsComponent>()('Depicts', relationFields) {}
+export class ContainedInComponent extends Schema.TaggedClass<ContainedInComponent>()('ContainedIn', relationFields) {}
+export class ContradictsComponent extends Schema.TaggedClass<ContradictsComponent>()('Contradicts', relationFields) {}
+export class DerivedFromComponent extends Schema.TaggedClass<DerivedFromComponent>()('DerivedFrom', relationFields) {}
+export class SupersedesComponent extends Schema.TaggedClass<SupersedesComponent>()('Supersedes', relationFields) {}
+
+export const RelationComponent = Schema.Union([
+  UsedComponent,
+  GeneratedComponent,
+  ExhibitsComponent,
+  PerformsComponent,
+  ViaComponent,
+  InspiresComponent,
+  DepictsComponent,
+  ContainedInComponent,
+  ContradictsComponent,
+  DerivedFromComponent,
+  SupersedesComponent,
+]);
+export type RelationComponent = typeof RelationComponent.Type;
+
+export const RELATION_KIND_VALUES = [
+  'Used',
+  'Generated',
+  'Exhibits',
+  'Performs',
+  'Via',
+  'Inspires',
+  'Depicts',
+  'ContainedIn',
+  'Contradicts',
+  'DerivedFrom',
+  'Supersedes',
+] as const;
+export type RelationKind = (typeof RELATION_KIND_VALUES)[number];
+
 export const Component = Schema.Union([
   StatusComponent,
+  KindComponent,
+  TypeComponent,
+  HonestyComponent,
+  BytesComponent,
   ClaimComponent,
   MediaComponent,
   ExifComponent,
@@ -130,11 +209,26 @@ export const Component = Schema.Union([
   TagComponent,
   QuestionComponent,
   ObservationComponent,
+  UsedComponent,
+  GeneratedComponent,
+  ExhibitsComponent,
+  PerformsComponent,
+  ViaComponent,
+  InspiresComponent,
+  DepictsComponent,
+  ContainedInComponent,
+  ContradictsComponent,
+  DerivedFromComponent,
+  SupersedesComponent,
 ]);
 export type Component = typeof Component.Type;
 
-export const ComponentKind = Schema.Literals([
+export const COMPONENT_KIND_VALUES = [
   'Status',
+  'Kind',
+  'Type',
+  'Honesty',
+  'Bytes',
   'Claim',
   'Media',
   'Exif',
@@ -147,5 +241,82 @@ export const ComponentKind = Schema.Literals([
   'Tag',
   'Question',
   'Observation',
-] as const);
+  'Used',
+  'Generated',
+  'Exhibits',
+  'Performs',
+  'Via',
+  'Inspires',
+  'Depicts',
+  'ContainedIn',
+  'Contradicts',
+  'DerivedFrom',
+  'Supersedes',
+] as const;
+
+export const relationTargets = (
+  components: ReadonlyArray<Component>,
+  kind: RelationKind,
+): ReadonlyArray<EntityRef> =>
+  components.flatMap((component) =>
+    component._tag === kind ? [component.target] : [],
+  );
+
+export const sameComponent = (left: Component, right: Component): boolean => {
+  if (left._tag !== right._tag) return false;
+  if ('target' in left && 'target' in right) {
+    return left.target === right.target;
+  }
+  if (left._tag === 'Kind' && right._tag === 'Kind') {
+    return left.value === right.value;
+  }
+  if (left._tag === 'Type' && right._tag === 'Type') {
+    return left.value === right.value;
+  }
+  if (left._tag === 'Honesty' && right._tag === 'Honesty') {
+    return left.value === right.value;
+  }
+  if (left._tag === 'Bytes' && right._tag === 'Bytes') {
+    return left.gitSha === right.gitSha && left.digest === right.digest && left.path === right.path;
+  }
+  return true;
+};
+
+export const hasComponent = (
+  components: ReadonlyArray<Component>,
+  component: Component,
+): boolean => components.some((existing) => sameComponent(existing, component));
+
+export const makeRelationComponent = (kind: RelationKind, target: EntityRef): RelationComponent => {
+  switch (kind) {
+    case 'Used':
+      return new UsedComponent({ target });
+    case 'Generated':
+      return new GeneratedComponent({ target });
+    case 'Exhibits':
+      return new ExhibitsComponent({ target });
+    case 'Performs':
+      return new PerformsComponent({ target });
+    case 'Via':
+      return new ViaComponent({ target });
+    case 'Inspires':
+      return new InspiresComponent({ target });
+    case 'Depicts':
+      return new DepictsComponent({ target });
+    case 'ContainedIn':
+      return new ContainedInComponent({ target });
+    case 'Contradicts':
+      return new ContradictsComponent({ target });
+    case 'DerivedFrom':
+      return new DerivedFromComponent({ target });
+    case 'Supersedes':
+      return new SupersedesComponent({ target });
+    default: {
+      const _exhaustive: never = kind;
+      return _exhaustive;
+    }
+  }
+};
+
+export const ComponentKind = Schema.Literals(COMPONENT_KIND_VALUES);
 export type ComponentKind = typeof ComponentKind.Type;
