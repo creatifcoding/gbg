@@ -1,0 +1,100 @@
+specimendb
+// specimendb_sys.v4
+ONLINE
+ALL_RECORDS
+ACQ_PENDING
+REQUIRES_SEM
+ARCHIVED
+WORKING
+SP-2023-084
+10.2938°N, 84.9123°W
+Structural color scaling observed in dorsal cuticle; potential omnidirectional anti-reflective properties in nanostructure array.
+LEPIDOPTERA
+PHOTONICS
+SEM-ACTIVE
+FILED
+SP-2023-091
+unknown
+Tensile testing complete on primary extrusions. Yield strength nominal, exhibiting extreme hysteresis loops under load.
+ARANEAE
+BIOMECHANICS
+ARCHIVED
+RAW
+SP-2024-012
+36.7783°N, 119.4179°W
+Initial field collection. Unidentified benthic species exhibiting non-standard bioluminescent pulsing in disturbed state.
+MARINE
+BIOLUMINESCENCE
+TAXONOMY-REQ
+DEAD
+SP-2022-404
+unknown
+Sample degraded due to cryogenic failure protocol violation. Extraction unviable, physical material compromised entirely.
+FAILED
+DEGRADED
+DISCARDED
+FILED
+SP-2023-112
+41.3851°N, 2.1734°E
+Micro-CT scans confirm internal capillary structure capable of passive water transport across thermal gradients.
+FLORA
+FLUID-DYNAMICS
+CT-SCANNED
+LOCAL_STORAGE
+/
+ACTIVE_WORKSPACE
+/
+SP-2023-084
+LOAD: 12%
+MEM: 4.2GB
+UPLINK_SECURE
+// ACCESSION_INTAKE
+DRAG_AND_DROP_ASSETS
+System accepts .raw, .tiff, .csv telemetry, and standardized sequencing archives. EXIF extraction is automatic.
+WORKING
+LAST_MODIFIED: 14m AGO
+SP-2023-084
+Structural color scaling observed in dorsal cuticle; potential omnidirectional anti-reflective properties in nanostructure array.
+INITIATE_SCAN
+EDIT_RECORD
+OWNER: DR. E. VANCE [UID-8892]
+// TAXONOMY_DATA
+KINGDOM
+ANIMALIA
+PHYLUM
+ARTHROPODA
+CLASS
+INSECTA
+ORDER
+LEPIDOPTERA
+CONFIDENCE
+99.8% (ML-GEN)
+// FIELD_METRICS
+COORDINATES
+10.2938°N, 84.9123°W
+ELEVATION
+1,420M
+TEMP_AMBIENT
+24.2°C
+HUMIDITY
+88%
+// SPECTRAL_ANALYSIS [REFLECTANCE]
+DAT_FILE_084_A.CSV
+WAVELENGTH(NM) REFLECTANCE(%) ABSORPTION SCATTER
+380.0 04.12 0.95 0.01
+400.0 06.45 0.92 0.01
+420.0 18.90 0.80 0.02
+440.0 45.22 0.52 0.04
+460.0 82.14 0.15 0.08
+475.0 (PEAK) 94.88 0.02 0.11
+500.0 60.33 0.35 0.07
+520.0 22.10 0.76 0.03
+540.0 08.45 0.90 0.01
+560.0 05.12 0.94 0.01
+580.0 04.01 0.95 0.01
+600.0 03.88 0.96 0.01
+[EOF] --- --- ---
+// OBSERVER_LOG
+> Specimen exhibits distinct morphological variations in dorsal scale structure compared to standard catalog norms. Preliminary SEM imagery (pending formal attach) indicates a gyroid-like chitin configuration rather than standard multilayer reflectors.
+> This architecture effectively traps stray light across incident angles up to 45°, explaining the deep, almost absorptive blue coloration observed in field conditions.
+> Recommendation: Prioritize physical cross-sectioning and full spectrophotometric mapping. Potential application in wide-angle anti-reflective coatings for optical sensors.

@@ -1,0 +1,373 @@
+<html lang="en" class="bg-[#020202] text-[#d4d4d4] antialiased" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">specimendb</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web" vid="6"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&amp;family=JetBrains+Mono:wght@300;400;500&amp;display=swap" rel="stylesheet" vid="7">
+    <script vid="8">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#020202',
+                        charcoal: {
+                            900: '#080808',
+                            800: '#111111',
+                            700: '#1A1A1A',
+                            600: '#222222',
+                            500: '#2A2A2A',
+                        },
+                        amber: { 500: '#F59E0B' },
+                        cyan: { 400: '#22D3EE' },
+                        emerald: { 400: '#34D399' },
+                        rose: { 400: '#FB7185' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style vid="9">
+        
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020202;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1A1A1A;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2A2A2A;
+        }
+        ::selection {
+            background: #1A1A1A;
+            color: #22D3EE;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden flex font-sans bg-void tracking-tight" vid="10">
+
+    
+    <aside class="w-[420px] h-full flex flex-col border-r border-charcoal-600 bg-charcoal-900 shrink-0 z-10 relative" vid="11">
+        
+        <header class="p-5 border-b border-charcoal-600 bg-void shrink-0" vid="12">
+            <div class="flex justify-between items-end mb-4" vid="13">
+                <h1 class="font-mono text-xs text-[#666] uppercase tracking-widest" vid="14">// specimendb_sys.v4</h1>
+                <span class="font-mono text-[9px] text-cyan-400 border border-cyan-400/20 bg-cyan-400/5 px-1.5 py-0.5" vid="15">ONLINE</span>
+            </div>
+            <div class="relative group" vid="16">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500 group-focus-within:text-cyan-400 transition-colors" vid="17"></i>
+                <input type="text" placeholder="QUERY_ACCESSION_ID..." class="w-full bg-charcoal-800 border border-charcoal-600 text-[#d4d4d4] pl-9 pr-3 py-2 text-sm font-mono focus:outline-none focus:border-cyan-400/50 focus:bg-charcoal-700 transition-colors placeholder:text-charcoal-500" vid="18">
+            </div>
+            <div class="flex gap-2 mt-3 overflow-x-auto custom-scrollbar pb-1" vid="19">
+                <button class="font-mono text-[10px] text-cyan-400 border-b border-cyan-400 pb-0.5 whitespace-nowrap" vid="20">ALL_RECORDS</button>
+                <button class="font-mono text-[10px] text-[#666] hover:text-[#a0a0a0] pb-0.5 whitespace-nowrap" vid="21">ACQ_PENDING</button>
+                <button class="font-mono text-[10px] text-[#666] hover:text-[#a0a0a0] pb-0.5 whitespace-nowrap" vid="22">REQUIRES_SEM</button>
+                <button class="font-mono text-[10px] text-[#666] hover:text-[#a0a0a0] pb-0.5 whitespace-nowrap" vid="23">ARCHIVED</button>
+            </div>
+        </header>
+
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-charcoal-900" vid="24">
+            
+            
+            <article class="bg-charcoal-800 border border-charcoal-500 flex flex-col group hover:border-charcoal-400 transition-colors cursor-pointer relative shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="25">
+                
+                <div class="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-cyan-400 z-10" vid="26"></div>
+                
+                <div class="h-40 w-full bg-charcoal-700 relative overflow-hidden border-b border-charcoal-600" vid="27">
+                    <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&amp;w=600&amp;auto=format&amp;fit=crop" class="w-full h-full object-cover opacity-60 grayscale mix-blend-luminosity group-hover:opacity-90 group-hover:grayscale-[50%] group-hover:scale-105 transition-all duration-700 ease-out" alt="Field Photo" vid="28">
+                    <div class="absolute top-2 right-2 flex" vid="29">
+                        <span class="px-2 py-0.5 text-[9px] font-mono border border-emerald-400/30 bg-emerald-400/10 text-emerald-400 uppercase tracking-widest backdrop-blur-md" vid="30">WORKING</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col gap-3" vid="31">
+                    <div class="flex justify-between items-start leading-none" vid="32">
+                        <span class="font-mono text-sm text-[#ececec] font-medium tracking-tight" vid="33">SP-2023-084</span>
+                        <span class="font-mono text-[10px] text-[#555] group-hover:text-[#888] transition-colors" vid="34">10.2938°N, 84.9123°W</span>
+                    </div>
+                    <p class="text-sm text-[#999] leading-snug font-light" vid="35">Structural color scaling observed in dorsal cuticle; potential omnidirectional anti-reflective properties in nanostructure array.</p>
+                    <div class="flex gap-1.5 mt-1" vid="36">
+                        <span class="px-1.5 py-0.5 bg-void text-[#777] font-mono text-[9px] border border-charcoal-600 uppercase" vid="37">LEPIDOPTERA</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#777] font-mono text-[9px] border border-charcoal-600 uppercase" vid="38">PHOTONICS</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#777] font-mono text-[9px] border border-charcoal-600 uppercase" vid="39">SEM-ACTIVE</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-charcoal-800 border border-charcoal-600 flex flex-col group hover:border-charcoal-500 transition-colors cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="40">
+                <div class="h-40 w-full bg-charcoal-700 relative overflow-hidden border-b border-charcoal-600" vid="41">
+                    <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&amp;w=600&amp;auto=format&amp;fit=crop" class="w-full h-full object-cover opacity-50 grayscale mix-blend-luminosity group-hover:opacity-80 group-hover:grayscale-[50%] group-hover:scale-105 transition-all duration-700 ease-out" alt="Field Photo" vid="42">
+                    <div class="absolute top-2 right-2 flex" vid="43">
+                        <span class="px-2 py-0.5 text-[9px] font-mono border border-cyan-400/30 bg-cyan-400/10 text-cyan-400 uppercase tracking-widest backdrop-blur-md" vid="44">FILED</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col gap-3" vid="45">
+                    <div class="flex justify-between items-start leading-none" vid="46">
+                        <span class="font-mono text-sm text-[#b0b0b0] group-hover:text-[#ececec] transition-colors font-medium tracking-tight" vid="47">SP-2023-091</span>
+                        <span class="font-mono text-[10px] text-[#444]" vid="48">unknown</span>
+                    </div>
+                    <p class="text-sm text-[#888] leading-snug font-light" vid="49">Tensile testing complete on primary extrusions. Yield strength nominal, exhibiting extreme hysteresis loops under load.</p>
+                    <div class="flex gap-1.5 mt-1" vid="50">
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="51">ARANEAE</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="52">BIOMECHANICS</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="53">ARCHIVED</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-charcoal-800 border border-charcoal-600 flex flex-col group hover:border-charcoal-500 transition-colors cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="54">
+                <div class="h-40 w-full bg-charcoal-700 relative overflow-hidden border-b border-charcoal-600" vid="55">
+                    <img src="https://images.unsplash.com/photo-1582967200788-b2dc1e6c3031?q=80&amp;w=600&amp;auto=format&amp;fit=crop" class="w-full h-full object-cover opacity-50 grayscale mix-blend-luminosity group-hover:opacity-80 group-hover:grayscale-[50%] group-hover:scale-105 transition-all duration-700 ease-out" alt="Field Photo" vid="56">
+                    <div class="absolute top-2 right-2 flex" vid="57">
+                        <span class="px-2 py-0.5 text-[9px] font-mono border border-amber-500/30 bg-amber-500/10 text-amber-500 uppercase tracking-widest backdrop-blur-md" vid="58">RAW</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col gap-3" vid="59">
+                    <div class="flex justify-between items-start leading-none" vid="60">
+                        <span class="font-mono text-sm text-[#b0b0b0] group-hover:text-[#ececec] transition-colors font-medium tracking-tight" vid="61">SP-2024-012</span>
+                        <span class="font-mono text-[10px] text-[#555] group-hover:text-[#888] transition-colors" vid="62">36.7783°N, 119.4179°W</span>
+                    </div>
+                    <p class="text-sm text-[#888] leading-snug font-light" vid="63">Initial field collection. Unidentified benthic species exhibiting non-standard bioluminescent pulsing in disturbed state.</p>
+                    <div class="flex gap-1.5 mt-1" vid="64">
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="65">MARINE</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="66">BIOLUMINESCENCE</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="67">TAXONOMY-REQ</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-charcoal-800 border border-charcoal-600 flex flex-col group hover:border-charcoal-500 transition-colors cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="68">
+                <div class="h-40 w-full bg-charcoal-700 relative overflow-hidden border-b border-charcoal-600" vid="69">
+                    <img src="https://images.unsplash.com/photo-1558244661-d248897f7bc4?q=80&amp;w=600&amp;auto=format&amp;fit=crop" class="w-full h-full object-cover opacity-30 grayscale mix-blend-luminosity group-hover:opacity-60 transition-all duration-700 ease-out" alt="Field Photo" vid="70">
+                    <div class="absolute top-2 right-2 flex" vid="71">
+                        <span class="px-2 py-0.5 text-[9px] font-mono border border-rose-400/30 bg-rose-400/10 text-rose-400 uppercase tracking-widest backdrop-blur-md" vid="72">DEAD</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col gap-3 opacity-60 group-hover:opacity-100 transition-opacity" vid="73">
+                    <div class="flex justify-between items-start leading-none" vid="74">
+                        <span class="font-mono text-sm text-[#888] line-through group-hover:text-[#b0b0b0] transition-colors font-medium tracking-tight" vid="75">SP-2022-404</span>
+                        <span class="font-mono text-[10px] text-[#444]" vid="76">unknown</span>
+                    </div>
+                    <p class="text-sm text-[#777] leading-snug font-light" vid="77">Sample degraded due to cryogenic failure protocol violation. Extraction unviable, physical material compromised entirely.</p>
+                    <div class="flex gap-1.5 mt-1" vid="78">
+                        <span class="px-1.5 py-0.5 bg-void text-[#555] font-mono text-[9px] border border-charcoal-600 uppercase" vid="79">FAILED</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#555] font-mono text-[9px] border border-charcoal-600 uppercase" vid="80">DEGRADED</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#555] font-mono text-[9px] border border-charcoal-600 uppercase" vid="81">DISCARDED</span>
+                    </div>
+                </div>
+            </article>
+            
+            
+            <article class="bg-charcoal-800 border border-charcoal-600 flex flex-col group hover:border-charcoal-500 transition-colors cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="82">
+                <div class="h-40 w-full bg-charcoal-700 relative overflow-hidden border-b border-charcoal-600" vid="83">
+                    <img src="https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&amp;w=600&amp;auto=format&amp;fit=crop" class="w-full h-full object-cover opacity-50 grayscale mix-blend-luminosity group-hover:opacity-80 group-hover:grayscale-[50%] group-hover:scale-105 transition-all duration-700 ease-out" alt="Field Photo" vid="84">
+                    <div class="absolute top-2 right-2 flex" vid="85">
+                        <span class="px-2 py-0.5 text-[9px] font-mono border border-cyan-400/30 bg-cyan-400/10 text-cyan-400 uppercase tracking-widest backdrop-blur-md" vid="86">FILED</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col gap-3" vid="87">
+                    <div class="flex justify-between items-start leading-none" vid="88">
+                        <span class="font-mono text-sm text-[#b0b0b0] group-hover:text-[#ececec] transition-colors font-medium tracking-tight" vid="89">SP-2023-112</span>
+                        <span class="font-mono text-[10px] text-[#444]" vid="90">41.3851°N, 2.1734°E</span>
+                    </div>
+                    <p class="text-sm text-[#888] leading-snug font-light" vid="91">Micro-CT scans confirm internal capillary structure capable of passive water transport across thermal gradients.</p>
+                    <div class="flex gap-1.5 mt-1" vid="92">
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="93">FLORA</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="94">FLUID-DYNAMICS</span>
+                        <span class="px-1.5 py-0.5 bg-void text-[#666] font-mono text-[9px] border border-charcoal-600 uppercase" vid="95">CT-SCANNED</span>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+    </aside>
+
+    
+    <main class="flex-1 h-full flex flex-col relative overflow-hidden bg-void" vid="96">
+        
+        
+        <nav class="h-12 border-b border-charcoal-600 flex items-center px-6 justify-between font-mono text-[10px] shrink-0 bg-charcoal-900/50 backdrop-blur-sm z-20" vid="97">
+            <div class="flex space-x-3 text-[#666]" vid="98">
+                <span class="flex items-center gap-1.5" vid="99"><i class="ph-fill ph-hard-drives text-cyan-400/70" vid="100"></i> LOCAL_STORAGE</span>
+                <span class="text-charcoal-500" vid="101">/</span>
+                <span class="text-[#a0a0a0]" vid="102">ACTIVE_WORKSPACE</span>
+                <span class="text-charcoal-500" vid="103">/</span>
+                <span class="text-[#d4d4d4]" vid="104">SP-2023-084</span>
+            </div>
+            <div class="flex items-center space-x-6 text-[#666]" vid="105">
+                <span class="flex items-center gap-1" vid="106"><i class="ph ph-cpu" vid="107"></i> LOAD: 12%</span>
+                <span class="flex items-center gap-1" vid="108"><i class="ph ph-memory" vid="109"></i> MEM: 4.2GB</span>
+                <span class="text-emerald-400 flex items-center gap-1" vid="110"><i class="ph-fill ph-lock-key" vid="111"></i> UPLINK_SECURE</span>
+            </div>
+        </nav>
+
+        
+        <div class="flex-1 overflow-y-auto custom-scrollbar relative" vid="112">
+            <div class="max-w-6xl mx-auto p-8 lg:p-12 flex flex-col gap-12" vid="113">
+                
+                
+                <section class="flex flex-col gap-3" vid="114">
+                    <div class="flex justify-between items-end" vid="115">
+                        <h2 class="font-mono text-xs text-[#666] tracking-widest" vid="116">// ACCESSION_INTAKE</h2>
+                    </div>
+                    <div class="w-full h-40 border-[1px] border-dashed border-charcoal-500 bg-charcoal-800/50 flex flex-col items-center justify-center transition-all duration-300 hover:border-cyan-400/50 hover:bg-charcoal-800 cursor-pointer group relative overflow-hidden" vid="117">
+                        
+                        
+                        <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-charcoal-400 group-hover:border-cyan-400 transition-colors" vid="118"></div>
+                        <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-charcoal-400 group-hover:border-cyan-400 transition-colors" vid="119"></div>
+                        <div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-charcoal-400 group-hover:border-cyan-400 transition-colors" vid="120"></div>
+                        <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-charcoal-400 group-hover:border-cyan-400 transition-colors" vid="121"></div>
+
+                        <i class="ph ph-upload-simple text-3xl text-charcoal-500 mb-3 group-hover:text-cyan-400 transition-colors group-hover:-translate-y-1 transform duration-300" vid="122"></i>
+                        <span class="font-mono text-sm text-[#a0a0a0] group-hover:text-[#d4d4d4] transition-colors" vid="123">DRAG_AND_DROP_ASSETS</span>
+                        <span class="font-mono text-[10px] text-[#555] mt-2 text-center max-w-md" vid="124">System accepts .raw, .tiff, .csv telemetry, and standardized sequencing archives. EXIF extraction is automatic.</span>
+                    </div>
+                </section>
+
+                
+                <section class="flex flex-col gap-6" vid="125">
+                    
+                    
+                    <header class="flex justify-between items-end border-b border-charcoal-600 pb-6" vid="126">
+                        <div vid="127">
+                            <div class="flex items-center gap-3 mb-4" vid="128">
+                                <span class="px-2 py-0.5 text-[10px] font-mono border border-emerald-400/30 bg-emerald-400/10 text-emerald-400 uppercase tracking-widest" vid="129">WORKING</span>
+                                <span class="font-mono text-[10px] text-[#666]" vid="130">LAST_MODIFIED: 14m AGO</span>
+                            </div>
+                            <h1 class="font-mono text-5xl font-light tracking-tighter text-[#eaeaea] leading-none mb-3" vid="131">SP-2023-084</h1>
+                            <p class="text-[#a0a0a0] font-light max-w-2xl text-lg" vid="132">Structural color scaling observed in dorsal cuticle; potential omnidirectional anti-reflective properties in nanostructure array.</p>
+                        </div>
+                        
+                        <div class="flex flex-col items-end gap-3" vid="133">
+                            <div class="flex space-x-2" vid="134">
+                                <button class="bg-charcoal-800 border border-charcoal-500 px-4 py-2 flex items-center gap-2 text-xs font-mono text-[#a0a0a0] hover:bg-charcoal-700 hover:text-[#d4d4d4] transition-colors" vid="135">
+                                    <i class="ph ph-microscope" vid="136"></i> INITIATE_SCAN
+                                </button>
+                                <button class="bg-charcoal-800 border border-charcoal-500 px-4 py-2 flex items-center gap-2 text-xs font-mono text-[#a0a0a0] hover:bg-charcoal-700 hover:text-cyan-400 transition-colors" vid="137">
+                                    <i class="ph ph-pencil-simple" vid="138"></i> EDIT_RECORD
+                                </button>
+                            </div>
+                            <span class="font-mono text-[10px] text-[#555]" vid="139">OWNER: DR. E. VANCE [UID-8892]</span>
+                        </div>
+                    </header>
+
+                    
+                    <div class="grid grid-cols-3 gap-6" vid="140">
+                        
+                        
+                        <div class="flex flex-col gap-6" vid="141">
+                            <div class="border border-charcoal-600 bg-charcoal-800/30 p-5" vid="142">
+                                <h3 class="font-mono text-[10px] text-[#666] tracking-widest mb-4 uppercase border-b border-charcoal-600 pb-2" vid="143">// TAXONOMY_DATA</h3>
+                                <div class="space-y-3 font-mono text-xs" vid="144">
+                                    <div class="flex justify-between" vid="145">
+                                        <span class="text-[#555]" vid="146">KINGDOM</span>
+                                        <span class="text-[#d4d4d4]" vid="147">ANIMALIA</span>
+                                    </div>
+                                    <div class="flex justify-between" vid="148">
+                                        <span class="text-[#555]" vid="149">PHYLUM</span>
+                                        <span class="text-[#d4d4d4]" vid="150">ARTHROPODA</span>
+                                    </div>
+                                    <div class="flex justify-between" vid="151">
+                                        <span class="text-[#555]" vid="152">CLASS</span>
+                                        <span class="text-[#d4d4d4]" vid="153">INSECTA</span>
+                                    </div>
+                                    <div class="flex justify-between" vid="154">
+                                        <span class="text-[#555]" vid="155">ORDER</span>
+                                        <span class="text-[#d4d4d4]" vid="156">LEPIDOPTERA</span>
+                                    </div>
+                                    <div class="flex justify-between border-t border-charcoal-600 pt-3 mt-3" vid="157">
+                                        <span class="text-[#555]" vid="158">CONFIDENCE</span>
+                                        <span class="text-emerald-400" vid="159">99.8% (ML-GEN)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-charcoal-600 bg-charcoal-800/30 p-5" vid="160">
+                                <h3 class="font-mono text-[10px] text-[#666] tracking-widest mb-4 uppercase border-b border-charcoal-600 pb-2" vid="161">// FIELD_METRICS</h3>
+                                <div class="space-y-3 font-mono text-xs" vid="162">
+                                    <div class="flex justify-between" vid="163">
+                                        <span class="text-[#555]" vid="164">COORDINATES</span>
+                                        <span class="text-[#a0a0a0]" vid="165">10.2938°N, 84.9123°W</span>
+                                    </div>
+                                    <div class="flex justify-between" vid="166">
+                                        <span class="text-[#555]" vid="167">ELEVATION</span>
+                                        <span class="text-[#a0a0a0]" vid="168">1,420M</span>
+                                    </div>
+                                    <div class="flex justify-between" vid="169">
+                                        <span class="text-[#555]" vid="170">TEMP_AMBIENT</span>
+                                        <span class="text-[#a0a0a0]" vid="171">24.2°C</span>
+                                    </div>
+                                    <div class="flex justify-between" vid="172">
+                                        <span class="text-[#555]" vid="173">HUMIDITY</span>
+                                        <span class="text-[#a0a0a0]" vid="174">88%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                        <div class="col-span-2 flex flex-col gap-6" vid="175">
+                            
+                            
+                            <div class="border border-charcoal-600 bg-charcoal-800/30 p-5 flex flex-col h-[320px]" vid="176">
+                                <div class="flex justify-between items-end mb-4 border-b border-charcoal-600 pb-2" vid="177">
+                                    <h3 class="font-mono text-[10px] text-[#666] tracking-widest uppercase" vid="178">// SPECTRAL_ANALYSIS [REFLECTANCE]</h3>
+                                    <span class="font-mono text-[9px] text-[#555]" vid="179">DAT_FILE_084_A.CSV</span>
+                                </div>
+                                
+                                <div class="flex-1 bg-void border border-charcoal-700 p-4 font-mono text-[10px] overflow-y-auto custom-scrollbar text-[#888] space-y-1" vid="180">
+                                    <div class="flex justify-between text-[#555] mb-2 border-b border-charcoal-700 pb-1" vid="181">
+                                        <span vid="182">WAVELENGTH(NM)</span><span vid="183">REFLECTANCE(%)</span><span vid="184">ABSORPTION</span><span vid="185">SCATTER</span>
+                                    </div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="186"><span class="text-[#a0a0a0]" vid="187">380.0</span><span vid="188">04.12</span><span vid="189">0.95</span><span vid="190">0.01</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="191"><span class="text-[#a0a0a0]" vid="192">400.0</span><span vid="193">06.45</span><span vid="194">0.92</span><span vid="195">0.01</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="196"><span class="text-cyan-400" vid="197">420.0</span><span class="text-cyan-400" vid="198">18.90</span><span vid="199">0.80</span><span vid="200">0.02</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="201"><span class="text-cyan-400" vid="202">440.0</span><span class="text-cyan-400" vid="203">45.22</span><span vid="204">0.52</span><span vid="205">0.04</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="206"><span class="text-cyan-400" vid="207">460.0</span><span class="text-cyan-400" vid="208">82.14</span><span vid="209">0.15</span><span vid="210">0.08</span></div>
+                                    <div class="flex justify-between bg-charcoal-800 px-1" vid="211"><span class="text-[#d4d4d4]" vid="212">475.0 (PEAK)</span><span class="text-[#d4d4d4]" vid="213">94.88</span><span class="text-[#d4d4d4]" vid="214">0.02</span><span class="text-[#d4d4d4]" vid="215">0.11</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="216"><span class="text-cyan-400" vid="217">500.0</span><span class="text-cyan-400" vid="218">60.33</span><span vid="219">0.35</span><span vid="220">0.07</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="221"><span class="text-[#a0a0a0]" vid="222">520.0</span><span vid="223">22.10</span><span vid="224">0.76</span><span vid="225">0.03</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="226"><span class="text-[#a0a0a0]" vid="227">540.0</span><span vid="228">08.45</span><span vid="229">0.90</span><span vid="230">0.01</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="231"><span class="text-[#a0a0a0]" vid="232">560.0</span><span vid="233">05.12</span><span vid="234">0.94</span><span vid="235">0.01</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="236"><span class="text-[#a0a0a0]" vid="237">580.0</span><span vid="238">04.01</span><span vid="239">0.95</span><span vid="240">0.01</span></div>
+                                    <div class="flex justify-between hover:bg-charcoal-800 px-1" vid="241"><span class="text-[#a0a0a0]" vid="242">600.0</span><span vid="243">03.88</span><span vid="244">0.96</span><span vid="245">0.01</span></div>
+                                    <div class="flex justify-between text-[#444] mt-4 pt-2 border-t border-charcoal-700" vid="246">
+                                        <span vid="247">[EOF]</span><span vid="248">---</span><span vid="249">---</span><span vid="250">---</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="border border-charcoal-600 bg-charcoal-800/30 p-5" vid="251">
+                                <h3 class="font-mono text-[10px] text-[#666] tracking-widest mb-4 uppercase border-b border-charcoal-600 pb-2" vid="252">// OBSERVER_LOG</h3>
+                                <div class="font-mono text-xs text-[#a0a0a0] leading-relaxed space-y-4" vid="253">
+                                    <p vid="254">&gt; Specimen exhibits distinct morphological variations in dorsal scale structure compared to standard catalog norms. Preliminary SEM imagery (pending formal attach) indicates a gyroid-like chitin configuration rather than standard multilayer reflectors.</p>
+                                    <p vid="255">&gt; This architecture effectively traps stray light across incident angles up to 45°, explaining the deep, almost absorptive blue coloration observed in field conditions.</p>
+                                    <p vid="256">&gt; Recommendation: Prioritize physical cross-sectioning and full spectrophotometric mapping. Potential application in wide-angle anti-reflective coatings for optical sensors.</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+                
+                
+                <div class="h-12" vid="257"></div>
+
+            </div>
+        </div>
+    </main>
+
+
+</body></html>
