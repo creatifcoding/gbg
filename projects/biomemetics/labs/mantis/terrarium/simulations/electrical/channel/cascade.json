@@ -1,0 +1,33 @@
+{
+  "schema": "mantis.ee.channel.cascade.v1",
+  "issue": 25,
+  "status": "UNVERIFIED",
+  "qualifiesPhysicalInterface": false,
+  "path": [
+    "IMX519_AF_MODULE_UNVERIFIED",
+    "local-MIPI-CSI-2",
+    "MAX96717_GMSL2_SER_UNVERIFIED",
+    "camera-tx-GMSL-launch-UNVERIFIED",
+    "B50-C09-C12",
+    "carriage-100ohm-TARGET-route-UNVERIFIED",
+    "B27-P09-P12",
+    "rail-rx-GMSL-launch-UNVERIFIED",
+    "MAX96724_GMSL2_DES_UNVERIFIED",
+    "local-MIPI-CSI-2",
+    "TACHYON_CSI1_22P"
+  ],
+  "gmslSegments": [
+    "01-ser-launch",
+    "02-b50-contact",
+    "03-carriage-route",
+    "04-b27-contact",
+    "05-des-launch"
+  ],
+  "mipiLocalOnly": ["camera-tx", "rail-rx"],
+  "notOnPogos": ["CSI_D0_P", "CSI_D0_N", "CSI_D1_P", "CSI_D1_N", "CSI_D2_P", "CSI_D2_N", "CSI_D3_P", "CSI_D3_N", "CSI_CLK_P", "CSI_CLK_N"],
+  "sourceConflict": {
+    "id": "serdes-base-mpn",
+    "status": "UNVERIFIED",
+    "action": "do-not-silently-pick; proposed hot-file delta only"
+  }
+}

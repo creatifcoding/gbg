@@ -1,0 +1,43 @@
+{
+  "schema": "mantis.ee.carriage.net-map.v1",
+  "issue": 25,
+  "status": "UNVERIFIED",
+  "rawMipiOnPogos": false,
+  "untethered": true,
+  "consumes": "terrarium/ee/kicad/power-control/net-map.json",
+  "nodes": {
+    "GMSL_P": "B50 C10 / B27 P10",
+    "GMSL_N": "B50 C11 / B27 P11",
+    "HSGND": "B50 C09/C12 / B27 P09/P12",
+    "V_BRANCH": "Q1 output to B50 C01/C02; enable is #24 Q1_EN",
+    "INTERLOCK_OK": "S1 series S2; authorization remainder is #24"
+  },
+  "b27": {
+    "P01": "VIN_A",
+    "P02": "VIN_B",
+    "P03": "GND_A",
+    "P04": "GND_B",
+    "P05": "SDA",
+    "P06": "SCL",
+    "P07": "UID",
+    "P08": "FAULT_N",
+    "P09": "HSGND",
+    "P10": "GMSL_P",
+    "P11": "GMSL_N",
+    "P12": "HSGND"
+  },
+  "b50": {
+    "C01": "V_BRANCH",
+    "C02": "V_BRANCH",
+    "C03": "GND_A",
+    "C04": "GND_B",
+    "C05": "SDA",
+    "C06": "SCL",
+    "C07": "UID",
+    "C08": "FAULT_N",
+    "C09": "HSGND",
+    "C10": "GMSL_P",
+    "C11": "GMSL_N",
+    "C12": "HSGND"
+  }
+}

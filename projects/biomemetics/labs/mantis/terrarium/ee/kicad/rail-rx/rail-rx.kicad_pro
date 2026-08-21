@@ -1,0 +1,14 @@
+{
+  "board": { "design_settings": {} },
+  "meta": { "filename": "rail-rx.kicad_pro", "version": 1 },
+  "sheets": [
+    ["rail-rx.kicad_sch", "ee6a68db-5bac-54bf-9820-98c05bd3bf84"],
+    ["sheets/01-b27-des.kicad_sch", "1b9e957f-aef5-5535-8e68-eaafe77665a3"],
+    ["sheets/02-local-csi-tachyon.kicad_sch", "a18d7f82-3539-55db-a819-da7d90ded06f"]
+  ],
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": ["mantis-ee"],
+    "pinned_fp_libs": ["mantis-ee"]
+  }
+}

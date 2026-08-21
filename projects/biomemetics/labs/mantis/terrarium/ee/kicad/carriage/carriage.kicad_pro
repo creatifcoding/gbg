@@ -1,0 +1,14 @@
+{
+  "board": { "design_settings": {} },
+  "meta": { "filename": "carriage.kicad_pro", "version": 1 },
+  "sheets": [
+    ["carriage.kicad_sch", "9f7c54d5-8f76-5115-bed4-a322bba6febf"],
+    ["sheets/01-b50-b27-gmsl.kicad_sch", "0ff0e09f-6f1e-5dba-92a9-3491c3e6df36"],
+    ["sheets/02-s1-s2-q1-consume.kicad_sch", "ede93de3-042a-5850-8bf4-ab7525c8e9da"]
+  ],
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": ["mantis-ee"],
+    "pinned_fp_libs": ["mantis-ee"]
+  }
+}
