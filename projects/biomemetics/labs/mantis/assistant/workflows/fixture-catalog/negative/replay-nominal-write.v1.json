@@ -1,0 +1,11 @@
+{
+  "id": "replay-nominal-write.v1",
+  "expect": "reject",
+  "definition": "assistant/workflows/definitions/replay-nominal-write.v1.json",
+  "envelope": "assistant/workflows/laboratory/envelopes/replay-nominal-write.v1.json",
+  "composer": "workflow-composer-fixture",
+  "assessor": "tool-assessor-fixture",
+  "adversary": "adversarial-reviewer-fixture",
+  "governor": "human-governor-fixture",
+  "diagnosticPath": "/graph/0/toolId"
+}

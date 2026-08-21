@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.unbounded-loop",
+  "version": "1.0.0",
+  "description": "Foreach without a bound explodes cost.",
+  "capabilityClass": "P0",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "lookup",
+      "toolId": "care-source-read"
+    },
+    {
+      "type": "mapping",
+      "id": "loop",
+      "mapping": "foreach"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "care-source-read",
+      "version": "1.0.0",
+      "assayId": "assay.care-source-read.v1"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "3fd740196bff9c9406a7662a212f90c98a9e2ee859ff7500ad936477bee5c2db"
+}

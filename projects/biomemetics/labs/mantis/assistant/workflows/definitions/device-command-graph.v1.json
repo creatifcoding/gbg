@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.malicious-device-command",
+  "version": "1.0.0",
+  "description": "Malicious graph that attempts a device command.",
+  "capabilityClass": "P0",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "move",
+      "toolId": "device-command"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "device-command",
+      "version": "0.0.0",
+      "assayId": "assay.missing"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "ff0ec4ce29d153b58b9eeacb617034feddad12ef70b60b0dbb5268115f19b71a"
+}

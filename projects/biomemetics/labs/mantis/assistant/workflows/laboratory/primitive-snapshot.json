@@ -1,0 +1,71 @@
+{
+  "kind": "PrimitiveCapabilitySnapshot",
+  "schemaVersion": "1.0.0",
+  "mastraCorePin": "1.61.0",
+  "recordedAt": "2026-08-21T12:00:00Z",
+  "tools": [
+    {
+      "id": "care-source-read",
+      "version": "1.0.0",
+      "assayId": "assay.care-source-read.v1",
+      "admission": "admitted-read",
+      "source": "imported-a0"
+    },
+    {
+      "id": "supply-transit-read",
+      "version": "1.0.0",
+      "assayId": "assay.supply-transit-read.v1",
+      "admission": "admitted-read",
+      "source": "imported-a0"
+    },
+    {
+      "id": "observation-packet-read",
+      "version": "1.0.0",
+      "assayId": "assay.observation-packet-read.v1",
+      "admission": "admitted-read",
+      "source": "fixture-catalog"
+    },
+    {
+      "id": "research-triage-read",
+      "version": "1.0.0",
+      "assayId": "assay.research-triage-read.v1",
+      "admission": "admitted-read",
+      "source": "fixture-catalog"
+    },
+    {
+      "id": "evidence-completeness-read",
+      "version": "1.0.0",
+      "assayId": "assay.evidence-completeness-read.v1",
+      "admission": "admitted-read",
+      "source": "fixture-catalog"
+    },
+    {
+      "id": "reminder-plan-read",
+      "version": "1.0.0",
+      "assayId": "assay.reminder-plan-read.v1",
+      "admission": "admitted-read",
+      "source": "fixture-catalog"
+    }
+  ],
+  "forbidden": [
+    "device-command",
+    "admin",
+    "specimen-db-write",
+    "live-catalog-write",
+    "browser-mutate"
+  ],
+  "mappingKinds": [
+    "zip-summarize",
+    "sleep",
+    "conditional",
+    "foreach",
+    "parallel",
+    "assemble-packet",
+    "rank-sources"
+  ],
+  "sleepSignals": [
+    "reminder",
+    "revalidation"
+  ],
+  "digest": "3051ec360bb69ce01555fedc1dba1f36d67c3b74876b0d58a63003610b6dcb2b"
+}

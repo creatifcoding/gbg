@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:tool-admission:v1",
+  "title": "Mantis tool admission",
+  "description": "Admission registry entry. The assessor cannot admit its own tool. Unknown or changed tools remain denied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "admissionId",
+    "toolId",
+    "assayId",
+    "state",
+    "admittedAt",
+    "assessor",
+    "reviewer"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ToolAdmission" },
+    "admissionId": {
+      "type": "string",
+      "pattern": "^admit-tool\\.[a-z][a-z0-9.-]*$"
+    },
+    "toolId": { "type": "string", "minLength": 1 },
+    "assayId": {
+      "type": "string",
+      "pattern": "^assay\\.[a-z][a-z0-9.-]*$"
+    },
+    "state": {
+      "enum": [
+        "discovered",
+        "quarantined",
+        "assayed",
+        "simulated",
+        "admitted-read",
+        "admitted-write",
+        "revoked"
+      ]
+    },
+    "admittedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "assessor": { "type": "string", "minLength": 1 },
+    "reviewer": { "type": "string", "minLength": 1 },
+    "notes": { "type": "string" }
+  },
+  "unevaluatedProperties": false
+}

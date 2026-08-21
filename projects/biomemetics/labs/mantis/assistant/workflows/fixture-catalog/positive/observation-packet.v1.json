@@ -1,0 +1,10 @@
+{
+  "id": "observation-packet.v1",
+  "expect": "admit",
+  "definition": "assistant/workflows/definitions/observation-packet.v1.json",
+  "envelope": "assistant/workflows/laboratory/envelopes/observation-packet.v1.json",
+  "composer": "workflow-composer-fixture",
+  "assessor": "tool-assessor-fixture",
+  "adversary": "adversarial-reviewer-fixture",
+  "governor": "human-governor-fixture"
+}

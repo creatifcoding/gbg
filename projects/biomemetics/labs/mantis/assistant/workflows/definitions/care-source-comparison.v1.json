@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.care-source-comparison",
+  "version": "1.0.0",
+  "description": "Compare two admitted care-source reads and summarize disagreements.",
+  "capabilityClass": "P0",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "src-a",
+      "toolId": "care-source-read"
+    },
+    {
+      "type": "tool",
+      "id": "src-b",
+      "toolId": "care-source-read"
+    },
+    {
+      "type": "mapping",
+      "id": "compare",
+      "mapping": "zip-summarize"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "care-source-read",
+      "version": "1.0.0",
+      "assayId": "assay.care-source-read.v1"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "e56442b151492dcd6ae7d4cb68bef33c1d308df6795aca3c839e0d4cb2809a72"
+}

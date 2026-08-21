@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.evidence-draft-completeness",
+  "version": "1.0.0",
+  "description": "Check an evidence draft for completeness. Does not write SpecimenDB.",
+  "capabilityClass": "P1",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "check",
+      "toolId": "evidence-completeness-read"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "evidence-completeness-read",
+      "version": "1.0.0",
+      "assayId": "assay.evidence-completeness-read.v1"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "b96a5a5717e60c0d1416081ca580909b7df8c5fccbc80a7c222a67516c524135"
+}

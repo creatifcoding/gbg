@@ -1,0 +1,4 @@
+Read-only copies of A0 (PR 100, branch cursor/mantis-assistant-a0-9bdb, b383dfe43fb6fb7d0774bab11a20f777c6951a6b).
+A3 consumes these contracts by read. Do not treat this directory as schema authority once assistant/contracts/ exists on the same checkout. Prefer live A0 paths at runtime; fall back here so this slice verifies without merging A0.
+Do not rewrite A0 files. Do not add research-summary.v1 here as an owned definition.
+Mastra core pin recorded from A0 src/pins.ts: 1.61.0

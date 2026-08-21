@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolAssayRecord",
+  "assayId": "assay.supply-transit-read.v1",
+  "recordedAt": "2026-08-21T00:00:00Z",
+  "identity": {
+    "id": "supply-transit-read",
+    "version": "1.0.0",
+    "provider": "mantis-assistant-fixture",
+    "digest": "940782223134602c58bb195a8600799d0e9778865a4b0b9ea5e348a8e2e70c26",
+    "license": "UNLICENSED-fixture"
+  },
+  "contract": {
+    "inputSchemaRef": "assistant/tools/assays/supply-transit-read.input.json",
+    "outputSchemaRef": "assistant/tools/assays/supply-transit-read.output.json",
+    "errors": ["location-expired", "timeout"],
+    "timeoutMs": 3000,
+    "streaming": false,
+    "determinism": "idempotent"
+  },
+  "effects": {
+    "read": true,
+    "write": false,
+    "execute": false,
+    "externalMutation": false,
+    "deviceImpact": false,
+    "rollback": "none"
+  },
+  "authority": {
+    "actor": "assistant",
+    "category": "read-private",
+    "allowedModes": ["care", "research"],
+    "allowedAgents": ["supply-transit"],
+    "llmExposed": true
+  },
+  "data": {
+    "privacyClass": "ephemeral-location",
+    "retention": "per-use",
+    "networkEgress": false,
+    "secrets": false,
+    "location": "ephemeral-coarse",
+    "media": "none"
+  },
+  "behavior": {
+    "idempotent": true,
+    "retrySafe": true,
+    "cancellation": "safe",
+    "concurrency": "safe"
+  },
+  "evidence": {
+    "sourceClassProduced": "external-source",
+    "provenanceFields": ["retrievedAt", "freshness"],
+    "simulator": true,
+    "fixtures": ["assistant/fixtures/tools/supply-transit-read.json"]
+  },
+  "safety": {
+    "staleStatePolicy": "fail-closed",
+    "approvalTier": "ask",
+    "physicalInterlocks": false
+  },
+  "verification": {
+    "staticLint": true,
+    "sandboxSmoke": true,
+    "negativeTests": ["exact-address-stripped", "expired-token-denied"],
+    "adversarialTests": ["retain-address-forbidden"]
+  },
+  "review": {
+    "assessor": "tool-assessor-fixture",
+    "independentReviewer": "adversarial-reviewer-fixture",
+    "disposition": "assayed",
+    "expiry": "2027-08-21T00:00:00Z",
+    "reAssayTriggers": ["credential-scope-change"]
+  }
+}

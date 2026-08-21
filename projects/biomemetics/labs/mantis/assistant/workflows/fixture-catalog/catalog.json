@@ -1,0 +1,52 @@
+{
+  "kind": "WorkflowFixtureCatalog",
+  "schemaVersion": "1.0.0",
+  "mastraCorePin": "1.61.0",
+  "clock": "2026-08-21T12:00:00Z",
+  "a0Owned": [
+    "assistant/workflows/definitions/research-summary.v1.json",
+    "assistant/workflows/admissions/research-summary.v1.json"
+  ],
+  "cases": [
+    {
+      "id": "care-source-comparison.v1",
+      "expect": "admit"
+    },
+    {
+      "id": "feeding-removal-reminder.v1",
+      "expect": "admit"
+    },
+    {
+      "id": "observation-packet.v1",
+      "expect": "admit"
+    },
+    {
+      "id": "research-source-triage.v1",
+      "expect": "admit"
+    },
+    {
+      "id": "evidence-draft-completeness.v1",
+      "expect": "admit"
+    },
+    {
+      "id": "device-command-graph.v1",
+      "expect": "reject"
+    },
+    {
+      "id": "hidden-unassayed-mcp.v1",
+      "expect": "reject"
+    },
+    {
+      "id": "unbounded-loop.v1",
+      "expect": "reject"
+    },
+    {
+      "id": "replay-nominal-write.v1",
+      "expect": "reject"
+    },
+    {
+      "id": "composer-self-admit.v1",
+      "expect": "reject-identity"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.hidden-unassayed-mcp",
+  "version": "1.0.0",
+  "description": "References an unassayed MCP tool.",
+  "capabilityClass": "P2",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "browse",
+      "toolId": "mcp.hidden-browser"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "mcp.hidden-browser",
+      "version": "1.0.0",
+      "assayId": "assay.missing"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "62c6af04ba0708ba122d86e383d4e35b047022ee62db70022c29c086b8f4ed79"
+}

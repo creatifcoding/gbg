@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolAdmission",
+  "admissionId": "admit-tool.care-source-read.v1",
+  "toolId": "care-source-read",
+  "assayId": "assay.care-source-read.v1",
+  "state": "admitted-read",
+  "admittedAt": "2026-08-21T00:10:00Z",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "assessor": "tool-assessor-fixture",
+  "reviewer": "independent-reviewer-fixture",
+  "notes": "Read-only reviewed-source fixture. Assessor did not admit this record."
+}
