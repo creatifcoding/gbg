@@ -1,6 +1,6 @@
 /**
  * Serve the static capture/ folder at /capture before the Vite SPA fallback.
- * Capture does not talk to PGlite, RPC, or Intake.
+ * Capture does not talk to Postgres, RPC, or Intake.
  */
 
 import { createReadStream, existsSync, statSync } from 'node:fs';

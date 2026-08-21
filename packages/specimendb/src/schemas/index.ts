@@ -4,3 +4,4 @@ export * from './components.js';
 export * from './specimen.js';
 export * from './provenance.js';
 export * from './config.js';
+export * from './entity.js';
