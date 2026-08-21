@@ -13,18 +13,7 @@ import {
 import { PINS } from '../src/pins.ts';
 import type { SessionBinding } from '../src/types.ts';
 
-const liveRequested = process.env.MASTRA_LIVE === '1';
-const hasOpenRouterKey =
-  typeof process.env.OPENROUTER_API_KEY === 'string' &&
-  process.env.OPENROUTER_API_KEY.trim().length > 0;
-const liveEnabled = liveRequested && hasOpenRouterKey;
-const skipLive = liveEnabled
-  ? false
-  : 'set MASTRA_LIVE=1 and OPENROUTER_API_KEY to opt into the OpenRouter lane';
-
-test('live lane config is OpenRouter openai-compatible Luna at max reasoning', {
-  skip: skipLive,
-}, () => {
+test('live lane config is OpenRouter openai-compatible Luna at max reasoning', () => {
   const identity = liveLunaLaneIdentity(createLiveLunaLane());
   assert.deepEqual(identity, {
     kind: 'live-luna',
@@ -38,14 +27,10 @@ test('live lane config is OpenRouter openai-compatible Luna at max reasoning', {
 });
 
 test(
-  'OpenRouter Luna generate and in-process AG-UI bind consume CareAdvice',
-  {
-    skip: skipLive,
-    timeout: 180_000,
-  },
+  'OpenRouter Luna generate and in-process AG-UI bind are the proof',
+  { timeout: 180_000 },
   async (t) => {
-    const lane = createLiveLunaLane();
-    const harness = await createAdapterHarness(new FakeClock(), lane);
+    const harness = await createAdapterHarness(new FakeClock());
     t.after(() => harness.destroy());
 
     const generated = await collectOpenRouterProof(harness.agent);

@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { loadLabJson, validateInstance } from '../src/contracts.ts';
 import { MantisController } from '../src/controller.ts';
-import { redactTracePayload } from '../src/mastra-adapter.ts';
+import { FAKE_MODEL_TEXT, redactTracePayload } from '../src/mastra-adapter.ts';
 
 const matrix = loadLabJson(
   'projects/biomemetics/labs/mantis/assistant/evals/compatibility-matrix.json',
@@ -12,14 +12,12 @@ const matrix = loadLabJson(
   network: boolean;
   credentials: boolean;
   lanes: {
-    ci: { model: string; network: boolean; credentials: boolean };
-    live: {
+    prove: {
       model: string;
       reasoningEffort: string;
       provider: string;
       credential: string;
       baseUrl: string;
-      optIn: string;
       network: boolean;
       credentials: boolean;
       openaiApiKey: boolean;
@@ -46,24 +44,19 @@ test('compatibility matrix is the A0 required set', () => {
     'trace-redaction-run-correlation',
     'deterministic-eval-invocation',
     'in-process-agui-bind',
+    'openrouter-luna-generate',
   ]);
 });
 
-test('compatibility matrix keeps CI fake and live OpenRouter lanes explicit', () => {
-  assert.equal(matrix.network, false);
-  assert.equal(matrix.credentials, false);
-  assert.deepEqual(matrix.lanes.ci, {
-    model: 'mantis-fake-model@1.0.0',
-    network: false,
-    credentials: false,
-  });
-  assert.deepEqual(matrix.lanes.live, {
+test('compatibility matrix proves live OpenRouter Luna, not a fake model', () => {
+  assert.equal(matrix.network, true);
+  assert.equal(matrix.credentials, true);
+  assert.deepEqual(matrix.lanes.prove, {
     model: 'openai/gpt-5.6-luna',
     reasoningEffort: 'max',
     provider: 'openrouter openai-compatible',
     credential: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
-    optIn: 'MASTRA_LIVE=1',
     network: true,
     credentials: true,
     openaiApiKey: false,
@@ -74,7 +67,7 @@ test('compatibility matrix keeps CI fake and live OpenRouter lanes explicit', ()
   });
 });
 
-test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t) => {
+test('compatibility matrix against pinned Mastra', { timeout: 300_000 }, async (t) => {
   const controller = await MantisController.create();
   t.after(() => controller.destroy());
 
@@ -235,8 +228,9 @@ test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t
     const roundTrip = await controller.aguiRoundTrip();
     assert.equal(roundTrip.unauthenticatedStatus, 401);
     assert.ok(
-      roundTrip.authenticatedText.includes('CareAdvice') ||
-        roundTrip.eventTypes.length > 0,
+      (roundTrip.authenticatedText.includes('CareAdvice') ||
+        roundTrip.eventTypes.length > 0) &&
+        !roundTrip.authenticatedText.includes(FAKE_MODEL_TEXT),
       JSON.stringify(roundTrip),
     );
   });
@@ -269,8 +263,9 @@ test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t
       return;
     }
     assert.ok(
-      roundTrip.authenticatedText.includes('CareAdvice') ||
-        roundTrip.eventTypes.length > 0,
+      (roundTrip.authenticatedText.includes('CareAdvice') ||
+        roundTrip.eventTypes.length > 0) &&
+        !roundTrip.authenticatedText.includes(FAKE_MODEL_TEXT),
       JSON.stringify({
         authenticatedText: roundTrip.authenticatedText,
         eventTypes: roundTrip.eventTypes,

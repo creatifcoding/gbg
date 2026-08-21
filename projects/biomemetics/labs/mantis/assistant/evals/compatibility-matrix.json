@@ -1,22 +1,16 @@
 {
   "schemaVersion": "1.0.0",
   "kind": "EvalProgram",
-  "description": "A0 compatibility matrix. CI uses the fake model. The opt-in live lane is OpenRouter openai/gpt-5.6-luna gated by OPENROUTER_API_KEY.",
-  "network": false,
-  "credentials": false,
+  "description": "A0 compatibility matrix. Proof is live Mastra Agent calls through OpenRouter openai/gpt-5.6-luna. The fake model is not the proof.",
+  "network": true,
+  "credentials": true,
   "lanes": {
-    "ci": {
-      "model": "mantis-fake-model@1.0.0",
-      "network": false,
-      "credentials": false
-    },
-    "live": {
+    "prove": {
       "model": "openai/gpt-5.6-luna",
       "reasoningEffort": "max",
       "provider": "openrouter openai-compatible",
       "credential": "OPENROUTER_API_KEY",
       "baseUrl": "https://openrouter.ai/api/v1",
-      "optIn": "MASTRA_LIVE=1",
       "network": true,
       "credentials": true,
       "openaiApiKey": false,
@@ -39,6 +33,7 @@
     "durable-reconnect-readonly",
     "trace-redaction-run-correlation",
     "deterministic-eval-invocation",
-    "in-process-agui-bind"
+    "in-process-agui-bind",
+    "openrouter-luna-generate"
   ]
 }

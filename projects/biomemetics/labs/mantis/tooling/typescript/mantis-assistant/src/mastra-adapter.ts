@@ -139,16 +139,11 @@ type LiveLunaDefaultOptions = {
   };
 };
 
-export type ModelLane =
-  | {
-      readonly kind: 'fake';
-      readonly model: ReturnType<typeof createFakeModel>;
-    }
-  | {
-      readonly kind: 'live-luna';
-      readonly model: OpenAICompatibleConfig;
-      readonly defaultOptions: LiveLunaDefaultOptions;
-    };
+export type ModelLane = {
+  readonly kind: 'live-luna';
+  readonly model: OpenAICompatibleConfig;
+  readonly defaultOptions: LiveLunaDefaultOptions;
+};
 
 const parseOpenRouterApiKey = (value: unknown): string => {
   if (typeof value !== 'string') {
@@ -161,7 +156,7 @@ const parseOpenRouterApiKey = (value: unknown): string => {
   return key;
 };
 
-export const createLiveLunaLane = (): Extract<ModelLane, { kind: 'live-luna' }> => {
+export const createLiveLunaLane = (): ModelLane => {
   const apiKey = parseOpenRouterApiKey(process.env.OPENROUTER_API_KEY);
   return {
     kind: 'live-luna',
@@ -279,12 +274,12 @@ const mark = (
 
 export const createAdapterHarness = async (
   clock = new FakeClock(),
-  lane: ModelLane = { kind: 'fake', model: createFakeModel() },
+  lane: ModelLane = createLiveLunaLane(),
 ): Promise<AdapterHarness> => {
   const capabilities: CapabilityEntry[] = [];
   const sideEffects: SideEffectCounter = { externalEffectCount: 0 };
   const tools = createFakeTools(sideEffects);
-  const fakeModel = createFakeModel();
+  const omFixtureModel = createFakeModel();
   const storage = new InMemoryStore({ id: 'mantis-a0-memory' });
   const workspaceDir = mkdtempSync(path.join(tmpdir(), 'mantis-a0-ws-'));
 
@@ -293,7 +288,7 @@ export const createAdapterHarness = async (
     options: {
       lastMessages: 8,
       observationalMemory: {
-        model: fakeModel,
+        model: omFixtureModel,
         observation: { messageTokens: 1_000_000 },
         reflection: { observationTokens: 2_000_000 },
       },
@@ -304,9 +299,9 @@ export const createAdapterHarness = async (
     id: 'mantis-coordinator',
     name: 'mantis-coordinator',
     instructions:
-      'You are the mantis coordinator. Emit CareAdvice only. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
+      'You are the mantis coordinator. Start every reply with the token CareAdvice: then give sourced husbandry advice. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
     model: lane.model,
-    ...(lane.kind === 'live-luna' ? { defaultOptions: lane.defaultOptions } : {}),
+    defaultOptions: lane.defaultOptions,
     tools: {
       'care-source-read': tools.careSourceRead,
       'supply-transit-read': tools.supplyTransitRead,
@@ -319,8 +314,9 @@ export const createAdapterHarness = async (
     id: 'mantis-eval',
     name: 'mantis-eval',
     instructions:
-      'You are the mantis eval fixture. Emit CareAdvice only. Never emit ActuationCommand.',
-    model: fakeModel,
+      'You are the mantis eval fixture. Start every reply with the token CareAdvice: then give sourced husbandry advice. Never emit ActuationCommand.',
+    model: lane.model,
+    defaultOptions: lane.defaultOptions,
     tools: {
       'care-source-read': tools.careSourceRead,
       'read-only-replay': tools.readOnlyReplay,
@@ -957,7 +953,7 @@ const collectAgentText = async (agent: Agent, prompt: string): Promise<string> =
 export const collectOpenRouterProof = async (agent: Agent): Promise<string> =>
   collectAgentText(agent, 'What do I do now for the cup subject?');
 
-export const liveLunaLaneIdentity = (lane: Extract<ModelLane, { kind: 'live-luna' }>) => {
+export const liveLunaLaneIdentity = (lane: ModelLane) => {
   if (!('providerId' in lane.model) || !('modelId' in lane.model)) {
     throw new Error('live Luna lane is not an OpenRouter OpenAI-compatible config');
   }

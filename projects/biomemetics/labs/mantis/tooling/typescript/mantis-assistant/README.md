@@ -23,23 +23,20 @@ npm test
 npm run typecheck
 ```
 
-`npm test` uses `createFakeModel`, fake tools, a fake clock, and in-memory
-storage. It does not need live credentials or a network model provider.
+`npm test` is the proof. It calls `agent.generate` and the in-process
+CopilotRuntime bind against OpenRouter `openai/gpt-5.6-luna` with reasoning
+effort `max`. `createFakeModel` is not the passing path.
 
-## Model lanes
+## Live OpenRouter lane
 
-CI is the fake lane. It is the default harness.
-
-The live lane is opt-in. Run `MASTRA_LIVE=1 npm run test:live` when
-`OPENROUTER_API_KEY` is set. The live tests skip unless both are present.
-
-The live lane uses Mastra's OpenAI-compatible model config against
-`https://openrouter.ai/api/v1`. The model id is `openai/gpt-5.6-luna`.
-Reasoning effort is `max`. The credential is `OPENROUTER_API_KEY` only.
+The coordinator and eval agents use Mastra's OpenAI-compatible model config
+against `https://openrouter.ai/api/v1`. The model id is `openai/gpt-5.6-luna`.
+The credential is `OPENROUTER_API_KEY` only.
 
 A missing or empty `OPENROUTER_API_KEY` fails closed with
-`OPENROUTER_CREDENTIAL_REQUIRED`. The lane does not read `OPENAI_API_KEY`,
-does not use Codex or ChatGPT login, and does not consume Cursor plan tokens.
+`OPENROUTER_CREDENTIAL_REQUIRED`. The lane does not skip, does not read
+`OPENAI_API_KEY`, does not use Codex or ChatGPT login, and does not consume
+Cursor plan tokens.
 
 Do not commit, log, or print the key.
 
