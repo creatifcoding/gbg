@@ -1,0 +1,662 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:contracts:evidence:v1",
+  "title": "Mantis workspace evidence record",
+  "description": "A provenance-bearing record that distinguishes measurements, simulations, calculations, observations, and external sources.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "evidenceId",
+    "workspaceRef",
+    "claimRefs",
+    "sourceClass",
+    "recordedAt",
+    "producer",
+    "environment",
+    "method",
+    "result",
+    "review"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "EvidenceRecord"
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9.-]*$"
+    },
+    "workspaceRef": {
+      "const": "biomemetics.mantis"
+    },
+    "contextRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claimRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "parameterRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "sourceClass": {
+      "enum": [
+        "measured",
+        "simulated",
+        "calculated",
+        "observed",
+        "external-source"
+      ]
+    },
+    "recordedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "$ref": "#/$defs/producer"
+    },
+    "environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "method": {
+      "$ref": "#/$defs/method"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/input"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/measurement"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "admissions": {
+      "description": "Reviewed catalog-projection payloads bound to claims. Presence does not authorize a write.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/admission"
+      }
+    },
+    "result": {
+      "$ref": "#/$defs/result"
+    },
+    "review": {
+      "$ref": "#/$defs/review"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "sourceClass": {
+            "const": "measured"
+          }
+        },
+        "required": [
+          "sourceClass"
+        ]
+      },
+      "then": {
+        "required": [
+          "measurements"
+        ],
+        "properties": {
+          "measurements": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sourceClass": {
+            "const": "observed"
+          }
+        },
+        "required": [
+          "sourceClass"
+        ]
+      },
+      "then": {
+        "required": [
+          "observations"
+        ],
+        "properties": {
+          "observations": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "const": "observed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sourceClass": {
+            "enum": [
+              "simulated",
+              "calculated"
+            ]
+          }
+        },
+        "required": [
+          "sourceClass"
+        ]
+      },
+      "then": {
+        "required": [
+          "inputs",
+          "artifacts"
+        ],
+        "properties": {
+          "inputs": {
+            "minItems": 1
+          },
+          "artifacts": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sourceClass": {
+            "const": "external-source"
+          }
+        },
+        "required": [
+          "sourceClass"
+        ]
+      },
+      "then": {
+        "required": [
+          "inputs"
+        ],
+        "properties": {
+          "inputs": {
+            "minItems": 1
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "observations"
+            ],
+            "properties": {
+              "observations": {
+                "minItems": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "artifacts"
+            ],
+            "properties": {
+              "artifacts": {
+                "minItems": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "producer": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "human",
+            "agent",
+            "tool",
+            "instrument"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nixDerivation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gitCommit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{7,64}$"
+        },
+        "hardware": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "method": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "acceptance"
+      ],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deviations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "ref",
+        "role"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "statement",
+        "status"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "interpreted",
+            "unverified"
+          ]
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "measurement": {
+      "type": "object",
+      "required": [
+        "parameterRef",
+        "value",
+        "unit",
+        "uncertainty"
+      ],
+      "properties": {
+        "parameterRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sampleCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "mediaType",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "not": {
+            "required": [
+              "uri"
+            ]
+          }
+        },
+        {
+          "required": [
+            "uri",
+            "sha256"
+          ],
+          "not": {
+            "required": [
+              "path"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "admission": {
+      "description": "Reviewed claim text bound for catalog projection. Caller prose outside this object cannot inherit provenance.",
+      "type": "object",
+      "required": [
+        "claimRef",
+        "kind",
+        "text"
+      ],
+      "properties": {
+        "claimRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "observation",
+            "structure",
+            "mechanism",
+            "function",
+            "analog"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectionBinding": {
+          "description": "Exact reviewed claim/admission binding. SpecimenDB attach (gbg#16) may use only this payload.",
+          "type": "object",
+          "required": [
+            "evidenceId",
+            "claimRef",
+            "admissionText",
+            "reviewStatus"
+          ],
+          "properties": {
+            "evidenceId": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9.-]*$"
+            },
+            "claimRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "admissionText": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reviewStatus": {
+              "const": "accepted"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "analog"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "target"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "target"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["projectionBinding"]
+          },
+          "then": {
+            "properties": {
+              "projectionBinding": {
+                "type": "object",
+                "required": [
+                  "evidenceId",
+                  "claimRef",
+                  "admissionText",
+                  "reviewStatus"
+                ],
+                "properties": {
+                  "reviewStatus": { "const": "accepted" }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "disposition",
+        "summary",
+        "limitations"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "inconclusive",
+            "not-run"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "accepted",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "accepted",
+                  "rejected"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "reviewer",
+              "reviewedAt"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

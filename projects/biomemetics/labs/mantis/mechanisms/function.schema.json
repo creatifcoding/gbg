@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:mechanisms:function-catalog:v1",
+  "title": "Mantis function catalog",
+  "description": "Interpreted functions bound to mechanism hypotheses. Empty unless a Mechanism exists. Function is not observed structure.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceRef",
+    "catalogSpecimen",
+    "records"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "FunctionCatalog"
+    },
+    "workspaceRef": {
+      "const": "biomemetics.mantis"
+    },
+    "catalogSpecimen": {
+      "const": false
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/function"
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "review": {
+      "$ref": "../observations/observation.schema.json#/$defs/review"
+    },
+    "function": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "kind",
+        "functionId",
+        "mechanismRef",
+        "workspaceRef",
+        "statement",
+        "status",
+        "limits",
+        "review"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "kind": {
+          "const": "Function"
+        },
+        "functionId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "mechanismRef": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "workspaceRef": {
+          "const": "biomemetics.mantis"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": ["interpreted", "unverified"]
+        },
+        "limits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

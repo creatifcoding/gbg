@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">UNIVERSAL SHOE - FREE</text>
+<text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="28" y="38" width="80" height="50" rx="4" class="heavy" fill="#f5f7f8"/>
+<path d="M45 42 L55 52 L82 52 L92 42" class="med"/>
+<path d="M52 78 L62 68 L75 68 L85 78" class="med"/>
+<rect x="58" y="57" width="22" height="7" rx="1" class="metal"/>
+<text x="68" y="96" font-size="2.7" font-weight="bold" text-anchor="middle">FIXED SHOE ON CARRIAGE</text>
+<circle cx="118" cy="45" r="4.0" class="med" fill="#ffffff"/>
+<text x="118" y="46.2" font-size="2.6" font-weight="bold" text-anchor="middle">B28</text>
+<line x1="118" y1="49" x2="92" y2="47" class="leader"/>
+<text x="145" y="15" font-size="3.2" font-weight="bold" text-anchor="start">BINDER - MATING</text>
+<text x="145" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="162" y="31" width="62" height="65" rx="5" class="heavy" fill="#eef1f4"/>
+<path d="M174 78 L184 68 L202 68 L212 78" class="heavy"/>
+<path d="M180 61 L190 54 L206 61" class="med"/>
+<line x1="193" y1="109" x2="193" y2="87" class="motion"/>
+<text x="193" y="116" font-size="2.7" font-weight="bold" text-anchor="middle">BIND: DOWN 12 REF</text>
+<circle cx="234" cy="42" r="4.0" class="med" fill="#ffffff"/>
+<text x="234" y="43.2" font-size="2.6" font-weight="bold" text-anchor="middle">B29</text>
+<line x1="234" y1="46" x2="224" y2="45" class="leader"/>
+<text x="260" y="15" font-size="3.2" font-weight="bold" text-anchor="start">MATED / LOAD PATH</text>
+<text x="260" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="280" y="38" width="80" height="50" rx="4" class="heavy" fill="#f5f7f8"/>
+<rect x="289" y="25" width="62" height="55" rx="5" class="heavy" fill="#eef1f4"/>
+<path d="M297 72 L307 62 L331 62 L341 72" class="heavy"/>
+<line x1="320" y1="30" x2="320" y2="78" class="motion"/>
+<path d="M320 30 C350 42 352 75 338 87" class="phantom"/>
+<text x="322" y="101" font-size="2.4" font-weight="bold" text-anchor="middle">MOMENT -&gt; HOOK SHOULDERS -&gt; SHOE -&gt; RAIL</text>
+<text x="12" y="126" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL G - CLICK LATCH SECTION</text>
+<text x="12" y="129.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="30" y="145" width="85" height="46" rx="0" class="cut"/>
+<path d="M49 145 L60 155 L88 155 L99 145" class="heavy"/>
+<path d="M57 155 L57 176 Q70 190 83 176 L83 155" class="med"/>
+<path d="M63 168 L70 177 L77 168" class="heavy"/>
+<line x1="70" y1="197" x2="70" y2="180" class="motion"/>
+<text x="124" y="151" font-size="2.5" font-weight="bold" text-anchor="start">SPRING TONGUE DEFLECTION 1.2 TARGET</text>
+<text x="124" y="159" font-size="2.5" font-weight="normal" text-anchor="start">PULL-OFF &gt;=40 N TARGET</text>
+<text x="124" y="167" font-size="2.5" font-weight="normal" text-anchor="start">SIDE PLAY &lt;=0.20 TARGET</text>
+<text x="124" y="175" font-size="2.5" font-weight="normal" text-anchor="start">MATERIAL: PETG/ASA BODY + POM WEAR KEY REF</text>
+<text x="124" y="183" font-size="2.5" font-weight="bold" text-anchor="start" fill="#b52d2d">FAILURE: CRACK / PARTIAL ENGAGEMENT -&gt; RETENTION WITNESS MARK</text>
+<text x="260" y="126" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL H - BINDER-LOCAL FPC + B50 FACE</text>
+<text x="260" y="129.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="280" y="143" width="88" height="52" rx="4" class="heavy" fill="#eef1f4"/>
+<circle cx="305" cy="165" r="12" class="heavy" fill="#dfe5e9"/>
+<rect x="325" y="153" width="12" height="30" rx="0" class="thin" fill="#d3a74b"/>
+<path d="M317 166 C321 153 326 156 331 168" class="phantom"/>
+<rect x="354" y="155" width="6" height="20" rx="0" class="metal"/>
+<line x1="360" y1="165" x2="366" y2="165" class="thin"/>
+<text x="350" y="183" font-size="1.8" font-weight="bold" text-anchor="middle" fill="#b52d2d">S2 PLUNGER TARGET</text>
+<text x="334" y="205" font-size="2.4" font-weight="bold" text-anchor="middle">22-PIN 0.5 mm FPC STAYS LOCAL; Rmin 10 TARGET</text>
+<text x="334" y="211" font-size="2.05" font-weight="bold" text-anchor="middle">B50 C01-C12 HANDOFF; P01-P12 NAME RAIL INTERFACE ONLY</text>
+<circle cx="387" cy="153" r="4.0" class="med" fill="#ffffff"/>
+<text x="387" y="154.2" font-size="2.6" font-weight="bold" text-anchor="middle">B50</text>
+<line x1="387" y1="157" x2="357" y2="164" class="leader"/>
+<rect x="12" y="215" width="190" height="23.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="15" y="219.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - BIND-LATCH</text>
+<text x="15" y="224" font-size="2.45" font-weight="normal" text-anchor="start">States: pinch-safe / free / mated. Binder moves; shoe stays on carriage.</text>
+<text x="15" y="228" font-size="2.45" font-weight="normal" text-anchor="start">Tongue snaps behind shoulder; S2 confirms full electrical seating.</text>
+<text x="15" y="232" font-size="2.45" font-weight="normal" text-anchor="start">Release is mechanically blocked unless carriage is PINCH-SAFE.</text>
+<text x="15" y="236" font-size="2.45" font-weight="normal" text-anchor="start">Chosen over a screw for tool-free swap without disturbing rail position.</text>
+<rect x="215" y="215" width="190" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="218" y="219.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / CLEARANCE</text>
+<text x="218" y="224" font-size="2.45" font-weight="normal" text-anchor="start">Partial click: S2 stays open and local Q1 must remain off.</text>
+<text x="218" y="228" font-size="2.45" font-weight="normal" text-anchor="start">B50 series, mate order, SI launch and hot-unplug timing are UNVERIFIED.</text>
+<text x="218" y="232" font-size="2.45" font-weight="normal" text-anchor="start">Internal camera-to-serializer FPC never carries binder moment.</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">UNIVERSAL LATCH + BINDER</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">07 OF 12 / S06</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S06</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

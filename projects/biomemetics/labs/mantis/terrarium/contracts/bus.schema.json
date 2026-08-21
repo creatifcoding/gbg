@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:terrarium:bus:v2",
+  "title": "Mantis terrarium working draft B rail bus",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "release",
+    "architecture",
+    "cameraPath",
+    "contacts",
+    "states",
+    "transitions",
+    "safetyRequirements",
+    "validationRequired"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.1.0"
+    },
+    "release": {
+      "const": "B-draft"
+    },
+    "architecture": {
+      "type": "object",
+      "required": [
+        "cameraTethered",
+        "rawMipiOnRail",
+        "videoTransport",
+        "videoTopology",
+        "videoWhileMoving",
+        "contactSequence",
+        "powerControlGeometry",
+        "highSpeedGeometry",
+        "powerSwitchScope",
+        "safetyInterlock",
+        "p08SafetyCritical",
+        "trainingWindow",
+        "binderElectricalInterface",
+        "binderRemoval",
+        "binderMateInterlock",
+        "status"
+      ],
+      "properties": {
+        "cameraTethered": {
+          "const": false
+        },
+        "rawMipiOnRail": {
+          "const": false
+        },
+        "videoTransport": {
+          "const": "GMSL2"
+        },
+        "videoTopology": {
+          "const": "indexed-point-to-point-docks"
+        },
+        "videoWhileMoving": {
+          "const": false
+        },
+        "contactSequence": {
+          "const": "break-before-move"
+        },
+        "powerControlGeometry": {
+          "const": "continuous"
+        },
+        "highSpeedGeometry": {
+          "const": "discrete-dock"
+        },
+        "powerSwitchScope": {
+          "const": "per-carriage-load-branch"
+        },
+        "safetyInterlock": {
+          "const": "local-mechanical-normally-open"
+        },
+        "p08SafetyCritical": {
+          "const": false
+        },
+        "trainingWindow": {
+          "const": "bounded-timeout-then-latch-off"
+        },
+        "binderElectricalInterface": {
+          "const": "separate-keyed-12-net-unverified"
+        },
+        "binderRemoval": {
+          "const": "mechanically-blocked-unless-pinch-safe"
+        },
+        "binderMateInterlock": {
+          "const": "local-mechanical-S2"
+        },
+        "status": {
+          "const": "theoretical-unverified"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cameraPath": {
+      "const": [
+        "Sony-IMX519-autofocus-module-TBD",
+        "local-MIPI-CSI-2",
+        "MAX96717",
+        "B50-keyed-binder-interface",
+        "GMSL2-dock",
+        "MAX96724",
+        "short-22-position-0.5-mm-CSI-2",
+        "Particle-Tachyon"
+      ]
+    },
+    "contacts": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "prefixItems": [
+        { "const": { "pin": "P01", "net": "VIN-A", "geometry": "continuous", "role": "power" } },
+        { "const": { "pin": "P02", "net": "VIN-B", "geometry": "continuous", "role": "power" } },
+        { "const": { "pin": "P03", "net": "GND-A", "geometry": "continuous", "role": "return" } },
+        { "const": { "pin": "P04", "net": "GND-B", "geometry": "continuous", "role": "return" } },
+        { "const": { "pin": "P05", "net": "SDA", "geometry": "continuous", "role": "control" } },
+        { "const": { "pin": "P06", "net": "SCL", "geometry": "continuous", "role": "control" } },
+        { "const": { "pin": "P07", "net": "UID", "geometry": "continuous", "role": "identity" } },
+        { "const": { "pin": "P08", "net": "FAULT_N/IRQ", "geometry": "continuous", "role": "diagnostic" } },
+        { "const": { "pin": "P09", "net": "HSGND", "geometry": "discrete-dock", "role": "high-speed-ground" } },
+        { "const": { "pin": "P10", "net": "GMSL+", "geometry": "discrete-dock", "role": "high-speed-positive" } },
+        { "const": { "pin": "P11", "net": "GMSL-", "geometry": "discrete-dock", "role": "high-speed-negative" } },
+        { "const": { "pin": "P12", "net": "HSGND", "geometry": "discrete-dock", "role": "high-speed-ground" } }
+      ],
+      "items": false
+    },
+    "states": {
+      "const": [
+        "absent",
+        "mechanically-seated",
+        "power-mated",
+        "training-window",
+        "link-trained",
+        "fault-latched",
+        "pinch-safe",
+        "lifted"
+      ]
+    },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "guards",
+          "actions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^t[0-9]{2}-[a-z0-9-]+$"
+          },
+          "from": {
+            "enum": [
+              "absent",
+              "mechanically-seated",
+              "power-mated",
+              "training-window",
+              "link-trained",
+              "fault-latched",
+              "pinch-safe",
+              "lifted"
+            ]
+          },
+          "to": {
+            "enum": [
+              "absent",
+              "mechanically-seated",
+              "power-mated",
+              "training-window",
+              "link-trained",
+              "fault-latched",
+              "pinch-safe",
+              "lifted"
+            ]
+          },
+          "guards": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "safetyRequirements": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "protocolRef",
+          "acceptance",
+          "evidenceRefs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^sr-[a-z0-9-]+$"
+          },
+          "status": {
+            "const": "unverified"
+          },
+          "protocolRef": {
+            "type": "string",
+            "pattern": "^terrarium/ee/protocols/[a-z0-9-]+\\.md$"
+          },
+          "acceptance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceRefs": {
+            "const": []
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "validationRequired": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": false
+}

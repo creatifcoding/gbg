@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<rect width="420" height="297" fill="#fcfcfb"/>
+<defs>
+  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
+  <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
+  <pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="#7b7e83" stroke-width="0.25"/></pattern>
+  <pattern id="screen" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,0 L3,3 M3,0 L0,3" stroke="#88909a" stroke-width="0.18"/></pattern>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill:#15171a; }
+    .thin { stroke:#15171a; stroke-width:.28; fill:none; }
+    .med { stroke:#15171a; stroke-width:.55; fill:none; }
+    .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
+    .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
+    .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
+    .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
+    .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
+    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
+    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
+  </style>
+</defs>
+<text x="12" y="17" font-size="8" font-weight="bold" text-anchor="start">READABLE THEORY OF THE MACHINE</text>
+<text x="12" y="24" font-size="3.6" font-weight="normal" text-anchor="start">Exterior electrification; interior remains plastic, screened, and animal-safe.</text>
+<polygon points="48,220 148,220 148,50 48,50" class="heavy" fill="#ffffff"/>
+<polygon points="48,50 148,50 170.5,36.0 70.5,36.0" class="med" fill="#f2f4f5"/>
+<polygon points="148,220 170.5,206.0 170.5,36.0 148,50" class="med" fill="#e8ecef"/>
+<rect x="45" y="50" width="6" height="170" rx="1" class="plastic"/>
+<rect x="145" y="50" width="6" height="170" rx="1" class="plastic"/>
+<rect x="48" y="47" width="100" height="6" rx="1" class="plastic"/>
+<rect x="48" y="217" width="100" height="6" rx="1" class="plastic"/>
+<rect x="58" y="68" width="80" height="138" rx="1" class="thin" fill="#f7fbfc"/>
+<line x1="98" y1="68" x2="98" y2="206" class="thin"/>
+<circle cx="132" cy="137" r="2" class="med" fill="#ffffff"/>
+<rect x="58" y="49" width="80" height="12" rx="0" class="thin" fill="url(#screen)"/>
+<rect x="43" y="43" width="110" height="5" rx="1" class="med" fill="#d7dde2"/>
+<rect x="42" y="42" width="25" height="9" rx="2" class="heavy" fill="#f8f8f8"/>
+<text x="54.5" y="39" font-size="2.4" font-weight="bold" text-anchor="middle">PINCH CARRIAGE</text>
+<rect x="31" y="48" width="18" height="16" rx="2" class="med" fill="#f1f3f5"/>
+<circle cx="40" cy="56" r="4" class="heavy" fill="#dde4ea"/>
+<path d="M40 64 C25 100, 22 160, 188 195" class="phantom"/>
+<rect x="183" y="170" width="54" height="78" rx="4" class="heavy" fill="#edf1f4"/>
+<text x="210" y="183" font-size="3.2" font-weight="bold" text-anchor="middle">M1 / TACHYON</text>
+<text x="210" y="189" font-size="2.6" font-weight="bold" text-anchor="middle">OUTSIDE CAGE</text>
+<rect x="195" y="200" width="30" height="17" rx="0" class="med" fill="#ffffff"/>
+<text x="210" y="210" font-size="2.3" font-weight="middle" text-anchor="start">85 x 56 PCB</text>
+<rect x="60" y="78" width="76" height="116" rx="2" class="keepout"/>
+<text x="98" y="132" font-size="4" font-weight="bold" text-anchor="middle" fill="#b52d2d">ANIMAL VOLUME</text>
+<text x="98" y="138" font-size="2.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">NO METAL / COPPER / POGOS</text>
+<rect x="260" y="38" width="145" height="31.0" rx="1.2" class="med" fill="#f7f8fa"/>
+<text x="263" y="42.4" font-size="2.8" font-weight="bold" text-anchor="start">SYSTEM THEORY</text>
+<text x="263" y="47" font-size="2.45" font-weight="normal" text-anchor="start">250 mm block perimeter; 500 mm first tower.</text>
+<text x="263" y="51" font-size="2.45" font-weight="normal" text-anchor="start">External rail carries fused VIN + I2C + ID.</text>
+<text x="263" y="55" font-size="2.45" font-weight="normal" text-anchor="start">Pinch lifts contacts before the carriage rolls.</text>
+<text x="263" y="59" font-size="2.45" font-weight="normal" text-anchor="start">One latch receives camera, sensor, LED, or mist binders.</text>
+<text x="263" y="63" font-size="2.45" font-weight="normal" text-anchor="start">Camera binder serializes CSI; GMSL2 video crosses locked pogo docks.</text>
+<text x="263" y="67" font-size="2.45" font-weight="normal" text-anchor="start">The M1 is a compute brick, never the animal cage.</text>
+<rect x="260" y="91" width="145" height="27.0" rx="1.2" class="med" fill="#fff0f0"/>
+<text x="263" y="95.4" font-size="2.8" font-weight="bold" text-anchor="start">LOCKED SAFETY BOUNDARY</text>
+<text x="263" y="100" font-size="2.45" font-weight="normal" text-anchor="start">Upper third remains free for hang-molt clearance.</text>
+<text x="263" y="104" font-size="2.45" font-weight="normal" text-anchor="start">Ceiling and vents use &lt;=0.8 mm non-metal screen.</text>
+<text x="263" y="108" font-size="2.45" font-weight="normal" text-anchor="start">B20 separates the guarded rail channel from the wet volume.</text>
+<text x="263" y="112" font-size="2.45" font-weight="normal" text-anchor="start">Door opens front/side; all gaps receive nymph check.</text>
+<text x="263" y="116" font-size="2.45" font-weight="normal" text-anchor="start">No taxonomy inferred: no live-mantis photo supplied.</text>
+<rect x="260" y="138" width="145" height="27.0" rx="1.2" class="med" fill="#fff6d9"/>
+<text x="263" y="142.4" font-size="2.8" font-weight="bold" text-anchor="start">DRAWING STATUS</text>
+<text x="263" y="147" font-size="2.45" font-weight="normal" text-anchor="start">Pitch / span / bus topology are source locks.</text>
+<text x="263" y="151" font-size="2.45" font-weight="normal" text-anchor="start">Named vendor capabilities are checked against primary docs.</text>
+<text x="263" y="155" font-size="2.45" font-weight="normal" text-anchor="start">Custom rail dimensions are REF/TARGET until tested.</text>
+<text x="263" y="159" font-size="2.45" font-weight="normal" text-anchor="start">Pogo series, strip stack and latch force UNVERIFIED.</text>
+<text x="263" y="163" font-size="2.45" font-weight="normal" text-anchor="start">Fabricate coupons before a live-animal first article.</text>
+<rect x="268" y="222" width="58" height="8" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="297" y="227.2" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
+<rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
+<line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
+<line x1="334" y1="257.0" x2="334" y2="289" class="med"/>
+<line x1="376" y1="257.0" x2="376" y2="289" class="med"/>
+<line x1="270" y1="268.0" x2="412" y2="268.0" class="thin"/>
+<line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
+<text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
+<text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">COVER / THEORY</text>
+<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
+<text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
+<text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
+<text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">01 OF 12 / S00</text>
+<text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
+<text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S00</text>
+<text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
+<text x="337" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">A3 SVG/PDF</text>
+<text x="379" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">TOL</text>
+<text x="379" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">AS NOTED</text>
+<path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
+<circle cx="246" cy="278.5" r="6" class="med"/>
+<text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+</svg>

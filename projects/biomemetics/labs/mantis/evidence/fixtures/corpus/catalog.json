@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "Draft202012Corpus",
+  "description": "Identical positive/negative Draft 2020-12 cases for Python, Rust, and TypeScript.",
+  "cases": [
+    {
+      "id": "interfaces-positive",
+      "instance": "contracts/interfaces.json",
+      "schema": "contracts/interfaces.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "evidence-positive-measured",
+      "instance": "evidence/fixtures/corpus/positive/evidence-measured.json",
+      "schema": "contracts/evidence.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "evidence-run-layout",
+      "instance": "evidence/fixtures/runs/layout/run.json",
+      "schema": "contracts/evidence-run.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "manifest-generated",
+      "instance": "evidence/fixtures/manifests/generated-ok.json",
+      "schema": "contracts/manifest.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "manifest-reviewed",
+      "instance": "evidence/fixtures/manifests/reviewed-ok.json",
+      "schema": "contracts/manifest.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "evidence-negative-uri-no-digest",
+      "instance": "evidence/fixtures/corpus/negative/evidence-uri-no-digest.json",
+      "schema": "contracts/evidence.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "manifest-baseline-missing-review",
+      "instance": "evidence/fixtures/manifests/baseline-missing-review.json",
+      "schema": "contracts/manifest.schema.json",
+      "expect": "fail"
+    }
+  ]
+}

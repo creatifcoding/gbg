@@ -1,0 +1,61 @@
+{
+  "maturity": "DRAFT",
+  "evidenceClass": "theoretical/UNVERIFIED",
+  "coordinate": "q pinch input travel mm",
+  "samples": [
+    {
+      "q": 0.0,
+      "state": "LOCKED",
+      "s1Open": false,
+      "carrierLiftMm": 0.0,
+      "liftPawlEngaged": true,
+      "translationUnlocked": false,
+      "contactsOnLand": true
+    },
+    {
+      "q": 1.0,
+      "state": "S1_OPEN",
+      "s1Open": true,
+      "carrierLiftMm": 0.0,
+      "liftPawlEngaged": true,
+      "translationUnlocked": false,
+      "contactsOnLand": true
+    },
+    {
+      "q": 2.2,
+      "state": "PINCH_SAFE",
+      "s1Open": true,
+      "carrierLiftMm": 0.0,
+      "liftPawlEngaged": false,
+      "translationUnlocked": false,
+      "contactsOnLand": true
+    },
+    {
+      "q": 4.0,
+      "state": "CONTACTS_CLEAR",
+      "s1Open": true,
+      "carrierLiftMm": 2.2,
+      "liftPawlEngaged": false,
+      "translationUnlocked": false,
+      "contactsOnLand": false
+    },
+    {
+      "q": 5.0,
+      "state": "ROLLING",
+      "s1Open": true,
+      "carrierLiftMm": 2.2,
+      "liftPawlEngaged": false,
+      "translationUnlocked": true,
+      "contactsOnLand": false
+    }
+  ],
+  "fullSampleCount": 101,
+  "electrical": {
+    "S1": "UNVERIFIED",
+    "S2": "UNVERIFIED",
+    "Q1": "UNVERIFIED",
+    "issue24": "unmet",
+    "note": "Mechanical envelopes only. Do not invent nets or switch/Q1 parts."
+  },
+  "parentFrame": "PR 34 frame/rail/B20 is draft-only and not admitted"
+}

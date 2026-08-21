@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:contracts:evidence-run:v1",
+  "title": "Mantis evidence run directory contract",
+  "description": "Layout and metadata for evidence/runs/<workstream-id>/<git-sha>/<run-id>/. Records remain local until gbg#16. A verification report is an artifact input, not self-certifying evidence.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workstreamId",
+    "gitSha",
+    "runId",
+    "command",
+    "layout",
+    "inputs",
+    "evidenceClass",
+    "limits"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "EvidenceRun" },
+    "workstreamId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]*$"
+    },
+    "command": { "type": "string", "minLength": 1 },
+    "nixClosure": { "type": "string", "minLength": 1 },
+    "toolVersions": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "hardwareFixtureRevision": { "type": "string", "minLength": 1 },
+    "layout": {
+      "type": "object",
+      "required": [
+        "runJson",
+        "inputs",
+        "raw",
+        "derived",
+        "reportJson",
+        "evidenceRecordJson"
+      ],
+      "properties": {
+        "runJson": { "const": "run.json" },
+        "inputs": { "const": "inputs/" },
+        "raw": { "const": "raw/" },
+        "derived": { "const": "derived/" },
+        "reportJson": { "const": "report.json" },
+        "evidenceRecordJson": { "const": "evidence-record.json" }
+      },
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evidenceClass": {
+      "enum": ["theoretical", "simulated", "calculated", "measured", "observed"]
+    },
+    "limits": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "deviations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "localOnly": { "const": true },
+    "specimenDbAttachAllowed": { "const": false }
+  },
+  "additionalProperties": false
+}

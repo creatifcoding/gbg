@@ -1,0 +1,722 @@
+[
+  {
+    "solidId": "B22-carriage-outer-shell",
+    "bomId": "B22",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B22",
+    "aabbMm": [
+      0,
+      0,
+      2.0,
+      60.0,
+      42.0,
+      28.0
+    ],
+    "nominalVolumeMm3": 11088.0,
+    "notes": "Untethered. No trailing cable solid. Envelope 60 x 42 x 28 REF."
+  },
+  {
+    "solidId": "B23-pinch-lever",
+    "bomId": "B23",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B23",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      8.0,
+      12.0,
+      22.0
+    ],
+    "nominalVolumeMm3": 2112.0,
+    "notes": "Two per carriage. Cam slots sequence S1, lift pawl, then translation pawl."
+  },
+  {
+    "solidId": "B24-contact-carrier",
+    "bomId": "B24",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B24",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      36.0,
+      32.0,
+      6.0
+    ],
+    "nominalVolumeMm3": 6912.0,
+    "notes": "HSD cell seats vertically with P01-P08. Split float; series UNVERIFIED."
+  },
+  {
+    "solidId": "B25-spring-pocket",
+    "bomId": "B25",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B25",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      10.0,
+      10.0,
+      16.0
+    ],
+    "nominalVolumeMm3": 1024.0,
+    "notes": "Spring rate/PN UNVERIFIED. Pocket only; not a sourced spring."
+  },
+  {
+    "solidId": "B26-roller",
+    "bomId": "B26",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B26",
+    "aabbMm": [
+      -4.0,
+      -4.0,
+      0.0,
+      4.0,
+      4.0,
+      6.0
+    ],
+    "nominalVolumeMm3": 384.0,
+    "notes": "PN absent. Four per carriage. Load path through rollers/dovetail, not pogos."
+  },
+  {
+    "solidId": "B27-contact-array-proxy",
+    "bomId": "B27",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "unverified",
+    "metal": true,
+    "uniquePart": true,
+    "frame": "part.B27",
+    "aabbMm": [
+      -0.5,
+      -0.5,
+      0.0,
+      28.44,
+      0.5,
+      6.0
+    ],
+    "nominalVolumeMm3": 72.0,
+    "notes": "UNVERIFIED series/PN (#23). Animal-side copper prohibited. MIPI is not on these contacts."
+  },
+  {
+    "solidId": "B23-lift-pawl",
+    "bomId": "B23",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "target",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B23",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      4.0,
+      10.0,
+      5.0
+    ],
+    "nominalVolumeMm3": 200.0,
+    "notes": "Positive blocker under B24 until q >= PINCH_SAFE. Not a timed delay."
+  },
+  {
+    "solidId": "B23-translation-pawl",
+    "bomId": "B23",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "target",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B23",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      4.0,
+      8.0,
+      6.0
+    ],
+    "nominalVolumeMm3": 192.0,
+    "notes": "Blocks dovetail/roll until carrier lift >= clearance."
+  },
+  {
+    "solidId": "B28-universal-latch-shoe",
+    "bomId": "B28",
+    "kind": "printed-part",
+    "volumeClass": "binder",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B28",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      24.0,
+      22.0,
+      10.0
+    ],
+    "nominalVolumeMm3": 3936.0,
+    "notes": "Carries binder moment around B50. Contacts are not the load path."
+  },
+  {
+    "solidId": "B29-camera-binder-housing",
+    "bomId": "B29",
+    "kind": "printed-part",
+    "volumeClass": "binder",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B29",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      40.0,
+      36.0,
+      22.0
+    ],
+    "nominalVolumeMm3": 12300.0,
+    "notes": "Camera/serializer PCB envelope is UNVERIFIED. Service and thermal space inside the cut."
+  },
+  {
+    "solidId": "B34-fpc-clamp",
+    "bomId": "B34",
+    "kind": "printed-part",
+    "volumeClass": "binder",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": true,
+    "frame": "part.B34",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      16.0,
+      8.0,
+      3.0
+    ],
+    "nominalVolumeMm3": 384.0,
+    "notes": "Local CSI strain relief. Length/orientation UNVERIFIED (B37)."
+  },
+  {
+    "solidId": "B50-carriage-half-proxy",
+    "bomId": "B50",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "unverified",
+    "metal": true,
+    "uniquePart": true,
+    "frame": "part.B50",
+    "aabbMm": [
+      0,
+      0,
+      0,
+      21.0,
+      28.0,
+      4.0
+    ],
+    "nominalVolumeMm3": 2064.0,
+    "notes": "C01-C12 mirror required nets. Series, pinout, SI launch UNVERIFIED. Not a sourced connector."
+  },
+  {
+    "solidId": "B50-binder-half-proxy",
+    "bomId": "B50",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "unverified",
+    "metal": true,
+    "uniquePart": true,
+    "frame": "part.B50",
+    "aabbMm": [
+      -3.0,
+      0,
+      0,
+      18.0,
+      28.0,
+      4.0
+    ],
+    "nominalVolumeMm3": 2064.0,
+    "notes": "Key blocks reverse mate. Partial click cannot clear the key."
+  },
+  {
+    "solidId": "B22-shell-posed",
+    "bomId": "B22",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      0.0,
+      0.0,
+      2.0,
+      60.0,
+      42.0,
+      28.0
+    ],
+    "nominalVolumeMm3": 65520.0,
+    "notes": "Shell does not lift; only B24/B27 ride the lift cam after PINCH_SAFE."
+  },
+  {
+    "solidId": "B24-carrier-posed",
+    "bomId": "B24",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      3.0,
+      5.0,
+      1.5,
+      39.0,
+      37.0,
+      7.5
+    ],
+    "nominalVolumeMm3": 6912.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B27-array-posed",
+    "bomId": "B27",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "unverified",
+    "metal": true,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      15.5,
+      6.529999999999999,
+      -0.15,
+      16.5,
+      35.47,
+      6.0
+    ],
+    "nominalVolumeMm3": 73.80000000000001,
+    "notes": "P01-P12. Continuous P01-P08 and discrete P09-P12 share the carrier. No animal-side copper."
+  },
+  {
+    "solidId": "KO-land-plane-study",
+    "bomId": "B19",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "ref",
+    "metal": true,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      -2.0,
+      6.279999999999999,
+      -0.2,
+      62.0,
+      35.72,
+      0.0
+    ],
+    "nominalVolumeMm3": 230.40000000000003,
+    "notes": "External rail lands. B20 stays the animal/wet barrier; this plane is outside the animal volume."
+  },
+  {
+    "solidId": "B23-lift-pawl-posed",
+    "bomId": "B23",
+    "kind": "blocker",
+    "volumeClass": "service",
+    "status": "target",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      11.0,
+      12.0,
+      0.0,
+      15.0,
+      22.0,
+      5.0
+    ],
+    "nominalVolumeMm3": 200.0,
+    "notes": "Engaged under B24 until PINCH_SAFE."
+  },
+  {
+    "solidId": "B23-translation-pawl-posed",
+    "bomId": "B23",
+    "kind": "blocker",
+    "volumeClass": "service",
+    "status": "target",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      54.0,
+      8.0,
+      2.0,
+      58.0,
+      16.0,
+      8.0
+    ],
+    "nominalVolumeMm3": 192.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B26-roller-1",
+    "bomId": "B26",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      4.0,
+      2.0,
+      2.0,
+      12.0,
+      10.0,
+      8.0
+    ],
+    "nominalVolumeMm3": 384.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B26-roller-2",
+    "bomId": "B26",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      48.0,
+      2.0,
+      2.0,
+      56.0,
+      10.0,
+      8.0
+    ],
+    "nominalVolumeMm3": 384.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B26-roller-3",
+    "bomId": "B26",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      4.0,
+      32.0,
+      2.0,
+      12.0,
+      40.0,
+      8.0
+    ],
+    "nominalVolumeMm3": 384.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B26-roller-4",
+    "bomId": "B26",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      48.0,
+      32.0,
+      2.0,
+      56.0,
+      40.0,
+      8.0
+    ],
+    "nominalVolumeMm3": 384.0,
+    "notes": ""
+  },
+  {
+    "solidId": "IF-S1-actuator",
+    "bomId": "B48",
+    "kind": "interlock-interface",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      4.0,
+      17.0,
+      8.0,
+      12.0,
+      25.0,
+      16.0
+    ],
+    "nominalVolumeMm3": 512.0,
+    "notes": "UNVERIFIED. #24 unmet. Not a switch PN. First pinch travel changes this channel while B27 stays put."
+  },
+  {
+    "solidId": "KO-B52-study-slot",
+    "bomId": "B52",
+    "kind": "keep-out",
+    "volumeClass": "service",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      -4.0,
+      0.0,
+      -1.5,
+      64.0,
+      42.0,
+      0.0
+    ],
+    "nominalVolumeMm3": 1199.52,
+    "notes": "Guarded external slot. Lands reachable from outside only."
+  },
+  {
+    "solidId": "KO-B51-study-stop",
+    "bomId": "B51",
+    "kind": "keep-out",
+    "volumeClass": "service",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      -8.0,
+      0.0,
+      0.0,
+      0.0,
+      38.0,
+      16.0
+    ],
+    "nominalVolumeMm3": 4864.0,
+    "notes": "Route retention interface. Fastener PN UNVERIFIED. Not a copy of PR 34 STEP."
+  },
+  {
+    "solidId": "KO-no-mipi-on-pogo",
+    "bomId": "B27",
+    "kind": "declaration",
+    "volumeClass": "service",
+    "status": "locked",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nominalVolumeMm3": 0.0,
+    "notes": "Raw MIPI stays binder-local. B27 P09-P12 are serialized video only."
+  },
+  {
+    "solidId": "B50-carriage-posed",
+    "bomId": "B50",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "unverified",
+    "metal": true,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      56.0,
+      7.0,
+      8.0,
+      60.0,
+      35.0,
+      12.0
+    ],
+    "nominalVolumeMm3": 480.0,
+    "notes": "Stays with the carriage. Load bypasses these faces via B28."
+  },
+  {
+    "solidId": "B50-binder-posed",
+    "bomId": "B50",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "unverified",
+    "metal": true,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      60.0,
+      7.0,
+      8.0,
+      64.0,
+      35.0,
+      12.0
+    ],
+    "nominalVolumeMm3": 480.0,
+    "notes": "Separates only after BRANCH_SAFE."
+  },
+  {
+    "solidId": "B28-latch-posed",
+    "bomId": "B28",
+    "kind": "printed-part",
+    "volumeClass": "binder",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      54.0,
+      10.0,
+      14.0,
+      78.0,
+      24.0,
+      24.0
+    ],
+    "nominalVolumeMm3": 3936.0,
+    "notes": "Moment path around B50. Partial click remains S2-open path; B50 stays keyed."
+  },
+  {
+    "solidId": "B28-release-block-pin",
+    "bomId": "B28",
+    "kind": "blocker",
+    "volumeClass": "service",
+    "status": "target",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      62.0,
+      16.0,
+      18.0,
+      66.0,
+      20.0,
+      26.0
+    ],
+    "nominalVolumeMm3": 128.0,
+    "notes": "Retracts only at PINCH_SAFE or later. Firmware cannot move this pin."
+  },
+  {
+    "solidId": "B29-housing-posed",
+    "bomId": "B29",
+    "kind": "printed-part",
+    "volumeClass": "binder",
+    "status": "ref",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      64.0,
+      3.0,
+      4.0,
+      104.0,
+      39.0,
+      26.0
+    ],
+    "nominalVolumeMm3": 31680.0,
+    "notes": ""
+  },
+  {
+    "solidId": "KO-camera-module",
+    "bomId": "B36",
+    "kind": "keep-out",
+    "volumeClass": "binder",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      68.0,
+      5.0,
+      6.0,
+      100.0,
+      29.0,
+      14.0
+    ],
+    "nominalVolumeMm3": 6144.0,
+    "notes": "B36 exact module/revision/STEP absent. Not an invented SKU outline."
+  },
+  {
+    "solidId": "KO-local-csi-bend",
+    "bomId": "B37",
+    "kind": "keep-out",
+    "volumeClass": "binder",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      70.0,
+      8.0,
+      14.0,
+      82.0,
+      26.0,
+      20.0
+    ],
+    "nominalVolumeMm3": 1296.0,
+    "notes": "Raw MIPI remains inside the binder. Not routed onto B50 or B27."
+  },
+  {
+    "solidId": "KO-binder-thermal",
+    "bomId": "B29",
+    "kind": "keep-out",
+    "volumeClass": "binder",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      66.0,
+      4.0,
+      20.0,
+      102.0,
+      36.0,
+      28.0
+    ],
+    "nominalVolumeMm3": 9216.0,
+    "notes": "Thermal rise UNVERIFIED. Space reserved; not a measured budget."
+  },
+  {
+    "solidId": "IF-S2-actuator",
+    "bomId": "B48",
+    "kind": "interlock-interface",
+    "volumeClass": "service",
+    "status": "unverified",
+    "metal": false,
+    "uniquePart": false,
+    "frame": "carriage.local",
+    "aabbMm": [
+      58.0,
+      17.0,
+      4.0,
+      66.0,
+      25.0,
+      12.0
+    ],
+    "nominalVolumeMm3": 512.0,
+    "notes": "UNVERIFIED. #24 unmet. First binder travel changes this channel while B50 stays seated."
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "EvidenceRecord",
+  "evidenceId": "fixture-positive-measured",
+  "workspaceRef": "biomemetics.mantis",
+  "claimRefs": ["claim:rail:contact-count"],
+  "sourceClass": "measured",
+  "recordedAt": "2026-08-20T12:00:00Z",
+  "producer": { "kind": "instrument", "name": "caliper", "version": "n/a" },
+  "environment": { "description": "theoretical fixture bench", "gitCommit": "1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3" },
+  "method": {
+    "protocol": "count exposed pads",
+    "acceptance": "two agreeing counts"
+  },
+  "measurements": [
+    {
+      "parameterRef": "rail.contact_count",
+      "value": 12,
+      "unit": "count",
+      "uncertainty": 0,
+      "sampleCount": 1
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/fixtures/corpus/positive/contact-count.json",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mediaType": "application/json"
+    },
+    {
+      "uri": "https://example.invalid/mantis/fixture-positive.bin",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "mediaType": "application/octet-stream"
+    }
+  ],
+  "admissions": [
+    {
+      "claimRef": "claim:rail:contact-count",
+      "kind": "structure",
+      "text": "Coupon exposes twelve contacts.",
+      "projectionBinding": {
+        "evidenceId": "fixture-positive-measured",
+        "claimRef": "claim:rail:contact-count",
+        "admissionText": "Coupon exposes twelve contacts.",
+        "reviewStatus": "accepted"
+      }
+    }
+  ],
+  "result": {
+    "disposition": "supports",
+    "summary": "Positive Draft 2020-12 fixture with digested path and URI artifacts.",
+    "limitations": ["Theoretical fixture only; not measured hardware."]
+  },
+  "review": {
+    "status": "accepted",
+    "reviewer": "fixture-reviewer",
+    "reviewedAt": "2026-08-20T12:05:00Z",
+    "notes": "Corpus positive case."
+  }
+}

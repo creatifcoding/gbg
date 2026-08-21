@@ -1,0 +1,1121 @@
+{
+  "schema": "mantis.ee.kicad.pin-pad-audit.v1",
+  "issue": 23,
+  "retrievedAt": "2026-08-20",
+  "reviewer": "UNVERIFIED-second-reviewer",
+  "rows": [
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "A0",
+      "pinNumber": "1",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "1",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "A1",
+      "pinNumber": "2",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "2",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "RESET",
+      "pinNumber": "3",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "3",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD0",
+      "pinNumber": "4",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "4",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC0",
+      "pinNumber": "5",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "5",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD1",
+      "pinNumber": "6",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "6",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC1",
+      "pinNumber": "7",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "7",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD2",
+      "pinNumber": "8",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "8",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC2",
+      "pinNumber": "9",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "9",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD3",
+      "pinNumber": "10",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "10",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC3",
+      "pinNumber": "11",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "11",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "GND",
+      "pinNumber": "12",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "12",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD4",
+      "pinNumber": "13",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "13",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC4",
+      "pinNumber": "14",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "14",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD5",
+      "pinNumber": "15",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "15",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC5",
+      "pinNumber": "16",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "16",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD6",
+      "pinNumber": "17",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "17",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC6",
+      "pinNumber": "18",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "18",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SD7",
+      "pinNumber": "19",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "19",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SC7",
+      "pinNumber": "20",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "20",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "A2",
+      "pinNumber": "21",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "21",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SCL",
+      "pinNumber": "22",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "22",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "SDA",
+      "pinNumber": "23",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "23",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_PW",
+      "pinName": "VCC",
+      "pinNumber": "24",
+      "footprint": "TSSOP-24_PW_TI",
+      "pad": "24",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 TSSOP PW"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD0",
+      "pinNumber": "1",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "1",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC0",
+      "pinNumber": "2",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "2",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD1",
+      "pinNumber": "3",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "3",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC1",
+      "pinNumber": "4",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "4",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD2",
+      "pinNumber": "5",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "5",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC2",
+      "pinNumber": "6",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "6",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD3",
+      "pinNumber": "7",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "7",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC3",
+      "pinNumber": "8",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "8",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "GND",
+      "pinNumber": "9",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "9",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD4",
+      "pinNumber": "10",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "10",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC4",
+      "pinNumber": "11",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "11",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD5",
+      "pinNumber": "12",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "12",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC5",
+      "pinNumber": "13",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "13",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD6",
+      "pinNumber": "14",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "14",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC6",
+      "pinNumber": "15",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "15",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SD7",
+      "pinNumber": "16",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "16",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SC7",
+      "pinNumber": "17",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "17",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "A2",
+      "pinNumber": "18",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "18",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SCL",
+      "pinNumber": "19",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "19",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "SDA",
+      "pinNumber": "20",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "20",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "VCC",
+      "pinNumber": "21",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "21",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "A0",
+      "pinNumber": "22",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "22",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "A1",
+      "pinNumber": "23",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "23",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "RESET",
+      "pinNumber": "24",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "24",
+      "status": "sourced",
+      "source": "TI SCPS207H Table 4-1 VQFN RGE"
+    },
+    {
+      "symbol": "TCA9548A_RGE",
+      "pinName": "EP",
+      "pinNumber": "25",
+      "footprint": "VQFN-24_RGE_TI",
+      "pad": "25",
+      "status": "UNVERIFIED",
+      "source": "EP not in Table 4-1; thermal pad only"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "VIN-A",
+      "pinNumber": "P01",
+      "net": "VIN-A",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P01",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "VIN-A",
+      "pinNumber": "C01",
+      "net": "VIN-A",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C01",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "VIN-B",
+      "pinNumber": "P02",
+      "net": "VIN-B",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P02",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "VIN-B",
+      "pinNumber": "C02",
+      "net": "VIN-B",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C02",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "GND-A",
+      "pinNumber": "P03",
+      "net": "GND-A",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P03",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "GND-A",
+      "pinNumber": "C03",
+      "net": "GND-A",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C03",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "GND-B",
+      "pinNumber": "P04",
+      "net": "GND-B",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P04",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "GND-B",
+      "pinNumber": "C04",
+      "net": "GND-B",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C04",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "SDA",
+      "pinNumber": "P05",
+      "net": "SDA",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P05",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "SDA",
+      "pinNumber": "C05",
+      "net": "SDA",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C05",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "SCL",
+      "pinNumber": "P06",
+      "net": "SCL",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P06",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "SCL",
+      "pinNumber": "C06",
+      "net": "SCL",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C06",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "UID",
+      "pinNumber": "P07",
+      "net": "UID",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P07",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "UID",
+      "pinNumber": "C07",
+      "net": "UID",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C07",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "FAULT_N/IRQ",
+      "pinNumber": "P08",
+      "net": "FAULT_N/IRQ",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P08",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "FAULT_N/IRQ",
+      "pinNumber": "C08",
+      "net": "FAULT_N/IRQ",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C08",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "HSGND",
+      "pinNumber": "P09",
+      "net": "HSGND",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P09",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "HSGND",
+      "pinNumber": "C09",
+      "net": "HSGND",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C09",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "GMSL+",
+      "pinNumber": "P10",
+      "net": "GMSL+",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P10",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "GMSL+",
+      "pinNumber": "C10",
+      "net": "GMSL+",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C10",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "GMSL-",
+      "pinNumber": "P11",
+      "net": "GMSL-",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P11",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "GMSL-",
+      "pinNumber": "C11",
+      "net": "GMSL-",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C11",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "B27_RAIL_12NET",
+      "pinName": "HSGND",
+      "pinNumber": "P12",
+      "net": "HSGND",
+      "footprint": "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+      "pad": "P12",
+      "status": "contract-sourced-series-UNVERIFIED",
+      "source": "terrarium/bus.json contacts"
+    },
+    {
+      "symbol": "B50_BINDER_12NET",
+      "pinName": "HSGND",
+      "pinNumber": "C12",
+      "net": "HSGND",
+      "footprint": "B50_BINDER_12NET_UNVERIFIED-series",
+      "pad": "C12",
+      "status": "mirror-of-B27-series-UNVERIFIED",
+      "source": "BUS.md C01-C12 mirror P01-P12"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "1",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "1",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D0_N",
+      "pinNumber": "2",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "2",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D0_P",
+      "pinNumber": "3",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "3",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "4",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "4",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D1_N",
+      "pinNumber": "5",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "5",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D1_P",
+      "pinNumber": "6",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "6",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "7",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "7",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_CLK_N",
+      "pinNumber": "8",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "8",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_CLK_P",
+      "pinNumber": "9",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "9",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "10",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "10",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D2_N",
+      "pinNumber": "11",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "11",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D2_P",
+      "pinNumber": "12",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "12",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "13",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "13",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D3_N",
+      "pinNumber": "14",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "14",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_D3_P",
+      "pinNumber": "15",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "15",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "16",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "16",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_PWR_EN",
+      "pinNumber": "17",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "17",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CSI_RESET",
+      "pinNumber": "18",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "18",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "GND",
+      "pinNumber": "19",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "19",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CAM2_SCL",
+      "pinNumber": "20",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "20",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "CAM2_SDA",
+      "pinNumber": "21",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "21",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_CSI1_22P",
+      "pinName": "3V3",
+      "pinNumber": "22",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "22",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "1",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "1",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D0_N",
+      "pinNumber": "2",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "2",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D0_P",
+      "pinNumber": "3",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "3",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "4",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "4",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D1_N",
+      "pinNumber": "5",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "5",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D1_P",
+      "pinNumber": "6",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "6",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "7",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "7",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_CLK_N",
+      "pinNumber": "8",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "8",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_CLK_P",
+      "pinNumber": "9",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "9",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "10",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "10",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D2_N",
+      "pinNumber": "11",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "11",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D2_P",
+      "pinNumber": "12",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "12",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "13",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "13",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D3_N",
+      "pinNumber": "14",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "14",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_D3_P",
+      "pinNumber": "15",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "15",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "16",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "16",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_PWR_EN",
+      "pinNumber": "17",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "17",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "DSI_CSI_RESET",
+      "pinNumber": "18",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "18",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "GND",
+      "pinNumber": "19",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "19",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "TP_CAM1_SCL",
+      "pinNumber": "20",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "20",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "TP_CAM1_SDA",
+      "pinNumber": "21",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "21",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "TACHYON_DSI_CSI2_22P",
+      "pinName": "3V3",
+      "pinNumber": "22",
+      "footprint": "FPC-22_0.5mm_UNVERIFIED-MPN",
+      "pad": "22",
+      "status": "pinout-sourced-MPN-UNVERIFIED",
+      "source": "Particle tachyon-csi-dsi-pinout.jpg TACHYON V1.2"
+    },
+    {
+      "symbol": "QWIIC_4P_3V3",
+      "pinName": "GND",
+      "pinNumber": "1",
+      "footprint": "JST-SH-4_1mm_UNVERIFIED-header-MPN",
+      "pad": "1",
+      "status": "nets-sourced-header-MPN-UNVERIFIED",
+      "source": "SparkFun Qwiic pinout GND/3.3V/SDA/SCL; Particle 4-pin JST 1 mm"
+    },
+    {
+      "symbol": "QWIIC_4P_3V3",
+      "pinName": "3V3",
+      "pinNumber": "2",
+      "footprint": "JST-SH-4_1mm_UNVERIFIED-header-MPN",
+      "pad": "2",
+      "status": "nets-sourced-header-MPN-UNVERIFIED",
+      "source": "SparkFun Qwiic pinout GND/3.3V/SDA/SCL; Particle 4-pin JST 1 mm"
+    },
+    {
+      "symbol": "QWIIC_4P_3V3",
+      "pinName": "SDA",
+      "pinNumber": "3",
+      "footprint": "JST-SH-4_1mm_UNVERIFIED-header-MPN",
+      "pad": "3",
+      "status": "nets-sourced-header-MPN-UNVERIFIED",
+      "source": "SparkFun Qwiic pinout GND/3.3V/SDA/SCL; Particle 4-pin JST 1 mm"
+    },
+    {
+      "symbol": "QWIIC_4P_3V3",
+      "pinName": "SCL",
+      "pinNumber": "4",
+      "footprint": "JST-SH-4_1mm_UNVERIFIED-header-MPN",
+      "pad": "4",
+      "status": "nets-sourced-header-MPN-UNVERIFIED",
+      "source": "SparkFun Qwiic pinout GND/3.3V/SDA/SCL; Particle 4-pin JST 1 mm"
+    }
+  ]
+}

@@ -1,0 +1,471 @@
+{
+  "$schema": "contracts/interfaces.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "InterfaceRegistry",
+  "workspaceRef": "biomemetics.mantis",
+  "revision": {
+    "id": "00b-1",
+    "date": "2026-08-20",
+    "state": "draft"
+  },
+  "maturityLadder": [
+    "draft",
+    "proto-fab",
+    "qualified",
+    "integration-prototype",
+    "shop-release"
+  ],
+  "coordinateFrames": [
+    {
+      "id": "FRAME-MODULE",
+      "origin": "module exterior front-left-bottom corner",
+      "axes": {
+        "x": "module width toward right",
+        "y": "module depth toward rear",
+        "z": "module height upward"
+      },
+      "status": "locked",
+      "note": "Nominal 250 mm module envelope; dimensions remain locked in params."
+    },
+    {
+      "id": "FRAME-RAIL",
+      "origin": "external rail datum at indexed dock centerline",
+      "axes": {
+        "x": "along rail travel",
+        "y": "outboard from animal volume",
+        "z": "upward"
+      },
+      "status": "ref",
+      "note": "Dock pitch and land geometry remain TARGET/UNVERIFIED until sourced."
+    },
+    {
+      "id": "FRAME-CARRIAGE",
+      "origin": "carriage binder mate face center",
+      "axes": {
+        "x": "binder width",
+        "y": "toward rail dock",
+        "z": "upward"
+      },
+      "status": "ref"
+    },
+    {
+      "id": "FRAME-WET",
+      "origin": "animal/wet volume interior front-left-bottom",
+      "axes": {
+        "x": "interior width",
+        "y": "interior depth",
+        "z": "interior height"
+      },
+      "status": "locked",
+      "note": "B20 keeps every conductor outside this frame."
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "B20",
+      "title": "Animal/wet-volume barrier",
+      "kind": "barrier",
+      "status": "locked",
+      "statement": "B20 continuously separates every conductor, pogo, and metal mesh from the animal and wet volumes.",
+      "units": {},
+      "measuredEvidenceRefs": [],
+      "notes": "Architectural lock; physical keep-out evidence is still required for shop release."
+    },
+    {
+      "id": "B27",
+      "title": "Indexed high-speed pogo dock",
+      "kind": "indexed-dock",
+      "status": "unverified",
+      "statement": "B27 is the stationary indexed serialized-video dock (P09-P12 class) crossed only while the carriage is not translating.",
+      "units": {
+        "impedance": "ohm",
+        "dataRate": "Gbps"
+      },
+      "measuredEvidenceRefs": [],
+      "notes": "Contact series, impedance, and BER remain unverified."
+    },
+    {
+      "id": "B48",
+      "title": "Guarded continuous rail strip",
+      "kind": "research-rail-variant",
+      "status": "unverified",
+      "statement": "B48 names the guarded continuous power/control/identity/diagnostic lands (P01-P08 class) on the external rail.",
+      "units": {
+        "voltage": "V",
+        "current": "A"
+      },
+      "measuredEvidenceRefs": [],
+      "notes": "Electrical values remain TARGET/REF/UNVERIFIED until sourced and measured."
+    },
+    {
+      "id": "B50",
+      "title": "Keyed binder-to-carriage handoff",
+      "kind": "binder-interface",
+      "status": "unverified",
+      "statement": "B50 is a second keyed 12-net binder electrical interface, distinct from B27, carrying serialized video plus protected power/control only while seated.",
+      "units": {
+        "pullOff": "N"
+      },
+      "measuredEvidenceRefs": [],
+      "notes": "Physical connector series and pinout are unverified; do not invent SKUs."
+    },
+    {
+      "id": "S1",
+      "title": "Carriage mate interlock",
+      "kind": "mate-interlock",
+      "status": "locked",
+      "statement": "S1 is a local mechanical normally-open carriage mate interlock supervising rail mate; it must open on first pinch travel before contacts lift.",
+      "units": {
+        "travel": "mm"
+      },
+      "measuredEvidenceRefs": []
+    },
+    {
+      "id": "S2",
+      "title": "Binder mate interlock",
+      "kind": "mate-interlock",
+      "status": "locked",
+      "statement": "S2 is a local mechanical normally-open binder mate interlock; binder release stays mechanically blocked unless the carriage is pinch-safe.",
+      "units": {},
+      "measuredEvidenceRefs": []
+    },
+    {
+      "id": "Q1",
+      "title": "Per-carriage local load switch",
+      "kind": "load-switch",
+      "status": "locked",
+      "statement": "Q1 switches only the local carriage load branch and may enable only when S1 and S2 are both closed, only for a bounded training window, and must turn off and discharge before lift.",
+      "units": {
+        "voltage": "V",
+        "time": "ms"
+      },
+      "measuredEvidenceRefs": []
+    }
+  ],
+  "cameraPath": {
+    "hops": [
+      {
+        "id": "camera-module",
+        "role": "module",
+        "signalClass": "none",
+        "scope": "binder-local",
+        "ridesRail": false,
+        "componentRef": "Sony-IMX519-autofocus-module-TBD",
+        "status": "unverified"
+      },
+      {
+        "id": "local-mipi",
+        "role": "local-mipi",
+        "signalClass": "raw-mipi",
+        "scope": "binder-local",
+        "ridesRail": false,
+        "componentRef": "local-MIPI-CSI-2",
+        "status": "locked"
+      },
+      {
+        "id": "serializer",
+        "role": "serializer",
+        "signalClass": "serialized",
+        "scope": "binder-local",
+        "ridesRail": false,
+        "componentRef": "MAX96717",
+        "status": "unverified"
+      },
+      {
+        "id": "B50",
+        "role": "binder-interface",
+        "signalClass": "serialized",
+        "scope": "carriage",
+        "ridesRail": false,
+        "componentRef": "B50-keyed-binder-interface",
+        "status": "unverified"
+      },
+      {
+        "id": "carriage-routing",
+        "role": "carriage-routing",
+        "signalClass": "serialized",
+        "scope": "carriage",
+        "ridesRail": false,
+        "componentRef": "carriage-serialized-routing",
+        "status": "unverified"
+      },
+      {
+        "id": "B27",
+        "role": "indexed-dock",
+        "signalClass": "serialized",
+        "scope": "rail-dock",
+        "ridesRail": true,
+        "componentRef": "B27-indexed-gmsl2-dock",
+        "status": "unverified"
+      },
+      {
+        "id": "deserializer",
+        "role": "deserializer",
+        "signalClass": "serialized",
+        "scope": "compute-local",
+        "ridesRail": false,
+        "componentRef": "MAX96724",
+        "status": "unverified"
+      },
+      {
+        "id": "local-csi",
+        "role": "local-csi",
+        "signalClass": "raw-mipi",
+        "scope": "compute-local",
+        "ridesRail": false,
+        "componentRef": "short-22-position-0.5-mm-CSI-2",
+        "status": "locked"
+      },
+      {
+        "id": "tachyon",
+        "role": "compute",
+        "signalClass": "none",
+        "scope": "system",
+        "ridesRail": false,
+        "componentRef": "Particle-Tachyon",
+        "status": "ref"
+      }
+    ],
+    "locks": {
+      "rawMipiRidesRail": false,
+      "carriageUntethered": true,
+      "videoWhileRolling": false
+    }
+  },
+  "stateMachine": {
+    "states": [
+      "absent",
+      "mechanically-seated",
+      "power-mated",
+      "training-window",
+      "link-trained",
+      "fault-latched",
+      "pinch-safe",
+      "lifted"
+    ],
+    "transitions": [
+      {
+        "id": "t01-seat",
+        "from": "absent",
+        "to": "mechanically-seated",
+        "guards": ["S1-open", "S2-open"],
+        "actions": ["keep-Q1-off", "isolate-low-speed"]
+      },
+      {
+        "id": "t02-mate",
+        "from": "mechanically-seated",
+        "to": "power-mated",
+        "guards": [
+          "B27-fully-seated",
+          "B50-fully-seated",
+          "S1-closed",
+          "S2-closed",
+          "ground-first-mate-order-confirmed",
+          "low-speed-backfeed-blocked"
+        ],
+        "actions": ["keep-video-muted", "keep-Q1-off"]
+      },
+      {
+        "id": "t03-train",
+        "from": "power-mated",
+        "to": "training-window",
+        "guards": ["UID-valid", "no-overcurrent", "mate-state-stable"],
+        "actions": ["enable-current-limited-Q1", "start-bounded-timeout"]
+      },
+      {
+        "id": "t04-admit",
+        "from": "training-window",
+        "to": "link-trained",
+        "guards": ["GMSL-lock", "UID-stable", "no-fault"],
+        "actions": ["admit-video"]
+      },
+      {
+        "id": "t05-training-fault",
+        "from": "training-window",
+        "to": "fault-latched",
+        "guards": ["training-timeout-or-fault"],
+        "actions": [
+          "mute-video",
+          "turn-Q1-off",
+          "discharge-load",
+          "isolate-low-speed"
+        ]
+      },
+      {
+        "id": "t06-active-fault",
+        "from": "link-trained",
+        "to": "fault-latched",
+        "guards": ["runtime-fault"],
+        "actions": [
+          "mute-video",
+          "turn-Q1-off",
+          "discharge-load",
+          "isolate-low-speed"
+        ]
+      },
+      {
+        "id": "t07-pinch-safe",
+        "from": "link-trained",
+        "to": "pinch-safe",
+        "guards": ["S1-opens-on-first-pinch-travel"],
+        "actions": [
+          "mute-video",
+          "turn-Q1-off",
+          "discharge-load",
+          "isolate-low-speed"
+        ]
+      },
+      {
+        "id": "t08-lift",
+        "from": "pinch-safe",
+        "to": "lifted",
+        "guards": [
+          "branch-voltage-below-selected-threshold",
+          "all-signals-isolated",
+          "released-contact-lift-achieved"
+        ],
+        "actions": ["permit-roller-translation"]
+      },
+      {
+        "id": "t09-indexed-release",
+        "from": "lifted",
+        "to": "mechanically-seated",
+        "guards": ["translation-stopped", "indexed-dock-aligned"],
+        "actions": ["keep-Q1-off", "settle-contacts-before-remate"]
+      },
+      {
+        "id": "t10-interrupted-pinch",
+        "from": "pinch-safe",
+        "to": "mechanically-seated",
+        "guards": ["pinch-released-before-lift"],
+        "actions": ["keep-Q1-off", "require-clean-full-remate"]
+      },
+      {
+        "id": "t11-fault-detach",
+        "from": "fault-latched",
+        "to": "absent",
+        "guards": ["clean-detach"],
+        "actions": ["clear-latch-only-after-branch-safe"]
+      }
+    ],
+    "interlocks": [
+      {
+        "id": "S1",
+        "normally": "open",
+        "supervises": "carriage-to-rail mate",
+        "closedMeans": "carriage fully seated and pinch not started",
+        "openMeans": "first pinch travel; local branch must already be off and discharging",
+        "status": "locked",
+        "discharge": {
+          "requiredBeforeLift": true,
+          "thresholdStatus": "unverified",
+          "note": "Selected discharge voltage/time limits are not yet measured."
+        }
+      },
+      {
+        "id": "S2",
+        "normally": "open",
+        "supervises": "binder-to-carriage mate",
+        "closedMeans": "binder fully seated",
+        "openMeans": "binder not safely mated; Q1 must remain off",
+        "status": "locked"
+      },
+      {
+        "id": "Q1",
+        "normally": "open",
+        "supervises": "local carriage load branch",
+        "closedMeans": "bounded training or admitted link while S1 and S2 closed",
+        "openMeans": "mute video, isolate low-speed, and discharge before any separable interface moves",
+        "status": "locked",
+        "discharge": {
+          "requiredBeforeLift": true,
+          "thresholdStatus": "unverified",
+          "note": "No PASS until discharge limits are recorded."
+        }
+      }
+    ],
+    "faultModes": [
+      {
+        "id": "interruption",
+        "detection": "pinch released before lift or mate geometry becomes ambiguous",
+        "requiredAction": "keep-Q1-off and require clean full remate; do not restore video",
+        "status": "locked"
+      },
+      {
+        "id": "brownout",
+        "detection": "local branch voltage collapses below selected threshold during train/admit",
+        "requiredAction": "mute-video, turn-Q1-off, discharge-load, latch fault",
+        "status": "unverified"
+      },
+      {
+        "id": "stuck-switch",
+        "detection": "S1, S2, or Q1 sense disagrees with commanded/mechanical state",
+        "requiredAction": "treat as fault-latched; forbid Q1 enable and binder release",
+        "status": "locked"
+      },
+      {
+        "id": "contact-ambiguous",
+        "detection": "B27 or B50 seating, bounce, or wipe state is not fully seated/clear",
+        "requiredAction": "keep-Q1-off; no video; settle or clean remate",
+        "status": "locked"
+      },
+      {
+        "id": "fault-latched",
+        "detection": "any single-fault path that would energize while contacts move",
+        "requiredAction": "local branch off until clean detach and branch-safe clear",
+        "status": "locked"
+      }
+    ]
+  },
+  "requiredLockIds": [
+    "workspace.not-a-specimen",
+    "workspace.uncertainty-preserved",
+    "terrarium.untethered-carriage",
+    "terrarium.raw-mipi-local",
+    "terrarium.break-before-move",
+    "terrarium.no-metal-in-wet-volume",
+    "terrarium.binder.separate-safe-interface"
+  ],
+  "adrs": [
+    {
+      "id": "ADR-001",
+      "title": "Raw MIPI stays local; carriage video is serialized and stationary-only",
+      "status": "accepted",
+      "decision": "Encode camera path as module → local MIPI → serializer → B50 → carriage routing → B27 → deserializer → local CSI → Tachyon. Raw MIPI never rides the rail; video-while-rolling is out of v1.",
+      "consequences": [
+        "bus.json cameraPath must eventually list carriage-routing and B27 explicitly",
+        "EE/MCAD leaves consume this registry rather than inventing hop order"
+      ]
+    },
+    {
+      "id": "ADR-002",
+      "title": "S1/S2/Q1 are structural interlocks, not labels",
+      "status": "accepted",
+      "decision": "Transitions declare guards and actions; discharge, interruption, brownout, stuck-switch, and contact-ambiguous faults are first-class modes.",
+      "consequences": [
+        "Free-form state prose cannot satisfy acceptance",
+        "Measured discharge thresholds remain unverified until evidence exists"
+      ]
+    },
+    {
+      "id": "ADR-003",
+      "title": "Manifest generation, review, and verification stay separate",
+      "status": "accepted",
+      "decision": "A verifier never mints or rewrites the baseline it certifies. Generated digests require an explicit review promotion before baseline use.",
+      "consequences": [
+        "smoke manifests under evidence/generated remain non-baseline",
+        "terrarium/MANIFEST.sha256 is an immutable baseline checked, never regenerated, by verify"
+      ]
+    },
+    {
+      "id": "ADR-004",
+      "title": "SpecimenDB projection binds only reviewed claim admissions",
+      "status": "accepted",
+      "decision": "Projection payloads may reference only claimRefs present on an accepted EvidenceRecord admission. Caller prose cannot borrow provenance. URI artifacts require digests. Records stay local until gbg#16.",
+      "consequences": [
+        "gbg#16 owns packages/specimendb and the TypeScript attach adapter files",
+        "No direct PGlite; lab is not a Specimen; no invented GPS/taxon"
+      ]
+    }
+  ]
+}

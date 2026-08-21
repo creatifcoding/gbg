@@ -1,0 +1,281 @@
+{
+  "version": 2,
+  "workspace": "projects/biomemetics/labs/mantis",
+  "github": {
+    "repository": "creatifcoding/gbg",
+    "epicIssue": 15,
+    "bootstrapPullRequest": 20,
+    "bootstrapBranch": "feat/mantis-biomemetics-lab",
+    "baseBranch": "master",
+    "baseSha": "5890649d28f4b452d2e3bd928f90e36839d82300",
+    "coordinationIssues": [17, 18],
+    "executionIssues": [16, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  },
+  "mutationPolicy": "The root orchestrator owns this graph and shared hot files. One leaf issue owns one worktree, branch, and declared write set. Leaf agents emit proposed deltas for integration-owned files and never merge one another.",
+  "maturity": ["draft", "proto-fab", "qualified", "integration-prototype", "shop-release"],
+  "modelPolicy": {
+    "planner": { "model": "grok-4.6", "effort": "xhigh", "fast": false },
+    "implementer": { "model": "grok-4.5", "fast": false },
+    "reviewer": { "model": "grok-4.5", "fast": false, "readOnly": true },
+    "forbidden": ["sol", "auto-model-routing", "fast-mode", "silent-fallback"]
+  },
+  "costPolicy": {
+    "relativeUnits": {
+      "deterministicToolRun": 0.05,
+      "focusedScriptOrNotebook": 0.2,
+      "grok45ImplementationPass": 1.0,
+      "grok45ReviewPass": 0.75,
+      "grok46ArchitecturePass": 3.0
+    },
+    "milestoneBudgetPercent": {
+      "architectureAndArbitration": 15,
+      "boundedImplementation": 45,
+      "independentReview": 20,
+      "deterministicToolsAndSolvers": 20
+    },
+    "grok46TokenTargetMaxPercent": 12
+  },
+  "concurrency": {
+    "maximumImplementers": 3,
+    "oneImplementerPerIssue": true,
+    "maximumReadOnlyReviewersPerIssue": 2,
+    "writerLanes": ["ee", "mcad", "foundation-evidence-integration"]
+  },
+  "integrationOwned": [
+    "projects/biomemetics/labs/mantis/terrarium/BOM.md",
+    "projects/biomemetics/labs/mantis/terrarium/params.json",
+    "projects/biomemetics/labs/mantis/terrarium/bus.json",
+    "projects/biomemetics/labs/mantis/.agents/control/workstreams.json",
+    "projects/biomemetics/labs/mantis/terrarium/ee/kicad/system/**",
+    "projects/biomemetics/labs/mantis/terrarium/cad/assembly/**"
+  ],
+  "workstreams": [
+    {
+      "id": "mantis-00-workspace",
+      "title": "Bootstrap the durable mantis biomemetics workspace",
+      "status": "review",
+      "role": "planner",
+      "issue": 15,
+      "pullRequest": 20,
+      "dependencies": [],
+      "writeSet": ["projects/biomemetics/labs/mantis/**"],
+      "acceptance": ["scripts/verify-core.sh", "scripts/verify-fabrication.sh"]
+    },
+    {
+      "id": "mantis-00a-runtime",
+      "title": "Pin the Nix engineering runtime, CI, and non-mutating doctor",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 21,
+      "lane": "foundation-evidence-integration",
+      "dependencies": ["mantis-00-workspace"],
+      "writeSet": [
+        "flake.nix",
+        "flake.lock",
+        "nix/mantis-lab.nix",
+        ".github/workflows/mantis-lab.yml",
+        "projects/biomemetics/labs/mantis/flake.*",
+        "projects/biomemetics/labs/mantis/scripts/environment/**"
+      ],
+      "acceptance": ["nix flake check", "mantis doctor"]
+    },
+    {
+      "id": "mantis-00b-control-plane",
+      "title": "Harden interface decisions, task packets, validators, and evidence admission",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 22,
+      "lane": "foundation-evidence-integration",
+      "dependencies": ["mantis-00-workspace"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/contracts/**",
+        "projects/biomemetics/labs/mantis/.agents/**",
+        "projects/biomemetics/labs/mantis/tooling/python/**",
+        "projects/biomemetics/labs/mantis/tooling/rust/**",
+        "projects/biomemetics/labs/mantis/tooling/typescript/**",
+        "projects/biomemetics/labs/mantis/evidence/fixtures/**"
+      ],
+      "note": "Do not edit packages/specimendb; that remains issue 16."
+    },
+    {
+      "id": "mantis-01-specimendb-bridge",
+      "title": "Add governed claim-bound lab evidence attachment to SpecimenDB",
+      "status": "blocked",
+      "role": "implementer",
+      "issue": 16,
+      "lane": "foundation-evidence-integration",
+      "dependencies": ["mantis-00-workspace", "mantis-00b-control-plane", "gbg-pr-12-merged"],
+      "writeSet": [
+        "packages/specimendb/src/**",
+        "packages/specimendb/test/**",
+        "projects/biomemetics/labs/mantis/tooling/typescript/mantis-lab/src/specimendb.ts",
+        "projects/biomemetics/labs/mantis/tooling/typescript/mantis-lab/test/specimendb.test.ts"
+      ],
+      "note": "No direct PGlite writes and no lab-as-Specimen projection."
+    },
+    {
+      "id": "mantis-02-ee-umbrella",
+      "title": "Coordinate the native KiCad powered-video rail and qualification program",
+      "status": "proposed",
+      "role": "planner",
+      "issue": 18,
+      "dependencies": ["mantis-00a-runtime", "mantis-00b-control-plane"],
+      "writeSet": [],
+      "children": ["mantis-ee-01", "mantis-ee-02", "mantis-ee-03", "mantis-ee-04", "mantis-ee-05"]
+    },
+    {
+      "id": "mantis-ee-01",
+      "title": "Source interfaces and build the native KiCad library",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 23,
+      "lane": "ee",
+      "dependencies": ["mantis-00a-runtime", "mantis-00b-control-plane"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/libs/**",
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/contracts/**",
+        "projects/biomemetics/labs/mantis/terrarium/ee/requirements/**"
+      ]
+    },
+    {
+      "id": "mantis-ee-02",
+      "title": "Implement S1/S2/Q1 power control in KiCad and ngspice",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 24,
+      "lane": "ee",
+      "dependencies": ["mantis-ee-01"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/power-control/**",
+        "projects/biomemetics/labs/mantis/terrarium/simulations/electrical/power-control/**"
+      ]
+    },
+    {
+      "id": "mantis-ee-03",
+      "title": "Model the B27+B50 channel and implement the native KiCad boards",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 25,
+      "lane": "ee",
+      "dependencies": ["mantis-ee-02", "mantis-cad-01", "mantis-cad-02"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/camera-tx/**",
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/carriage/**",
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/rail-rx/**",
+        "projects/biomemetics/labs/mantis/terrarium/simulations/electrical/channel/**"
+      ]
+    },
+    {
+      "id": "mantis-ee-04",
+      "title": "Build characterization fixtures and the prototype-fabrication package",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 26,
+      "lane": "ee",
+      "dependencies": ["mantis-ee-03"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/ee/kicad/fixture/**",
+        "projects/biomemetics/labs/mantis/terrarium/ee/coupons/**",
+        "projects/biomemetics/labs/mantis/terrarium/ee/fab/prototype/**"
+      ],
+      "humanApproval": ["order", "assemble", "energize", "fault-inject", "esd-test"]
+    },
+    {
+      "id": "mantis-ee-05",
+      "title": "Execute powered-video bench qualification and admit evidence",
+      "status": "blocked",
+      "role": "implementer",
+      "issue": 27,
+      "lane": "ee",
+      "dependencies": ["mantis-ee-04", "fabricated-and-inspected-coupons"],
+      "writeSet": ["projects/biomemetics/labs/mantis/evidence/runs/mantis-ee-05/**"],
+      "humanApproval": ["physical-test", "energize", "re-power-after-fault"]
+    },
+    {
+      "id": "mantis-03-mcad-umbrella",
+      "title": "Coordinate authoritative frame, boundary, carriage, and binder work",
+      "status": "proposed",
+      "role": "planner",
+      "issue": 17,
+      "dependencies": ["mantis-00a-runtime", "mantis-00b-control-plane"],
+      "writeSet": [],
+      "children": ["mantis-cad-01", "mantis-cad-02"]
+    },
+    {
+      "id": "mantis-cad-01",
+      "title": "Establish authoritative OCCT frame, rail, and B20 geometry",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 28,
+      "lane": "mcad",
+      "dependencies": ["mantis-00a-runtime", "mantis-00b-control-plane", "mantis-ee-01"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/cad/src/frame/**",
+        "projects/biomemetics/labs/mantis/terrarium/cad/src/rail/**",
+        "projects/biomemetics/labs/mantis/terrarium/cad/src/boundary/**",
+        "projects/biomemetics/labs/mantis/terrarium/simulations/mechanical/frame/**"
+      ]
+    },
+    {
+      "id": "mantis-cad-02",
+      "title": "Resolve pinch-lift carriage, B27 motion, and B50 binder",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 29,
+      "lane": "mcad",
+      "dependencies": ["mantis-ee-02", "mantis-cad-01"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/cad/src/carriage/**",
+        "projects/biomemetics/labs/mantis/terrarium/cad/src/binder/**",
+        "projects/biomemetics/labs/mantis/terrarium/cad/coupons/**",
+        "projects/biomemetics/labs/mantis/terrarium/simulations/mechanical/mechanism/**"
+      ]
+    },
+    {
+      "id": "mantis-04-observation-pipeline",
+      "title": "Admit mantis media and derive evidence without invented identity",
+      "status": "proposed",
+      "role": "implementer",
+      "issue": 19,
+      "lane": "foundation-evidence-integration",
+      "dependencies": ["mantis-00-workspace", "real-media"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/observations/**",
+        "projects/biomemetics/labs/mantis/morphology/**",
+        "projects/biomemetics/labs/mantis/mechanisms/**",
+        "projects/biomemetics/labs/mantis/analogs/**"
+      ],
+      "note": "Local evidence may proceed; governed SpecimenDB projection also depends on mantis-01-specimendb-bridge."
+    },
+    {
+      "id": "mantis-05-integration",
+      "title": "Integrate the qualified rail into a husbandry-safe prototype",
+      "status": "blocked",
+      "role": "integrator",
+      "issue": 30,
+      "lane": "foundation-evidence-integration",
+      "dependencies": ["mantis-ee-05", "mantis-cad-01", "mantis-cad-02"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/cad/assembly/**",
+        "projects/biomemetics/labs/mantis/terrarium/integration/**",
+        "projects/biomemetics/labs/mantis/terrarium/husbandry/**",
+        "projects/biomemetics/labs/mantis/evidence/runs/mantis-05-integration/**"
+      ],
+      "humanApproval": ["animal-use"]
+    },
+    {
+      "id": "mantis-06-release",
+      "title": "Produce the first-article shop release and immutable evidence package",
+      "status": "blocked",
+      "role": "integrator",
+      "issue": 31,
+      "lane": "foundation-evidence-integration",
+      "dependencies": ["mantis-05-integration", "all-release-critical-gates"],
+      "writeSet": [
+        "projects/biomemetics/labs/mantis/terrarium/releases/**",
+        "projects/biomemetics/labs/mantis/terrarium/shop/**",
+        "projects/biomemetics/labs/mantis/evidence/releases/**"
+      ]
+    }
+  ]
+}

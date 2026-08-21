@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:contracts:workspace:v1",
+  "title": "Mantis biomemetics workspace declaration",
+  "description": "Language-neutral identity, lanes, members, projects, and locks for the durable mantis lab workspace.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceId",
+    "repositoryPath",
+    "status",
+    "identity",
+    "lanes",
+    "members",
+    "projects",
+    "locks",
+    "sourcesOfTruth",
+    "specimenDb",
+    "references",
+    "revision"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "BiomemeticsLabWorkspace"
+    },
+    "workspaceId": {
+      "const": "biomemetics.mantis"
+    },
+    "repositoryPath": {
+      "const": "projects/biomemetics/labs/mantis"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "active",
+        "paused",
+        "archived"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "required": [
+        "title",
+        "scope",
+        "artifactClass",
+        "catalogSpecimen"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactClass": {
+          "const": "lab-workspace"
+        },
+        "catalogSpecimen": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "lanes": {
+      "type": "object",
+      "required": [
+        "observations",
+        "morphology",
+        "mechanisms",
+        "analogs",
+        "datasets",
+        "simulations"
+      ],
+      "properties": {
+        "observations": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "morphology": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "mechanisms": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "analogs": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "datasets": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "simulations": {
+          "$ref": "#/$defs/workspaceArea"
+        }
+      },
+      "additionalProperties": false
+    },
+    "members": {
+      "type": "object",
+      "required": [
+        "contracts",
+        "python",
+        "rust",
+        "typescript",
+        "cad",
+        "ee",
+        "sim",
+        "docs",
+        "artifacts"
+      ],
+      "properties": {
+        "contracts": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "python": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "rust": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "typescript": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "cad": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "ee": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "sim": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "docs": {
+          "$ref": "#/$defs/workspaceArea"
+        },
+        "artifacts": {
+          "$ref": "#/$defs/workspaceArea"
+        }
+      },
+      "additionalProperties": false
+    },
+    "projects": {
+      "type": "object",
+      "required": [
+        "terrarium"
+      ],
+      "properties": {
+        "terrarium": {
+          "$ref": "#/$defs/project"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/project"
+      }
+    },
+    "locks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/lock"
+      }
+    },
+    "sourcesOfTruth": {
+      "type": "object",
+      "required": [
+        "crossLanguageContracts",
+        "domainAuthority",
+        "evidenceAuthority"
+      ],
+      "properties": {
+        "crossLanguageContracts": {
+          "const": "contracts"
+        },
+        "domainAuthority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceAuthority": {
+          "const": "evidence-records"
+        }
+      },
+      "additionalProperties": false
+    },
+    "specimenDb": {
+      "type": "object",
+      "required": [
+        "relationship",
+        "workspaceIsCatalogSpecimen",
+        "taxonomyPolicy",
+        "adapterMember"
+      ],
+      "properties": {
+        "relationship": {
+          "const": "evidence-catalog-bridge"
+        },
+        "workspaceIsCatalogSpecimen": {
+          "const": false
+        },
+        "taxonomyPolicy": {
+          "const": "evidence-only"
+        },
+        "adapterMember": {
+          "const": "typescript"
+        }
+      },
+      "additionalProperties": false
+    },
+    "references": {
+      "type": "object",
+      "required": [
+        "goal",
+        "agentContract",
+        "architecture",
+        "parameterSchema",
+        "evidenceSchema"
+      ],
+      "properties": {
+        "goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agentContract": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameterSchema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceSchema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "revision": {
+      "type": "object",
+      "required": [
+        "id",
+        "date",
+        "state"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "state": {
+          "enum": [
+            "draft",
+            "review",
+            "accepted",
+            "superseded"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "workspaceArea": {
+      "type": "object",
+      "required": [
+        "path",
+        "role",
+        "status"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "active",
+            "dormant",
+            "archived"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "lock": {
+      "type": "object",
+      "required": [
+        "id",
+        "statement",
+        "state"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "const": "locked"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "projectId",
+        "path",
+        "title",
+        "status",
+        "purpose",
+        "locks"
+      ],
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "concept-validation",
+            "prototype",
+            "verification",
+            "released",
+            "paused",
+            "archived"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/lock"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

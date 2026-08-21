@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "EvidenceRecord",
+  "evidenceId": "fixture-negative-uri-no-digest",
+  "workspaceRef": "biomemetics.mantis",
+  "claimRefs": ["claim:rail:contact-count"],
+  "sourceClass": "measured",
+  "recordedAt": "2026-08-20T12:00:00Z",
+  "producer": { "kind": "instrument", "name": "caliper" },
+  "environment": { "description": "theoretical fixture bench" },
+  "method": {
+    "protocol": "count exposed pads",
+    "acceptance": "two agreeing counts"
+  },
+  "measurements": [
+    {
+      "parameterRef": "rail.contact_count",
+      "value": 12,
+      "unit": "count",
+      "uncertainty": 0
+    }
+  ],
+  "artifacts": [
+    {
+      "uri": "https://example.invalid/mantis/missing-digest.bin",
+      "mediaType": "application/octet-stream"
+    }
+  ],
+  "admissions": [
+    {
+      "claimRef": "claim:borrowed-prose",
+      "kind": "structure",
+      "text": "Caller prose trying to borrow provenance."
+    }
+  ],
+  "result": {
+    "disposition": "supports",
+    "summary": "Negative fixture: URI without digest and admission claimRef not in claimRefs.",
+    "limitations": ["Must fail validation."]
+  },
+  "review": {
+    "status": "pending"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "currentCameraPath": [
+    "Sony-IMX519-autofocus-module-TBD",
+    "local-MIPI-CSI-2",
+    "MAX96717",
+    "B50-keyed-binder-interface",
+    "GMSL2-dock",
+    "MAX96724",
+    "short-22-position-0.5-mm-CSI-2",
+    "Particle-Tachyon"
+  ],
+  "issue": 22,
+  "locks": {
+    "carriageUntethered": true,
+    "rawMipiRidesRail": false,
+    "videoWhileRolling": false
+  },
+  "note": "Raw MIPI stays local; carriage untethered; video-while-rolling out of v1.",
+  "owner": "mantis-root-integration",
+  "proposedCameraPath": [
+    "Sony-IMX519-autofocus-module-TBD",
+    "local-MIPI-CSI-2",
+    "MAX96717",
+    "B50-keyed-binder-interface",
+    "carriage-serialized-routing",
+    "B27-indexed-gmsl2-dock",
+    "MAX96724",
+    "short-22-position-0.5-mm-CSI-2",
+    "Particle-Tachyon"
+  ],
+  "reason": "Root interface registry encodes complete camera path; bus.json lags.",
+  "target": "projects/biomemetics/labs/mantis/terrarium/bus.json"
+}

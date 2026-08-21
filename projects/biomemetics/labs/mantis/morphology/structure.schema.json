@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:morphology:structure-catalog:v1",
+  "title": "Mantis morphology catalog",
+  "description": "Structures derived from reviewed observations. Empty unless an Observation exists. Unseen geometry is not representable as observed.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceRef",
+    "catalogSpecimen",
+    "records"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "StructureCatalog"
+    },
+    "workspaceRef": {
+      "const": "biomemetics.mantis"
+    },
+    "catalogSpecimen": {
+      "const": false
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/structure"
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "review": {
+      "$ref": "../observations/observation.schema.json#/$defs/review"
+    },
+    "structure": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "kind",
+        "structureId",
+        "observationRef",
+        "workspaceRef",
+        "basis",
+        "description",
+        "review"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "kind": {
+          "const": "Structure"
+        },
+        "structureId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "observationRef": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "workspaceRef": {
+          "const": "biomemetics.mantis"
+        },
+        "basis": {
+          "enum": [
+            "observed",
+            "measured",
+            "calculated",
+            "simulated",
+            "ref",
+            "target",
+            "typ",
+            "unverified"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

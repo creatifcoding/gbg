@@ -1,0 +1,210 @@
+{
+  "$schema": "contracts/lab.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "BiomemeticsLabWorkspace",
+  "workspaceId": "biomemetics.mantis",
+  "repositoryPath": "projects/biomemetics/labs/mantis",
+  "status": "active",
+  "identity": {
+    "title": "Mantis biomemetics laboratory",
+    "scope": "Observations, morphology, mechanisms, analogs, datasets, simulations, and engineered projects related to mantises.",
+    "artifactClass": "lab-workspace",
+    "catalogSpecimen": false
+  },
+  "lanes": {
+    "observations": {
+      "path": "observations",
+      "role": "Sourced observations kept distinct from interpretation.",
+      "status": "planned"
+    },
+    "morphology": {
+      "path": "morphology",
+      "role": "Structures, geometry, measurements, and uncertainty.",
+      "status": "planned"
+    },
+    "mechanisms": {
+      "path": "mechanisms",
+      "role": "Falsifiable structure-to-motion and structure-to-function hypotheses.",
+      "status": "planned"
+    },
+    "analogs": {
+      "path": "analogs",
+      "role": "Directional biological-to-engineering mappings with stated limits.",
+      "status": "planned"
+    },
+    "datasets": {
+      "path": "datasets",
+      "role": "Versioned dataset manifests, licenses, lineage, and transforms.",
+      "status": "planned"
+    },
+    "simulations": {
+      "path": "simulations",
+      "role": "Scientific models, cases, sweeps, and interpreted results.",
+      "status": "planned"
+    }
+  },
+  "members": {
+    "contracts": {
+      "path": "contracts",
+      "role": "Cross-language workspace, parameter, and evidence semantics.",
+      "status": "active"
+    },
+    "python": {
+      "path": "tooling/python",
+      "role": "Scientific computation, geometry generation, and data reduction.",
+      "status": "active"
+    },
+    "rust": {
+      "path": "tooling/rust",
+      "role": "Deterministic verification, provenance, and artifact inspection.",
+      "status": "active"
+    },
+    "typescript": {
+      "path": "tooling/typescript",
+      "role": "Effect orchestration and the SpecimenDB evidence/catalog adapter.",
+      "status": "active"
+    },
+    "cad": {
+      "path": "terrarium/cad",
+      "role": "Terrarium parametric and neutral manufacturing geometry sources.",
+      "status": "active"
+    },
+    "ee": {
+      "path": "terrarium/ee",
+      "role": "Terrarium circuit, PCB, power, and high-speed channel authority.",
+      "status": "active"
+    },
+    "sim": {
+      "path": "terrarium/simulations",
+      "role": "Terrarium reproducible simulation cases and runners.",
+      "status": "active"
+    },
+    "docs": {
+      "path": "docs",
+      "role": "Architecture, decisions, protocols, and human-readable findings.",
+      "status": "active"
+    },
+    "artifacts": {
+      "path": "evidence",
+      "role": "Reviewed evidence records own exactly what they record; derived payloads never own broader domain truth.",
+      "status": "active"
+    }
+  },
+  "projects": {
+    "terrarium": {
+      "projectId": "mantis.terrarium",
+      "path": "terrarium",
+      "title": "Modular mantis terrarium and untethered instrument rail",
+      "status": "concept-validation",
+      "purpose": "Validate a husbandry-safe 250/500 modular enclosure and an untethered, powered-video carriage before fabrication release.",
+      "locks": [
+        {
+          "id": "terrarium.carriage.untethered",
+          "statement": "The repositionable carriage is untethered and has no trailing power or video cable.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md"
+          ]
+        },
+        {
+          "id": "terrarium.rail.power-control-continuous",
+          "statement": "Protected continuous rail contacts carry power and low-speed control.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md"
+          ]
+        },
+        {
+          "id": "terrarium.rail.video-indexed",
+          "statement": "Serialized video crosses only an indexed controlled-impedance high-speed pogo dock while stationary.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md"
+          ]
+        },
+        {
+          "id": "terrarium.rail.no-raw-mipi",
+          "statement": "Raw MIPI CSI remains local to camera/serializer and receiver/compute interfaces and never rides the rail.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md"
+          ]
+        },
+        {
+          "id": "terrarium.carriage.break-before-move",
+          "statement": "Pinching quiesces video and turns the local carriage load branch off before high-speed and continuous contacts lift; while rolling, the carriage branch remains off and all moving contacts are physically clear. Protected VIN lands may remain energized only inside the guarded external channel behind the continuous wet-side barrier.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md"
+          ]
+        },
+        {
+          "id": "terrarium.binder.separate-safe-interface",
+          "statement": "The removable binder uses a second keyed electrical interface, a normally-open S2 mate interlock, and a mechanical release block unless the carriage is pinch-safe.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md",
+            "terrarium/BUS.md"
+          ]
+        },
+        {
+          "id": "terrarium.husbandry.no-conductor-intrusion",
+          "statement": "Metal, copper, pogos, and electrode strips remain outside animal and wet volumes.",
+          "state": "locked",
+          "sourceRefs": [
+            "GOAL.md"
+          ]
+        }
+      ]
+    }
+  },
+  "locks": [
+    {
+      "id": "workspace.not-catalog-specimen",
+      "statement": "The mantis directory is a biomemetics lab workspace, not a catalog Specimen.",
+      "state": "locked",
+      "sourceRefs": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "workspace.no-invented-facts",
+      "statement": "GPS, locality, taxon, biological structure/function, SKUs, pinouts, dimensions, and results require evidence or an explicit unverified status.",
+      "state": "locked",
+      "sourceRefs": [
+        "AGENTS.md"
+      ]
+    },
+    {
+      "id": "workspace.observation-interpretation-separation",
+      "statement": "Observations remain distinguishable from interpretations, simulations, calculations, and engineering analogs.",
+      "state": "locked",
+      "sourceRefs": [
+        "GOAL.md"
+      ]
+    }
+  ],
+  "sourcesOfTruth": {
+    "crossLanguageContracts": "contracts",
+    "domainAuthority": "Each scientific or engineering domain retains its authoritative source; contracts carry identifiers and epistemic status across boundaries.",
+    "evidenceAuthority": "evidence-records"
+  },
+  "specimenDb": {
+    "relationship": "evidence-catalog-bridge",
+    "workspaceIsCatalogSpecimen": false,
+    "taxonomyPolicy": "evidence-only",
+    "adapterMember": "typescript"
+  },
+  "references": {
+    "goal": "GOAL.md",
+    "agentContract": "AGENTS.md",
+    "architecture": "docs/ARCHITECTURE.md",
+    "parameterSchema": "contracts/params.schema.json",
+    "evidenceSchema": "contracts/evidence.schema.json"
+  },
+  "revision": {
+    "id": "A",
+    "date": "2026-08-20",
+    "state": "draft"
+  }
+}

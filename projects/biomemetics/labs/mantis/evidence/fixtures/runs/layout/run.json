@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "EvidenceRun",
+  "workstreamId": "mantis-00b-control-plane",
+  "gitSha": "1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3",
+  "runId": "theoretical-layout-01",
+  "command": "python3 -m mantis_lab.cli --workspace . run-corpus",
+  "nixClosure": "unpinned-host-theoretical",
+  "toolVersions": {
+    "python": "3.12",
+    "note": "theoretical fixture; not a measured run"
+  },
+  "layout": {
+    "runJson": "run.json",
+    "inputs": "inputs/",
+    "raw": "raw/",
+    "derived": "derived/",
+    "reportJson": "report.json",
+    "evidenceRecordJson": "evidence-record.json"
+  },
+  "inputs": [
+    {
+      "path": "contracts/interfaces.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "evidenceClass": "theoretical",
+  "limits": [
+    "No fabricated measured results.",
+    "Records remain local until gbg#16.",
+    "Lab is not a Specimen; no invented GPS/taxon."
+  ],
+  "deviations": [],
+  "localOnly": true,
+  "specimenDbAttachAllowed": false
+}

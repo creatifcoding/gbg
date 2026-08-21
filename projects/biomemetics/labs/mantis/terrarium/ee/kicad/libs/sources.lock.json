@@ -1,0 +1,105 @@
+{
+  "schema": "mantis.ee.kicad.sources.lock.v1",
+  "retrievedAt": "2026-08-20T00:00:00Z",
+  "issue": 23,
+  "baseSha": "1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3",
+  "modelAttestation": {
+    "requested": "Grok 4.5 non-fast",
+    "thisRun": "cursor-grok-4.6-high",
+    "fast": false,
+    "operatorWaiver": true,
+    "run": "bc-ff4a9f87-dde3-4d9e-bd4c-349b8dab2a5a"
+  },
+  "sources": [
+    {
+      "id": "particle-tachyon-datasheet",
+      "url": "https://docs.particle.io/reference/datasheets/tachyon/tachyon-datasheet/",
+      "retrievedAt": "2026-08-20",
+      "sha256": "906d8700b3928eb8204a4a8ad16c63abd1b7c7bcf802923b95f9aceadc5435d9",
+      "license": "Particle documentation",
+      "boundedUse": "85x56x18.5 mm; CSI 4-lane; Qwiic 3.3 V I2C; SKUs TACH4NA/TACH8NA/TACH8ROW; no rail power budget"
+    },
+    {
+      "id": "particle-cameras",
+      "url": "https://developer.particle.io/tachyon/device-details/cameras",
+      "retrievedAt": "2026-08-20",
+      "sha256": "e32bea3ade6442d24e1d5e865befe81208d2bbd495a1167762a7a276179eb96e",
+      "license": "Particle documentation",
+      "boundedUse": "IMX519 AF and S5K3P9SX supported; 22-pin 0.5 mm; RPi camera modules not assumed; GPIO 68"
+    },
+    {
+      "id": "particle-csi1-pinout-image",
+      "url": "https://developer.particle.io/img/tachyon-csi-pinout.jpg",
+      "retrievedAt": "2026-08-20",
+      "sha256": "be924e2f3b6e8ff1bbbb90602caceb4dd9833f965491659bcbd6de0a14a24c53",
+      "license": "Particle documentation image",
+      "boundedUse": "CSI1 22-pin names on TACHYON V1.2 photograph"
+    },
+    {
+      "id": "particle-dsi-csi2-pinout-image",
+      "url": "https://developer.particle.io/img/tachyon-csi-dsi-pinout.jpg",
+      "retrievedAt": "2026-08-20",
+      "sha256": "8507704ff50143872a38ade3fe746176410e3ddefa4cf0f568d8dd48d7c3b8a0",
+      "license": "Particle documentation image",
+      "boundedUse": "DSI/CSI2 22-pin names on TACHYON V1.2 photograph"
+    },
+    {
+      "id": "ti-tca9548a-revH",
+      "url": "https://www.ti.com/lit/ds/symlink/tca9548a.pdf",
+      "retrievedAt": "2026-08-20",
+      "sha256": "2137822fd7128945ea44e83f4e100a932b30964d763715eeffe217ee6080a2dc",
+      "license": "Texas Instruments datasheet; facts used, PDF not redistributed",
+      "boundedUse": "Pin Table 4-1; PW/RGE land patterns; Active orderables including TCA9548APWR and TCA9548ARGER"
+    },
+    {
+      "id": "sparkfun-qwiic",
+      "url": "https://www.sparkfun.com/qwiic",
+      "retrievedAt": "2026-08-20",
+      "license": "SparkFun published Qwiic rules",
+      "boundedUse": "Pinout GND/3.3V/SDA/SCL; cable housing SHR-04V-S"
+    },
+    {
+      "id": "particle-qwiic",
+      "url": "https://docs.particle.io/hardware/expansion/qwiic/",
+      "retrievedAt": "2026-08-20",
+      "sha256": "508c8d77c6d24a91565a4f8cccb7d23f74d94ef4bb4f1017ce5472850bcbef39",
+      "license": "Particle documentation",
+      "boundedUse": "Qwiic is 3.3 V I2C over 4-pin JST 1 mm keyed"
+    },
+    {
+      "id": "adi-max96717",
+      "url": "https://www.analog.com/en/products/max96717.html",
+      "retrievedAt": "2026-08-20",
+      "status": "UNVERIFIED",
+      "note": "HTTP timeout this run. Capability claims remain those already bounded in terrarium/SOURCES.md. No pad map."
+    },
+    {
+      "id": "adi-max96724",
+      "url": "https://www.analog.com/en/products/max96724.html",
+      "retrievedAt": "2026-08-20",
+      "status": "UNVERIFIED",
+      "note": "HTTP timeout this run. No pad map."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "sources/tachyon-csi-dsi-pinout.jpg",
+      "sha256": "8507704ff50143872a38ade3fe746176410e3ddefa4cf0f568d8dd48d7c3b8a0",
+      "bytes": 930246
+    },
+    {
+      "path": "sources/tachyon-csi-pinout.jpg",
+      "sha256": "be924e2f3b6e8ff1bbbb90602caceb4dd9833f965491659bcbd6de0a14a24c53",
+      "bytes": 873947
+    },
+    {
+      "path": "sources/tca9548a-revH-pin-package-excerpt.txt",
+      "sha256": "5fa97ec65470d7a37cb84b99c8e52ae06508daa46bb4fa29b4abd373caed9874",
+      "bytes": 12637
+    }
+  ],
+  "threeDModels": {
+    "status": "UNVERIFIED",
+    "note": "No vendor STEP/WRL retrieved. Footprints omit model paths rather than inventing geometry."
+  }
+}

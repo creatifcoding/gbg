@@ -1,0 +1,89 @@
+{
+  "schema": "mantis.ee.interface.v1",
+  "issue": 23,
+  "revision": "B-draft",
+  "status": "theoretical-unverified",
+  "locks": {
+    "carriageTethered": false,
+    "rawMipiOnRail": false,
+    "videoWhileRolling": false,
+    "p08SafetyAuthority": false,
+    "b20AnimalSideMetal": false
+  },
+  "path": [
+    "Sony-IMX519-autofocus-module-UNVERIFIED-SKU",
+    "local-MIPI-CSI-2-22p-0.5mm",
+    "MAX96717-suffix-UNVERIFIED",
+    "B50-C09-C12",
+    "carriage-controlled-impedance-UNVERIFIED",
+    "B27-P09-P12",
+    "MAX96724-suffix-UNVERIFIED",
+    "short-local-CSI-22p-0.5mm",
+    "Particle-Tachyon-CSI1"
+  ],
+  "sourceConflict": {
+    "id": "serdes-base-mpn",
+    "status": "UNVERIFIED",
+    "busJson": ["MAX96717", "MAX96724"],
+    "sourcesMdAndKicadPlan": ["MAX96717", "MAX96724"],
+    "action": "do-not-silently-pick; proposed hot-file delta only"
+  },
+  "b27": [
+    {"pin": "P01", "net": "VIN-A", "geometry": "continuous", "role": "power"},
+    {"pin": "P02", "net": "VIN-B", "geometry": "continuous", "role": "power"},
+    {"pin": "P03", "net": "GND-A", "geometry": "continuous", "role": "return"},
+    {"pin": "P04", "net": "GND-B", "geometry": "continuous", "role": "return"},
+    {"pin": "P05", "net": "SDA", "geometry": "continuous", "role": "control"},
+    {"pin": "P06", "net": "SCL", "geometry": "continuous", "role": "control"},
+    {"pin": "P07", "net": "UID", "geometry": "continuous", "role": "identity"},
+    {"pin": "P08", "net": "FAULT_N/IRQ", "geometry": "continuous", "role": "diagnostic"},
+    {"pin": "P09", "net": "HSGND", "geometry": "discrete-dock", "role": "high-speed-ground"},
+    {"pin": "P10", "net": "GMSL+", "geometry": "discrete-dock", "role": "high-speed-positive"},
+    {"pin": "P11", "net": "GMSL-", "geometry": "discrete-dock", "role": "high-speed-negative"},
+    {"pin": "P12", "net": "HSGND", "geometry": "discrete-dock", "role": "high-speed-ground"}
+  ],
+  "b50": [
+    {"pin": "C01", "net": "VIN-A", "mirrors": "P01"},
+    {"pin": "C02", "net": "VIN-B", "mirrors": "P02"},
+    {"pin": "C03", "net": "GND-A", "mirrors": "P03"},
+    {"pin": "C04", "net": "GND-B", "mirrors": "P04"},
+    {"pin": "C05", "net": "SDA", "mirrors": "P05"},
+    {"pin": "C06", "net": "SCL", "mirrors": "P06"},
+    {"pin": "C07", "net": "UID", "mirrors": "P07"},
+    {"pin": "C08", "net": "FAULT_N/IRQ", "mirrors": "P08"},
+    {"pin": "C09", "net": "HSGND", "mirrors": "P09"},
+    {"pin": "C10", "net": "GMSL+", "mirrors": "P10"},
+    {"pin": "C11", "net": "GMSL-", "mirrors": "P11"},
+    {"pin": "C12", "net": "HSGND", "mirrors": "P12"}
+  ],
+  "datums": {
+    "b27": {
+      "datum": "P01",
+      "pitch_mm": 2.54,
+      "pitchStatus": "target",
+      "landWidth_mm": 1.5,
+      "landWidthStatus": "target",
+      "series": "UNVERIFIED",
+      "mating": "carriage-springs-to-external-rail"
+    },
+    "b50": {
+      "datum": "C01",
+      "series": "UNVERIFIED",
+      "mating": "keyed-binder-to-carriage"
+    }
+  },
+  "stateAuthority": {
+    "s1": "local-NO-carriage-full-seat",
+    "s2": "local-NO-binder-full-mate",
+    "q1": "per-carriage-load-switch-after-P01-P02",
+    "p08": "diagnostic-not-safety",
+    "videoWhileRolling": false
+  },
+  "tachyonCsi1": {
+    "boardMarking": "TACHYON V1.2",
+    "positions": 22,
+    "pitch_mm": 0.5,
+    "connectorMpn": "UNVERIFIED",
+    "pinoutSource": "libs/sources/tachyon-csi-pinout.jpg"
+  }
+}

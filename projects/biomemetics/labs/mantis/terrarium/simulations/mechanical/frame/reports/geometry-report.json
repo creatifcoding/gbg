@@ -1,0 +1,47 @@
+{
+  "maturity": "DRAFT",
+  "authority": "freecad-part-occt",
+  "openscadIsStudyOnly": true,
+  "openscadIsReleasedStep": false,
+  "epistemic": "theoretical/UNVERIFIED",
+  "timestamp": "2026-08-20T10:03:43.219661+00:00",
+  "paramsSha256": "12f9dd48bdc336686a67aef73df817fe95ffdd8cd984b46c08d953b670c70848",
+  "busSha256": "4ad0160164e1070b4fbf543a4321574210daa09fc81c9f00dbdd52f6a0ebb28f",
+  "studySha256": "1c1d6305250d1025f0af4bf3017df1dbb88b197e9f1eccbdcca9afb81c068032",
+  "solidCount": 53,
+  "uniquePartCount": 16,
+  "bboxMm": [
+    -89.0,
+    -202.0,
+    -8.0,
+    446.5,
+    250.0,
+    528.0
+  ],
+  "minimumWallMm": {
+    "railSideWall": 3.0,
+    "status": "ref"
+  },
+  "b20ContinuousHeightMm": 500.0,
+  "conductorAnimalOverlapMm3": 0.0,
+  "b21": "routes-separate",
+  "cutProfiles": [
+    "B05-view-cassette-nominal.svg",
+    "B05-view-cassette-nominal.dxf",
+    "B06-front-door-nominal.svg",
+    "B06-front-door-nominal.dxf",
+    "B05-view-cassette-kerf-0.15-src-12f9dd48bdc3.svg",
+    "B05-view-cassette-kerf-0.15-src-12f9dd48bdc3.dxf",
+    "B06-front-door-kerf-0.15-src-12f9dd48bdc3.svg",
+    "B06-front-door-kerf-0.15-src-12f9dd48bdc3.dxf",
+    "cut-profiles.sha256"
+  ],
+  "freecadExport": {
+    "returncode": 0,
+    "stdoutTail": "{\"ok\": true, \"parts\": 17, \"assembly\": \"MANTIS-TERRARIUM-FRAME-RAIL-B20-DRAFT.step\"}",
+    "roundtripReturncode": 0,
+    "roundtripStdout": "{\"ok\": true, \"solids\": 1}"
+  },
+  "failures": [],
+  "ok": true
+}

@@ -1,0 +1,1009 @@
+[
+  {
+    "solidId": "B01-corner-01",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      0.0,
+      24.0,
+      24.0,
+      24.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-02",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0.0,
+      0.0,
+      250.0,
+      24.0,
+      24.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-03",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      226.0,
+      0.0,
+      24.0,
+      250.0,
+      24.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-04",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      226.0,
+      0.0,
+      250.0,
+      250.0,
+      24.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-05",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      476.0,
+      24.0,
+      24.0,
+      500.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-06",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0.0,
+      476.0,
+      250.0,
+      24.0,
+      500.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-07",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      226.0,
+      476.0,
+      24.0,
+      250.0,
+      500.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B01-corner-08",
+    "bomId": "B01",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      226.0,
+      476.0,
+      250.0,
+      250.0,
+      500.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-bottom-front",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      0,
+      0.0,
+      250.0,
+      24.0,
+      24.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-bottom-back",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      226.0,
+      0.0,
+      250.0,
+      250.0,
+      24.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-bottom-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      0,
+      0.0,
+      24.0,
+      250.0,
+      24.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-bottom-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0,
+      0.0,
+      250.0,
+      250.0,
+      24.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-top-front",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      0,
+      476.0,
+      250.0,
+      24.0,
+      500.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-top-back",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      226.0,
+      476.0,
+      250.0,
+      250.0,
+      500.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-top-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      0,
+      476.0,
+      24.0,
+      250.0,
+      500.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-top-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0,
+      476.0,
+      250.0,
+      250.0,
+      500.0
+    ],
+    "volumeMm3": 144000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-lower-front-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      24.0,
+      24.0,
+      24.0,
+      250.0
+    ],
+    "volumeMm3": 130176.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-midspan-front-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      250.0,
+      24.0,
+      24.0,
+      274.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B03-splice-front-left",
+    "bomId": "B03",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      239.0,
+      24.0,
+      24.0,
+      261.0
+    ],
+    "volumeMm3": 12672.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-upper-front-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      274.0,
+      24.0,
+      24.0,
+      476.0
+    ],
+    "volumeMm3": 116352.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-lower-front-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0.0,
+      24.0,
+      250.0,
+      24.0,
+      250.0
+    ],
+    "volumeMm3": 130176.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-midspan-front-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0.0,
+      250.0,
+      250.0,
+      24.0,
+      274.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B03-splice-front-right",
+    "bomId": "B03",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0.0,
+      239.0,
+      250.0,
+      24.0,
+      261.0
+    ],
+    "volumeMm3": 12672.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-upper-front-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      0.0,
+      274.0,
+      250.0,
+      24.0,
+      476.0
+    ],
+    "volumeMm3": 116352.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-lower-back-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      226.0,
+      24.0,
+      24.0,
+      250.0,
+      250.0
+    ],
+    "volumeMm3": 130176.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-midspan-back-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      226.0,
+      250.0,
+      24.0,
+      250.0,
+      274.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B03-splice-back-left",
+    "bomId": "B03",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      226.0,
+      239.0,
+      24.0,
+      250.0,
+      261.0
+    ],
+    "volumeMm3": 12672.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-upper-back-left",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      226.0,
+      274.0,
+      24.0,
+      250.0,
+      476.0
+    ],
+    "volumeMm3": 116352.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-lower-back-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      226.0,
+      24.0,
+      250.0,
+      250.0,
+      250.0
+    ],
+    "volumeMm3": 130176.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-midspan-back-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      226.0,
+      250.0,
+      250.0,
+      250.0,
+      274.0
+    ],
+    "volumeMm3": 13824.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B03-splice-back-right",
+    "bomId": "B03",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      226.0,
+      239.0,
+      250.0,
+      250.0,
+      261.0
+    ],
+    "volumeMm3": 12672.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B02-edge-upper-back-right",
+    "bomId": "B02",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      226.0,
+      226.0,
+      274.0,
+      250.0,
+      250.0,
+      476.0
+    ],
+    "volumeMm3": 116352.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B18-top-front-250",
+    "bomId": "B18",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "rail.top_front",
+    "aabbMm": [
+      0,
+      -43.0,
+      484.0,
+      250.0,
+      -5.0,
+      500.0
+    ],
+    "volumeMm3": 152000.0,
+    "notes": "Outside the animal volume. +X along the front lintel."
+  },
+  {
+    "solidId": "B18-front-left-vertical-500",
+    "bomId": "B18",
+    "kind": "printed-part",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "rail.front_left_vertical",
+    "aabbMm": [
+      -43.0,
+      -43.0,
+      0,
+      -5.0,
+      -5.0,
+      500.0
+    ],
+    "volumeMm3": 722000.0,
+    "notes": "Independent of the top-front route. Carriage does not turn this corner."
+  },
+  {
+    "solidId": "B52-top-front",
+    "bomId": "B52",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "REF",
+    "metal": false,
+    "frame": "rail.top_front",
+    "aabbMm": [
+      0,
+      -43.0,
+      500.0,
+      250.0,
+      -4.999999999999995,
+      501.5
+    ],
+    "volumeMm3": 2910.000000000001,
+    "notes": ""
+  },
+  {
+    "solidId": "B52-vertical",
+    "bomId": "B52",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "REF",
+    "metal": false,
+    "frame": "rail.front_left_vertical",
+    "aabbMm": [
+      -43.0,
+      -43.0,
+      0,
+      -4.999999999999995,
+      -5.0,
+      500.0
+    ],
+    "volumeMm3": 147440.00000000006,
+    "notes": ""
+  },
+  {
+    "solidId": "B51-top-front-start",
+    "bomId": "B51",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "UNVERIFIED",
+    "metal": false,
+    "frame": "rail.top_front",
+    "aabbMm": [
+      -8.0,
+      -43.0,
+      484.0,
+      0.0,
+      -5.0,
+      501.5
+    ],
+    "volumeMm3": 5320.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B51-top-front-end",
+    "bomId": "B51",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "UNVERIFIED",
+    "metal": false,
+    "frame": "rail.top_front",
+    "aabbMm": [
+      250.0,
+      -43.0,
+      484.0,
+      258.0,
+      -5.0,
+      501.5
+    ],
+    "volumeMm3": 5320.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B51-vertical-start",
+    "bomId": "B51",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "UNVERIFIED",
+    "metal": false,
+    "frame": "rail.front_left_vertical",
+    "aabbMm": [
+      -43.0,
+      -43.0,
+      -8.0,
+      -5.0,
+      -5.0,
+      0.0
+    ],
+    "volumeMm3": 11552.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B51-vertical-end",
+    "bomId": "B51",
+    "kind": "printed-part",
+    "volumeClass": "service",
+    "status": "UNVERIFIED",
+    "metal": false,
+    "frame": "rail.front_left_vertical",
+    "aabbMm": [
+      -43.0,
+      -43.0,
+      500.0,
+      -5.0,
+      -5.0,
+      508.0
+    ],
+    "volumeMm3": 11552.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B19-conductor-proxy",
+    "bomId": "B19",
+    "kind": "conductor-proxy",
+    "volumeClass": "conductor",
+    "status": "UNVERIFIED",
+    "metal": true,
+    "frame": "frame.world",
+    "aabbMm": [
+      -38.72,
+      -43.0,
+      5,
+      446.5,
+      -5.0,
+      495.0
+    ],
+    "volumeMm3": 240542.4,
+    "notes": "UNVERIFIED electrode geometry. Animal-side copper is prohibited. Lands stay in the external rail cavity."
+  },
+  {
+    "solidId": "B21-routes-separate",
+    "bomId": "B21",
+    "kind": "declaration",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "volumeMm3": 0.0,
+    "notes": "No B21 corner electrical/mechanical transition solid is authored. A carriage does not turn a corner. Top-front and front-left vertical routes terminate with their own B51 stops. Exact junction hardware remains UNVERIFIED."
+  },
+  {
+    "solidId": "KO-carriage-untethered-top",
+    "bomId": "B22",
+    "kind": "keep-out",
+    "volumeClass": "service",
+    "status": "REF",
+    "metal": false,
+    "frame": "rail.top_front",
+    "aabbMm": [
+      0,
+      -89.0,
+      500.0,
+      250.0,
+      -5.0,
+      528.0
+    ],
+    "volumeMm3": 588000.0,
+    "notes": "No trailing cable solid. Video while rolling is out of v1. Carriage need not turn the corner."
+  },
+  {
+    "solidId": "KO-carriage-untethered-vertical",
+    "bomId": "B22",
+    "kind": "keep-out",
+    "volumeClass": "service",
+    "status": "REF",
+    "metal": false,
+    "frame": "rail.front_left_vertical",
+    "aabbMm": [
+      -89.0,
+      -89.0,
+      0,
+      -5.0,
+      -5.0,
+      500.0
+    ],
+    "volumeMm3": 3528000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "B20-animal-wet-barrier",
+    "bomId": "B20",
+    "kind": "barrier",
+    "volumeClass": "external",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      -8.0,
+      -8.0,
+      0,
+      250.0,
+      250.0,
+      500.0
+    ],
+    "volumeMm3": 4662000.0,
+    "notes": "Fused across joints, splices, ends, door, and cassette seats on the front and left external faces. Not an insulating film over contacts. No animal-side copper, pogo, or metal mesh."
+  },
+  {
+    "solidId": "KO-animal-volume",
+    "bomId": "B20",
+    "kind": "keep-out",
+    "volumeClass": "animal",
+    "status": "CALCULATED",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      24.0,
+      24.0,
+      49.0,
+      226.0,
+      226.0,
+      476.0
+    ],
+    "volumeMm3": 17423308.0,
+    "notes": ""
+  },
+  {
+    "solidId": "KO-wet-volume",
+    "bomId": "B15",
+    "kind": "keep-out",
+    "volumeClass": "wet",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      24.0,
+      24.0,
+      24.0,
+      226.0,
+      226.0,
+      49.0
+    ],
+    "volumeMm3": 1020100.0,
+    "notes": ""
+  },
+  {
+    "solidId": "KO-hang-molt-ceiling",
+    "bomId": "B11",
+    "kind": "keep-out",
+    "volumeClass": "molt",
+    "status": "CALCULATED",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      24.0,
+      24.0,
+      334.0,
+      226.0,
+      226.0,
+      476.0
+    ],
+    "volumeMm3": 5794168.0,
+    "notes": "Textured or mesh ceiling. Smooth acrylic lids are prohibited. No metal mesh."
+  },
+  {
+    "solidId": "KO-ceiling-screen",
+    "bomId": "B11",
+    "kind": "keep-out",
+    "volumeClass": "screen",
+    "status": "LOCKED",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      24.0,
+      24.0,
+      476.0,
+      226.0,
+      226.0,
+      500.0
+    ],
+    "volumeMm3": 979296.0,
+    "notes": "Aperture <= 0.8 mm LOCK. Polymer/fiberglass/polyester only."
+  },
+  {
+    "solidId": "KO-nymph-door-gap",
+    "bomId": "B07",
+    "kind": "keep-out",
+    "volumeClass": "animal",
+    "status": "TARGET",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      24.0,
+      0,
+      49.0,
+      226.0,
+      0.5,
+      476.0
+    ],
+    "volumeMm3": 43127.0,
+    "notes": ""
+  },
+  {
+    "solidId": "KO-door-swing",
+    "bomId": "B06",
+    "kind": "keep-out",
+    "volumeClass": "service",
+    "status": "REF",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      0,
+      -202.0,
+      24.0,
+      250.0,
+      0.0,
+      476.0
+    ],
+    "volumeMm3": 22826000.0,
+    "notes": ""
+  },
+  {
+    "solidId": "KO-false-bottom-drain",
+    "bomId": "B16",
+    "kind": "keep-out",
+    "volumeClass": "wet",
+    "status": "UNVERIFIED",
+    "metal": false,
+    "frame": "frame.world",
+    "aabbMm": [
+      115.0,
+      115.0,
+      0,
+      135.0,
+      135.0,
+      49.0
+    ],
+    "volumeMm3": 19600.0,
+    "notes": "Drain hardware PN is absent. Envelope only."
+  },
+  {
+    "solidId": "KO-pcb-envelope-unverified",
+    "bomId": "B48",
+    "kind": "keep-out",
+    "volumeClass": "service",
+    "status": "UNVERIFIED",
+    "metal": false,
+    "frame": "rail.top_front",
+    "aabbMm": [
+      0,
+      -43.0,
+      484.0,
+      250.0,
+      -5.0,
+      512.0
+    ],
+    "volumeMm3": 266000.0,
+    "notes": "KiCad board envelopes, hole datums, and mating planes remain UNVERIFIED until #23 sources parts. Proxy is the rail envelope plus 12 mm REF height zone."
+  }
+]

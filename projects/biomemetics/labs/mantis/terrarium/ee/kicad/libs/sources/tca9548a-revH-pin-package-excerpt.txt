@@ -1,0 +1,409 @@
+TCA9548A datasheet SCPS207H excerpt for pin/package facts only.
+Source: https://www.ti.com/lit/ds/symlink/tca9548a.pdf
+
+===== PAGE 2 =====
+Table of Contents
+1 Features............................................................................1
+2 Applications.....................................................................1
+3 Description.......................................................................1
+4 Pin Configuration and Functions...................................3
+5 Specifications.................................................................. 4
+5.1 Absolute Maximum Ratings........................................ 4
+5.2 ESD Ratings............................................................... 4
+5.3 Recommended Operating Conditions.........................4
+5.4 Thermal Information....................................................5
+5.5 Electrical Characteristics.............................................6
+5.6 I2C Interface Timing Requirements.............................7
+5.7 Reset Timing Requirements........................................8
+5.8 Switching Characteristics............................................8
+5.9 Typical Characteristics................................................9
+6 Parameter Measurement Information..........................10
+7 Detailed Description......................................................12
+7.1 Overview...................................................................12
+7.2 Functional Block Diagram.........................................13
+7.3 Feature Description...................................................13
+7.4 Device Functional Modes..........................................14
+7.5 Programming............................................................ 14
+8 Application and Implementation..................................19
+8.1 Application Information............................................. 19
+8.2 Typical Application.................................................... 19
+8.3 Power Supply Recommendations.............................22
+8.4 Layout....................................................................... 24
+9 Device and Documentation Support............................26
+9.1 Documentation Support............................................ 26
+9.2 Receiving Notification of Documentation Updates....26
+9.3 Support Resources................................................... 26
+9.4 Trademarks...............................................................26
+9.5 Electrostatic Discharge Caution................................26
+9.6 Glossary....................................................................26
+10 Revision History.......................................................... 26
+11 Mechanical, Packaging, and Orderable 
+Information.................................................................... 27
+TCA9548A
+SCPS207H – MAY 2012 – REVISED SEPTEMBER 2024
+ www.ti.com
+2 Submit Document Feedback Copyright © 2024 Texas Instruments Incorporated
+Product Folder Links: TCA9548A
+
+
+===== PAGE 3 =====
+4 Pin Configuration and Functions
+1A0 24  VCC
+2A1 23  SDA
+3RESET 22  SCL
+4SD0 21  A2
+5SC0 20  SC7
+6SD1 19  SD7
+7SC1 18  SC6
+8SD2 17  SD6
+9SC2 16  SC5
+10SD3 15  SD5
+11SC3 14  SC4
+12GND 13  SD4
+Not to scale
+Figure 4-1. PW, DGS Package, 24-Pin TSSOP, 
+VSSOP (Top View)
+24 RESET7SD3
+1SD0 18  A2
+23 A18SC3
+2SC0 17  SC7
+22 A09GND
+3SD1 16  SD7
+21 VCC10SD4
+4SC1 15  SC6
+20 SDA11SC4
+5SD2 14  SD6
+19 SCL12SD5
+6SC2 13  SC5
+Not to scale
+Thermal
+Pad
+Figure 4-2. RGE Package, 24-Pin VQFN (Top View)
+Table 4-1. Pin Functions
+PIN
+TYPE DESCRIPTION
+NAME TSSOP, VSSOP 
+(PW, DGS) VQFN (RGE)
+A0 1 22 I Address input 0. Connect directly to VCC or ground
+A1 2 23 I Address input 1. Connect directly to VCC or ground
+A2 21 18 I Address input 2. Connect directly to VCC or ground
+GND 12 9 — Ground
+RESET 3 24 I Active-low reset input. Connect to VCC or VDPUM (1) through a pull-up resistor, if not used
+SD0 4 1 I/O Serial data 0. Connect to VDPU0 (1) through a pull-up resistor
+SC0 5 2 I/O Serial clock 0. Connect to VDPU0 (1) through a pull-up resistor
+SD1 6 3 I/O Serial data 1. Connect to VDPU1 (1) through a pull-up resistor
+SC1 7 4 I/O Serial clock 1. Connect to VDPU1 (1) through a pull-up resistor
+SD2 8 5 I/O Serial data 2. Connect to VDPU2 (1) through a pull-up resistor
+SC2 9 6 I/O Serial clock 2. Connect to VDPU2 (1) through a pull-up resistor
+SD3 10 7 I/O Serial data 3. Connect to VDPU3 (1) through a pull-up resistor
+SC3 11 8 I/O Serial clock 3. Connect to VDPU3 (1) through a pull-up resistor
+SD4 13 10 I/O Serial data 4. Connect to VDPU4 (1) through a pull-up resistor
+SC4 14 11 I/O Serial clock 4. Connect to VDPU4 (1) through a pull-up resistor
+SD5 15 12 I/O Serial data 5. Connect to VDPU5 (1) through a pull-up resistor
+SC5 16 13 I/O Serial clock 5. Connect to VDPU5 (1) through a pull-up resistor
+SD6 17 14 I/O Serial data 6. Connect to VDPU6 (1) through a pull-up resistor
+SC6 18 15 I/O Serial clock 6. Connect to VDPU6 (1) through a pull-up resistor
+SD7 19 16 I/O Serial data 7. Connect to VDPU7 (1) through a pull-up resistor
+SC7 20 17 I/O Serial clock 7. Connect to VDPU7 (1) through a pull-up resistor
+SCL 22 19 I/O Serial clock bus. Connect to VDPUM (1) through a pull-up resistor
+SDA 23 20 I/O Serial data bus. Connect to VDPUM (1) through a pull-up resistor
+VCC 24 21 Power Supply voltage
+(1) VDPUX is the pull-up reference voltage for the associated data line. VDPUM is the controller I2C reference voltage and VDPU0-VDPU7 are 
+the target channel reference voltages.
+www.ti.com
+TCA9548A
+SCPS207H – MAY 2012 – REVISED SEPTEMBER 2024
+Copyright © 2024 Texas Instruments Incorporated Submit Document Feedback 3
+Product Folder Links: TCA9548A
+
+
+===== PAGE 28 =====
+PACKAGE OPTION ADDENDUM
+www.ti.com 8-Nov-2025
+PACKAGING INFORMATION
+Orderable part number Status
+(1)
+Material type
+(2)
+Package | Pins Package qty | Carrier RoHS
+(3)
+Lead finish/
+Ball material
+(4)
+MSL rating/
+Peak reflow
+(5)
+Op temp (°C) Part marking
+(6)
+TCA9548ADGSR Active Production VSSOP (DGS) | 24 5000 | LARGE T&R Yes NIPDAU Level-1-260C-UNLIM -40 to 85 548A
+TCA9548ADGSR.B Active Production VSSOP (DGS) | 24 5000 | LARGE T&R Yes NIPDAU Level-1-260C-UNLIM -40 to 85 548A
+TCA9548AMRGER Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548AMRGER.B Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548AMRGERG4 Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548AMRGERG4.B Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548APWR Active Production TSSOP (PW) | 24 2000 | LARGE T&R Yes NIPDAU Level-1-260C-UNLIM -40 to 85 PW548A
+TCA9548APWR.B Active Production TSSOP (PW) | 24 2000 | LARGE T&R Yes NIPDAU Level-1-260C-UNLIM -40 to 85 PW548A
+TCA9548APWRG4 Active Production TSSOP (PW) | 24 2000 | LARGE T&R Yes NIPDAU Level-1-260C-UNLIM -40 to 85 PW548A
+TCA9548APWRG4.B Active Production TSSOP (PW) | 24 2000 | LARGE T&R Yes NIPDAU Level-1-260C-UNLIM -40 to 85 PW548A
+TCA9548ARGER Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548ARGER.B Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548ARGERG4 Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+TCA9548ARGERG4.B Active Production VQFN (RGE) | 24 3000 | LARGE T&R Yes NIPDAU Level-2-260C-1 YEAR -40 to 85 PW548A
+ 
+(1) Status:  For more details on status, see our product life cycle.
+ 
+(2) Material type:  When designated, preproduction parts are prototypes/experimental devices, and are not yet approved or released for full production. Testing and final process, including without limitation quality assurance,
+reliability performance testing, and/or process qualification, may not yet be complete, and this item is subject to further changes or possible discontinuation. If available for ordering, purchases will be subject to an additional
+waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+ 
+(3) RoHS values:  Yes, No, RoHS Exempt. See the TI RoHS Statement for additional information and value definition.
+ 
+(4) Lead finish/Ball material:  Parts may have multiple material finish options. Finish options are separated by a vertical ruled line. Lead finish/Ball material values may wrap to two lines if the finish value exceeds the maximum
+column width.
+ 
+(5) MSL rating/Peak reflow:  The moisture sensitivity level ratings and peak solder (reflow) temperatures. In the event that a part has multiple moisture sensitivity ratings, only the lowest level per JEDEC standards is shown.
+Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+ 
+(6) Part marking:  There may be an additional marking, which relates to the logo, the lot trace code information, or the environmental category of the part.
+ 
+Addendum-Page 1
+
+
+===== PAGE 33 =====
+NOTES:
+1. All linear dimensions are in millimeters. Any dimensions in parenthesis are for reference only. Dimensioning and tolerancing
+per ASME Y14.5M.
+2. This drawing is subject to change without notice.
+3. The package thermal pad must be soldered to the printed circuit board for thermal and mechanical performance.
+PACKAGE OUTLINE
+www.ti.com
+4224376 / C   07/2021
+VQFN - 1 mm max height
+PLASTIC QUAD FLATPACK- NO LEAD
+RGE0024C
+A
+0.08 C
+0.1 C A B
+0.05 C
+B
+SYMM
+SYMM
+4.1
+3.9
+4.1
+3.9PIN 1 INDEX AREA
+1 MAX
+0.05
+0.00
+SEATING PLANE
+C
+2X 2.5
+    2.1±0.1
+2X
+2.5
+20X 0.5
+1
+6
+7 12
+13
+18
+1924
+24X 0.30
+0.18
+24X 0.50
+0.30
+(0.2) TYP
+PIN 1 ID
+(OPTIONAL)
+25
+
+
+===== PAGE 34 =====
+NOTES: (continued)
+4. This package is designed to be soldered to a thermal pad on the board. For more information, see Texas Instruments
+literature number SLUA271 (www.ti.com/lit/slua271).
+5. Solder mask tolerances between and around signal pads can vary based on board fabrication site.
+EXAMPLE BOARD LAYOUT
+4224376 / C   06/2021
+www.ti.com
+VQFN - 1 mm max heightRGE0024C
+PLASTIC QUAD FLATPACK- NO LEAD
+SYMM
+SYMM
+LAND PATTERN EXAMPLE
+SCALE: 20X
+2X
+(0.8)
+2X(0.8)
+(3.8)
+(    2.1)
+1
+6
+7 12
+13
+18
+1924
+25
+24X (0.6)
+24X (0.24)
+20X (0.5)
+(R0.05)
+SOLDER MASK DETAILS
+NON SOLDER MASK
+DEFINED
+(PREFERRED)
+SOLDER MASK
+DEFINED
+0.07 MAX
+ALL AROUND
+0.07 MIN
+ALL AROUNDMETAL
+SOLDER MASK
+OPENING
+SOLDER MASK
+OPENING
+METAL UNDER
+SOLDER MASK
+(Ø0.2) VIA
+TYP
+(3.8)
+
+
+===== PAGE 35 =====
+NOTES: (continued)
+6. Laser cutting apertures with trapezoidal walls and rounded corners may offer better paste release. IPC-7525 may have alternate
+design recommendations..
+EXAMPLE STENCIL DESIGN
+4224376 / C   06/2021
+www.ti.com
+VQFN - 1 mm max heightRGE0024C
+PLASTIC QUAD FLATPACK- NO LEAD
+SYMM
+SYMM
+SOLDER PASTE EXAMPLE
+BASED ON 0.125 mm THICK STENCIL
+EXPOSED PAD
+80% PRINTED COVERAGE BY AREA
+SCALE: 20X
+(3.8)
+(0.57)
+TYP
+(0.57)
+TYP
+4X (   0.94)
+1
+6
+7 12
+13
+18
+1924
+24X (0.24)
+24X (0.6)
+20X (0.5)
+(R0.05) TYP
+METAL
+TYP
+25
+(3.8)
+
+
+===== PAGE 36 =====
+www.ti.com
+PACKAGE OUTLINE
+C
+22X 0.65
+2X
+7.15
+24X 0.30
+0.19
+ TYP6.6
+6.2
+1.2 MAX
+0.15
+0.05
+0.25
+GAGE PLANE
+-80
+B
+NOTE 4
+4.5
+4.3
+A
+NOTE 3
+7.9
+7.7
+0.75
+0.50
+(0.15) TYP
+TSSOP - 1.2 mm max heightPW0024A
+SMALL OUTLINE PACKAGE
+4220208/A   02/2017
+1
+12
+13
+24
+0.1 C A B
+PIN 1 INDEX AREA
+SEE DETAIL  A
+0.1 C
+NOTES: 
+ 
+1. All linear dimensions are in millimeters. Any dimensions in parenthesis are for reference only. Dimensioning and tolerancing
+    per ASME Y14.5M. 
+2. This drawing is subject to change without notice. 
+3. This dimension does not include mold flash, protrusions, or gate burrs. Mold flash, protrusions, or gate burrs shall not
+    exceed 0.15 mm per side. 
+4. This dimension does not include interlead flash. Interlead flash shall not exceed 0.25 mm per side.
+5. Reference JEDEC registration MO-153.
+ 
+SEATING
+PLANE
+A  20
+DETAIL A
+TYPICAL
+SCALE  2.000
+
+
+===== PAGE 37 =====
+www.ti.com
+EXAMPLE BOARD LAYOUT
+0.05 MAX
+ALL AROUND
+0.05 MIN
+ALL AROUND
+24X (1.5)
+24X (0.45)
+22X (0.65)
+(5.8)
+(R0.05) TYP
+TSSOP - 1.2 mm max heightPW0024A
+SMALL OUTLINE PACKAGE
+4220208/A   02/2017
+NOTES: (continued)
+ 
+6. Publication IPC-7351 may have alternate designs. 
+7. Solder mask tolerances between and around signal pads can vary based on board fabrication site.
+ 
+LAND PATTERN EXAMPLE
+EXPOSED METAL SHOWN
+SCALE: 10X
+SYMM
+SYMM
+1
+12 13
+24
+15.000
+METALSOLDER MASK
+OPENING
+METAL UNDER
+SOLDER MASK
+SOLDER MASK
+OPENING
+EXPOSED METALEXPOSED METAL
+SOLDER MASK DETAILS
+NON-SOLDER MASK
+DEFINED
+(PREFERRED)
+SOLDER MASK
+DEFINED
+

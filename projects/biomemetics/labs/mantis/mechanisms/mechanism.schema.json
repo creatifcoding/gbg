@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:mechanisms:mechanism-catalog:v1",
+  "title": "Mantis mechanism catalog",
+  "description": "Falsifiable mechanism hypotheses bound to structures. Empty unless a Structure exists. Engineered ideas do not become biological findings.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceRef",
+    "catalogSpecimen",
+    "records"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "MechanismCatalog"
+    },
+    "workspaceRef": {
+      "const": "biomemetics.mantis"
+    },
+    "catalogSpecimen": {
+      "const": false
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mechanism"
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "review": {
+      "$ref": "../observations/observation.schema.json#/$defs/review"
+    },
+    "mechanism": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "kind",
+        "mechanismId",
+        "structureRef",
+        "workspaceRef",
+        "hypothesis",
+        "falsifier",
+        "status",
+        "states",
+        "members",
+        "failureModes",
+        "verificationPlan",
+        "review"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "kind": {
+          "const": "Mechanism"
+        },
+        "mechanismId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "structureRef": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "workspaceRef": {
+          "const": "biomemetics.mantis"
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "falsifier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": ["interpreted", "unverified"]
+        },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "members": {
+          "type": "object",
+          "required": ["moving", "grounded"],
+          "properties": {
+            "moving": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "grounded": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        "failureModes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "verificationPlan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}
