@@ -1,6 +1,6 @@
 # @tmnl/specimendb
 
-Experimental. ECS specimen catalog: a branded `SpecimenId` entity plus optional components, persisted in Postgres and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures.
+Experimental. ECS catalog: branded `EntityRef` rows in `entities` (specimen is a common `kind`, not the only type), optional TaggedClass components, append-only `edges`. Persisted in Postgres and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures. Intake still mints a specimen, attaches what arrived in the JPEG/EXIF, and returns `SpecimenId`.
 
 Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality is attached as `unknown` unless EXIF GPS or capture-page geo actually arrived. Sidecar JSON is always written next to the original. Taxon is never invented.
 
@@ -52,6 +52,16 @@ Opens Vite at `https://localhost:4177` (self-signed). Routes: `/intake`, `/rail`
 ## Field capture
 
 Static page in [`capture/`](./capture/), also served at `/capture/` on the testbed (HTTPS). Stamp GPS + DateTimeOriginal into a JPEG in the browser and download `specimen-YYYYMMDD-HHmmss.jpg`. Denied geo → locality unknown; GPS is not invented. The photo never uploads. Zip or drag that folder onto [Cloudflare Drop](https://www.cloudflare.com/drop/). It is not wired to Postgres or RPC.
+
+## Persistence
+
+Effect models (`EntityModel`, `ComponentModel`, `EdgeModel`) plus co-located `.ddl.ts`, aggregated with `Migrator.fromRecord`. Tables:
+
+| Table | Identity | Notes |
+|---|---|---|
+| `entities` | `id` = `EntityRef` (`gbg:<kind>:<local>@<rev>?`) | `kind` is a column. Specimen and activity are both rows here. No `lab_activities`. |
+| `components` | `entity_id` → `entities.id` | TaggedClass payload jsonb. Intake writes Status / Media / Exif / Locality (and Claim if present). Kind / Class / Provenance / W7 attach later. |
+| `edges` | `src`, `rel`, `dst`, `payload`, `at` | Append-only. Predicates: used, generated, exhibits, performs, via, inspires, depicts, contained-in, contradicts, derived-from. |
 
 ## Versions
 
