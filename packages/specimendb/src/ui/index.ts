@@ -3,6 +3,14 @@ export type { CatalogState, CatalogSurface, SpecimenRpcClient, StatusFilter } fr
 export { AnalogCard } from './AnalogCard.js';
 export { AppShell } from './AppShell.js';
 export { DossierView } from './DossierView.js';
+export { Intake } from './Intake.js';
+export type { IntakeChrome, IntakeLive, IntakeProps } from './Intake.js';
 export { IntakeDrop } from './IntakeDrop.js';
+export { Locality } from './Locality.js';
+export type { LocalityEmpty, LocalityProps, LocalityValue } from './Locality.js';
+export { Media } from './Media.js';
+export type { MediaBytes, MediaEmpty, MediaProps } from './Media.js';
 export { SpecimenRail } from './SpecimenRail.js';
+export { Status } from './Status.js';
+export type { StatusEmpty, StatusPromote, StatusProps, StatusValue } from './Status.js';
 export { WorkingPanel } from './WorkingPanel.js';

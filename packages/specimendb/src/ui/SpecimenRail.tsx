@@ -1,12 +1,17 @@
 /**
  * SpecimenRail — Workbench `/rail` route.
  * Mechanical translation of docs/variant/9263d787-0811-440f-8822-f31ee93b56a8.html.
- * Look lock: docs/variant/variant-02.png.
- * Phase 0: one page, empty wells, no extraction. Complementary to DossierView.
+ * Look lock: that HTML + empty-chrome stills. Not variant-02.png (Accession).
+ * Phase 0+1: HTML chrome stays; Status / Locality / Media / Intake are cuts.
+ * Complementary to DossierView. Surfaces own look. Wells stay drawn and empty.
  *
  * @module @tmnl/specimendb/ui
  */
 
+import { Intake } from './Intake.js';
+import { Locality } from './Locality.js';
+import { Media } from './Media.js';
+import { Status } from './Status.js';
 import './ImportedWorkbench.css';
 import type { CatalogSurface } from './catalog-stx.js';
 
@@ -41,22 +46,22 @@ export function SpecimenRail(_props: SpecimenRailProps = {}) {
             <div className="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="22" data-empty="true" data-testid="card-chrome">
                 <div className="flex justify-between items-start" vid="23">
                     <div className="font-mono text-sm text-textmain font-medium" vid="24"></div>
-                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 border border-charcoal-300" vid="25">
+                    <Status kind="empty" tag="div" className="flex items-center gap-1.5 px-1.5 py-0.5 border border-charcoal-300" vid="25">
                         <div className="w-1.5 h-1.5 bg-charcoal-200" vid="26"></div>
                         <span className="font-mono text-[9px] uppercase tracking-wider text-textdim" vid="27"></span>
-                    </div>
+                    </Status>
                 </div>
 
-                <div className="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="28">
+                <Media kind="empty" className="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="28">
                     <div className="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="29"></div>
                     <i className="ph ph-aperture text-charcoal-200 text-4xl z-10" vid="30"></i>
                     <div className="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="31"></div>
-                </div>
+                </Media>
                 <div className="text-xs text-textmain leading-snug tracking-tight" vid="32"></div>
                 <div className="flex flex-col gap-2 mt-1" vid="33">
                     <div className="flex items-center gap-1.5 text-textmuted" vid="34">
                         <i className="ph ph-crosshair text-xs" vid="35"></i>
-                        <span className="font-mono text-[10px]" vid="36"></span>
+                        <Locality kind="empty" tag="span" className="font-mono text-[10px]" vid="36" />
                     </div>
                     <div className="flex gap-2" vid="37">
                         <span className="font-mono text-[9px] text-textdim" vid="38"></span>
@@ -72,12 +77,12 @@ export function SpecimenRail(_props: SpecimenRailProps = {}) {
     <main className="flex-1 flex flex-col bg-charcoal-600 relative z-10 min-w-0" vid="136">
 
 
-        <div className="h-32 border-b border-charcoal-300 p-4 shrink-0 bg-void relative z-20" vid="137">
+        <Intake kind="chrome" className="h-32 border-b border-charcoal-300 p-4 shrink-0 bg-void relative z-20" vid="137">
             <div className="w-full h-full border border-dashed border-charcoal-200 bg-charcoal-600 hover:bg-charcoal-500 hover:border-textdim transition-all cursor-crosshair flex flex-col items-center justify-center gap-2 group corner-brackets" vid="138">
                 <i className="ph ph-scan text-textdim text-2xl group-hover:text-cyan-500 transition-colors" vid="139"></i>
                 <span className="font-mono text-[11px] text-textdim uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors" vid="140">Initiate Intake Sequence // Drop Telemetry Data</span>
             </div>
-        </div>
+        </Intake>
 
 
         <div className="flex-1 flex min-h-0" vid="141">
