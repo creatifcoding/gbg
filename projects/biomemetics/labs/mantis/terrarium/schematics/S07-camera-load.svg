@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
-<rect width="420" height="297" fill="#fcfcfb"/>
+<rect width="420" height="297" fill="#ffffff"/>
 <defs>
   <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#15171a"/></marker>
   <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 z" fill="#d65a24"/></marker>
@@ -10,135 +10,148 @@
     .thin { stroke:#15171a; stroke-width:.28; fill:none; }
     .med { stroke:#15171a; stroke-width:.55; fill:none; }
     .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
-    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.22; stroke-dasharray:1.6 1.1; fill:none; }
     .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
     .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
     .leader { stroke:#15171a; stroke-width:.3; fill:none; marker-end:url(#arr); }
     .motion { stroke:#d65a24; stroke-width:.55; fill:none; marker-end:url(#arr-orange); }
-    .ref { fill:#fff6d9; stroke:#c49817; stroke-width:.25; }
-    .unverified { fill:#fff0f0; stroke:#ba3d3d; stroke-width:.3; }
+    .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
+    .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
-    .metal { fill:#e1e4e8; stroke:#15171a; stroke-width:.35; }
-    .plastic { fill:#f7f8f9; stroke:#15171a; stroke-width:.35; }
+    .hlr { stroke:#15171a; stroke-width:.45; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .hlr-keep { stroke:#c63333; stroke-width:.4; fill:none; stroke-dasharray:3.5 2; }
+    .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
+    .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
-<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">CAMERA BINDER ASSEMBLY</text>
-<text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="28" y="32" width="126" height="84" rx="6" class="heavy" fill="#eef1f4"/>
-<rect x="42" y="48" width="50" height="48" rx="0" class="med" fill="#d8e2e7"/>
-<circle cx="67" cy="72" r="13" class="heavy" fill="#eef3f5"/>
-<text x="67" y="102" font-size="2.3" font-weight="bold" text-anchor="middle">B36 IMX519 MODULE</text>
-<text x="67" y="107" font-size="2.0" font-weight="middle" text-anchor="start" fill="#b52d2d">OUTLINE 25 x 24 REF - VERIFY SKU</text>
-<rect x="103" y="46" width="36" height="52" rx="2" class="med" fill="#f8f3df"/>
-<text x="121" y="61" font-size="2.5" font-weight="bold" text-anchor="middle">B45</text>
-<text x="121" y="68" font-size="2.6" font-weight="bold" text-anchor="middle">MAX96717</text>
-<text x="121" y="75" font-size="2.2" font-weight="middle" text-anchor="start">SERIALIZER</text>
-<text x="121" y="84" font-size="2.0" font-weight="middle" text-anchor="start">LOCAL DC/DC</text>
-<line x1="92" y1="72" x2="103" y2="72" class="motion"/>
-<text x="97.5" y="68" font-size="1.8" font-weight="bold" text-anchor="middle">MIPI</text>
-<circle cx="45" cy="111" r="2.1" class="metal"/>
-<circle cx="53" cy="111" r="2.1" class="metal"/>
-<circle cx="61" cy="111" r="2.1" class="metal"/>
-<circle cx="69" cy="111" r="2.1" class="metal"/>
-<circle cx="77" cy="111" r="2.1" class="metal"/>
-<circle cx="85" cy="111" r="2.1" class="metal"/>
-<circle cx="93" cy="111" r="2.1" class="metal"/>
-<circle cx="101" cy="111" r="2.1" class="metal"/>
-<circle cx="109" cy="111" r="2.1" class="metal"/>
-<circle cx="117" cy="111" r="2.1" class="metal"/>
-<circle cx="125" cy="111" r="2.1" class="metal"/>
-<circle cx="133" cy="111" r="2.1" class="metal"/>
-<text x="91" y="122" font-size="2.3" font-weight="bold" text-anchor="middle">B50 KEYED 12-NET BINDER INTERFACE - GEOMETRY UNVERIFIED</text>
-<circle cx="166" cy="48" r="4.0" class="med" fill="#ffffff"/>
-<text x="166" y="49.2" font-size="2.6" font-weight="bold" text-anchor="middle">B29</text>
-<line x1="166" y1="52" x2="154" y2="52" class="leader"/>
-<circle cx="166" cy="77" r="4.0" class="med" fill="#ffffff"/>
-<text x="166" y="78.2" font-size="2.6" font-weight="bold" text-anchor="middle">B36</text>
-<line x1="166" y1="81" x2="92" y2="70" class="leader"/>
-<circle cx="166" cy="102" r="4.0" class="med" fill="#ffffff"/>
-<text x="166" y="103.2" font-size="2.6" font-weight="bold" text-anchor="middle">B45</text>
-<line x1="166" y1="106" x2="139" y2="90" class="leader"/>
-<circle cx="166" cy="116" r="4.0" class="med" fill="#ffffff"/>
-<text x="166" y="117.2" font-size="2.6" font-weight="bold" text-anchor="middle">B50</text>
-<line x1="166" y1="120" x2="139" y2="111" class="leader"/>
-<text x="205" y="15" font-size="3.2" font-weight="bold" text-anchor="start">RAIL PXX / BINDER CXX MIRRORED NETS</text>
-<text x="205" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="218" y="36" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="222" y="43" font-size="1.8" font-weight="bold" text-anchor="start" fill="#d9822b">P01/C01</text>
-<text x="238" y="51" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#d9822b">VIN-A</text>
-<rect x="264" y="36" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="268" y="43" font-size="1.8" font-weight="bold" text-anchor="start" fill="#d9822b">P02/C02</text>
-<text x="284" y="51" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#d9822b">VIN-B</text>
-<rect x="310" y="36" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="314" y="43" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P03/C03</text>
-<text x="330" y="51" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#333">GND-A</text>
-<rect x="356" y="36" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="360" y="43" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P04/C04</text>
-<text x="376" y="51" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#333">GND-B</text>
-<rect x="218" y="64" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="222" y="71" font-size="1.8" font-weight="bold" text-anchor="start" fill="#2c9c69">P05/C05</text>
-<text x="238" y="79" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#2c9c69">SDA</text>
-<rect x="264" y="64" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="268" y="71" font-size="1.8" font-weight="bold" text-anchor="start" fill="#307ac7">P06/C06</text>
-<text x="284" y="79" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#307ac7">SCL</text>
-<rect x="310" y="64" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="314" y="71" font-size="1.8" font-weight="bold" text-anchor="start" fill="#7a55a3">P07/C07</text>
-<text x="330" y="79" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#7a55a3">UID</text>
-<rect x="356" y="64" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="360" y="71" font-size="1.8" font-weight="bold" text-anchor="start" fill="#d34887">P08/C08</text>
-<text x="376" y="79" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#d34887">FAULT_N</text>
-<rect x="218" y="92" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="222" y="99" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P09/C09</text>
-<text x="238" y="107" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#333">HSGND</text>
-<rect x="264" y="92" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="268" y="99" font-size="1.8" font-weight="bold" text-anchor="start" fill="#0a7891">P10/C10</text>
-<text x="284" y="107" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#0a7891">GMSL+</text>
-<rect x="310" y="92" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="314" y="99" font-size="1.8" font-weight="bold" text-anchor="start" fill="#0a7891">P11/C11</text>
-<text x="330" y="107" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#0a7891">GMSL-</text>
-<rect x="356" y="92" width="40" height="21" rx="1" class="med" fill="#fff"/>
-<text x="360" y="99" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P12/C12</text>
-<text x="376" y="107" font-size="2.2" font-weight="bold" text-anchor="middle" fill="#333">HSGND</text>
-<text x="295" y="126" font-size="2.25" font-weight="bold" text-anchor="middle">B27 + B50 FULL CHANNEL: 100 ohm TARGET / TO BE CHARACTERIZED</text>
-<text x="12" y="145" font-size="3.2" font-weight="bold" text-anchor="start">VIDEO PATH - NO TETHER TO MOVING CARRIAGE</text>
-<text x="12" y="148.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="16" y="165" width="52" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="42.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">IMX519</text>
-<text x="42.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">SKU TBD</text>
-<rect x="78" y="165" width="60" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="108.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">MAX96717</text>
-<text x="108.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI -&gt; GMSL2</text>
-<rect x="148" y="165" width="42" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="169.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">B50</text>
-<text x="169.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">BINDER</text>
-<rect x="200" y="165" width="48" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="224.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">V-DOCK</text>
-<text x="224.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">B27/B19</text>
-<rect x="258" y="165" width="62" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="289.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">MAX96724</text>
-<text x="289.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">4-PORT DES</text>
-<rect x="330" y="165" width="72" height="34" rx="2" class="med" fill="#f7f8f9"/>
-<text x="366.0" y="179" font-size="2.4" font-weight="bold" text-anchor="middle">TACHYON</text>
-<text x="366.0" y="184" font-size="2.4" font-weight="bold" text-anchor="middle">CSI</text>
-<line x1="68" y1="182" x2="78" y2="182" class="motion"/>
-<line x1="138" y1="182" x2="148" y2="182" class="motion"/>
-<line x1="190" y1="182" x2="200" y2="182" class="motion"/>
-<line x1="248" y1="182" x2="258" y2="182" class="motion"/>
-<line x1="320" y1="182" x2="330" y2="182" class="motion"/>
-<text x="195" y="208" font-size="2.7" font-weight="bold" text-anchor="middle">RAW MIPI STAYS INSIDE BINDER; 3/6 Gbps GMSL2 CROSSES LOCKED POGO DOCK</text>
-<text x="195" y="215" font-size="2.5" font-weight="bold" text-anchor="middle" fill="#0a7891">POWER + VIDEO + REVERSE CONTROL CROSS THE CARRIAGE; NOTHING TETHERS IT</text>
-<rect x="12" y="224" width="190" height="19.0" rx="1.2" class="med" fill="#f7f8fa"/>
-<text x="15" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - CAMERA VIDEO DOCK</text>
-<text x="15" y="233" font-size="2.45" font-weight="normal" text-anchor="start">States: free / S1+S2 power-mated / training / link-trained / pinch-safe.</text>
-<text x="15" y="237" font-size="2.45" font-weight="normal" text-anchor="start">Binder moves; V-dock and deserializer are fixed to the rail/brick.</text>
-<text x="15" y="241" font-size="2.45" font-weight="normal" text-anchor="start">S1 or S2 opening mutes link and turns local Q1 off before contact motion.</text>
-<rect x="215" y="224" width="190" height="19.0" rx="1.2" class="med" fill="#fff0f0"/>
-<text x="218" y="228.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / WHY</text>
-<text x="218" y="233" font-size="2.45" font-weight="normal" text-anchor="start">Partial dock or bent HSD pin -&gt; bounded training timeout; Q1 latches off.</text>
-<text x="218" y="237" font-size="2.45" font-weight="normal" text-anchor="start">Chosen over a CSI tether so the carriage remains genuinely repositionable.</text>
-<text x="218" y="241" font-size="2.45" font-weight="normal" text-anchor="start">Coupon and eye/BER tests must include both B27 and B50 interfaces.</text>
+<rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
+<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">B29 BINDER HOUSING (NO CAMERA SKU STEP)</text>
+<text x="12" y="18.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 2:1  |  OCCT HLR</text>
+<path d="M20.000 72.000 L20.000 28.000" class="hidden"/>
+<path d="M20.000 28.000 L100.000 28.000" class="hidden"/>
+<path d="M26.000 28.000 L94.000 28.000" class="hidden"/>
+<path d="M26.000 28.000 L94.000 28.000" class="hidden"/>
+<path d="M20.000 72.000 L100.000 72.000" class="hidden"/>
+<path d="M100.000 72.000 L100.000 28.000" class="hidden"/>
+<path d="M26.000 66.000 L26.000 28.000" class="hidden"/>
+<path d="M26.000 66.000 L26.000 28.000" class="hidden"/>
+<path d="M26.000 66.000 L94.000 66.000" class="hidden"/>
+<path d="M94.000 66.000 L94.000 28.000" class="hidden"/>
+<path d="M94.000 66.000 L94.000 28.000" class="hidden"/>
+<path d="M26.000 66.000 L94.000 66.000" class="hidden"/>
+<path d="M20.000 72.000 L20.000 28.000" class="hlr"/>
+<path d="M20.000 72.000 L100.000 72.000" class="hlr"/>
+<path d="M20.000 28.000 L100.000 28.000" class="hlr"/>
+<path d="M100.000 72.000 L100.000 28.000" class="hlr"/>
+<path d="M115.000 28.000 L115.000 72.000" class="hidden"/>
+<path d="M115.000 72.000 L187.000 72.000" class="hidden"/>
+<path d="M121.000 72.000 L181.000 72.000" class="hidden"/>
+<path d="M121.000 72.000 L181.000 72.000" class="hidden"/>
+<path d="M187.000 28.000 L187.000 72.000" class="hidden"/>
+<path d="M115.000 28.000 L187.000 28.000" class="hidden"/>
+<path d="M121.000 34.000 L121.000 72.000" class="hidden"/>
+<path d="M121.000 34.000 L181.000 34.000" class="hidden"/>
+<path d="M181.000 34.000 L181.000 72.000" class="hidden"/>
+<path d="M121.000 34.000 L121.000 72.000" class="hidden"/>
+<path d="M121.000 34.000 L181.000 34.000" class="hidden"/>
+<path d="M181.000 34.000 L181.000 72.000" class="hidden"/>
+<path d="M115.000 28.000 L115.000 72.000" class="hlr"/>
+<path d="M115.000 28.000 L187.000 28.000" class="hlr"/>
+<path d="M187.000 28.000 L187.000 72.000" class="hlr"/>
+<path d="M115.000 72.000 L187.000 72.000" class="hlr"/>
+<rect x="42" y="48" width="36" height="22" rx="0" class="unverified" fill="#ffffff"/>
+<text x="60" y="58" font-size="2.4" font-weight="bold" text-anchor="middle">B36</text>
+<text x="60" y="64" font-size="1.8" font-weight="middle" text-anchor="start" fill="#ba3d3d">SKU UNVERIFIED</text>
+<circle cx="200" cy="36" r="4.0" class="med" fill="#ffffff"/>
+<text x="200" y="37.2" font-size="2.6" font-weight="bold" text-anchor="middle">B29</text>
+<line x1="200" y1="40" x2="187" y2="40" class="leader"/>
+<circle cx="200" cy="58" r="4.0" class="med" fill="#ffffff"/>
+<text x="200" y="59.2" font-size="2.6" font-weight="bold" text-anchor="middle">B36</text>
+<line x1="200" y1="62" x2="78" y2="58" class="leader"/>
+<text x="215" y="15" font-size="3.2" font-weight="bold" text-anchor="start">RAIL PXX / BINDER CXX MIRRORED NETS</text>
+<text x="215" y="18.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
+<rect x="218" y="32" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="222" y="39" font-size="1.8" font-weight="bold" text-anchor="start" fill="#d9822b">P01/C01</text>
+<text x="238" y="46" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#d9822b">VIN-A</text>
+<rect x="264" y="32" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="268" y="39" font-size="1.8" font-weight="bold" text-anchor="start" fill="#d9822b">P02/C02</text>
+<text x="284" y="46" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#d9822b">VIN-B</text>
+<rect x="310" y="32" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="314" y="39" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P03/C03</text>
+<text x="330" y="46" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#333">GND-A</text>
+<rect x="356" y="32" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="360" y="39" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P04/C04</text>
+<text x="376" y="46" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#333">GND-B</text>
+<rect x="218" y="56" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="222" y="63" font-size="1.8" font-weight="bold" text-anchor="start" fill="#2c9c69">P05/C05</text>
+<text x="238" y="70" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#2c9c69">SDA</text>
+<rect x="264" y="56" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="268" y="63" font-size="1.8" font-weight="bold" text-anchor="start" fill="#307ac7">P06/C06</text>
+<text x="284" y="70" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#307ac7">SCL</text>
+<rect x="310" y="56" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="314" y="63" font-size="1.8" font-weight="bold" text-anchor="start" fill="#7a55a3">P07/C07</text>
+<text x="330" y="70" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#7a55a3">UID</text>
+<rect x="356" y="56" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="360" y="63" font-size="1.8" font-weight="bold" text-anchor="start" fill="#d34887">P08/C08</text>
+<text x="376" y="70" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#d34887">FAULT_N</text>
+<rect x="218" y="80" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="222" y="87" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P09/C09</text>
+<text x="238" y="94" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#333">HSGND</text>
+<rect x="264" y="80" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="268" y="87" font-size="1.8" font-weight="bold" text-anchor="start" fill="#0a7891">P10/C10</text>
+<text x="284" y="94" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#0a7891">GMSL+</text>
+<rect x="310" y="80" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="314" y="87" font-size="1.8" font-weight="bold" text-anchor="start" fill="#0a7891">P11/C11</text>
+<text x="330" y="94" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#0a7891">GMSL-</text>
+<rect x="356" y="80" width="40" height="20" rx="1" class="med" fill="#fff"/>
+<text x="360" y="87" font-size="1.8" font-weight="bold" text-anchor="start" fill="#333">P12/C12</text>
+<text x="376" y="94" font-size="2.1" font-weight="bold" text-anchor="middle" fill="#333">HSGND</text>
+<text x="12" y="118" font-size="3.2" font-weight="bold" text-anchor="start">B50 HLR + VIDEO PATH DIAGRAM</text>
+<text x="12" y="121.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 5:1 / DIAGRAM  |  OCCT HLR</text>
+<path d="M16.000 152.000 L16.000 132.000" class="hidden"/>
+<path d="M16.000 132.000 L106.000 132.000" class="hidden"/>
+<path d="M16.000 152.000 L106.000 152.000" class="hidden"/>
+<path d="M106.000 152.000 L106.000 132.000" class="hidden"/>
+<path d="M106.000 152.000 L106.000 132.000" class="hidden"/>
+<path d="M106.000 132.000 L121.000 132.000" class="hidden"/>
+<path d="M106.000 152.000 L106.000 132.000" class="hidden"/>
+<path d="M106.000 152.000 L121.000 152.000" class="hidden"/>
+<path d="M121.000 152.000 L121.000 132.000" class="hidden"/>
+<path d="M16.000 152.000 L16.000 132.000" class="hlr"/>
+<path d="M16.000 152.000 L106.000 152.000" class="hlr"/>
+<path d="M16.000 132.000 L106.000 132.000" class="hlr"/>
+<path d="M106.000 152.000 L106.000 132.000" class="hlr"/>
+<path d="M106.000 132.000 L121.000 132.000" class="hlr"/>
+<path d="M106.000 152.000 L121.000 152.000" class="hlr"/>
+<path d="M121.000 152.000 L121.000 132.000" class="hlr"/>
+<circle cx="140" cy="136" r="4.0" class="med" fill="#ffffff"/>
+<text x="140" y="137.2" font-size="2.6" font-weight="bold" text-anchor="middle">B50</text>
+<line x1="140" y1="140" x2="120" y2="136" class="leader"/>
+<rect x="155" y="150" width="48" height="28" rx="0" class="med" fill="#ffffff"/>
+<text x="179.0" y="162" font-size="2.1" font-weight="bold" text-anchor="middle">CAMERA</text>
+<text x="179.0" y="167" font-size="2.1" font-weight="bold" text-anchor="middle">SKU UNVER</text>
+<rect x="212" y="150" width="52" height="28" rx="0" class="med" fill="#ffffff"/>
+<text x="238.0" y="162" font-size="2.1" font-weight="bold" text-anchor="middle">MAX96717</text>
+<text x="238.0" y="167" font-size="2.1" font-weight="bold" text-anchor="middle">CSI-&gt;GMSL2</text>
+<rect x="272" y="150" width="40" height="28" rx="0" class="med" fill="#ffffff"/>
+<text x="292.0" y="162" font-size="2.1" font-weight="bold" text-anchor="middle">B50</text>
+<rect x="318" y="150" width="48" height="28" rx="0" class="med" fill="#ffffff"/>
+<text x="342.0" y="162" font-size="2.1" font-weight="bold" text-anchor="middle">V-DOCK</text>
+<rect x="372" y="150" width="40" height="28" rx="0" class="med" fill="#ffffff"/>
+<text x="392.0" y="162" font-size="2.1" font-weight="bold" text-anchor="middle">MAX96724</text>
+<text x="265" y="188" font-size="2.4" font-weight="bold" text-anchor="middle">RAW MIPI STAYS INSIDE BINDER; GMSL2 CROSSES LOCKED POGO DOCK</text>
+<rect x="12" y="200" width="190" height="19.0" rx="0" class="med" fill="#ffffff"/>
+<text x="15" y="204.4" font-size="2.8" font-weight="bold" text-anchor="start">MECHANISM NOTE - CAMERA VIDEO DOCK</text>
+<text x="15" y="209" font-size="2.45" font-weight="normal" text-anchor="start">States: free / S1+S2 power-mated / training / link-trained / pinch-safe.</text>
+<text x="15" y="213" font-size="2.45" font-weight="normal" text-anchor="start">What moves: binder. V-dock and MAX96724 stay on rail/brick. No tether.</text>
+<text x="15" y="217" font-size="2.45" font-weight="normal" text-anchor="start">Raw MIPI never rides B50, B27, or the continuous strip (EE-23/25 lock).</text>
+<rect x="215" y="200" width="190" height="19.0" rx="0" class="unverified" fill="#ffffff"/>
+<text x="218" y="204.4" font-size="2.8" font-weight="bold" text-anchor="start">FAILURE / WHY / EE-25</text>
+<text x="218" y="209" font-size="2.45" font-weight="normal" text-anchor="start">Partial dock or bent HSD: training timeout; Q1 latches off.</text>
+<text x="218" y="213" font-size="2.45" font-weight="normal" text-anchor="start">Particle lists IMX519 AF and S5K3P9SX sensors; no orderable SKU drawn.</text>
+<text x="218" y="217" font-size="2.45" font-weight="normal" text-anchor="start">EE-26 coupons: 2x-thru, B27-only, B50-only, full channel. Not animal-use.</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -148,20 +161,20 @@
 <line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">CAMERA LOAD / SERDES BINDER</text>
-<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
-<text x="13" y="285.0" font-size="2.5" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3)</text>
+<text x="13" y="280.0" font-size="2.8" font-weight="bold" text-anchor="start" fill="#ba3d3d">DRAFT CAD - NOT SHOP-RELEASE (#31) / NOT FIRST ARTICLE</text>
+<text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
-<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2:1 / DIAGRAM</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-DRAFT</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41P</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">08 OF 12 / S07</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">CONCEPT LOCK</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">DRAFT CAD</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
-<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">MANTIS LAB</text>
+<text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
 <text x="273" y="286.0" font-size="2.5" font-weight="normal" text-anchor="start">MT-S07</text>
 <text x="337" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">FORMAT</text>
@@ -171,6 +184,14 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="1" class="unverified" fill="#fff0f0"/>
-<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="ref"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle">TRUE-SCALE HLR</text>
+<line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
+<text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
+<line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
+<text x="208" y="279.7" font-size="1.7" font-weight="normal" text-anchor="start">motion</text>
+<rect x="198" y="281.2" width="8" height="3.2" rx="0" class="keepout"/>
+<text x="208" y="283.8" font-size="1.7" font-weight="normal" text-anchor="start">keep-out</text>
+<line x1="198" y1="287.2" x2="206" y2="287.2" class="med" stroke="#0a7891"/>
+<text x="208" y="288.4" font-size="1.7" font-weight="normal" text-anchor="start">net</text>
 </svg>
