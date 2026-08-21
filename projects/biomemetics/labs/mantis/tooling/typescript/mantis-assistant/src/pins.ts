@@ -23,8 +23,6 @@ export const PINS = {
   fakeModel: 'mantis-fake-model@1.0.0',
   liveModel: 'gpt-5.6-luna',
   liveReasoningLevel: 'max',
-  liveModel: 'openai/gpt-5.6-luna',
-  liveReasoningLevel: 'max',
 } as const;
 
 export type PinName = keyof typeof PINS;
