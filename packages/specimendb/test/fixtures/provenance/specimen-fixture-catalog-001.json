@@ -1,0 +1,8 @@
+{
+  "_tag": "LabEntity",
+  "ref": "gbg:specimen:fixture-catalog-001",
+  "kind": "specimen",
+  "label": "fixture specimen",
+  "class": "unverified",
+  "specimenId": "fixture-catalog-001"
+}

@@ -1,0 +1,11 @@
+{
+  "_tag": "LabEntity",
+  "ref": "gbg:step:B01@fe8f875a",
+  "kind": "solid",
+  "label": "B01",
+  "class": "draft-measured",
+  "bytes": {
+    "gitSha": "fe8f875a80b37a1003f05f3a0190fbe2f0417842"
+  },
+  "wasGeneratedBy": "gbg:activity:freecad-part-occt@fe8f875a"
+}
