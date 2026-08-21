@@ -1,7 +1,7 @@
 /**
  * ActivityRepo — append-only provenance log.
  *
- * Tables: `lab_activities`, `lab_used`, `lab_generated`. Same PGlite as
+ * Tables: `lab_activities`, `lab_used`, `lab_generated`. Same Postgres as
  * specimens. Corrections are new rows; who/when are never updated.
  *
  * @module @tmnl/specimendb/repos/ActivityRepo

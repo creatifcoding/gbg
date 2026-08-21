@@ -1,14 +1,17 @@
 /**
- * PGlite L1 — official `@effect/sql-pglite` client + migrator.
+ * Postgres L1 — `@effect/sql-pg` client + migrator.
  *
  * Provides `SqlClient`. SpecimenRepo and ActivityRepo talk that tag.
+ * Same pin as effect: 4.0.0-beta.93. Not PGlite. Not DuckDB.
  *
- * @module @tmnl/specimendb/repos/pglite
+ * @module @tmnl/specimendb/repos/pg
  */
 
-import { PgliteClient, PgliteMigrator } from '@effect/sql-pglite';
+import { PgClient } from '@effect/sql-pg';
 import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
+import * as Redacted from 'effect/Redacted';
+import * as Migrator from 'effect/unstable/sql/Migrator';
 import { SqlClient } from 'effect/unstable/sql/SqlClient';
 import { CatalogConfigTag } from '../schemas/config.js';
 
@@ -120,16 +123,18 @@ const migrations = {
   }),
 } as const;
 
-export const PgliteFromConfig = Layer.unwrap(
+export const PgFromConfig = Layer.unwrap(
   Effect.gen(function* () {
     const config = yield* CatalogConfigTag;
-    return PgliteClient.layer({ dataDir: config.dataDir });
+    return PgClient.layer({ url: Redacted.make(config.url) });
   }),
 );
 
-export const CatalogMigratorLive = PgliteMigrator.layer({
-  loader: PgliteMigrator.fromRecord(migrations),
-  table: 'specimendb_migrations',
-});
+export const CatalogMigratorLive = Layer.effectDiscard(
+  Migrator.make({})({
+    loader: Migrator.fromRecord(migrations),
+    table: 'specimendb_migrations',
+  }),
+);
 
-export const CatalogSqlLive = CatalogMigratorLive.pipe(Layer.provideMerge(PgliteFromConfig));
+export const CatalogSqlLive = CatalogMigratorLive.pipe(Layer.provideMerge(PgFromConfig));

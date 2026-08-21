@@ -1,5 +1,5 @@
 /**
- * Append-only activity log (#61): AppendActivity / GetByRef over existing PGlite.
+ * Append-only activity log (#61): AppendActivity / GetByRef over Postgres.
  * Tiny fixtures only — not seed ingest (#62), not shop, not EVA.
  */
 
@@ -13,10 +13,10 @@ import * as Effect from 'effect/Effect';
 import * as Result from 'effect/Result';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { SqlClient } from 'effect/unstable/sql/SqlClient';
-import { layer } from '../src/layers.js';
 import { ActivityRpcs } from '../src/rpc/ActivityRpcs.js';
 import { decodeLabEntity } from '../src/schemas/provenance.js';
 import { trustEntityRef } from '../src/schemas/identifiers.js';
+import { runCatalog } from './catalog-pg.js';
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'provenance');
 
@@ -30,16 +30,7 @@ const correctionActivity = () =>
 const runLog = async (program: Effect.Effect<unknown, unknown, never>) => {
   const root = await mkdtemp(join(tmpdir(), 'specimendb-log-'));
   try {
-    await Effect.runPromise(
-      Effect.scoped(program).pipe(
-        Effect.provide(
-          layer({
-            dataDir: 'memory://',
-            assetsRoot: join(root, 'assets'),
-          }),
-        ),
-      ) as Effect.Effect<unknown>,
-    );
+    await runCatalog(join(root, 'assets'), program);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -1,7 +1,7 @@
 /**
  * SpecimenRepo — ECS persistence: entity row + attached components.
  *
- * Talks `SqlClient`. L1 is PGlite (`@effect/sql-pglite`).
+ * Talks `SqlClient`. L1 is Postgres (`@effect/sql-pg`).
  *
  * @module @tmnl/specimendb/repos/SpecimenRepo
  */

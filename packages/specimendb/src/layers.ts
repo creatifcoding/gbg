@@ -6,7 +6,7 @@
 
 import * as Layer from 'effect/Layer';
 import { AssetStore } from './media/store.js';
-import { CatalogSqlLive } from './repos/pglite.js';
+import { CatalogSqlLive } from './repos/pg.js';
 import { ActivityRepo } from './repos/ActivityRepo.js';
 import { SpecimenRepo } from './repos/SpecimenRepo.js';
 import { ActivityRpcsLive } from './rpc/ActivityRpcs.js';
@@ -25,7 +25,7 @@ export const ActivityLogLive = ActivityRpcsLive.pipe(
 );
 
 /**
- * One PGlite process: specimen RPCs + append-only activity log.
+ * One Postgres process: specimen RPCs + append-only activity log.
  * CatalogSqlLive is provided once so the log is not a second catalog.
  */
 export const layer = (config: CatalogConfig) =>

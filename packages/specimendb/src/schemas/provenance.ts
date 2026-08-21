@@ -9,7 +9,7 @@
  * W7 (who / what / when / where / why / how) lives on Kind=activity.
  * Honesty class lives on the generated entity. Operations are entities.
  *
- * The activity log (#61) persists these records append-only in PGlite.
+ * The activity log (#61) persists these records append-only in Postgres.
  * EVA bind is a later cut (#76 / #82).
  *
  * @module @tmnl/specimendb/schemas/provenance

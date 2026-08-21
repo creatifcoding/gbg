@@ -1,0 +1,28 @@
+# Ordinary Postgres 16 for the specimen catalog. Not PGlite. Not DuckDB.
+# Timescale/AGE copy of the iiot image is #91, not this log cut.
+#
+#   docker compose -f packages/specimendb/docker/docker-compose.yml up -d
+#   SPECIMENDB_PG_URL=postgres://specimendb:specimendb@127.0.0.1:5434/specimendb
+#
+# Connection: postgres://specimendb:specimendb@localhost:5434/specimendb
+
+services:
+  specimendb-pg:
+    image: postgres:16
+    container_name: specimendb_pg
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_USER: specimendb
+      POSTGRES_PASSWORD: specimendb
+      POSTGRES_DB: specimendb
+    volumes:
+      - specimendb-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U specimendb -d specimendb']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  specimendb-pg-data:

@@ -1,5 +1,5 @@
 /**
- * Activity log RPC — AppendActivity / GetByRef. Same PGlite as the specimen catalog.
+ * Activity log RPC — AppendActivity / GetByRef. Same Postgres as the specimen catalog.
  *
  * @module @tmnl/specimendb/rpc/ActivityRpcs
  */

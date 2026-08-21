@@ -9,8 +9,8 @@ import * as Layer from 'effect/Layer';
 import * as Schema from 'effect/Schema';
 
 export const CatalogConfigSchema = Schema.Struct({
-  /** PGlite data directory, or `memory://` for an in-memory catalog. */
-  dataDir: Schema.String,
+  /** Postgres connection string. Ordinary `@effect/sql-pg`, not PGlite. */
+  url: Schema.String,
   assetsRoot: Schema.String,
 });
 export type CatalogConfig = typeof CatalogConfigSchema.Type;

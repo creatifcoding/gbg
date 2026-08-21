@@ -17,7 +17,7 @@ Host for this note: `packages/specimendb/docs/` because the recommended viewer h
 - Do not merge PRs 34 / 36 / 45 / 57 / 58 from this work.
 - Do not replace OCCT `HLRBRep`. SVG already in-tree on PR 58.
 - Doctor does not certify itself. Independent verifier does not generate the report it checks (PR 57 `verify_report.py`).
-- Effect / PGlite pin stays `4.0.0-beta.93`. Do not take `@effect/sql-pglite@4.0.0-beta.107`.
+- Effect pin stays `4.0.0-beta.93`. Catalog SoT is Postgres (`@effect/sql-pg`); PGlite is off the path ([#91](https://github.com/creatifcoding/gbg/issues/91)). Do not take `@effect/sql-pglite`. Do not add DuckDB.
 
 ---
 

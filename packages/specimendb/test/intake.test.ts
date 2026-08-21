@@ -1,5 +1,5 @@
 /**
- * Intake / Get / List over PGlite.
+ * Intake / Get / List over Postgres.
  * JPEG/HEIC without GPS file as raw, locality unknown, sidecar always written.
  */
 
@@ -13,22 +13,13 @@ import { heicWithoutGps, jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { gpsFromExif, extractExifTags } from '../src/media/exif.js';
 import { exifOf, localityOf, localityStateOf, mediaOf, nextStatus, statusOf } from '../src/schemas/specimen.js';
 import { specimenSurface } from '../src/surface.js';
-import { layer } from '../src/layers.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
+import { runCatalog as runPg } from './catalog-pg.js';
 
 const runCatalog = async (program: Effect.Effect<unknown, unknown, never>) => {
   const root = await mkdtemp(join(tmpdir(), 'specimendb-'));
   try {
-    await Effect.runPromise(
-      Effect.scoped(program).pipe(
-        Effect.provide(
-          layer({
-            dataDir: 'memory://',
-            assetsRoot: join(root, 'assets'),
-          }),
-        ),
-      ) as Effect.Effect<unknown>,
-    );
+    await runPg(join(root, 'assets'), program);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

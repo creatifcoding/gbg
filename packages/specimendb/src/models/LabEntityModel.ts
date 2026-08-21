@@ -3,7 +3,7 @@
  *
  * Activity log tables (`lab_activities` / `lab_used` / `lab_generated`) store
  * the JSON payload; this model is the row shape, not a SqlModel repository.
- * Pin stays `@effect/sql-pglite` / `effect` 4.0.0-beta.93.
+ * Pin stays `@effect/sql-pg` / `effect` 4.0.0-beta.93.
  *
  * @module @tmnl/specimendb/models/LabEntityModel
  */
