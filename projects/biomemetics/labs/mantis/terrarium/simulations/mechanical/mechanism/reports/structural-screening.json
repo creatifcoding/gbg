@@ -1,0 +1,11 @@
+{
+  "maturity": "DRAFT",
+  "solver": "Gmsh/CalculiX",
+  "status": "BLOCKED",
+  "reason": "Sourced or measured PETG/ASA modulus, strength, and mesh-convergence coupon are absent. Do not invent material cards.",
+  "casesSpecifiedNotRun": [
+    "pinch lever B23 under 15-25 N TARGET pinch",
+    "B28 latch at 40 N TARGET pull-off and 0.5 N-m moment",
+    "B51 route retention (interface only; #28 geometry not admitted)"
+  ]
+}

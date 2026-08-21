@@ -1,0 +1,64 @@
+{
+  "maturity": "DRAFT",
+  "evidenceClass": "theoretical/UNVERIFIED",
+  "printCompensationMm": {
+    "value": 0.2,
+    "status": "unverified",
+    "note": "UNVERIFIED coupon. Same magnitude as cassette seat 0.20 TARGET."
+  },
+  "intervals": {
+    "binder.branch_safe_travel": {
+      "lo": 1.8,
+      "hi": 2.2,
+      "status": "target"
+    },
+    "binder.s2_open_travel": {
+      "lo": 0.8,
+      "hi": 1.2,
+      "status": "target"
+    },
+    "binder.free_travel": {
+      "lo": 3.3,
+      "hi": 3.7,
+      "status": "target"
+    },
+    "carriage.pinch_safe_travel": {
+      "lo": 2.0,
+      "hi": 2.4000000000000004,
+      "status": "target"
+    },
+    "carriage.pinch_input_travel": {
+      "lo": 4.8,
+      "hi": 5.2,
+      "status": "target"
+    },
+    "carriage.lift_cam_throw": {
+      "lo": 2.0,
+      "hi": 2.4000000000000004,
+      "status": "target"
+    },
+    "carriage.s1_open_travel": {
+      "lo": 0.8,
+      "hi": 1.2,
+      "status": "target"
+    },
+    "carriage.contacts_clear_travel": {
+      "lo": 3.8,
+      "hi": 4.2,
+      "status": "target"
+    },
+    "pogo.working_compression": {
+      "lo": 0.6,
+      "hi": 0.6,
+      "status": "target"
+    },
+    "pogo.released_contact_lift_min": {
+      "lo": 1.2,
+      "hi": 1.2,
+      "status": "target"
+    }
+  },
+  "pogoPn": "absent",
+  "s1s2q1": "UNVERIFIED #24 unmet",
+  "invariants": []
+}
