@@ -1,6 +1,7 @@
 /**
  * Per-test Postgres catalog. Real Postgres, not PGlite, not DuckDB.
- * Default: postgres://specimendb:specimendb@127.0.0.1:5432/specimendb
+ * Default matches the copied iiot compose URL:
+ *   postgres://specimendb:specimendb@127.0.0.1:5433/specimendb
  * Override with SPECIMENDB_PG_URL.
  */
 
@@ -11,7 +12,7 @@ import { layer } from '../src/layers.js';
 
 export const catalogAdminUrl =
   process.env['SPECIMENDB_PG_URL'] ??
-  'postgres://specimendb:specimendb@127.0.0.1:5432/specimendb';
+  'postgres://specimendb:specimendb@127.0.0.1:5433/specimendb';
 
 const dbUrl = (name: string): string => {
   const url = new URL(catalogAdminUrl);

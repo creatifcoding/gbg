@@ -4,7 +4,7 @@ Research only. No viewer, no minted ids, no UI restyle, no merge.
 
 This note answers issue [#59](https://github.com/creatifcoding/gbg/issues/59) section 9. Requirements stay in that issue; this file picks libraries and hosts. An implementer may mint refs and show W7 **after** these calls land.
 
-Host for this note: `packages/specimendb/docs/` because the recommended viewer host is the specimendb testbed, and because PGlite / Effect `4.0.0-beta.93` already live in this package. Do not file the terrarium as a Specimen.
+Host for this note: `packages/specimendb/docs/` because the recommended viewer host is the specimendb testbed, and because Postgres / Effect `4.0.0-beta.93` already live in this package. Do not file the terrarium as a Specimen.
 
 ---
 
@@ -17,7 +17,7 @@ Host for this note: `packages/specimendb/docs/` because the recommended viewer h
 - Do not merge PRs 34 / 36 / 45 / 57 / 58 from this work.
 - Do not replace OCCT `HLRBRep`. SVG already in-tree on PR 58.
 - Doctor does not certify itself. Independent verifier does not generate the report it checks (PR 57 `verify_report.py`).
-- Effect pin stays `4.0.0-beta.93`. Catalog SoT is Postgres (`@effect/sql-pg`); PGlite is off the path ([#91](https://github.com/creatifcoding/gbg/issues/91)). Do not take `@effect/sql-pglite`. Do not add DuckDB.
+- Effect pin stays `4.0.0-beta.93`. Catalog SoT is Postgres (`@effect/sql-pg`). Do not take `@effect/sql-pglite`. Do not add DuckDB.
 
 ---
 
@@ -27,7 +27,7 @@ Host for this note: `packages/specimendb/docs/` because the recommended viewer h
 |---|---|---|
 | 1. Stable ref | **BUILD** compact `gbg:<kind>:<local>@<rev>` | Issue 59 already named the language; IANA URN registration and OpenLineage naming are the wrong grain. |
 | 2. W7 metadata | **ADOPT** PROV-DM vocabulary, **BUILD** one Effect Schema record | PROV gives entity/activity/agent; kind and honesty class stay fields, not tables. |
-| 3. Log store | **BUILD** append-only tables in the existing PGlite runtime | Same `SqlClient`, not a second catalog; Marquez / EventLog evidence is thin or a second product. |
+| 3. Log store | **BUILD** append-only tables in the existing Postgres catalog | Same `SqlClient`, not a second catalog; Marquez / EventLog evidence is thin or a second product. |
 | 4. Sheet render | **ADOPT** in-tree SVG/PNG; **BUILD** click overlay later | PR 58 already projects HLR; balloons have labels, not `data-ref`. |
 | 5. Viewer host | **ADOPT** specimendb testbed (`bun run testbed`) | Lab app already exists at `https://localhost:4177`; tmnl carries VANTA/testbed chrome this brief forbids restyling. |
 | 6. Doctor bridge | **ADOPT** PR 57 `doctor-report.v1.json` | Reuse the report schema; wrap it as a `report` entity. Do not fork. |
@@ -136,17 +136,17 @@ tmnl `src/lib/ecs/schemas/provenance.ts` is GEOINT ingest audit (`RawAuditRef`, 
 
 ## 3. Append-only log store
 
-**Invariant.** Provenance is append-only. Corrections are new activities that supersede. Query by entity ref (subject or product), agent, issue, SHA, time. PGlite is already specimen SoT. Do not casually add a second catalog.
+**Invariant.** Provenance is append-only. Corrections are new activities that supersede. Query by entity ref (subject or product), agent, issue, SHA, time. Postgres is already specimen SoT. Do not casually add a second catalog.
 
 ### What is already pinned
 
-- `@effect/sql-pglite@4.0.0-beta.93`, `effect@4.0.0-beta.93`, `@electric-sql/pglite@0.4.5` (`packages/specimendb/package.json`, `README.md`, `test/strict-v4.test.ts`).
-- L1: `PgliteClient` + `PgliteMigrator` (`src/repos/pglite.ts`). Tables today: `specimens`, `components`. Migrator table: `specimendb_migrations`.
-- Repo talks `SqlClient`. SpecimenRepo is the only catalog writer. Testbed SPA is **in-memory** (`testbed/memory-client.ts`); PGlite is the persistence pin, not the Vite process.
+- `@effect/sql-pg@4.0.0-beta.93`, `effect@4.0.0-beta.93` (`packages/specimendb/package.json`, `README.md`, `test/strict-v4.test.ts`).
+- L1: `PgClient` + migrator (`src/repos/pg.ts`). Tables today: `specimens`, `components`, plus activity log tables. Migrator table: `specimendb_migrations`.
+- Repo talks `SqlClient`. SpecimenRepo is the only specimen writer. Testbed SPA is **in-memory** (`testbed/memory-client.ts`); Postgres is the persistence pin, not the Vite process.
 
 ### Options
 
-1. **Same PGlite, new tables** (`lab_entities`, `lab_activities`, junction for used/generated). Not rows in `specimens`. Optional `derived-from` / `depicts` link to a `SpecimenId` when a sheet is actually about a filed specimen (issue 59 C6).
+1. **Same Postgres, new tables** (`lab_entities`, `lab_activities`, junction for used/generated). Not rows in `specimens`. Optional `derived-from` / `depicts` link to a `SpecimenId` when a sheet is actually about a filed specimen (issue 59 C6).
 2. **Marquez** ([marquezproject.ai](https://marquezproject.ai/)): OpenLineage HTTP backend, jobs/datasets/runs, its own UI. A second catalog product.
 3. **Git-committed JSON** already on disk: PR 57 `doctor-report.json` under the isolation root; PR 58 `projections/manifest.json` + `SHEETS.md` + `CAD01-STEP-PROVENANCE.md`. Good **seed**, not a query API.
 4. **Effect EventLog** (`@effect/experimental/EventLog`) as used in tmnl IIoT schemas. Not a dependency of specimendb. No evidence it speaks `@effect/sql-pglite@4.0.0-beta.93`.
@@ -155,7 +155,7 @@ tmnl `src/lib/ecs/schemas/provenance.ts` is GEOINT ingest audit (`RawAuditRef`, 
 
 | Own | Inherit |
 |---|---|
-| Activity append API; indexes on ref / agent / issue / SHA; never UPDATE who/when | PGlite `SqlClient` + migrator; PR 57/58 JSON as ingest seeds |
+| Activity append API; indexes on ref / agent / issue / SHA; never UPDATE who/when | Postgres `SqlClient` + migrator; PR 57/58 JSON as ingest seeds |
 
 Promote on specimens today **updates** the Status component in place (`SpecimenRepo.promote`). That is catalog status, not provenance. Do not copy that pattern into the activity log.
 
@@ -163,7 +163,7 @@ Promote on specimens today **updates** the Status component in place (`SpecimenR
 
 Putting sheets into `specimens` creates a second ontology. Standing up Marquez creates a second catalog. EventLog without a pin fight or a dual-write story.
 
-### Call: **BUILD** append-only tables in the existing PGlite runtime
+### Call: **BUILD** append-only tables in the existing Postgres catalog
 
 Same process, different tables, different repo. Ingest seeds from git JSON; do not make git the query SoT. **DEFER** Marquez (second catalog). **DEFER** EventLog until someone proves it on this Effect pin.
 

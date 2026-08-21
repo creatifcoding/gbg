@@ -1,0 +1,100 @@
+# =============================================================================
+# specimendb catalog — PostgreSQL 16 with TimescaleDB + Apache AGE (LITE)
+#
+# Copied from packages/tmnl/docker/iiot-db/Dockerfile.lite.
+# Renamed user/db. Catalog DDL is the Effect migrator, not this image.
+#
+# This LITE image builds on TimescaleDB HA and adds:
+# - Apache AGE (in the image; catalog v1 still queries SQL tables, not Cypher)
+#
+# EXCLUDES pg_lake (DuckDB-powered Iceberg analytics). Do not add DuckDB.
+# Do not copy the full iiot Dockerfile or start-pgduck.sh.
+#
+# SCHEMA MANAGEMENT:
+#   Schema is managed by Effect SQL Migrator, NOT this image.
+#   The init.sql just bootstraps the user - run Migrator separately.
+#   See: packages/specimendb/src/repos/pg.ts
+#
+# Build: docker build -f Dockerfile.lite -t specimendb-pg:lite .
+# =============================================================================
+
+FROM timescale/timescaledb-ha:pg16-ts2.17
+
+# Switch to root for package installation
+USER root
+
+# Build arguments
+ARG AGE_VERSION=1.5.0
+ARG PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config
+
+# =============================================================================
+# Install build dependencies for Apache AGE only
+# =============================================================================
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Basic build tools
+    build-essential \
+    git \
+    # PostgreSQL dev
+    postgresql-server-dev-16 \
+    # AGE dependencies
+    libreadline-dev \
+    zlib1g-dev \
+    flex \
+    bison \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp
+
+# =============================================================================
+# Build and install Apache AGE
+# =============================================================================
+
+RUN git clone --branch release/PG16/${AGE_VERSION} --depth 1 \
+    https://github.com/apache/age.git age-src \
+    && cd age-src \
+    && make USE_PGXS=1 PG_CONFIG=${PG_CONFIG} install \
+    && cd / && rm -rf /tmp/age-src
+
+# =============================================================================
+# Clean up build dependencies (keep runtime libs)
+# =============================================================================
+
+RUN apt-get remove -y \
+    build-essential \
+    git \
+    flex \
+    bison \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# Copy bootstrap script
+# =============================================================================
+
+# init.sql is minimal - just creates user context
+# All schema DDL is managed by Effect SQL Migrator
+COPY init.sql /docker-entrypoint-initdb.d/10-specimendb-bootstrap.sql
+
+# Switch back to postgres user
+USER postgres
+
+# Set default environment
+ENV POSTGRES_USER=specimendb
+ENV POSTGRES_PASSWORD=specimendb
+ENV POSTGRES_DB=specimendb
+ENV TIMESCALEDB_TELEMETRY=off
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1
+
+# Start postgres with extensions preloaded
+# - timescaledb: Time-series hypertables
+# - age: Apache AGE graph queries
+# NOTE: pg_extension_base (pg_lake) NOT included in lite image
+CMD ["postgres", "-c", "shared_preload_libraries=timescaledb,age"]
