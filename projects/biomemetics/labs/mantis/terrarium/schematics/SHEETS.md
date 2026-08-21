@@ -2,21 +2,24 @@
 
 All sheets are A3 landscape, millimetres, third-angle where physical projection
 applies. Title block remains `DRAFT CAD` / `THEORETICAL` because this is **not**
-shop-release (#31) and **not** first-article.
+shop-release (#31) and **not** first-article. The DRAFT shop index lives in
+`terrarium/shop/` (hashed STEP/SVG/PNG/PDF only; SHOP-RELEASE is not claimed).
 
 Physical views are OCCT `HLRBRep` hidden-line projections of STEP solids at a
 stated scale with a millimetre scale bar. Diagram-only views stay `NTS - DO NOT SCALE`.
 
-Revision `B-41P`. Write set: this directory (SVG + PDF + HITL) plus carriage/binder
-STEP actually emitted this run. Do not merge. Do not merge PRs 34, 36, or 45.
+Revision `B-41P`. Stacked onto `feat/mantis-biomemetics-lab` (PR 20): PR 34 and
+PR 36 are already merged there; PR 58 merged into PR 45; this tree is that
+chain plus a DRAFT shop index. Carriage/binder STEP is the existing PR 58 OCCT
+export. Do not regenerate STEP for the index.
 
 ## Base recorded this run
 
 | Ref | SHA / note |
 |---|---|
-| Starting ref (PR 45 jobs) | `cursor/mantis-schematics-s00-s11-0b50` |
-| Preferred CAD-02 base | `cursor/mantis-cad-02-carriage-9635` @ `cdd523c55a630962c399a812c9347be6f7fb9334` |
-| CAD-01 STEP (read-only copy) | `fe8f875a80b37a1003f05f3a0190fbe2f0417842` PR 34 / #28 |
+| Lab integration | `feat/mantis-biomemetics-lab` @ `e3ef24199ae1593becc6d2de2c1208cfda125eda` |
+| CAD-02 merge on lab | PR 36 @ `c5ad7648cb160a4391238ccd57983970d6132225` |
+| CAD-01 STEP (unchanged blobs) | `fe8f875a80b37a1003f05f3a0190fbe2f0417842` PR 34 / #28 |
 | Operator waiver | Attested CAD-02 model in `cad/src/carriage/MODEL-ATTESTATION.md` |
 
 CAD-02 still does **not admit** PR 34 STEP as a released parent. Frame/rail/B20

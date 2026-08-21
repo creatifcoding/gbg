@@ -9,4 +9,6 @@ Paths:
 - `cad/src/boundary/exports/*.step` including `B20-animal-wet-barrier.step`
 
 CAD-02 does not admit this STEP as a released parent. Schematic views that use
-these solids are labeled **DRAFT-MEASURED** from that SHA. Do not merge PR 34.
+these solids are labeled **DRAFT-MEASURED** from that SHA. PR 34 is merged to
+`feat/mantis-biomemetics-lab`; the STEP blobs were not regenerated. Still not
+shop-release.

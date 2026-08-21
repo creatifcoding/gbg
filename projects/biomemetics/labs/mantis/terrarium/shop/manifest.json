@@ -1,0 +1,1025 @@
+{
+  "alsoPresent": [
+    {
+      "bytes": 3084,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/frame/exports/B01-corner-block.stl",
+      "role": "geometry",
+      "sha256": "7b612276fc0c8c98a21b06274d15116644e8d7ac5ecdf1b1e12119617898c804",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 3484,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/frame/exports/B02-edge-250.stl",
+      "role": "geometry",
+      "sha256": "caf546cd56c0c32e76860e0e68b56aba980d5f8475e1e4108cdbe635fac3fbea",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/frame/exports/B03-splice-250-500.stl",
+      "role": "geometry",
+      "sha256": "c30a980bfa99959b455d879cd0136372ab821b250b069a91df9e55a15b5574ae",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 1284,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/frame/exports/B04-cassette-retainer.stl",
+      "role": "geometry",
+      "sha256": "73c98a62c716bb3b92a88aba1b9e0cda881e9cfc3b9853594fa2853f799e9672",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 1684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/frame/exports/B10-ceiling-mesh-frame.stl",
+      "role": "geometry",
+      "sha256": "9dbe3fccf6ddde0b541d3fe1e48eaf0eafb19c96db32ce680f81a91d0369026e",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 2084,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/rail/exports/B18-rail-channel-250.stl",
+      "role": "geometry",
+      "sha256": "361592772547560bdbaf5941264283ca59f6cd5525b985974e56f83de7699c11",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 2084,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/rail/exports/B18-rail-channel-500.stl",
+      "role": "geometry",
+      "sha256": "52267886bb2b0383fae7ce367cda815c2bb88fee584dac6fc3b060be1416bd92",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 26084,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/rail/exports/B51-end-stop.stl",
+      "role": "geometry",
+      "sha256": "81392656ed06749d5132d86d04af452ad0b86075643120355de21462db66f2e8",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 1284,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/rail/exports/B52-access-guard-250.stl",
+      "role": "geometry",
+      "sha256": "204e4f533c46628d51b175bf808af384ac08c2bf9dd192a6d5e7e09f3419ad8a",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 1284,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/rail/exports/B52-access-guard-500.stl",
+      "role": "geometry",
+      "sha256": "f27a2158c3a5a39ac67b0e661792a5a46b3f6c5440b25fe2ea4c1b004b0db101",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B05-view-cassette.stl",
+      "role": "geometry",
+      "sha256": "aca9090f8274bd4631c5e60f715a00439c80f0eb541efbca924118261b78d132",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B06-front-door.stl",
+      "role": "geometry",
+      "sha256": "aca9090f8274bd4631c5e60f715a00439c80f0eb541efbca924118261b78d132",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 1684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B07-door-labyrinth.stl",
+      "role": "geometry",
+      "sha256": "0f4dc6cedc85ffd9cb5af41c71e251fe53fd555517fc432dd8729e534590fc43",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B12-low-intake-vent.stl",
+      "role": "geometry",
+      "sha256": "3fc55afaad0237627cbc65fed6e161c24e1db6311e06978f9fb919a355d51595",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B13-high-exhaust-vent.stl",
+      "role": "geometry",
+      "sha256": "3fc55afaad0237627cbc65fed6e161c24e1db6311e06978f9fb919a355d51595",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 684,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B14-false-bottom.stl",
+      "role": "geometry",
+      "sha256": "ca663695bd04c9a69b5d5df9670a5f673ccb15801e9d0a8da0c975ca71c20aa8",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 2484,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent. Binary STL present; still DRAFT.",
+      "path": "terrarium/cad/src/boundary/exports/B20-animal-wet-barrier.stl",
+      "role": "geometry",
+      "sha256": "003fe50dd2cb8c701962110ad0018d81d322d45fcacd58ac144f61b3803188b0",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 320,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B05-view-cassette-kerf-0.15-src-12f9dd48bdc3.dxf",
+      "role": "cut-profile",
+      "sha256": "89c5b9d5f660e24a83bc2017da4569f11e62cbc95d55377c884c526d9e796864",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 331,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B05-view-cassette-kerf-0.15-src-12f9dd48bdc3.svg",
+      "role": "cut-profile",
+      "sha256": "daf69845cd0da9d2234ed342e26d7857249b2f4e1a4b7dd2566e4b5679c1aead",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 320,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B05-view-cassette-nominal.dxf",
+      "role": "cut-profile",
+      "sha256": "48c6849d548f5da8b02a92a50b1c7896cdb063eb2670f1f0ae357032f1f05287",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 289,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B05-view-cassette-nominal.svg",
+      "role": "cut-profile",
+      "sha256": "e5a951abf3e78eaa19c60fbf544d5450208752856b0c2c6bdbf689731cca51e0",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 320,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B06-front-door-kerf-0.15-src-12f9dd48bdc3.dxf",
+      "role": "cut-profile",
+      "sha256": "89c5b9d5f660e24a83bc2017da4569f11e62cbc95d55377c884c526d9e796864",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 328,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B06-front-door-kerf-0.15-src-12f9dd48bdc3.svg",
+      "role": "cut-profile",
+      "sha256": "2949c4fcbdeca4bda8674342b8412e43e2f004f98043cd9301b1d06bb7fd1ad9",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 320,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B06-front-door-nominal.dxf",
+      "role": "cut-profile",
+      "sha256": "48c6849d548f5da8b02a92a50b1c7896cdb063eb2670f1f0ae357032f1f05287",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 286,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 nominal/kerf profiles for B05/B06 only. Not a complete cut set.",
+      "path": "terrarium/cad/src/boundary/exports/profiles/B06-front-door-nominal.svg",
+      "role": "cut-profile",
+      "sha256": "6b916231ca228d78cb677ce54acf0bc04b8d49021c985d7a28ec8690b868f049",
+      "source": "pr-34"
+    }
+  ],
+  "artifacts": [
+    {
+      "bytes": 19067,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/frame/exports/B01-corner-block.step",
+      "role": "geometry",
+      "sha256": "98f62189b9c7a715f63a305f38b3892a9e99bca45488f8533f326fcf9ecdad48",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 21843,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/frame/exports/B02-edge-250.step",
+      "role": "geometry",
+      "sha256": "44c689562ccc8e4e3a958e5d2c4aeabe0a7de43ae798baa829a0529b07b1a2c5",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 6868,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/frame/exports/B03-splice-250-500.step",
+      "role": "geometry",
+      "sha256": "403a6d524b7c8f6c8bd30ed42c28002427b14215ee114977fb23dd2cd96ecdb8",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 12290,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/frame/exports/B04-cassette-retainer.step",
+      "role": "geometry",
+      "sha256": "c86a20a5d7928a0e41b7804c4de0b3fd9ba28bd5e62fa6879acbeaaaddf6fe43",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 11811,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/frame/exports/B10-ceiling-mesh-frame.step",
+      "role": "geometry",
+      "sha256": "6dfb67e09fc7b97d0e703ba65052b04332c9bbc57654367192351471eda40b5b",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 190898,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/frame/exports/MANTIS-TERRARIUM-FRAME-RAIL-B20-DRAFT.step",
+      "role": "geometry",
+      "sha256": "6142c3308b628126151620d8b2b86a9a9ca845e718971db592f4d945214ad0c3",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 17074,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/rail/exports/B18-rail-channel-250.step",
+      "role": "geometry",
+      "sha256": "f9215f59578da5a0d495a307e1ab1dc0efdc80e446b428c30408d64917084a60",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 17074,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/rail/exports/B18-rail-channel-500.step",
+      "role": "geometry",
+      "sha256": "2dd9a229c92f877f63df68e59cde6b236507c9d76313056bb7bd8aab5a168ca0",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 8315,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/rail/exports/B51-end-stop.step",
+      "role": "geometry",
+      "sha256": "bcecadf26bdf2092aa99c5218832923c29909133e36b49848a7617ce6b9a90d0",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 12328,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/rail/exports/B52-access-guard-250.step",
+      "role": "geometry",
+      "sha256": "2033e9b7c73a019dcfb0ae3fab091b6e59be311edb4881616ef33adf2ae78bef",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 12330,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/rail/exports/B52-access-guard-500.step",
+      "role": "geometry",
+      "sha256": "1d3ab05ac4d0ad7d443d417728b0929294506015f7b4cc4e62368c740bcf2bfa",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 6879,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B05-view-cassette.step",
+      "role": "geometry",
+      "sha256": "3fe1d0304146824c3b300203b8152c4032340093c2ae38d717c9668371c4a0ee",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 6879,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B06-front-door.step",
+      "role": "geometry",
+      "sha256": "64b5da207c6810353594b0f8121b52b52838903bfa3cd5577be4e88d5fffe7dd",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 11781,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B07-door-labyrinth.step",
+      "role": "geometry",
+      "sha256": "ac6cd67a886e24be99aa33c2a8646bedc32a1d57fb5803481bf02815020a056d",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 6870,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B12-low-intake-vent.step",
+      "role": "geometry",
+      "sha256": "49caf61369e2a88f18e1564eedf3c791fb30fde5ba2ef43ca2e8f7c192ce7a60",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 6870,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B13-high-exhaust-vent.step",
+      "role": "geometry",
+      "sha256": "349804b0cf15979991f5c6df1516d927e95f31c3530bc992a27839cf2dc5fe76",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 6879,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B14-false-bottom.step",
+      "role": "geometry",
+      "sha256": "a866a7f6dede678aac9eafa51b11cf1cd4421a57633f26917cbeaac1cd014ea3",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 21496,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": false,
+      "note": "CAD-01 / PR 34 STEP lineage fe8f875a80b3. Draft-measured. CAD-02 does not admit this as a released parent.",
+      "path": "terrarium/cad/src/boundary/exports/B20-animal-wet-barrier.step",
+      "role": "geometry",
+      "sha256": "a7d93eae9d7995a15e2d7bda25b72fe736a9986e60735dd859d4d5a120d31597",
+      "source": "pr-34"
+    },
+    {
+      "bytes": 29429,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B22-carriage-outer-shell.step",
+      "role": "geometry",
+      "sha256": "a308b6d35d3150a9cfa2bdd2ae58f859830d6577a5cb50be53eb39d0dd63270a",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 15390,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B23-lift-pawl.step",
+      "role": "geometry",
+      "sha256": "5aeb2714b69d5ce5b4ab9e1f592022bc9041b9decf06afc5a8c9efb71df1f37d",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 15403,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B23-pinch-lever.step",
+      "role": "geometry",
+      "sha256": "636214cf0a900ba37b0c24405486697d7e35072c476f2f7622d646176430ce2f",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 15377,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B23-translation-pawl.step",
+      "role": "geometry",
+      "sha256": "d4ab18ab09965bf92677afa2e27d0c3cf73a62d848c897811dcb6de8255ab672",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 15403,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B24-contact-carrier.step",
+      "role": "geometry",
+      "sha256": "01a7b6d61af9d3a307f2f98843288c307efa51339e56b1ebfa7bd18936c546a3",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 19012,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B25-spring-pocket.step",
+      "role": "geometry",
+      "sha256": "3d7247742890495a7de927608f15b45731110bb8341dd532f8434ad17b23751c",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 5652,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B26-roller.step",
+      "role": "geometry",
+      "sha256": "76b3e768867896bafa1a57ad808bd28d0caecdb0d6013186c8c7b554cc078b67",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 71944,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/B27-contact-array-proxy.step",
+      "role": "geometry",
+      "sha256": "5c2c0eeeab5c73bdb828b8a6aa8c156f3d40a9d161cb94ca32ea1aff78a40367",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 461754,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/MANTIS-TERRARIUM-CARRIAGE-BINDER-DRAFT.step",
+      "role": "geometry",
+      "sha256": "ec4e72789b78d3b2b3ef079bb439d665eab2086ea9db21d0d203f57252bd82fd",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 461835,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/carriage/exports/MANTIS-TERRARIUM-CARRIAGE-BINDER-Q5-DRAFT.step",
+      "role": "geometry",
+      "sha256": "503a434a469f85e6f20223a9de74d348abec966bc165141eb162daccbf1c3174",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 29056,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/binder/exports/B28-universal-latch-shoe.step",
+      "role": "geometry",
+      "sha256": "a79c0db864b7748c91f923350a15790296fda25459a56fe485ea69d4b9b7eeb6",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 29058,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/binder/exports/B29-camera-binder-housing.step",
+      "role": "geometry",
+      "sha256": "12b1ff9495359b5f816f6ce33a4894438347b7cafeaeb5f86dc40b819fe365e9",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 15392,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/binder/exports/B34-fpc-clamp.step",
+      "role": "geometry",
+      "sha256": "f44b4d2867453cbb8cc1e35c351f225fd701789502d619cd3beed9f74e65fee1",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 31170,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/binder/exports/B50-binder-half-proxy.step",
+      "role": "geometry",
+      "sha256": "27d6e65edaaa4144a65af721363bef5d95e80f9aad9516be3c0efaa40913d23f",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 31187,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": false,
+      "note": "CAD-02 / PR 36 Python + PR 58 OCCT STEP. Theoretical/UNVERIFIED. B27 and B50 are proxies. FreeCADCmd was not used.",
+      "path": "terrarium/cad/src/binder/exports/B50-carriage-half-proxy.step",
+      "role": "geometry",
+      "sha256": "170e451da6a2a9a7b35de72e1a9788119043de3b5062564eff4776b8c55caa34",
+      "source": "pr-58-occt"
+    },
+    {
+      "bytes": 25064,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "2f4073da74414aa2d0cf8f9c3576edd84ffddf7ece5ecd9777bd2e46e8c2bb36",
+      "note": "PR 34 assembly isometric HLR. Title block remains DRAFT CAD.",
+      "path": "terrarium/schematics/S00-cover.svg",
+      "role": "sheet",
+      "sha256": "a52812dcb99959f07e3a815d442914b9431faa49898772c0e1aff25701168f43",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 369557,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S00-cover.png",
+      "role": "look",
+      "sha256": "74242ccd1c36d47ac43bb65a0b7a6a585518d4cba48231ccc91d8fbd4266f0b0",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 48885,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "154c1fcdbe9a56a62ac9c7e7f3bc647497e04e8d76f5f83204dc06e6e78a67fc",
+      "note": "Third-angle HLR of PR 34 assembly STEP + B20 keep-out.",
+      "path": "terrarium/schematics/S01-ortho.svg",
+      "role": "sheet",
+      "sha256": "0ee64faa1f9da745ad240fdfda3ddea92ab4e867a5c35e7bbe04eba5c7608fae",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 245265,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S01-ortho.png",
+      "role": "look",
+      "sha256": "7501c9c64cd6c9f3458d2fa644213490d0bd2560c8192e4264f526f131cde773",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 21992,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "5457c8eb2eabb82179fe5822a004169800b0d3ff66448e3b6aa61e824c56d2b2",
+      "note": "Unique-part HLR from CAD-01 STEP, not a fused explode.",
+      "path": "terrarium/schematics/S02-exploded.svg",
+      "role": "sheet",
+      "sha256": "dbd288cc8fb1df4d4dc5be85e46ab314e506d21a21e9520e806303ef9c05468d",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 258023,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S02-exploded.png",
+      "role": "look",
+      "sha256": "4e386f672a8f87cc62547b2e9795b806d2d1cf8feac887f7525c6a151325ac1e",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 22371,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "1495fb205cbb6427d4a0efbb112ca31a685437abc6d93fbfc5c84035289903a5",
+      "note": "B01/B02/B03/B51/B04 unique-part HLR.",
+      "path": "terrarium/schematics/S03-blocks.svg",
+      "role": "sheet",
+      "sha256": "76084cb9d70bbadec033b050a58a301fc59e0d68614aba87efeb59ffe90762cd",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 253868,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S03-blocks.png",
+      "role": "look",
+      "sha256": "669340fea03f8b057115e38ab2e0a9a915528b70528760f59e8865cf4e62fee6",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 21010,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "e662a962d588a2422877d7278cefa809de1d34710934e330564a293e929e2646",
+      "note": "B18 section HLR is draft-measured. P01\u2013P12 overlay is a diagram (no B19 STEP).",
+      "path": "terrarium/schematics/S04-rail-strip.svg",
+      "role": "sheet",
+      "sha256": "631ad0afb3f286b734e18ec1f610928f5d985ef8914bf4a1bfdeed785ce5fa82",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 298348,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S04-rail-strip.png",
+      "role": "look",
+      "sha256": "d0d627ae7fd75726d00618961b561bc770ab1385b9755dd36a74c35d96455831",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 105550,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "c9b268c00f4849e70f667db91a7807a9e5b56af9f9d6974fb95bbac0cd6f2d0a",
+      "note": "CAD-02 OCCT posed q=0 / q=5. B27 is a proxy. Unverified.",
+      "path": "terrarium/schematics/S05-carriage-mech.svg",
+      "role": "sheet",
+      "sha256": "22d3951a576f9696dba8358f710e76152d288f69b74910566990682ef7eb47a9",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 356962,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S05-carriage-mech.png",
+      "role": "look",
+      "sha256": "9e672d893d07080a50052b6408bafc703f2ae0abef2d2c745d07450025e54573",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 16322,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "a629a1b4d152856e77138d785ba529582b034e247e6f03d4cd9a315a3668cdfd",
+      "note": "B28/B29/B50/B34 unique-part HLR. B50 is a proxy.",
+      "path": "terrarium/schematics/S06-latch-binder.svg",
+      "role": "sheet",
+      "sha256": "34da9fae125eb35ef135a281cc0108509b00f7afa3e1b981a3985a7ff87efc61",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 269283,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S06-latch-binder.png",
+      "role": "look",
+      "sha256": "c39dc154ad1fd5d3f5add14bf55a4624e5e0203c42ebf159d6e49befc88d100f",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 16434,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "cdd8975afe186eaee8667adfbea12749dc87f2c96ff0435be150f21d7ccfc93e",
+      "note": "B29/B50 HLR plus UNVERIFIED camera-module diagram. No SKU invented.",
+      "path": "terrarium/schematics/S07-camera-load.svg",
+      "role": "sheet",
+      "sha256": "ea2a6e7b4d0b055f353607c0d78ef71f8bc0419916e21eb348e8a53fd515f37f",
+      "sheetKind": "mixed",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 272793,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S07-camera-load.png",
+      "role": "look",
+      "sha256": "0fdf79d51234701a9829abbe56ef0f0c00de45190ba21fc081b0766b0e18dfca",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 16812,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "e4d55f7c0396b0374101355489e3372ce516a9ddb93616bb4e73cbd305bd24f8",
+      "note": "EE review diagram. KiCad remains circuit authority. No pinout invented.",
+      "path": "terrarium/schematics/S08-electrical.svg",
+      "role": "sheet",
+      "sha256": "ba2bee2186e1c673959dfb015bc50db3375a2d8d06573c58b4aa264ad7e8f2b4",
+      "sheetKind": "diagram",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 318142,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S08-electrical.png",
+      "role": "look",
+      "sha256": "421b13c6113af6fdadf2db76c24148831202c734aeb6f40ebae46fcc199ced67",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 25133,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "acdf9e461bada7245ba8499676fa5d66183c87e086ca9528d5905e048bf6d748",
+      "note": "Tachyon/M1 datasheet envelopes. No brick STEP. No Particle SKU invented.",
+      "path": "terrarium/schematics/S09-particle-brick.svg",
+      "role": "sheet",
+      "sha256": "0b9d3c0084a446359247fa1f93e48b45238436b8cf6336fc46410357f29cc04c",
+      "sheetKind": "diagram",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 290551,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S09-particle-brick.png",
+      "role": "look",
+      "sha256": "12d8bec4ed92e0a22156e393f08575bc02a1cb517e8ff0f0c12716894dc6b99a",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 28829,
+      "honestyClass": "draft-measured",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "b82fb0be14b06d2327a34d8b25ce03975b6731a32c9c79b77090e7c49b04ffe9",
+      "note": "B20 keep-out HLR, assembly, door, vents.",
+      "path": "terrarium/schematics/S10-husbandry.svg",
+      "role": "sheet",
+      "sha256": "d4eef82184391c9eb29080c3b424f76b642873e03a3db22c6de5bccf264532bc",
+      "sheetKind": "projected",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 250663,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S10-husbandry.png",
+      "role": "look",
+      "sha256": "93947a68960214e17bfcbfade84ce7f37b5f07ddeaa7ef6c62191c54675234cd",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 27585,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "44269bd5d136e72b8d9a371533f90bc8348bbb4beca36356f403eb96463d2e9d",
+      "note": "B27/B25/B34/B03 projected; wipe + magnet remain diagrams.",
+      "path": "terrarium/schematics/S11-details.svg",
+      "role": "sheet",
+      "sha256": "151b91ef3a44e881e756c33dc07daefc0240db23010e31d22d28dc1393e6ecb3",
+      "sheetKind": "mixed",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 265168,
+      "honestyClass": "diagram",
+      "immutableBaselineListed": false,
+      "notGeometry": true,
+      "note": "HITL Look only. Same balloons as the SVG for appearance review. A PNG is not geometry and does not prove scale, fit, or safety.",
+      "path": "terrarium/schematics/hitl/S11-details.png",
+      "role": "look",
+      "sha256": "9a2457d95111c3ef757c3203de1076f3e44364522a27bfd2b9c60749946decfd",
+      "sheetKind": "look",
+      "source": "pr-45/pr-58"
+    },
+    {
+      "bytes": 289924,
+      "honestyClass": "theoretical",
+      "immutableBaselineListed": true,
+      "immutableBaselineSha256": "05cf6721ddaa6efa338000266c2798aaed6957912bcb9a7be553efb520b59482",
+      "note": "Combined A3 vector PDF of S00\u2013S11. Contains draft-measured projections and diagrams. Not a SHOP-RELEASE drawing set.",
+      "path": "terrarium/schematics/schematics.pdf",
+      "role": "sheet-set",
+      "sha256": "8aa916e14ef334099a2f3eea1c719476be8c4907e96de797764f563601baaa59",
+      "source": "pr-58"
+    }
+  ],
+  "blockers": [
+    {
+      "action": "Do not silently fake solids. Reuse existing STEP. Carriage/binder STL were not emitted.",
+      "id": "freecadcmd-absent",
+      "onPath": false,
+      "status": "blocker",
+      "tool": "FreeCADCmd"
+    }
+  ],
+  "claims": {
+    "PROTO-FAB": false,
+    "QUALIFIED": false,
+    "SHOP-RELEASE": false,
+    "animalUse": false,
+    "cad02AdmitsPr34AsReleasedParent": false,
+    "energize": false,
+    "firstArticle": false,
+    "maturity": "draft",
+    "order": false
+  },
+  "didNot": [
+    "regenerate STEP",
+    "invoke FreeCADCmd",
+    "rewrite terrarium/MANIFEST.sha256",
+    "claim SHOP-RELEASE or QUALIFIED",
+    "order or energize",
+    "invent pinout, SKU, or GPS",
+    "merge PR 57 (CI red)",
+    "restyle specimendb"
+  ],
+  "honestyClassesAllowed": [
+    "diagram",
+    "draft-measured",
+    "theoretical"
+  ],
+  "immutableBaseline": {
+    "path": "terrarium/MANIFEST.sha256",
+    "policy": "ADR-003: verifiers never regenerate this baseline. This index does not rewrite it.",
+    "stackedSheetMismatchCount": 13,
+    "stackedSheetMismatches": [
+      "terrarium/schematics/S00-cover.svg",
+      "terrarium/schematics/S01-ortho.svg",
+      "terrarium/schematics/S02-exploded.svg",
+      "terrarium/schematics/S03-blocks.svg",
+      "terrarium/schematics/S04-rail-strip.svg",
+      "terrarium/schematics/S05-carriage-mech.svg",
+      "terrarium/schematics/S06-latch-binder.svg",
+      "terrarium/schematics/S07-camera-load.svg",
+      "terrarium/schematics/S08-electrical.svg",
+      "terrarium/schematics/S09-particle-brick.svg",
+      "terrarium/schematics/S10-husbandry.svg",
+      "terrarium/schematics/S11-details.svg",
+      "terrarium/schematics/schematics.pdf"
+    ]
+  },
+  "issue": 31,
+  "kind": "DraftShopIndex",
+  "lifecycle": "generated",
+  "missing": [
+    {
+      "id": "carriage-binder-stl",
+      "note": "CAD-02 STEP exists from OCCT; binary-mm STL was not written (FreeCADCmd absent).",
+      "status": "absent"
+    },
+    {
+      "id": "complete-dxf-kerf-set",
+      "note": "Only B05/B06 CAD-01 cut profiles exist. No complete kerf package.",
+      "status": "absent"
+    },
+    {
+      "id": "native-kicad-boards",
+      "note": "S08 is a diagram. EE-24/25/26 remain unmerged child PRs. Circuit authority is not this pack.",
+      "status": "absent"
+    },
+    {
+      "id": "camera-sku",
+      "note": "No camera module SKU selected. None invented.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "connector-pinout",
+      "note": "No B27/B50 series or pinout selected. None invented.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "s1-s2-q1-mpn",
+      "note": "Issue #24 unmet. Electrical parts not selected.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "first-article-measurement",
+      "note": "No fabricated article, no redlines, no independent release review.",
+      "status": "absent"
+    },
+    {
+      "id": "immutable-release-archive",
+      "note": "Release A ZIP is historical capture, not this pack, and not SHOP-RELEASE.",
+      "status": "absent"
+    }
+  ],
+  "notABaseline": true,
+  "packageClass": "DRAFT",
+  "schemaVersion": "1.0.0",
+  "sources": {
+    "cad01": {
+      "admittedAsReleasedParent": false,
+      "honestyClass": "draft-measured",
+      "issue": 28,
+      "mergedIntoLab": "995cd704fb8de69c5741dd63936e9559494a3bdc",
+      "pr": 34,
+      "stepSha": "fe8f875a80b37a1003f05f3a0190fbe2f0417842"
+    },
+    "cad02": {
+      "honestyClass": "theoretical",
+      "issue": 29,
+      "mergedIntoLab": "c5ad7648cb160a4391238ccd57983970d6132225",
+      "pr": 36,
+      "proxies": [
+        "B27",
+        "B50"
+      ],
+      "unverified": true
+    },
+    "lab": {
+      "branch": "feat/mantis-biomemetics-lab",
+      "pr": 20,
+      "sha": "e3ef24199ae1593becc6d2de2c1208cfda125eda"
+    },
+    "projectedSheets": {
+      "head": "b64d101e805e7f3ab760d15ad38d13d359c7dce1",
+      "mergedInto": 45,
+      "pr": 58
+    },
+    "theoreticalSheets": {
+      "head": "ce04b6a12e4dad78595c21c6c0ce9e4b9b1b3e1f",
+      "pr": 45,
+      "state": "closed-then-stacked"
+    }
+  },
+  "title": "DRAFT shop pack \u2014 CAD index only"
+}
