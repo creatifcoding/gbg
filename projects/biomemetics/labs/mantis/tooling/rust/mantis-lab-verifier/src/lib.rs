@@ -4,6 +4,8 @@
 //! does not replace JSON Schema validation. Schema validation should run as a
 //! separate gate before or alongside this verifier.
 
+pub mod corpus;
+
 use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
@@ -449,6 +451,36 @@ fn validate_manifest_header(
     subject: &str,
     checks: &mut Vec<CheckEvidence>,
 ) {
+    if let Some(lifecycle) = object.get("lifecycle").and_then(Value::as_str) {
+        match lifecycle {
+            "generated" => checks.push(pass(
+                "manifest.lifecycle.generated_not_baseline",
+                subject,
+                "generated manifests may be smoke-checked but cannot certify a baseline (ADR-003)",
+            )),
+            "reviewed" | "immutable-baseline" => {
+                if object.get("review").map(Value::is_object).unwrap_or(false) {
+                    checks.push(pass(
+                        "manifest.lifecycle.certifiable",
+                        subject,
+                        "reviewed/immutable-baseline manifest retains separate review metadata",
+                    ));
+                } else {
+                    checks.push(fail(
+                        "manifest.lifecycle.review_required",
+                        subject,
+                        "reviewed/immutable-baseline manifests require review metadata",
+                    ));
+                }
+            }
+            other => checks.push(fail(
+                "manifest.lifecycle.unknown",
+                subject,
+                &format!("unsupported manifest lifecycle '{other}'"),
+            )),
+        }
+    }
+
     if object.contains_key("algorithm") || object.contains_key("schemaVersion") {
         match object.get("schemaVersion") {
             Some(Value::Number(version)) if version.as_u64() == Some(1) => checks.push(pass(

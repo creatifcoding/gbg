@@ -415,7 +415,8 @@
     "artifact": {
       "type": "object",
       "required": [
-        "mediaType"
+        "mediaType",
+        "sha256"
       ],
       "properties": {
         "path": {
@@ -453,7 +454,8 @@
         },
         {
           "required": [
-            "uri"
+            "uri",
+            "sha256"
           ],
           "not": {
             "required": [
@@ -465,6 +467,7 @@
       "additionalProperties": false
     },
     "admission": {
+      "description": "Reviewed claim text bound for catalog projection. Caller prose outside this object cannot inherit provenance.",
       "type": "object",
       "required": [
         "claimRef",
@@ -492,6 +495,34 @@
         "target": {
           "type": "string",
           "minLength": 1
+        },
+        "projectionBinding": {
+          "description": "Exact reviewed claim/admission binding. SpecimenDB attach (gbg#16) may use only this payload.",
+          "type": "object",
+          "required": [
+            "evidenceId",
+            "claimRef",
+            "admissionText",
+            "reviewStatus"
+          ],
+          "properties": {
+            "evidenceId": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9.-]*$"
+            },
+            "claimRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "admissionText": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reviewStatus": {
+              "const": "accepted"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "allOf": [
@@ -516,6 +547,27 @@
               "required": [
                 "target"
               ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["projectionBinding"]
+          },
+          "then": {
+            "properties": {
+              "projectionBinding": {
+                "type": "object",
+                "required": [
+                  "evidenceId",
+                  "claimRef",
+                  "admissionText",
+                  "reviewStatus"
+                ],
+                "properties": {
+                  "reviewStatus": { "const": "accepted" }
+                }
+              }
             }
           }
         }

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ArtifactDigestManifest",
+  "lifecycle": "reviewed",
+  "algorithm": "sha256",
+  "artifacts": [
+    {
+      "id": "sample",
+      "path": "sample.txt",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "bytes": 7,
+      "role": "artifact",
+      "status": "verified"
+    }
+  ],
+  "review": {
+    "reviewer": "fixture-reviewer",
+    "reviewedAt": "2026-08-20T12:10:00Z",
+    "notes": "Reviewed digests; verifier must not rewrite this file."
+  }
+}

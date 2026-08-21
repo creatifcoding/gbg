@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:contracts:interfaces:v1",
+  "title": "Mantis root-owned interface and ADR registry",
+  "description": "Authoritative structural locks for physical interfaces, interlocks, camera path, coordinate frames, state machine, maturity, and ADRs. Hot project files may lag; workers emit proposed deltas rather than editing integration-owned graphs.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceRef",
+    "revision",
+    "maturityLadder",
+    "coordinateFrames",
+    "interfaces",
+    "cameraPath",
+    "stateMachine",
+    "requiredLockIds",
+    "adrs"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "InterfaceRegistry" },
+    "workspaceRef": { "const": "biomemetics.mantis" },
+    "revision": {
+      "type": "object",
+      "required": ["id", "date", "state"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "date": { "type": "string", "format": "date" },
+        "state": {
+          "enum": ["draft", "review", "accepted", "superseded"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "maturityLadder": {
+      "type": "array",
+      "minItems": 5,
+      "prefixItems": [
+        { "const": "draft" },
+        { "const": "proto-fab" },
+        { "const": "qualified" },
+        { "const": "integration-prototype" },
+        { "const": "shop-release" }
+      ],
+      "items": false
+    },
+    "coordinateFrames": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/coordinateFrame" }
+    },
+    "interfaces": {
+      "type": "array",
+      "minItems": 7,
+      "items": { "$ref": "#/$defs/interface" }
+    },
+    "cameraPath": { "$ref": "#/$defs/cameraPath" },
+    "stateMachine": { "$ref": "#/$defs/stateMachine" },
+    "requiredLockIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "adrs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/adr" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "epistemicStatus": {
+      "enum": [
+        "locked",
+        "measured",
+        "calculated",
+        "simulated",
+        "target",
+        "ref",
+        "typ",
+        "unverified"
+      ]
+    },
+    "coordinateFrame": {
+      "type": "object",
+      "required": ["id", "origin", "axes", "status"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+        "origin": { "type": "string", "minLength": 1 },
+        "axes": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "type": "string", "minLength": 1 },
+            "y": { "type": "string", "minLength": 1 },
+            "z": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        "status": { "$ref": "#/$defs/epistemicStatus" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "interface": {
+      "type": "object",
+      "required": ["id", "title", "kind", "status", "statement"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(B20|B27|B48|B50|S1|S2|Q1)$"
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": [
+            "barrier",
+            "indexed-dock",
+            "research-rail-variant",
+            "binder-interface",
+            "mate-interlock",
+            "load-switch"
+          ]
+        },
+        "status": { "$ref": "#/$defs/epistemicStatus" },
+        "statement": { "type": "string", "minLength": 1 },
+        "units": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        },
+        "measuredEvidenceRefs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "notes": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "measured" } },
+            "required": ["status"]
+          },
+          "then": {
+            "required": ["measuredEvidenceRefs"],
+            "properties": {
+              "measuredEvidenceRefs": { "minItems": 1 }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "cameraHop": {
+      "type": "object",
+      "required": ["id", "role", "signalClass", "scope"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "role": {
+          "enum": [
+            "module",
+            "local-mipi",
+            "serializer",
+            "binder-interface",
+            "carriage-routing",
+            "indexed-dock",
+            "deserializer",
+            "local-csi",
+            "compute"
+          ]
+        },
+        "signalClass": {
+          "enum": ["raw-mipi", "serialized", "none"]
+        },
+        "scope": {
+          "enum": [
+            "binder-local",
+            "carriage",
+            "rail-dock",
+            "compute-local",
+            "system"
+          ]
+        },
+        "ridesRail": { "type": "boolean" },
+        "componentRef": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/epistemicStatus" }
+      },
+      "additionalProperties": false
+    },
+    "cameraPath": {
+      "type": "object",
+      "required": ["hops", "locks"],
+      "properties": {
+        "hops": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "prefixItems": [
+            {
+              "type": "object",
+              "required": ["role"],
+              "properties": { "role": { "const": "module" } }
+            },
+            {
+              "type": "object",
+              "required": ["role", "signalClass", "ridesRail"],
+              "properties": {
+                "role": { "const": "local-mipi" },
+                "signalClass": { "const": "raw-mipi" },
+                "ridesRail": { "const": false }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["role"],
+              "properties": { "role": { "const": "serializer" } }
+            },
+            {
+              "type": "object",
+              "required": ["role", "id"],
+              "properties": {
+                "role": { "const": "binder-interface" },
+                "id": { "const": "B50" }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["role", "signalClass"],
+              "properties": {
+                "role": { "const": "carriage-routing" },
+                "signalClass": { "const": "serialized" }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["role", "id"],
+              "properties": {
+                "role": { "const": "indexed-dock" },
+                "id": { "const": "B27" }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["role"],
+              "properties": { "role": { "const": "deserializer" } }
+            },
+            {
+              "type": "object",
+              "required": ["role", "signalClass", "ridesRail"],
+              "properties": {
+                "role": { "const": "local-csi" },
+                "signalClass": { "const": "raw-mipi" },
+                "ridesRail": { "const": false }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["role"],
+              "properties": { "role": { "const": "compute" } }
+            }
+          ],
+          "items": { "$ref": "#/$defs/cameraHop" }
+        },
+        "locks": {
+          "type": "object",
+          "required": [
+            "rawMipiRidesRail",
+            "carriageUntethered",
+            "videoWhileRolling"
+          ],
+          "properties": {
+            "rawMipiRidesRail": { "const": false },
+            "carriageUntethered": { "const": true },
+            "videoWhileRolling": { "const": false }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "stateToken": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "transition": {
+      "type": "object",
+      "required": ["id", "from", "to", "guards", "actions"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "from": { "$ref": "#/$defs/stateToken" },
+        "to": { "$ref": "#/$defs/stateToken" },
+        "guards": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/stateToken" },
+          "uniqueItems": true
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/stateToken" },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "interlock": {
+      "type": "object",
+      "required": [
+        "id",
+        "normally",
+        "supervises",
+        "closedMeans",
+        "openMeans",
+        "status"
+      ],
+      "properties": {
+        "id": { "enum": ["S1", "S2", "Q1"] },
+        "normally": { "enum": ["open", "closed"] },
+        "supervises": { "type": "string", "minLength": 1 },
+        "closedMeans": { "type": "string", "minLength": 1 },
+        "openMeans": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/epistemicStatus" },
+        "discharge": {
+          "type": "object",
+          "required": ["requiredBeforeLift", "thresholdStatus"],
+          "properties": {
+            "requiredBeforeLift": { "type": "boolean" },
+            "thresholdStatus": { "$ref": "#/$defs/epistemicStatus" },
+            "note": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "faultMode": {
+      "type": "object",
+      "required": ["id", "detection", "requiredAction", "status"],
+      "properties": {
+        "id": {
+          "enum": [
+            "interruption",
+            "brownout",
+            "stuck-switch",
+            "contact-ambiguous",
+            "fault-latched"
+          ]
+        },
+        "detection": { "type": "string", "minLength": 1 },
+        "requiredAction": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/epistemicStatus" }
+      },
+      "additionalProperties": false
+    },
+    "stateMachine": {
+      "type": "object",
+      "required": ["states", "transitions", "interlocks", "faultModes"],
+      "properties": {
+        "states": {
+          "type": "array",
+          "minItems": 8,
+          "items": { "$ref": "#/$defs/stateToken" },
+          "uniqueItems": true
+        },
+        "transitions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/transition" }
+        },
+        "interlocks": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/interlock" }
+        },
+        "faultModes": {
+          "type": "array",
+          "minItems": 5,
+          "items": { "$ref": "#/$defs/faultMode" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "adr": {
+      "type": "object",
+      "required": ["id", "title", "status", "decision"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ADR-[0-9]{3}$"
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": ["proposed", "accepted", "superseded", "rejected"]
+        },
+        "decision": { "type": "string", "minLength": 1 },
+        "consequences": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

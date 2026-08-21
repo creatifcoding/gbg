@@ -1,0 +1,67 @@
+{
+  "acceptanceCommands": [
+    "python3 -m mantis_lab.cli --workspace projects/biomemetics/labs/mantis run-corpus",
+    "python3 -m mantis_lab.cli --workspace projects/biomemetics/labs/mantis check-terrarium",
+    "node --test projects/biomemetics/labs/mantis/tooling/typescript/mantis-lab/test/corpus.test.ts",
+    "cargo test --manifest-path projects/biomemetics/labs/mantis/tooling/rust/mantis-lab-verifier/Cargo.toml"
+  ],
+  "baseSHA": "1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3",
+  "claimParameterRefs": [
+    "contracts/interfaces.json",
+    "terrarium/params.json"
+  ],
+  "dependencies": [
+    "mantis-00-workspace"
+  ],
+  "evidenceClass": "theoretical",
+  "issueId": 22,
+  "kind": "TaskPacket",
+  "lockedDecisions": [
+    "workspace.not-a-specimen",
+    "terrarium.raw-mipi-local",
+    "terrarium.break-before-move",
+    "ADR-003",
+    "ADR-004"
+  ],
+  "mode": {
+    "fast": false,
+    "readOnly": false
+  },
+  "model": "grok-4.5",
+  "notes": "Exclude workstreams.json (propose deltas). Exclude specimendb.ts and specimendb.test.ts (#16). Do not edit packages/specimendb, flake.lock, KiCad, OCCT, or hot BOM/params/bus.",
+  "outputPaths": [
+    "projects/biomemetics/labs/mantis/.agents/control/packets/22.json",
+    "projects/biomemetics/labs/mantis/.agents/control/proposed-deltas/",
+    "projects/biomemetics/labs/mantis/contracts/"
+  ],
+  "readSet": [
+    "projects/biomemetics/labs/mantis/workspace.json",
+    "projects/biomemetics/labs/mantis/GOAL.md",
+    "projects/biomemetics/labs/mantis/docs/ARCHITECTURE.md",
+    "projects/biomemetics/labs/mantis/contracts/",
+    "projects/biomemetics/labs/mantis/.agents/control/workstreams.json",
+    "projects/biomemetics/labs/mantis/terrarium/bus.json",
+    "projects/biomemetics/labs/mantis/terrarium/params.json"
+  ],
+  "schemaVersion": "1.0.0",
+  "sources": [
+    "contracts/interfaces.json",
+    "docs/ARCHITECTURE.md",
+    "docs/EXECUTION.md"
+  ],
+  "stopConditions": [
+    "second identical deterministic failure",
+    "write-set growth exceeds 15%",
+    "missing sourced pinout/model/limit",
+    "new cross-domain decision required"
+  ],
+  "workstreamId": "mantis-00b-control-plane",
+  "writeSet": [
+    "projects/biomemetics/labs/mantis/contracts/**",
+    "projects/biomemetics/labs/mantis/.agents/**",
+    "projects/biomemetics/labs/mantis/tooling/python/**",
+    "projects/biomemetics/labs/mantis/tooling/rust/**",
+    "projects/biomemetics/labs/mantis/tooling/typescript/**",
+    "projects/biomemetics/labs/mantis/evidence/fixtures/**"
+  ]
+}

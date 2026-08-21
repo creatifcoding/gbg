@@ -1,8 +1,9 @@
-"""Deterministic artifact manifests for generated and source files."""
+"""Deterministic artifact manifests with separated generate/review/verify roles."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path, PurePosixPath
@@ -11,6 +12,9 @@ from typing import Iterable, Sequence
 
 class ArtifactError(ValueError):
     """Raised for unsafe paths, missing files, or digest mismatches."""
+
+
+BASELINE_NAMES = frozenset({"MANIFEST.sha256", "manifest.sha256"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +54,8 @@ def build_manifest(
     role: str = "artifact",
     status: str = "unverified",
 ) -> dict[str, object]:
+    """Generate a digest manifest. Always lifecycle=generated; never a baseline."""
+
     artifacts: list[Artifact] = []
     for relative in sorted(set(paths)):
         target = safe_artifact_path(root, relative)
@@ -66,13 +72,43 @@ def build_manifest(
             )
         )
     return {
-        "schemaVersion": 1,
+        "schemaVersion": "1.0.0",
+        "kind": "ArtifactDigestManifest",
+        "lifecycle": "generated",
         "algorithm": "sha256",
         "artifacts": [asdict(artifact) for artifact in artifacts],
     }
 
 
+def review_manifest(
+    manifest: dict[str, object],
+    *,
+    reviewer: str,
+    notes: str,
+    reviewed_at: str | None = None,
+) -> dict[str, object]:
+    """Promote a generated manifest to reviewed. Does not recompute digests."""
+
+    if manifest.get("lifecycle") not in {None, "generated"}:
+        raise ArtifactError("only generated manifests can be reviewed")
+    reviewed = dict(manifest)
+    reviewed["schemaVersion"] = reviewed.get("schemaVersion", "1.0.0")
+    reviewed["kind"] = "ArtifactDigestManifest"
+    reviewed["lifecycle"] = "reviewed"
+    reviewed["review"] = {
+        "reviewer": reviewer,
+        "reviewedAt": reviewed_at
+        or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
+            "+00:00", "Z"
+        ),
+        "notes": notes,
+    }
+    return reviewed
+
+
 def verify_manifest(root: Path, manifest: dict[str, object]) -> Sequence[str]:
+    """Check declared digests against the tree. Does not mint or rewrite manifests."""
+
     failures: list[str] = []
     records = manifest.get("artifacts")
     if not isinstance(records, list):
@@ -102,6 +138,32 @@ def verify_manifest(root: Path, manifest: dict[str, object]) -> Sequence[str]:
     return failures
 
 
-def write_manifest(path: Path, manifest: dict[str, object]) -> None:
-    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def verify_certifiable_manifest(
+    root: Path, manifest: dict[str, object]
+) -> Sequence[str]:
+    """Integrity gate: only reviewed or immutable-baseline manifests may certify."""
 
+    failures = list(verify_manifest(root, manifest))
+    lifecycle = manifest.get("lifecycle")
+    if lifecycle == "generated" or lifecycle is None:
+        failures.append(
+            "lifecycle generated cannot certify a baseline; review first (ADR-003)"
+        )
+    if lifecycle in {"reviewed", "immutable-baseline"} and not isinstance(
+        manifest.get("review"), dict
+    ):
+        failures.append("reviewed/immutable-baseline manifests require review metadata")
+    return failures
+
+
+def write_manifest(path: Path, manifest: dict[str, object]) -> None:
+    if path.name in BASELINE_NAMES:
+        raise ArtifactError(
+            f"refusing to mint baseline filename {path.name}; verifier/generator separation"
+        )
+    if path.suffix == ".sha256" and "MANIFEST" in path.name.upper():
+        raise ArtifactError(
+            f"refusing to mint baseline path {path}; generate and certify stay separate"
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")

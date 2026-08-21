@@ -57,6 +57,10 @@ Tachyon-side brick. The removable binder is a separate B50 interface with a
 normally-open S2 mate interlock and cannot release unless the carriage is
 pinch-safe.
 
+Authoritative hop order and S1/S2/Q1 structure live in
+`contracts/interfaces.json`. Hot `bus.json` / `workstreams.json` updates are
+proposed under `.agents/control/proposed-deltas/`.
+
 Stop instead of guessing when an exact module revision, pinout, connector,
 contact model, biological identification, or measured result is absent. Record
 the blocker and the evidence needed to resume.

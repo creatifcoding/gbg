@@ -19,16 +19,87 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def propose_bus_camera_path_delta(root: Path) -> dict[str, Any]:
+    """Emit an integration-owned bus.json proposed delta without editing the hot file."""
+
+    registry = load_json(root / "contracts" / "interfaces.json")
+    hops = registry["cameraPath"]["hops"]
+    complete = [hop["componentRef"] for hop in hops]
+    bus = load_json(root / "terrarium" / "bus.json")
+    return {
+        "target": "projects/biomemetics/labs/mantis/terrarium/bus.json",
+        "owner": "mantis-root-integration",
+        "issue": 22,
+        "reason": "Root interface registry encodes complete camera path; bus.json lags.",
+        "currentCameraPath": bus.get("cameraPath"),
+        "proposedCameraPath": complete,
+        "locks": registry["cameraPath"]["locks"],
+        "note": "Raw MIPI stays local; carriage untethered; video-while-rolling out of v1.",
+    }
+
+
 def validate_draft_b(root: Path) -> list[str]:
     """Check only source locks; TARGET and UNVERIFIED values remain non-facts."""
 
     params = load_json(root / "terrarium" / "params.json")
     bus = load_json(root / "terrarium" / "bus.json")
+    registry = load_json(root / "contracts" / "interfaces.json")
     failures: list[str] = []
+
+    camera = registry.get("cameraPath", {})
+    hops = camera.get("hops")
+    if not isinstance(hops, list) or len(hops) != 9:
+        failures.append("interfaces cameraPath must declare the complete 9-hop path")
+    else:
+        roles = [hop.get("role") for hop in hops if isinstance(hop, dict)]
+        expected_roles = [
+            "module",
+            "local-mipi",
+            "serializer",
+            "binder-interface",
+            "carriage-routing",
+            "indexed-dock",
+            "deserializer",
+            "local-csi",
+            "compute",
+        ]
+        if roles != expected_roles:
+            failures.append("interfaces cameraPath hop roles are incomplete or reordered")
+        locks = camera.get("locks", {})
+        if locks.get("rawMipiRidesRail") is not False:
+            failures.append("cameraPath.locks.rawMipiRidesRail must be false")
+        if locks.get("carriageUntethered") is not True:
+            failures.append("cameraPath.locks.carriageUntethered must be true")
+        if locks.get("videoWhileRolling") is not False:
+            failures.append("cameraPath.locks.videoWhileRolling must be false")
+
+    machine = registry.get("stateMachine", {})
+    interlocks = {
+        item.get("id"): item
+        for item in machine.get("interlocks", [])
+        if isinstance(item, dict)
+    }
+    for required in ("S1", "S2", "Q1"):
+        if required not in interlocks:
+            failures.append(f"stateMachine missing structural interlock {required}")
+    fault_ids = {
+        item.get("id")
+        for item in machine.get("faultModes", [])
+        if isinstance(item, dict)
+    }
+    for required in (
+        "interruption",
+        "brownout",
+        "stuck-switch",
+        "contact-ambiguous",
+        "fault-latched",
+    ):
+        if required not in fault_ids:
+            failures.append(f"stateMachine missing fault mode {required}")
 
     parameter_records = params.get("parameters")
     if not isinstance(parameter_records, dict):
-        return ["terrarium params must contain a parameters object map"]
+        return ["terrarium params must contain a parameters object map"] + failures
 
     def value(name: str) -> Any:
         record = parameter_records.get(name)
@@ -136,6 +207,8 @@ def validate_draft_b(root: Path) -> list[str]:
         if architecture.get(field) != expected:
             failures.append(f"architecture.{field} must remain {expected!r}")
 
+    # Hot bus.json still carries the pre-00b hop list. Keep checking that lock,
+    # and require the root registry to hold the complete path (above).
     expected_camera_path = [
         "Sony-IMX519-autofocus-module-TBD",
         "local-MIPI-CSI-2",

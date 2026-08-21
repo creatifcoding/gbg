@@ -225,7 +225,8 @@
           },
           "then": {
             "required": [
-              "evidenceRefs"
+              "evidenceRefs",
+              "unit"
             ]
           }
         },
@@ -244,6 +245,17 @@
             "required": [
               "references"
             ]
+          }
+        },
+        {
+          "if": {
+            "required": ["value"],
+            "properties": {
+              "value": { "type": "number" }
+            }
+          },
+          "then": {
+            "required": ["unit"]
           }
         }
       ],
