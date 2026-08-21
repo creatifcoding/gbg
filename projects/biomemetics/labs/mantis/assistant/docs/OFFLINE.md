@@ -17,9 +17,9 @@ This document is the A1 contract for capture, care logging, and export when Mast
 
 ## What is an empty well offline
 
-- Live Mastra / CopilotKit AG-UI streaming, until A0 publishes a bound runtime URL and contracts.
+- The Mastra / CopilotKit well, only when CopilotKit cannot bind and no A0 Mastra adapter exists. A missing runtime URL is not this case. Live remote streaming can stay unavailable while CopilotKit is bound locally.
 - Current supply inventory and public-transit options (assayed adapter is online-only; declining location still allows manual place entry and all non-map care functions).
-- Terrarium telemetry. The Terrarium surface is an explicit empty well. Unavailable is not “safe.”
+- Terrarium telemetry. The Terrarium surface is an explicit empty well. Unavailable is not “safe.” Telemetry stays unavailable even when AG-UI is local.
 - Service / actuation / `device-command`. Hidden unless simulator query is on, and even then it is a simulator label, not a command path.
 - SpecimenDB attachment, evidence admission, EVA, and shop-release.
 
@@ -53,6 +53,8 @@ Envelope kind: `MantisAssistantOfflineExport`.
 
 ## CopilotKit / Mastra
 
-The PWA depends on CopilotKit as the AG-UI surface. Mastra is table-stakes stack consumed through A0 contracts (`assistant/contracts/**`, `tooling/typescript/mantis-assistant/**`). A1 does not edit those paths. If a type is missing, A1 fixtures it locally and leaves the Mastra/controller well empty.
+The PWA depends on CopilotKit as the AG-UI surface. Mastra is table-stakes stack consumed through A0 contracts (`assistant/contracts/**`, `tooling/typescript/mantis-assistant/**`). A1 does not edit those paths. If a type is missing, A1 fixtures it locally. The controller well can stay empty. AgentController is A0 tooling, not CopilotKit.
+
+A missing runtime URL is not a gate. CopilotHost binds locally without `runtimeUrl`, or degrades to offline Ask chrome. The Mastra well is empty only when CopilotKit cannot bind and no A0 Mastra adapter exists. Fixture-local A0 contracts are not an empty AG-UI bind. Live remote streaming can stay unavailable while CopilotKit is bound locally. Terrarium telemetry remains an empty well.
 
 No LLM output can become a CareEvent without a separate confirmation. No chat path exposes `device-command` or `admin`.

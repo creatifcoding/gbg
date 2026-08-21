@@ -61,10 +61,10 @@ describe('golden-care ambiguous photo', () => {
     expect(supply.value?.locationMode).toBe('manual');
   });
 
-  it('fail-closes device-command and leaves Mastra empty when A0 is absent', () => {
+  it('fail-closes device-command and binds AG-UI locally when A0 contracts are fixture-local', () => {
     expect(() => assertNoDeviceCommand('device-command')).toThrow(/fail-closed/);
     if (a0Bridge.contracts === 'fixture-local') {
-      expect(a0Bridge.mastra).toBe('empty');
+      expect(a0Bridge.agui.kind).toBe('local');
       expect(a0Bridge.controller).toBe('empty');
     }
   });

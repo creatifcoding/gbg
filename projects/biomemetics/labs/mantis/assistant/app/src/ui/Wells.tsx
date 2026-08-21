@@ -1,5 +1,3 @@
-import { a0Bridge } from '../contracts/a0';
-
 export function TerrariumSurface() {
   return (
     <section aria-labelledby="terra-heading">
@@ -12,7 +10,7 @@ export function TerrariumSurface() {
           A1 has no terrarium telemetry, camera, or rail read. Unavailable is not a husbandry
           status. This surface will never render a false all-clear.
         </p>
-        <p className="muted">Gateway: unbound. Freshness: none. Simulator: A4. Mastra well: {a0Bridge.mastra}.</p>
+        <p className="muted">Gateway: unbound. Freshness: none. Simulator: A4. Telemetry well: empty.</p>
         <p role="status">Status: unavailable</p>
       </article>
     </section>
