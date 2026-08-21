@@ -1,0 +1,61 @@
+# =============================================================================
+# specimendb catalog database
+# PostgreSQL 16 with TimescaleDB + Apache AGE
+#
+# Copied from packages/tmnl/docker/docker-compose.iiot.yml and rebranded.
+# No geoint init SQL. Compose uses the lite Timescale+AGE image.
+# Catalog DDL is the Effect migrator. The capture page does not talk to this container.
+#
+# Usage (from this directory):
+#   docker compose up -d
+#   docker compose logs -f
+#   docker compose down
+#   docker compose down -v
+#
+# Connection:
+#   psql postgres://specimen:specimen_dev@localhost:5434/specimendb
+#   Or: docker exec -it specimendb_pg psql -U specimen -d specimendb
+# =============================================================================
+
+services:
+  specimendb-db:
+    build:
+      context: ./iiot-db
+      dockerfile: Dockerfile.lite
+    container_name: specimendb_pg
+    ports:
+      - '5434:5432'
+    volumes:
+      - specimendb-pg-data:/home/postgres/pgdata/data
+    environment:
+      POSTGRES_USER: specimen
+      POSTGRES_PASSWORD: specimen_dev
+      POSTGRES_DB: specimendb
+      TIMESCALEDB_TELEMETRY: 'off'
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+      - -c
+      - shared_preload_libraries=timescaledb,age
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U specimen -d specimendb']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - specimendb
+
+networks:
+  specimendb:
+    driver: bridge
+
+volumes:
+  specimendb-pg-data:
+    driver: local

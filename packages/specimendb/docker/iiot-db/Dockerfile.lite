@@ -1,0 +1,63 @@
+# =============================================================================
+# specimendb catalog database — PostgreSQL 16 with TimescaleDB + Apache AGE
+#
+# Copied from packages/tmnl/docker/iiot-db/Dockerfile.lite and rebranded.
+# TimescaleDB HA + Apache AGE. No pg_lake. No DuckDB.
+#
+# SCHEMA MANAGEMENT:
+#   Catalog DDL is the Effect SQL Migrator, NOT this image.
+#   init.sql only bootstraps the role/database context.
+#
+# Build: docker build -f Dockerfile.lite -t specimendb-pg:lite .
+# =============================================================================
+
+FROM timescale/timescaledb-ha:pg16-ts2.17
+
+USER root
+
+ARG AGE_VERSION=1.5.0
+ARG PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    postgresql-server-dev-16 \
+    libreadline-dev \
+    zlib1g-dev \
+    flex \
+    bison \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp
+
+RUN git clone --branch release/PG16/${AGE_VERSION} --depth 1 \
+    https://github.com/apache/age.git age-src \
+    && cd age-src \
+    && make USE_PGXS=1 PG_CONFIG=${PG_CONFIG} install \
+    && cd / && rm -rf /tmp/age-src
+
+RUN apt-get remove -y \
+    build-essential \
+    git \
+    flex \
+    bison \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bootstrap only. Specimens/components tables come from the Effect migrator.
+COPY init.sql /docker-entrypoint-initdb.d/10-specimendb-bootstrap.sql
+
+USER postgres
+
+ENV POSTGRES_USER=specimen
+ENV POSTGRES_PASSWORD=specimen_dev
+ENV POSTGRES_DB=specimendb
+ENV TIMESCALEDB_TELEMETRY=off
+
+EXPOSE 5432
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1
+
+CMD ["postgres", "-c", "shared_preload_libraries=timescaledb,age"]
