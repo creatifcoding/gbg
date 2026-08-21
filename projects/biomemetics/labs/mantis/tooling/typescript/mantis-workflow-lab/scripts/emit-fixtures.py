@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
-ROOT = Path("/workspace/projects/biomemetics/labs/mantis/assistant/workflows")
+ROOT = Path(__file__).resolve().parents[4] / "assistant" / "workflows"
 CATALOG = ROOT / "fixture-catalog"
 DEFS = ROOT / "definitions"
 LAB = ROOT / "laboratory"
