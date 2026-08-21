@@ -1,6 +1,6 @@
 # @tmnl/specimendb
 
-Experimental. ECS catalog: branded `EntityRef` rows in `entities` (specimen is a common `kind`, not the only type), optional TaggedClass components, append-only `edges`. Persisted in Postgres and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures. Intake still mints a specimen, attaches what arrived in the JPEG/EXIF, and returns `SpecimenId`.
+Experimental. ECS catalog: branded `EntityRef` rows in `entities` (specimen is a common `kind`, not the only type) plus optional TaggedClass components. Persisted in Postgres and exposed as Effect v4 `Rpc.make` / `RpcGroup` procedures. Intake mints a specimen entity, attaches what arrived in the JPEG/EXIF, and returns `SpecimenId`.
 
 Understanding is attaching components later. A JPEG or HEIC with no GPS still files as Status `raw`. Locality is attached as `unknown` unless EXIF GPS or capture-page geo actually arrived. Sidecar JSON is always written next to the original. Taxon is never invented.
 
@@ -11,13 +11,13 @@ Understanding is attaching components later. A JPEG or HEIC with no GPS still fi
 | `Intake` | Copy the original file into catalog assets, extract EXIF sidecar tags, attach whatever arrived. Raw is enough. |
 | `Get` | Fetch one specimen by `SpecimenId`. |
 | `List` | List specimens. No required filters. |
-| `Promote` | Write Status one step: `raw → filed → working → dead`. Dead stays dead. Same Specimen type. |
+| `Promote` | Write Status one step: `raw → filed → working → dead`. Dead stays dead. Works on any entity that has a Status component. |
 
 ## Components
 
 None are required at birth. Intake attaches Status (`raw`), Media, Exif (sidecar always), and Locality (`unknown` or `fixed`). Locality is `fixed` only when GPS exists in EXIF or an explicit capture-page geo payload is supplied. Otherwise it says unknown. It does not invent a place.
 
-Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag, Question, Observation.
+Optional later: Claim, Taxon, Structure / Mechanism / Function, AnalogLink, Tag, Question, Observation, Kind, Class, Provenance, W7, Used, Generated.
 
 ## Surfaces
 
@@ -55,13 +55,12 @@ Static page in [`capture/`](./capture/), also served at `/capture/` on the testb
 
 ## Persistence
 
-Effect models (`EntityModel`, `ComponentModel`, `EdgeModel`) plus co-located `.ddl.ts`, aggregated with `Migrator.fromRecord`. Tables:
+Effect models (`EntityModel`, `ComponentModel`) plus co-located `.ddl.ts`, aggregated with `Migrator.fromRecord`. Tables:
 
 | Table | Identity | Notes |
 |---|---|---|
-| `entities` | `id` = `EntityRef` (`gbg:<kind>:<local>@<rev>?`) | `kind` is a column. Specimen and activity are both rows here. No `lab_activities`. |
-| `components` | `entity_id` → `entities.id` | TaggedClass payload jsonb. Intake writes Status / Media / Exif / Locality (and Claim if present). Kind / Class / Provenance / W7 attach later. |
-| `edges` | `src`, `rel`, `dst`, `payload`, `at` | Append-only. Predicates: used, generated, exhibits, performs, via, inspires, depicts, contained-in, contradicts, derived-from. |
+| `entities` | `id` = `EntityRef` (`gbg:<kind>:<local>@<rev>?`) | `kind` is a column (and a Kind component later). Specimen and activity are both rows here. No `lab_activities`. |
+| `components` | `entity_id` → `entities.id` | TaggedClass payload jsonb. Intake writes Status / Media / Exif / Locality (and Claim if present). Kind / Class / Provenance / W7 / Used / Generated attach later. No `edges` table — Used/Generated are components. |
 
 ## Versions
 

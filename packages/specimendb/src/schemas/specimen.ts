@@ -5,7 +5,7 @@
  */
 
 import * as Schema from 'effect/Schema';
-import { SpecimenId } from './identifiers.js';
+import { EntityRef, SpecimenId } from './identifiers.js';
 import { Component, LocalityComponent, type SpecimenStatus } from './components.js';
 
 export const CaptureGeo = Schema.Struct({
@@ -43,6 +43,14 @@ export const GetPayload = Schema.Struct({
   specimenId: SpecimenId,
 });
 export type GetPayload = typeof GetPayload.Type;
+
+/** Any catalog row: specimen, activity, sheet, solid. Status lives on the bag. */
+export const EntityBundle = Schema.Struct({
+  id: EntityRef,
+  createdAt: Schema.String,
+  components: Schema.Array(Component),
+});
+export type EntityBundle = typeof EntityBundle.Type;
 
 export type ComponentBag = { readonly components: ReadonlyArray<Component> };
 

@@ -22,11 +22,6 @@ export type ComponentId = typeof ComponentId.Type;
 
 export const trustComponentId = (id: string): ComponentId => id as ComponentId;
 
-export const EdgeId = Schema.String.pipe(Schema.brand('EdgeId'));
-export type EdgeId = typeof EdgeId.Type;
-
-export const trustEdgeId = (id: string): EdgeId => id as EdgeId;
-
 /**
  * `gbg:<kind>:<local>` with optional `@<rev>`.
  * Local may contain colons (`gbg:run:doctor:<run-id>`).

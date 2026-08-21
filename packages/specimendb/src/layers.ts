@@ -10,7 +10,6 @@ import * as Layer from 'effect/Layer';
 import { AssetStore } from './media/store.js';
 import { CatalogSqlLive } from './repos/pg.js';
 import { ComponentRepo } from './repos/ComponentRepo.js';
-import { EdgeRepo } from './repos/EdgeRepo.js';
 import { EntityRepo } from './repos/EntityRepo.js';
 import { SpecimenRepo } from './repos/SpecimenRepo.js';
 import { SpecimenRpcsLive } from './rpc/SpecimenRpcs.js';
@@ -18,11 +17,7 @@ import { CatalogConfigLayer, type CatalogConfig } from './schemas/config.js';
 
 export const CatalogPersistenceLive = Layer.mergeAll(CatalogSqlLive, AssetStore.layer);
 
-export const CatalogReposLive = Layer.mergeAll(
-  EntityRepo.layer,
-  ComponentRepo.layer,
-  EdgeRepo.layer,
-);
+export const CatalogReposLive = Layer.mergeAll(EntityRepo.layer, ComponentRepo.layer);
 
 export const SpecimenCatalogLive = SpecimenRpcsLive.pipe(
   Layer.provide(SpecimenRepo.layer),

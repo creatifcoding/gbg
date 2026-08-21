@@ -17,14 +17,18 @@ import { jpegWithoutGps } from './fixtures.js';
 import { CatalogPersistenceLive, CatalogReposLive, layer } from '../src/layers.js';
 import { catalogPgFromEnv, CatalogSqlLive } from '../src/repos/pg.js';
 import { ComponentRepo } from '../src/repos/ComponentRepo.js';
-import { EdgeRepo } from '../src/repos/EdgeRepo.js';
 import { EntityRepo } from '../src/repos/EntityRepo.js';
 import { SpecimenRepo } from '../src/repos/SpecimenRepo.js';
 import { SpecimenRpcsLive } from '../src/rpc/SpecimenRpcs.js';
 import { CatalogConfigLayer } from '../src/schemas/config.js';
-import { ClassComponent, COMPONENT_KINDS, KindComponent } from '../src/schemas/components.js';
-import { EDGE_RELS } from '../src/schemas/edges.js';
-import { trustComponentId, trustEdgeId, trustEntityRef } from '../src/schemas/identifiers.js';
+import {
+  COMPONENT_KINDS,
+  GeneratedComponent,
+  KindComponent,
+  StatusComponent,
+  UsedComponent,
+} from '../src/schemas/components.js';
+import { trustComponentId, trustEntityRef } from '../src/schemas/identifiers.js';
 import { ENTITY_KINDS } from '../src/schemas/provenance.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
 import { statusOf } from '../src/schemas/specimen.js';
@@ -53,7 +57,8 @@ const mixLayer = (assetsRoot: string) =>
     Layer.provide(CatalogConfigLayer({ pg: catalogPgFromEnv(), assetsRoot })),
   );
 
-const runWith = (makeLayer: (assetsRoot: string) => Layer.Layer<never, unknown, never>) =>
+const runWith =
+  (makeLayer: (assetsRoot: string) => Layer.Layer<any, unknown, never>) =>
   async (program: Effect.Effect<unknown, unknown, never>) => {
     const root = await mkdtemp(join(tmpdir(), 'specimendb-ecs-'));
     try {
@@ -91,7 +96,7 @@ const runCatalog = async (program: Effect.Effect<unknown, unknown, never>) => {
 };
 
 describe('ECS model DDL stays aligned with schema literals', () => {
-  it('entities / components / edges CHECK lists cover the schema consts', async () => {
+  it('entities / components CHECK lists cover the schema consts', async () => {
     const entityDdl = await readFile(join(modelsDir, 'EntityModel.ddl.ts'), 'utf8');
     for (const kind of ENTITY_KINDS) {
       expect(entityDdl).toContain(`'${kind}'`);
@@ -100,15 +105,12 @@ describe('ECS model DDL stays aligned with schema literals', () => {
     for (const kind of COMPONENT_KINDS) {
       expect(componentDdl).toContain(`'${kind}'`);
     }
-    const edgeDdl = await readFile(join(modelsDir, 'EdgeModel.ddl.ts'), 'utf8');
-    for (const rel of EDGE_RELS) {
-      expect(edgeDdl).toContain(`'${rel}'`);
-    }
+    expect(componentDdl).not.toContain('edges');
   });
 });
 
 describe('ECS tables', () => {
-  it('migrates entities / components.entity_id / edges and drops leftover specimens', async () => {
+  it('migrates entities / components.entity_id and drops leftover specimens / edges', async () => {
     await runEcs(
       Effect.gen(function* () {
         const sql = yield* SqlClient;
@@ -116,10 +118,10 @@ describe('ECS tables', () => {
           SELECT table_name
           FROM information_schema.tables
           WHERE table_schema = 'public'
-            AND table_name IN ('entities', 'components', 'edges', 'specimens', 'lab_activities')
+            AND table_name IN ('entities', 'components', 'edges', 'specimens', 'lab_activities', 'lab_used', 'lab_generated')
         `;
         const names = tables.map((row) => row.table_name).sort();
-        expect(names).toEqual(['components', 'edges', 'entities']);
+        expect(names).toEqual(['components', 'entities']);
 
         const columns = yield* sql<{ column_name: string }>`
           SELECT column_name
@@ -156,36 +158,6 @@ describe('ECS tables', () => {
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });
-
-  it('appends edges and rejects mutate', async () => {
-    await runEcs(
-      Effect.gen(function* () {
-        const edges = yield* EdgeRepo;
-        const sql = yield* SqlClient;
-        const src = trustEntityRef(`gbg:specimen:${randomUUID()}`);
-        const dst = trustEntityRef(`gbg:sheet:S01@pr58`);
-        const appended = yield* edges.append({
-          id: trustEdgeId(randomUUID()),
-          src,
-          rel: 'depicts',
-          dst,
-          payload: {},
-          at: new Date().toISOString(),
-        });
-        expect(appended.rel).toBe('depicts');
-        const listed = yield* edges.findBySrc(src);
-        expect(listed.some((edge) => edge.id === appended.id)).toBe(true);
-
-        const rejected = yield* sql`
-          UPDATE edges SET rel = ${'used'} WHERE id = ${appended.id}
-        `.pipe(
-          Effect.as(false),
-          Effect.orElseSucceed(() => true),
-        );
-        expect(rejected).toBe(true);
-      }) as Effect.Effect<unknown, unknown, never>,
-    );
-  });
 });
 
 describe('Intake over ECS', () => {
@@ -201,52 +173,71 @@ describe('Intake over ECS', () => {
         expect(intake.components.some((c) => c._tag === 'Kind')).toBe(false);
         expect(intake.components.some((c) => c._tag === 'Class')).toBe(false);
         expect(intake.components.some((c) => c._tag === 'Taxon')).toBe(false);
-        expect(intake.components.some((c) => c._tag === 'Provenance')).toBe(false);
-        expect(intake.components.some((c) => c._tag === 'W7')).toBe(false);
+        expect(intake.components.some((c) => c._tag === 'Used')).toBe(false);
+        expect(intake.components.some((c) => c._tag === 'Generated')).toBe(false);
         const locality = intake.components.find((c) => c._tag === 'Locality');
         expect(locality?._tag === 'Locality' && locality.state).toBe('unknown');
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });
 
-  it('does not list activity entities as specimens; Kind/Class attach later', async () => {
+  it('does not list activity entities as specimens; Used/Generated attach later; Promote works on any Status', async () => {
     await runMix(
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(SpecimenRpcs);
+        const repo = yield* SpecimenRepo;
         const entities = yield* EntityRepo;
         const components = yield* ComponentRepo;
         const intake = yield* client.Intake({
           bytes: jpegWithoutGps(),
           filename: 'listed.jpg',
         });
+        const specimenRef = trustEntityRef(`gbg:specimen:${intake.specimenId}`);
         const activityRef = trustEntityRef(`gbg:activity:${randomUUID()}`);
+        const attachedAt = new Date().toISOString();
         yield* entities.insert({
           id: activityRef,
           kind: 'activity',
-          createdAt: new Date().toISOString(),
+          createdAt: attachedAt,
         });
+        yield* components.insert({
+          id: trustComponentId(randomUUID()),
+          entityId: activityRef,
+          kind: 'Kind',
+          payload: new KindComponent({ value: 'activity' }),
+          attachedAt,
+        });
+        yield* components.insert({
+          id: trustComponentId(randomUUID()),
+          entityId: activityRef,
+          kind: 'Status',
+          payload: new StatusComponent({ value: 'raw' }),
+          attachedAt,
+        });
+        yield* components.insert({
+          id: trustComponentId(randomUUID()),
+          entityId: activityRef,
+          kind: 'Used',
+          payload: new UsedComponent({ target: specimenRef }),
+          attachedAt,
+        });
+        yield* components.insert({
+          id: trustComponentId(randomUUID()),
+          entityId: activityRef,
+          kind: 'Generated',
+          payload: new GeneratedComponent({ target: specimenRef }),
+          attachedAt,
+        });
+
         const listed = yield* client.List();
         expect(listed.some((row) => row.id === intake.specimenId)).toBe(true);
         expect(listed.every((row) => row.id !== activityRef)).toBe(true);
 
-        const entityId = trustEntityRef(`gbg:specimen:${intake.specimenId}`);
-        yield* components.insert({
-          id: trustComponentId(randomUUID()),
-          entityId,
-          kind: 'Kind',
-          payload: new KindComponent({ value: 'specimen' }),
-          attachedAt: new Date().toISOString(),
-        });
-        yield* components.insert({
-          id: trustComponentId(randomUUID()),
-          entityId,
-          kind: 'Class',
-          payload: new ClassComponent({ value: 'unverified' }),
-          attachedAt: new Date().toISOString(),
-        });
-        const got = yield* client.Get({ specimenId: intake.specimenId });
-        expect(got.components.some((c) => c._tag === 'Kind')).toBe(true);
-        expect(got.components.some((c) => c._tag === 'Class')).toBe(true);
+        const promoted = yield* repo.promoteEntity(activityRef);
+        expect(promoted.id).toBe(activityRef);
+        expect(statusOf(promoted)).toBe('filed');
+        expect(promoted.components.some((c) => c._tag === 'Used')).toBe(true);
+        expect(promoted.components.some((c) => c._tag === 'Generated')).toBe(true);
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });

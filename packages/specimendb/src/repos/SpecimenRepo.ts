@@ -19,12 +19,13 @@ import {
   gpsFromExif,
   toExiftoolSidecar,
 } from '../media/exif.js';
-import { CatalogError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
+import { CatalogError, EntityNotFoundError, IntakeError, SpecimenNotFoundError } from '../schemas/errors.js';
 import {
   specimenIdFromRef,
   specimenRefFromId,
   trustComponentId,
   trustSpecimenId,
+  type EntityRef,
   type SpecimenId,
 } from '../schemas/identifiers.js';
 import {
@@ -41,6 +42,7 @@ import {
   Specimen,
   nextStatus,
   statusOf,
+  type EntityBundle,
 } from '../schemas/specimen.js';
 import { ComponentRepo } from './ComponentRepo.js';
 import { EntityRepo } from './EntityRepo.js';
@@ -56,6 +58,10 @@ export interface SpecimenRepoShape {
   readonly promote: (
     specimenId: SpecimenId,
   ) => Effect.Effect<typeof Specimen.Type, CatalogError | SpecimenNotFoundError>;
+  /** Advance Status on any entity. Specimen is just the common bundle. */
+  readonly promoteEntity: (
+    entityId: EntityRef,
+  ) => Effect.Effect<EntityBundle, CatalogError | EntityNotFoundError>;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -105,7 +111,7 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
       const assets = yield* AssetStore;
 
       const insertComponent = (
-        entityId: ReturnType<typeof specimenRefFromId>,
+        entityId: EntityRef,
         component: typeof Component.Type,
         attachedAt: string,
       ) =>
@@ -117,12 +123,21 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
           attachedAt,
         });
 
-      const loadSpecimen = (specimenId: SpecimenId, createdAt: string) =>
+      const loadEntity = (entityId: EntityRef, createdAt: string) =>
         Effect.gen(function* () {
-          const entityId = specimenRefFromId(specimenId);
           const componentRows = yield* components.findByEntity(entityId);
           const bag = yield* rowsToComponents(componentRows);
-          return { id: specimenId, createdAt, components: bag } satisfies typeof Specimen.Type;
+          return { id: entityId, createdAt, components: bag } satisfies EntityBundle;
+        });
+
+      const loadSpecimen = (specimenId: SpecimenId, createdAt: string) =>
+        Effect.gen(function* () {
+          const bundle = yield* loadEntity(specimenRefFromId(specimenId), createdAt);
+          return {
+            id: specimenId,
+            createdAt: bundle.createdAt,
+            components: bundle.components,
+          } satisfies typeof Specimen.Type;
         });
 
       const intake = Effect.fn('@tmnl/specimendb/SpecimenRepo.intake')(function* (
@@ -230,26 +245,46 @@ export class SpecimenRepo extends Context.Service<SpecimenRepo, SpecimenRepoShap
         return specimens;
       });
 
-      const promote = Effect.fn('@tmnl/specimendb/SpecimenRepo.promote')(function* (
-        specimenId: SpecimenId,
+      const promoteEntity = Effect.fn('@tmnl/specimendb/SpecimenRepo.promoteEntity')(function* (
+        entityId: EntityRef,
       ) {
-        const specimen = yield* get(specimenId);
-        const current = statusOf(specimen) ?? 'raw';
-        if (current === 'dead') return specimen;
+        const row = yield* entities.findById(entityId);
+        if (Option.isNone(row)) {
+          return yield* new EntityNotFoundError({ entityId });
+        }
+        const bundle = yield* loadEntity(entityId, row.value.createdAt);
+        const current = statusOf(bundle) ?? 'raw';
+        if (current === 'dead') return bundle;
         const next = nextStatus(current);
         const updated = new StatusComponent({ value: next });
         const attachedAt = nowIso();
-        const entityId = specimenRefFromId(specimenId);
         const existing = yield* components.findIdByEntityKind(entityId, 'Status');
         if (Option.isNone(existing)) {
           yield* insertComponent(entityId, updated, attachedAt);
         } else {
           yield* components.updatePayload(existing.value, updated, attachedAt);
         }
-        return yield* get(specimenId);
+        return yield* loadEntity(entityId, row.value.createdAt);
       });
 
-      return SpecimenRepo.of({ intake, get, list, promote });
+      const promote = Effect.fn('@tmnl/specimendb/SpecimenRepo.promote')(function* (
+        specimenId: SpecimenId,
+      ) {
+        const bundle = yield* promoteEntity(specimenRefFromId(specimenId)).pipe(
+          Effect.mapError((error) =>
+            error._tag === 'EntityNotFoundError'
+              ? new SpecimenNotFoundError({ specimenId })
+              : error,
+          ),
+        );
+        return {
+          id: specimenId,
+          createdAt: bundle.createdAt,
+          components: bundle.components,
+        } satisfies typeof Specimen.Type;
+      });
+
+      return SpecimenRepo.of({ intake, get, list, promote, promoteEntity });
     }),
   );
 }

@@ -5,7 +5,7 @@
  */
 
 import * as Schema from 'effect/Schema';
-import { SpecimenId } from './identifiers.js';
+import { EntityRef, SpecimenId } from './identifiers.js';
 
 export class CatalogError extends Schema.TaggedErrorClass<CatalogError>(
   '@tmnl/specimendb/CatalogError',
@@ -21,6 +21,12 @@ export class SpecimenNotFoundError extends Schema.TaggedErrorClass<SpecimenNotFo
   specimenId: SpecimenId,
 }) {}
 
+export class EntityNotFoundError extends Schema.TaggedErrorClass<EntityNotFoundError>(
+  '@tmnl/specimendb/EntityNotFoundError',
+)('EntityNotFoundError', {
+  entityId: EntityRef,
+}) {}
+
 export class IntakeError extends Schema.TaggedErrorClass<IntakeError>(
   '@tmnl/specimendb/IntakeError',
 )('IntakeError', {
@@ -28,4 +34,8 @@ export class IntakeError extends Schema.TaggedErrorClass<IntakeError>(
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
-export type SpecimenRpcError = CatalogError | SpecimenNotFoundError | IntakeError;
+export type SpecimenRpcError =
+  | CatalogError
+  | SpecimenNotFoundError
+  | EntityNotFoundError
+  | IntakeError;

@@ -154,6 +154,16 @@ export class W7Component extends Schema.TaggedClass<W7Component>()('W7', {
   how: Schema.optional(Schema.String),
 }) {}
 
+/** PROV used. Attach on an activity; target is the entity that was used. */
+export class UsedComponent extends Schema.TaggedClass<UsedComponent>()('Used', {
+  target: EntityRef,
+}) {}
+
+/** PROV generated. Attach on an activity; target is the entity that was generated. */
+export class GeneratedComponent extends Schema.TaggedClass<GeneratedComponent>()('Generated', {
+  target: EntityRef,
+}) {}
+
 export const COMPONENT_KINDS = [
   'Status',
   'Claim',
@@ -172,6 +182,8 @@ export const COMPONENT_KINDS = [
   'Class',
   'Provenance',
   'W7',
+  'Used',
+  'Generated',
 ] as const;
 
 export const Component = Schema.Union([
@@ -192,6 +204,8 @@ export const Component = Schema.Union([
   ClassComponent,
   ProvenanceComponent,
   W7Component,
+  UsedComponent,
+  GeneratedComponent,
 ]);
 export type Component = typeof Component.Type;
 

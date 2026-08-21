@@ -39,6 +39,7 @@
     "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
     "testbed": "vite --config testbed/vite.config.ts",
     "typecheck": "tsc --noEmit",
+    "typecheck:ci": "tsc --noEmit -p tsconfig.ci.json",
     "clean": "rm -rf dist reports",
     "prepublishOnly": "bun run clean && bun run build"
   },
