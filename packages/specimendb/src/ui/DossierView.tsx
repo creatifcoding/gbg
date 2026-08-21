@@ -1,6 +1,7 @@
 /**
- * DossierView — full Accession page. Fat dossier: photo rail, claim, status,
- * empty taxonomy table, field-metrics wells, empty spectral grid, empty log.
+ * DossierView — full Accession page. Fat dossier chrome from Variant board stills
+ * (no HTML extract on the branch). Id / taxonomy / field-metrics / spectral /
+ * observer-log wells stay drawn. Now-slots only when a selected specimen exists.
  *
  * @module @tmnl/specimendb/ui
  */
@@ -30,8 +31,9 @@ const useDossier = (): DossierContextValue => {
   return ctx;
 };
 
-const TAXON_RANKS = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'] as const;
-const SPECTRAL_BANDS = ['UV', 'VIOLET', 'BLUE', 'GREEN', 'RED', 'NIR'] as const;
+const TAXON_RANKS = ['KINGDOM', 'PHYLUM', 'CLASS', 'ORDER', 'FAMILY', 'GENUS', 'SPECIES'] as const;
+const SPECTRAL_COLS = ['WAVELENGTH (NM)', 'REFLECTANCE (%)', 'ABSORPTION (%)', 'SCATTER (%)'] as const;
+const SPECTRAL_ROWS = 6;
 
 const StatusChip = ({
   status,
@@ -118,7 +120,8 @@ function DossierViewIntake() {
         onDragLeave={bind.onDragLeave}
         onDrop={bind.onDrop}
       >
-        {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'FILE TO DOSSIER'}
+        <span className="sdb-x-zone-kicker">// ACCESSION_INTAKE</span>
+        <span>{intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'DROP FIELD MEDIA'}</span>
       </button>
       {intakeError !== null ? (
         <p className="sdb-x-error" data-testid="intake-error">
@@ -218,80 +221,114 @@ function DossierViewBody() {
 
   return (
     <div className="sdb-x-dossier" data-testid="specimen-detail">
+      <section className="sdb-x-intake-well">
+        <div className="sdb-x-kicker">// ACCESSION_INTAKE</div>
+        <div className="sdb-x-dropcap">DROP FIELD MEDIA</div>
+      </section>
+
       <header className="sdb-x-lead">
         <div className="sdb-x-photo">
           {preview !== undefined ? <img src={preview} alt="" /> : null}
           <span className="sdb-x-imgsrc">{selected === null ? 'IMG_SRC' : imgSrcLabel(selected)}</span>
         </div>
         <div className="sdb-x-lead-copy">
+          <div className="sdb-x-meta">
+            {status !== undefined && selected !== null ? (
+              <StatusChip
+                status={status}
+                testId="detail-status"
+                onPromote={onStatusPromote(catalog, selected.id)}
+              />
+            ) : (
+              <span className="sdb-x-chip" data-status="raw">
+                raw
+              </span>
+            )}
+            <span>LAST_MODIFIED</span>
+          </div>
           <h1 className="sdb-x-id-lg" data-testid="detail-id">
             {selected?.id ?? ''}
           </h1>
           <p className="sdb-x-claim" data-testid="detail-claim">
             {selected === null ? '' : claimLine(selected)}
           </p>
-          {status !== undefined && selected !== null ? (
-            <StatusChip
-              status={status}
-              testId="detail-status"
-              onPromote={onStatusPromote(catalog, selected.id)}
-            />
-          ) : (
-            <span className="sdb-x-chip" data-status="raw">
-              raw
-            </span>
-          )}
+          <div className="sdb-x-actions">
+            <button type="button" className="sdb-x-btn">
+              [ INITIATE_SCAN ]
+            </button>
+            <button type="button" className="sdb-x-btn">
+              [ EDIT_RECORD ]
+            </button>
+          </div>
         </div>
       </header>
 
-      <section className="sdb-x-section">
-        <h2>Taxonomy</h2>
-        <table className="sdb-x-table">
-          <tbody>
-            {TAXON_RANKS.map((rank) => (
-              <tr key={rank}>
-                <th>{rank}</th>
+      <div className="sdb-x-wells">
+        <section className="sdb-x-section">
+          <h2>// TAXONOMY_DATA</h2>
+          <table className="sdb-x-table">
+            <tbody>
+              {TAXON_RANKS.map((rank) => (
+                <tr key={rank}>
+                  <th>{rank}</th>
+                  <td />
+                </tr>
+              ))}
+              <tr>
+                <th>CONFIDENCE</th>
                 <td />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+            </tbody>
+          </table>
+        </section>
 
-      <section className="sdb-x-section">
-        <h2>Field metrics</h2>
-        <div className="sdb-x-metrics">
-          <div className="sdb-x-metric">
-            <div className="sdb-x-kicker">Locality</div>
-            <div data-testid="detail-locality">{selected === null ? 'unknown' : localityLabel(selected)}</div>
-          </div>
-          <div className="sdb-x-metric">
-            <div className="sdb-x-kicker">Elev</div>
-            <div />
-          </div>
-          <div className="sdb-x-metric">
-            <div className="sdb-x-kicker">Temp</div>
-            <div />
-          </div>
-        </div>
-      </section>
-
-      <section className="sdb-x-section">
-        <h2>Spectral grid</h2>
-        <div className="sdb-x-spectra">
-          {SPECTRAL_BANDS.map((band) => (
-            <div className="sdb-x-band" key={band}>
-              <div className="sdb-x-kicker">{band}</div>
-              <div className="sdb-x-band-well" />
+        <section className="sdb-x-section">
+          <h2>// FIELD_METRICS</h2>
+          <div className="sdb-x-metrics">
+            <div className="sdb-x-metric">
+              <div className="sdb-x-kicker">COORDINATES</div>
+              <div className="sdb-x-metric-val" data-testid="detail-locality">
+                {selected === null ? 'unknown' : localityLabel(selected)}
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="sdb-x-metric">
+              <div className="sdb-x-kicker">ELEVATION</div>
+              <div className="sdb-x-metric-val" />
+            </div>
+            <div className="sdb-x-metric">
+              <div className="sdb-x-kicker">TEMP_AMBIENT</div>
+              <div className="sdb-x-metric-val" />
+            </div>
+          </div>
+        </section>
 
-      <section className="sdb-x-section">
-        <h2>Observer log</h2>
-        <div className="sdb-x-log" />
-      </section>
+        <section className="sdb-x-section">
+          <h2>// SPECTRAL_ANALYSIS [REFLECTANCE]</h2>
+          <table className="sdb-x-table sdb-x-spectra-table">
+            <thead>
+              <tr>
+                {SPECTRAL_COLS.map((col) => (
+                  <th key={col}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: SPECTRAL_ROWS }, (_, row) => (
+                <tr key={`band-${row}`}>
+                  {SPECTRAL_COLS.map((col) => (
+                    <td key={`${row}:${col}`} />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="sdb-x-section sdb-x-span">
+          <h2>// OBSERVER_LOG</h2>
+          <div className="sdb-x-log" />
+        </section>
+      </div>
     </div>
   );
 }

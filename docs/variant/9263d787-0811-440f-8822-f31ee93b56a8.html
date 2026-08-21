@@ -1,0 +1,1436 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">SpecimenDB Workbench</title>
+    
+    <script src="https://unpkg.com/@phosphor-icons/web" vid="6"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="7">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="8">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet" vid="9">
+    
+    <style vid="11">
+        body {
+            background-color: theme('colors.void');
+            color: theme('colors.textmain');
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.void');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.charcoal.300');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.charcoal.100');
+        }
+        
+        .grid-bg {
+            background-image: 
+                linear-gradient(theme('colors.charcoal.300') 1px, transparent 1px),
+                linear-gradient(90deg, theme('colors.charcoal.300') 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .corner-brackets {
+            position: relative;
+        }
+        .corner-brackets::before,
+        .corner-brackets::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-color: theme('colors.charcoal.100');
+            border-style: solid;
+        }
+        .corner-brackets::before {
+            top: 0; left: 0;
+            border-width: 1px 0 0 1px;
+        }
+        .corner-brackets::after {
+            bottom: 0; right: 0;
+            border-width: 0 1px 1px 0;
+        }
+        .corner-brackets-top-right {
+            position: absolute; top: 0; right: 0; width: 8px; height: 8px;
+            border-width: 1px 1px 0 0; border-color: theme('colors.charcoal.100'); border-style: solid;
+        }
+        .corner-brackets-bottom-left {
+            position: absolute; bottom: 0; left: 0; width: 8px; height: 8px;
+            border-width: 0 0 1px 1px; border-color: theme('colors.charcoal.100'); border-style: solid;
+        }
+    </style>
+
+  <style type="text/css">
+*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  tab-size: 4; /* 3 */
+  font-family: Inter, sans-serif; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: IBM Plex Mono, monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.pointer-events-none {
+  pointer-events: none;
+}
+.absolute {
+  position: absolute;
+}
+.relative {
+  position: relative;
+}
+.inset-0 {
+  inset: 0px;
+}
+.inset-8 {
+  inset: 2rem;
+}
+.bottom-2 {
+  bottom: 0.5rem;
+}
+.bottom-3 {
+  bottom: 0.75rem;
+}
+.left-2 {
+  left: 0.5rem;
+}
+.left-3 {
+  left: 0.75rem;
+}
+.right-3 {
+  right: 0.75rem;
+}
+.top-3 {
+  top: 0.75rem;
+}
+.z-10 {
+  z-index: 10;
+}
+.z-20 {
+  z-index: 20;
+}
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+.mt-1 {
+  margin-top: 0.25rem;
+}
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.flex {
+  display: flex;
+}
+.h-1 {
+  height: 0.25rem;
+}
+.h-1\.5 {
+  height: 0.375rem;
+}
+.h-10 {
+  height: 2.5rem;
+}
+.h-12 {
+  height: 3rem;
+}
+.h-2 {
+  height: 0.5rem;
+}
+.h-32 {
+  height: 8rem;
+}
+.h-40 {
+  height: 10rem;
+}
+.h-\[400px\] {
+  height: 400px;
+}
+.h-full {
+  height: 100%;
+}
+.h-screen {
+  height: 100vh;
+}
+.min-h-0 {
+  min-height: 0px;
+}
+.w-1 {
+  width: 0.25rem;
+}
+.w-1\.5 {
+  width: 0.375rem;
+}
+.w-2 {
+  width: 0.5rem;
+}
+.w-\[340px\] {
+  width: 340px;
+}
+.w-\[400px\] {
+  width: 400px;
+}
+.w-\[420px\] {
+  width: 420px;
+}
+.w-full {
+  width: 100%;
+}
+.w-screen {
+  width: 100vw;
+}
+.min-w-0 {
+  min-width: 0px;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+.shrink-0 {
+  flex-shrink: 0;
+}
+.origin-center {
+  transform-origin: center;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-\[spin_40s_linear_infinite_reverse\] {
+  animation: spin 40s linear infinite reverse;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-\[spin_60s_linear_infinite\] {
+  animation: spin 60s linear infinite;
+}
+@keyframes pulse {
+
+  50% {
+    opacity: .5;
+  }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.cursor-crosshair {
+  cursor: crosshair;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.flex-col {
+  flex-direction: column;
+}
+.items-start {
+  align-items: flex-start;
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-1\.5 {
+  gap: 0.375rem;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.space-y-1\.5 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.375rem * var(--tw-space-y-reverse));
+}
+.space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+.space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(2rem * var(--tw-space-y-reverse));
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+.rounded-full {
+  border-radius: 9999px;
+}
+.border {
+  border-width: 1px;
+}
+.border-b {
+  border-bottom-width: 1px;
+}
+.border-r {
+  border-right-width: 1px;
+}
+.border-t {
+  border-top-width: 1px;
+}
+.border-dashed {
+  border-style: dashed;
+}
+.border-amber-900\/50 {
+  border-color: rgb(120 53 15 / 0.5);
+}
+.border-charcoal-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(34 34 34 / var(--tw-border-opacity, 1));
+}
+.border-charcoal-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(26 26 26 / var(--tw-border-opacity, 1));
+}
+.border-cyan-900\/50 {
+  border-color: rgb(22 78 99 / 0.5);
+}
+.border-emerald-900\/50 {
+  border-color: rgb(6 78 59 / 0.5);
+}
+.border-rose-900\/50 {
+  border-color: rgb(136 19 55 / 0.5);
+}
+.bg-amber-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
+}
+.bg-amber-950\/30 {
+  background-color: rgb(69 26 3 / 0.3);
+}
+.bg-charcoal-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+}
+.bg-charcoal-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 5 5 / var(--tw-bg-opacity, 1));
+}
+.bg-cyan-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(6 182 212 / var(--tw-bg-opacity, 1));
+}
+.bg-cyan-950\/30 {
+  background-color: rgb(8 51 68 / 0.3);
+}
+.bg-emerald-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
+}
+.bg-emerald-950\/30 {
+  background-color: rgb(2 44 34 / 0.3);
+}
+.bg-rose-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(244 63 94 / var(--tw-bg-opacity, 1));
+}
+.bg-rose-950\/30 {
+  background-color: rgb(76 5 25 / 0.3);
+}
+.bg-void {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
+}
+.bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+}
+.from-charcoal-500 {
+  --tw-gradient-from: #0a0a0a var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(10 10 10 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.to-void {
+  --tw-gradient-to: #000000 var(--tw-gradient-to-position);
+}
+.fill-none {
+  fill: none;
+}
+.stroke-current {
+  stroke: currentColor;
+}
+.stroke-emerald-900 {
+  stroke: #064e3b;
+}
+.p-2 {
+  padding: 0.5rem;
+}
+.p-3 {
+  padding: 0.75rem;
+}
+.p-4 {
+  padding: 1rem;
+}
+.p-5 {
+  padding: 1.25rem;
+}
+.p-6 {
+  padding: 1.5rem;
+}
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+.py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.pb-1\.5 {
+  padding-bottom: 0.375rem;
+}
+.pt-2 {
+  padding-top: 0.5rem;
+}
+.font-mono {
+  font-family: IBM Plex Mono, monospace;
+}
+.font-sans {
+  font-family: Inter, sans-serif;
+}
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+.text-\[10px\] {
+  font-size: 10px;
+}
+.text-\[11px\] {
+  font-size: 11px;
+}
+.text-\[9px\] {
+  font-size: 9px;
+}
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.font-medium {
+  font-weight: 500;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.leading-relaxed {
+  line-height: 1.625;
+}
+.leading-snug {
+  line-height: 1.375;
+}
+.tracking-\[0\.2em\] {
+  letter-spacing: 0.2em;
+}
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+.tracking-widest {
+  letter-spacing: 0.1em;
+}
+.text-amber-400 {
+  --tw-text-opacity: 1;
+  color: rgb(251 191 36 / var(--tw-text-opacity, 1));
+}
+.text-charcoal-200 {
+  --tw-text-opacity: 1;
+  color: rgb(34 34 34 / var(--tw-text-opacity, 1));
+}
+.text-cyan-400 {
+  --tw-text-opacity: 1;
+  color: rgb(34 211 238 / var(--tw-text-opacity, 1));
+}
+.text-emerald-400 {
+  --tw-text-opacity: 1;
+  color: rgb(52 211 153 / var(--tw-text-opacity, 1));
+}
+.text-emerald-500 {
+  --tw-text-opacity: 1;
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
+.text-rose-400 {
+  --tw-text-opacity: 1;
+  color: rgb(251 113 133 / var(--tw-text-opacity, 1));
+}
+.text-textdim {
+  --tw-text-opacity: 1;
+  color: rgb(85 85 85 / var(--tw-text-opacity, 1));
+}
+.text-textmain {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 212 / var(--tw-text-opacity, 1));
+}
+.text-textmuted {
+  --tw-text-opacity: 1;
+  color: rgb(138 138 138 / var(--tw-text-opacity, 1));
+}
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.opacity-30 {
+  opacity: 0.3;
+}
+.opacity-50 {
+  opacity: 0.5;
+}
+.opacity-80 {
+  opacity: 0.8;
+}
+.shadow-\[0_0_8px_rgba\(16\2c 185\2c 129\2c 0\.8\)\] {
+  --tw-shadow: 0 0 8px rgba(16,185,129,0.8);
+  --tw-shadow-colored: 0 0 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.grayscale {
+  --tw-grayscale: grayscale(100%);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.selection\:bg-charcoal-200 *::selection {
+  --tw-bg-opacity: 1;
+  background-color: rgb(34 34 34 / var(--tw-bg-opacity, 1));
+}
+.selection\:text-gray-200 *::selection {
+  --tw-text-opacity: 1;
+  color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+}
+.selection\:bg-charcoal-200::selection {
+  --tw-bg-opacity: 1;
+  background-color: rgb(34 34 34 / var(--tw-bg-opacity, 1));
+}
+.selection\:text-gray-200::selection {
+  --tw-text-opacity: 1;
+  color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+}
+.hover\:border-charcoal-100:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(42 42 42 / var(--tw-border-opacity, 1));
+}
+.hover\:border-emerald-700:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(4 120 87 / var(--tw-border-opacity, 1));
+}
+.hover\:border-textdim:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(85 85 85 / var(--tw-border-opacity, 1));
+}
+.hover\:bg-charcoal-500:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+}
+.hover\:bg-emerald-950\/20:hover {
+  background-color: rgb(2 44 34 / 0.2);
+}
+.hover\:text-textmain:hover {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 212 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-cyan-400 {
+  --tw-text-opacity: 1;
+  color: rgb(34 211 238 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-cyan-500 {
+  --tw-text-opacity: 1;
+  color: rgb(6 182 212 / var(--tw-text-opacity, 1));
+}* {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  </style></head>
+<body class="h-screen w-screen overflow-hidden flex font-sans text-sm selection:bg-charcoal-200 selection:text-gray-200" vid="12">
+
+    
+    <aside class="w-[420px] flex-shrink-0 flex flex-col bg-void border-r border-charcoal-300 relative z-20" vid="13">
+        
+        <header class="h-12 border-b border-charcoal-300 flex items-center justify-between px-4 bg-void shrink-0" vid="14">
+            <div class="flex items-center gap-2" vid="15">
+                <i class="ph ph-database text-textdim" vid="16"></i>
+                <span class="font-mono text-[10px] uppercase tracking-widest text-textmuted" vid="17">SpecimenDB // Core</span>
+            </div>
+            <div class="flex gap-2" vid="18">
+                <button class="text-textdim hover:text-textmain transition-colors" vid="19"><i class="ph ph-faders text-lg" vid="20"></i></button>
+            </div>
+        </header>
+
+        
+        <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-3" vid="21">
+            
+            
+            <div class="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="22">
+                <div class="flex justify-between items-start" vid="23">
+                    <div class="font-mono text-sm text-textmain font-medium" vid="24">SP-9942-X</div>
+                    <div class="flex items-center gap-1.5 px-1.5 py-0.5 bg-emerald-950/30 border border-emerald-900/50" vid="25">
+                        <div class="w-1.5 h-1.5 bg-emerald-500" vid="26"></div>
+                        <span class="font-mono text-[9px] uppercase tracking-wider text-emerald-400" vid="27">Working</span>
+                    </div>
+                </div>
+                
+                <div class="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="28">
+                    <div class="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="29"></div>
+                    <i class="ph ph-aperture text-charcoal-200 text-4xl z-10" vid="30"></i>
+                    <div class="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="31">OPTICAL_SCAN</div>
+                </div>
+                <div class="text-xs text-textmain leading-snug tracking-tight" vid="32">Pangolin scale articulation model</div>
+                <div class="flex flex-col gap-2 mt-1" vid="33">
+                    <div class="flex items-center gap-1.5 text-textmuted" vid="34">
+                        <i class="ph ph-crosshair text-xs" vid="35"></i>
+                        <span class="font-mono text-[10px]" vid="36">unknown</span>
+                    </div>
+                    <div class="flex gap-2" vid="37">
+                        <span class="font-mono text-[9px] text-textdim" vid="38">[biomech]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="39">[armor]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="40">[kinematics]</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="41">
+                <div class="flex justify-between items-start" vid="42">
+                    <div class="font-mono text-sm text-textmain font-medium" vid="43">SP-9943-Y</div>
+                    <div class="flex items-center gap-1.5 px-1.5 py-0.5 bg-amber-950/30 border border-amber-900/50" vid="44">
+                        <div class="w-1.5 h-1.5 bg-amber-500" vid="45"></div>
+                        <span class="font-mono text-[9px] uppercase tracking-wider text-amber-400" vid="46">Raw</span>
+                    </div>
+                </div>
+                <div class="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="47">
+                    <div class="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="48"></div>
+                    <i class="ph ph-drop text-charcoal-200 text-4xl z-10" vid="49"></i>
+                    <div class="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="50">FIELD_SAMPLE</div>
+                </div>
+                <div class="text-xs text-textmain leading-snug tracking-tight" vid="51">Cephalopod chromatophore isolation</div>
+                <div class="flex flex-col gap-2 mt-1" vid="52">
+                    <div class="flex items-center gap-1.5 text-textmuted" vid="53">
+                        <i class="ph ph-crosshair text-xs" vid="54"></i>
+                        <span class="font-mono text-[10px]" vid="55">14.5995, 120.9842</span>
+                    </div>
+                    <div class="flex gap-2" vid="56">
+                        <span class="font-mono text-[9px] text-textdim" vid="57">[optics]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="58">[tissue]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="59">[fluid-dyn]</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="60">
+                <div class="flex justify-between items-start" vid="61">
+                    <div class="font-mono text-sm text-textmain font-medium" vid="62">SP-9940-A</div>
+                    <div class="flex items-center gap-1.5 px-1.5 py-0.5 bg-cyan-950/30 border border-cyan-900/50" vid="63">
+                        <div class="w-1.5 h-1.5 bg-cyan-500" vid="64"></div>
+                        <span class="font-mono text-[9px] uppercase tracking-wider text-cyan-400" vid="65">Filed</span>
+                    </div>
+                </div>
+                <div class="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="66">
+                    <div class="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="67"></div>
+                    <i class="ph ph-leaf text-charcoal-200 text-4xl z-10" vid="68"></i>
+                    <div class="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="69">SEM_CAST</div>
+                </div>
+                <div class="text-xs text-textmain leading-snug tracking-tight" vid="70">Lotus leaf micro-texture casts</div>
+                <div class="flex flex-col gap-2 mt-1" vid="71">
+                    <div class="flex items-center gap-1.5 text-textmuted" vid="72">
+                        <i class="ph ph-crosshair text-xs" vid="73"></i>
+                        <span class="font-mono text-[10px]" vid="74">unknown</span>
+                    </div>
+                    <div class="flex gap-2" vid="75">
+                        <span class="font-mono text-[9px] text-textdim" vid="76">[hydrophobic]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="77">[surface]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="78">[SEM]</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="79">
+                <div class="flex justify-between items-start" vid="80">
+                    <div class="font-mono text-sm text-textmain font-medium" vid="81">SP-9938-D</div>
+                    <div class="flex items-center gap-1.5 px-1.5 py-0.5 bg-rose-950/30 border border-rose-900/50" vid="82">
+                        <div class="w-1.5 h-1.5 bg-rose-500" vid="83"></div>
+                        <span class="font-mono text-[9px] uppercase tracking-wider text-rose-400" vid="84">Dead</span>
+                    </div>
+                </div>
+                <div class="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="85">
+                    <div class="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="86"></div>
+                    <i class="ph ph-warning-octagon text-charcoal-200 text-4xl z-10" vid="87"></i>
+                    <div class="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="88">FAILED_ASSET</div>
+                </div>
+                <div class="text-xs text-textmain leading-snug tracking-tight" vid="89">Moth eye nano-pillar degradation</div>
+                <div class="flex flex-col gap-2 mt-1" vid="90">
+                    <div class="flex items-center gap-1.5 text-textmuted" vid="91">
+                        <i class="ph ph-crosshair text-xs" vid="92"></i>
+                        <span class="font-mono text-[10px]" vid="93">-15.322, 45.112</span>
+                    </div>
+                    <div class="flex gap-2" vid="94">
+                        <span class="font-mono text-[9px] text-textdim" vid="95">[photonic]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="96">[decay]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="97">[failure-an]</span>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <div class="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="98">
+                <div class="flex justify-between items-start" vid="99">
+                    <div class="font-mono text-sm text-textmain font-medium" vid="100">SP-9945-Z</div>
+                    <div class="flex items-center gap-1.5 px-1.5 py-0.5 bg-emerald-950/30 border border-emerald-900/50" vid="101">
+                        <div class="w-1.5 h-1.5 bg-emerald-500" vid="102"></div>
+                        <span class="font-mono text-[9px] uppercase tracking-wider text-emerald-400" vid="103">Working</span>
+                    </div>
+                </div>
+                <div class="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="104">
+                    <div class="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="105"></div>
+                    <i class="ph ph-paw-prints text-charcoal-200 text-4xl z-10" vid="106"></i>
+                    <div class="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="107">STRESS_TEST</div>
+                </div>
+                <div class="text-xs text-textmain leading-snug tracking-tight" vid="108">Gecko seta adhesion stress test</div>
+                <div class="flex flex-col gap-2 mt-1" vid="109">
+                    <div class="flex items-center gap-1.5 text-textmuted" vid="110">
+                        <i class="ph ph-crosshair text-xs" vid="111"></i>
+                        <span class="font-mono text-[10px]" vid="112">unknown</span>
+                    </div>
+                    <div class="flex gap-2" vid="113">
+                        <span class="font-mono text-[9px] text-textdim" vid="114">[vdw-force]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="115">[tensile]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="116">[adhesion]</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="bg-charcoal-500 border border-charcoal-300 p-3 flex flex-col gap-3 hover:border-charcoal-100 transition-colors cursor-pointer group" vid="117">
+                <div class="flex justify-between items-start" vid="118">
+                    <div class="font-mono text-sm text-textmain font-medium" vid="119">SP-9946-W</div>
+                    <div class="flex items-center gap-1.5 px-1.5 py-0.5 bg-amber-950/30 border border-amber-900/50" vid="120">
+                        <div class="w-1.5 h-1.5 bg-amber-500" vid="121"></div>
+                        <span class="font-mono text-[9px] uppercase tracking-wider text-amber-400" vid="122">Raw</span>
+                    </div>
+                </div>
+                <div class="w-full h-40 bg-void border border-charcoal-200 relative overflow-hidden flex items-center justify-center" vid="123">
+                    <div class="absolute inset-0 bg-gradient-to-b from-charcoal-500 to-void opacity-50" vid="124"></div>
+                    <i class="ph ph-bird text-charcoal-200 text-4xl z-10" vid="125"></i>
+                    <div class="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10" vid="126">HYDRO_SIM</div>
+                </div>
+                <div class="text-xs text-textmain leading-snug tracking-tight" vid="127">Kingfisher beak penetration hydrodynamics</div>
+                <div class="flex flex-col gap-2 mt-1" vid="128">
+                    <div class="flex items-center gap-1.5 text-textmuted" vid="129">
+                        <i class="ph ph-crosshair text-xs" vid="130"></i>
+                        <span class="font-mono text-[10px]" vid="131">51.5074, -0.1278</span>
+                    </div>
+                    <div class="flex gap-2" vid="132">
+                        <span class="font-mono text-[9px] text-textdim" vid="133">[fluidic]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="134">[impact]</span>
+                        <span class="font-mono text-[9px] text-textdim" vid="135">[morphology]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    
+    <main class="flex-1 flex flex-col bg-charcoal-600 relative z-10 min-w-0" vid="136">
+        
+        
+        <div class="h-32 border-b border-charcoal-300 p-4 shrink-0 bg-void relative z-20" vid="137">
+            <div class="w-full h-full border border-dashed border-charcoal-200 bg-charcoal-600 hover:bg-charcoal-500 hover:border-textdim transition-all cursor-crosshair flex flex-col items-center justify-center gap-2 group corner-brackets" vid="138">
+                <i class="ph ph-scan text-textdim text-2xl group-hover:text-cyan-500 transition-colors" vid="139"></i>
+                <span class="font-mono text-[11px] text-textdim uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors" vid="140">Initiate Intake Sequence // Drop Telemetry Data</span>
+            </div>
+        </div>
+
+        
+        <div class="flex-1 flex min-h-0" vid="141">
+            
+            
+            <div class="flex-1 border-r border-charcoal-300 p-6 flex flex-col relative overflow-hidden bg-void" vid="142">
+                
+                <div class="absolute inset-0 grid-bg opacity-30 pointer-events-none" vid="143"></div>
+
+                
+                <header class="flex justify-between items-start mb-6 z-10" vid="144">
+                    <div vid="145">
+                        <h1 class="font-mono text-3xl text-textmain tracking-tight" vid="146">SP-9942-X</h1>
+                        <p class="font-sans text-textmuted mt-1 tracking-tight text-sm" vid="147">Pangolin scale articulation model</p>
+                    </div>
+                    <div class="flex gap-3" vid="148">
+                        <button class="px-4 py-1.5 bg-void border border-charcoal-200 text-textmuted hover:text-textmain hover:border-charcoal-100 font-mono text-[11px] uppercase tracking-widest transition-colors" vid="149">Export DB</button>
+                        <button class="px-4 py-1.5 bg-void border border-emerald-900/50 text-emerald-500 hover:bg-emerald-950/20 hover:border-emerald-700 font-mono text-[11px] uppercase tracking-widest transition-colors" vid="150">Run Sim</button>
+                    </div>
+                </header>
+
+                
+                <div class="flex-1 border border-charcoal-300 bg-void relative flex items-center justify-center overflow-hidden z-10 corner-brackets" vid="151">
+                    
+                    
+                    <div class="absolute top-3 left-3 font-mono text-[10px] text-textdim" vid="152">VIEWPORT_XZ</div>
+                    <div class="absolute top-3 right-3 font-mono text-[10px] text-textdim" vid="153">MAG: 400x</div>
+                    <div class="absolute bottom-3 left-3 font-mono text-[10px] text-textdim flex items-center gap-2" vid="154">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" vid="155"></div>
+                        ACTIVE_RENDER
+                    </div>
+                    <div class="absolute bottom-3 right-3 font-mono text-[10px] text-textdim" vid="156">R: 0.992</div>
+
+                    
+                    <div class="relative w-[400px] h-[400px] flex items-center justify-center" vid="157">
+                        
+                        <div class="absolute inset-0 border border-dashed border-charcoal-200 rounded-full animate-[spin_60s_linear_infinite] opacity-50" vid="158"></div>
+                        
+                        <div class="absolute inset-8 border border-charcoal-300 rounded-full flex items-center justify-center" vid="159">
+                            <svg width="240" height="240" viewBox="0 0 100 100" class="text-charcoal-200 fill-none stroke-current opacity-80" stroke-width="0.5" vid="160">
+                                <path d="M50 10 L90 30 L90 70 L50 90 L10 70 L10 30 Z" stroke-dasharray="2 2" class="animate-[spin_40s_linear_infinite_reverse] origin-center" vid="161"></path>
+                                <path d="M50 20 L80 35 L80 65 L50 80 L20 65 L20 35 Z" vid="162"></path>
+                                <path d="M50 30 L70 40 L70 60 L50 70 L30 60 L30 40 Z" stroke-dasharray="1 3" vid="163"></path>
+                                <circle cx="50" cy="50" r="10" class="stroke-emerald-900" vid="164"></circle>
+                                <line x1="50" y1="10" x2="50" y2="90" stroke-opacity="0.5" vid="165"></line>
+                                <line x1="10" y1="30" x2="90" y2="70" stroke-opacity="0.5" vid="166"></line>
+                                <line x1="10" y1="70" x2="90" y2="30" stroke-opacity="0.5" vid="167"></line>
+                            </svg>
+                        </div>
+                        
+                        <div class="w-1 h-1 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] z-20" vid="168"></div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="w-[340px] shrink-0 bg-void flex flex-col z-20" vid="169">
+                <div class="h-10 border-b border-charcoal-300 flex items-center px-4 shrink-0 bg-charcoal-600" vid="170">
+                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-textmuted" vid="171">Properties Log</span>
+                </div>
+                
+                <div class="flex-1 p-5 space-y-8 overflow-y-auto custom-scrollbar" vid="172">
+                    
+                    
+                    <div class="space-y-3" vid="173">
+                        <div class="flex items-center justify-between border-b border-charcoal-300 pb-1.5" vid="174">
+                            <span class="font-mono text-[10px] uppercase tracking-widest text-textdim" vid="175">Classification</span>
+                            <i class="ph ph-dna text-textdim" vid="176"></i>
+                        </div>
+                        <div class="space-y-1.5 font-mono text-xs" vid="177">
+                            <div class="flex justify-between" vid="178">
+                                <span class="text-textmuted" vid="179">Phylum</span>
+                                <span class="text-textmain" vid="180">Chordata</span>
+                            </div>
+                            <div class="flex justify-between" vid="181">
+                                <span class="text-textmuted" vid="182">Class</span>
+                                <span class="text-textmain" vid="183">Mammalia</span>
+                            </div>
+                            <div class="flex justify-between" vid="184">
+                                <span class="text-textmuted" vid="185">Order</span>
+                                <span class="text-textmain" vid="186">Pholidota</span>
+                            </div>
+                            <div class="flex justify-between" vid="187">
+                                <span class="text-textmuted" vid="188">Family</span>
+                                <span class="text-textmain" vid="189">Manidae</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="space-y-3" vid="190">
+                        <div class="flex items-center justify-between border-b border-charcoal-300 pb-1.5" vid="191">
+                            <span class="font-mono text-[10px] uppercase tracking-widest text-textdim" vid="192">Structural Metrics</span>
+                            <i class="ph ph-hexagon text-textdim" vid="193"></i>
+                        </div>
+                        <div class="space-y-1.5 font-mono text-xs" vid="194">
+                            <div class="flex justify-between" vid="195">
+                                <span class="text-textmuted" vid="196">Tensile_Str</span>
+                                <span class="text-textmain" vid="197">120.4 MPa</span>
+                            </div>
+                            <div class="flex justify-between" vid="198">
+                                <span class="text-textmuted" vid="199">Density</span>
+                                <span class="text-textmain" vid="200">1.33 g/cm³</span>
+                            </div>
+                            <div class="flex justify-between" vid="201">
+                                <span class="text-textmuted" vid="202">Hardness_HV</span>
+                                <span class="text-textmain" vid="203">450</span>
+                            </div>
+                            <div class="flex justify-between" vid="204">
+                                <span class="text-textmuted" vid="205">Overlap_Idx</span>
+                                <span class="text-textmain" vid="206">0.85</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 p-2 bg-charcoal-500 border border-charcoal-300 font-mono text-[10px] text-emerald-400 flex items-start gap-2" vid="207">
+                            <i class="ph ph-check-circle mt-0.5" vid="208"></i>
+                            <span vid="209">Metrics within standard operational parameters for armor analogs.</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="space-y-3" vid="210">
+                        <div class="flex items-center justify-between border-b border-charcoal-300 pb-1.5" vid="211">
+                            <span class="font-mono text-[10px] uppercase tracking-widest text-textdim" vid="212">Observation Log</span>
+                            <i class="ph ph-terminal-window text-textdim" vid="213"></i>
+                        </div>
+                        <div class="font-sans text-xs text-textmuted leading-relaxed tracking-tight space-y-3" vid="214">
+                            <p vid="215">
+                                Scales demonstrate highly ordered overlapping keratin matrices. Structural flexibility is perfectly maintained during defensive curling posturing while resisting lateral puncture vectors.
+                            </p>
+                            <p vid="216">
+                                Analysis of scale edges suggests a self-sharpening mechanism under constant abrasion, highly relevant for dynamic excavation tools.
+                            </p>
+                        </div>
+                        <div class="font-mono text-[10px] text-textdim border-t border-charcoal-300 pt-2 flex justify-between" vid="217">
+                            <span vid="218">LAST_UPDATED</span>
+                            <span vid="219">2024-10-24 14:32</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+</body></html>

@@ -1,0 +1,38 @@
+{
+  "_tag": "LabEntity",
+  "ref": "gbg:run:doctor:pr57-fixture",
+  "kind": "run",
+  "label": "mantis doctor (PR 57 wrap)",
+  "class": "unverified",
+  "bytes": {
+    "gitSha": "0f07f02ec587c8d8f3228cff3b6d193ec311363f"
+  },
+  "payloadSchemaId": "urn:specimendb:biomemetics:mantis:environment-doctor-report:v1",
+  "payload": {
+    "schemaVersion": "1.0.0",
+    "kind": "MantisEnvironmentDoctorReport",
+    "command": "mantis doctor",
+    "startedAt": "2026-08-20T00:00:00.000Z",
+    "completedAt": "2026-08-20T00:00:01.000Z",
+    "ok": false,
+    "failed": ["fixture-only"],
+    "runner": {
+      "identityClass": "cursor-cloud",
+      "shell": null,
+      "isolationRoot": "/tmp/specimendb-provenance-fixture"
+    },
+    "lab": {
+      "repositoryPath": "projects/biomemetics/labs/mantis",
+      "flakeLock": {},
+      "git": {
+        "head": "0f07f02ec587c8d8f3228cff3b6d193ec311363f"
+      },
+      "nix": {}
+    },
+    "tools": {},
+    "shells": [],
+    "checks": [],
+    "fixtures": [],
+    "blockers": []
+  }
+}

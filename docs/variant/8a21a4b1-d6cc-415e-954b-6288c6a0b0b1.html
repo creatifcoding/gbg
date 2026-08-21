@@ -1,0 +1,1490 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">SpecimenDB Terminal</title>
+    
+    <style vid="6">
+        
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000000;
+            border-left: 1px solid #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333333;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555555;
+        }
+
+        
+        .tech-grid {
+            background-size: 24px 24px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+        
+        .terminal-blink {
+            animation: blink 1s step-end infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+    
+
+  <style type="text/css">
+*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  tab-size: 4; /* 3 */
+  font-family: Inter, system-ui, sans-serif; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.pointer-events-none {
+  pointer-events: none;
+}
+.absolute {
+  position: absolute;
+}
+.relative {
+  position: relative;
+}
+.inset-0 {
+  inset: 0px;
+}
+.bottom-2 {
+  bottom: 0.5rem;
+}
+.left-4 {
+  left: 1rem;
+}
+.right-2 {
+  right: 0.5rem;
+}
+.top-4 {
+  top: 1rem;
+}
+.z-10 {
+  z-index: 10;
+}
+.z-20 {
+  z-index: 20;
+}
+.col-span-2 {
+  grid-column: span 2 / span 2;
+}
+.mb-4 {
+  margin-bottom: 1rem;
+}
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+.mt-1 {
+  margin-top: 0.25rem;
+}
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.mt-6 {
+  margin-top: 1.5rem;
+}
+.flex {
+  display: flex;
+}
+.inline-flex {
+  display: inline-flex;
+}
+.grid {
+  display: grid;
+}
+.h-1\.5 {
+  height: 0.375rem;
+}
+.h-14 {
+  height: 3.5rem;
+}
+.h-20 {
+  height: 5rem;
+}
+.h-40 {
+  height: 10rem;
+}
+.h-52 {
+  height: 13rem;
+}
+.h-64 {
+  height: 16rem;
+}
+.h-full {
+  height: 100%;
+}
+.h-screen {
+  height: 100vh;
+}
+.min-h-\[400px\] {
+  min-height: 400px;
+}
+.w-1\.5 {
+  width: 0.375rem;
+}
+.w-\[420px\] {
+  width: 420px;
+}
+.w-full {
+  width: 100%;
+}
+.w-screen {
+  width: 100vw;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.shrink-0 {
+  flex-shrink: 0;
+}
+.cursor-crosshair {
+  cursor: crosshair;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.auto-rows-min {
+  grid-auto-rows: min-content;
+}
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.flex-col {
+  flex-direction: column;
+}
+.content-start {
+  align-content: flex-start;
+}
+.items-start {
+  align-items: flex-start;
+}
+.items-end {
+  align-items: flex-end;
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-1\.5 {
+  gap: 0.375rem;
+}
+.gap-10 {
+  gap: 2.5rem;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.gap-6 {
+  gap: 1.5rem;
+}
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+.rounded-none {
+  border-radius: 0px;
+}
+.border {
+  border-width: 1px;
+}
+.border-b {
+  border-bottom-width: 1px;
+}
+.border-l {
+  border-left-width: 1px;
+}
+.border-r {
+  border-right-width: 1px;
+}
+.border-dashed {
+  border-style: dashed;
+}
+.border-\[\#222\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(34 34 34 / var(--tw-border-opacity, 1));
+}
+.border-\[\#301010\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(48 16 16 / var(--tw-border-opacity, 1));
+}
+.border-\[\#333\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(51 51 51 / var(--tw-border-opacity, 1));
+}
+.border-border {
+  --tw-border-opacity: 1;
+  border-color: rgb(38 38 38 / var(--tw-border-opacity, 1));
+}
+.border-dead-rose\/30 {
+  border-color: rgb(244 63 94 / 0.3);
+}
+.border-filed-cyan\/30 {
+  border-color: rgb(6 182 212 / 0.3);
+}
+.border-raw-amber\/30 {
+  border-color: rgb(245 158 11 / 0.3);
+}
+.border-work-emerald\/30 {
+  border-color: rgb(16 185 129 / 0.3);
+}
+.bg-\[\#080505\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(8 5 5 / var(--tw-bg-opacity, 1));
+}
+.bg-black {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
+}
+.bg-card {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 17 17 / var(--tw-bg-opacity, 1));
+}
+.bg-charcoal {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+}
+.bg-dead-rose\/10 {
+  background-color: rgb(244 63 94 / 0.1);
+}
+.bg-filed-cyan\/10 {
+  background-color: rgb(6 182 212 / 0.1);
+}
+.bg-raw-amber\/10 {
+  background-color: rgb(245 158 11 / 0.1);
+}
+.bg-void {
+  --tw-bg-opacity: 1;
+  background-color: rgb(3 3 3 / var(--tw-bg-opacity, 1));
+}
+.bg-work-emerald {
+  --tw-bg-opacity: 1;
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
+}
+.bg-work-emerald\/10 {
+  background-color: rgb(16 185 129 / 0.1);
+}
+.bg-\[linear-gradient\(90deg\2c rgba\(255\2c 255\2c 255\2c 0\.03\)_1px\2c transparent_1px\)\] {
+  background-image: linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);
+}
+.bg-\[linear-gradient\(rgba\(255\2c 255\2c 255\2c 0\.03\)_1px\2c transparent_1px\)\] {
+  background-image: linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px);
+}
+.bg-\[size\:10\%_100\%\] {
+  background-size: 10% 100%;
+}
+.bg-\[size\:100\%_20\%\] {
+  background-size: 100% 20%;
+}
+.p-3 {
+  padding: 0.75rem;
+}
+.p-4 {
+  padding: 1rem;
+}
+.p-8 {
+  padding: 2rem;
+}
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.px-5 {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+.px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+.pb-3 {
+  padding-bottom: 0.75rem;
+}
+.text-right {
+  text-align: right;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.font-sans {
+  font-family: Inter, system-ui, sans-serif;
+}
+.text-\[10px\] {
+  font-size: 10px;
+}
+.text-\[11px\] {
+  font-size: 11px;
+}
+.text-\[13px\] {
+  font-size: 13px;
+}
+.text-\[14px\] {
+  font-size: 14px;
+}
+.text-\[8px\] {
+  font-size: 8px;
+}
+.text-\[9px\] {
+  font-size: 9px;
+}
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.font-bold {
+  font-weight: 700;
+}
+.font-medium {
+  font-weight: 500;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.leading-relaxed {
+  line-height: 1.625;
+}
+.leading-snug {
+  line-height: 1.375;
+}
+.leading-tight {
+  line-height: 1.25;
+}
+.tracking-\[0\.2em\] {
+  letter-spacing: 0.2em;
+}
+.tracking-tight {
+  letter-spacing: -.025em;
+}
+.tracking-wider {
+  letter-spacing: .05em;
+}
+.tracking-widest {
+  letter-spacing: .1em;
+}
+.text-\[\#222\] {
+  --tw-text-opacity: 1;
+  color: rgb(34 34 34 / var(--tw-text-opacity, 1));
+}
+.text-\[\#301010\] {
+  --tw-text-opacity: 1;
+  color: rgb(48 16 16 / var(--tw-text-opacity, 1));
+}
+.text-\[\#444\] {
+  --tw-text-opacity: 1;
+  color: rgb(68 68 68 / var(--tw-text-opacity, 1));
+}
+.text-\[\#502020\] {
+  --tw-text-opacity: 1;
+  color: rgb(80 32 32 / var(--tw-text-opacity, 1));
+}
+.text-\[\#555\] {
+  --tw-text-opacity: 1;
+  color: rgb(85 85 85 / var(--tw-text-opacity, 1));
+}
+.text-\[\#666\] {
+  --tw-text-opacity: 1;
+  color: rgb(102 102 102 / var(--tw-text-opacity, 1));
+}
+.text-\[\#777\] {
+  --tw-text-opacity: 1;
+  color: rgb(119 119 119 / var(--tw-text-opacity, 1));
+}
+.text-\[\#888\] {
+  --tw-text-opacity: 1;
+  color: rgb(136 136 136 / var(--tw-text-opacity, 1));
+}
+.text-\[\#999\] {
+  --tw-text-opacity: 1;
+  color: rgb(153 153 153 / var(--tw-text-opacity, 1));
+}
+.text-\[\#a3a3a3\] {
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity, 1));
+}
+.text-\[\#c0c0c0\] {
+  --tw-text-opacity: 1;
+  color: rgb(192 192 192 / var(--tw-text-opacity, 1));
+}
+.text-\[\#d4d4d4\] {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 212 / var(--tw-text-opacity, 1));
+}
+.text-\[\#e5e5e5\] {
+  --tw-text-opacity: 1;
+  color: rgb(229 229 229 / var(--tw-text-opacity, 1));
+}
+.text-dead-rose {
+  --tw-text-opacity: 1;
+  color: rgb(244 63 94 / var(--tw-text-opacity, 1));
+}
+.text-filed-cyan {
+  --tw-text-opacity: 1;
+  color: rgb(6 182 212 / var(--tw-text-opacity, 1));
+}
+.text-raw-amber {
+  --tw-text-opacity: 1;
+  color: rgb(245 158 11 / var(--tw-text-opacity, 1));
+}
+.text-work-emerald {
+  --tw-text-opacity: 1;
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
+.line-through {
+  text-decoration-line: line-through;
+}
+.decoration-\[\#444\] {
+  text-decoration-color: #444;
+}
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.opacity-50 {
+  opacity: 0.5;
+}
+.opacity-80 {
+  opacity: 0.8;
+}
+.shadow-\[0_0_10px_rgba\(16\2c 185\2c 129\2c 0\.1\)\] {
+  --tw-shadow: 0 0 10px rgba(16,185,129,0.1);
+  --tw-shadow-colored: 0 0 10px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_10px_rgba\(244\2c 63\2c 94\2c 0\.1\)\] {
+  --tw-shadow: 0 0 10px rgba(244,63,94,0.1);
+  --tw-shadow-colored: 0 0 10px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_10px_rgba\(245\2c 158\2c 11\2c 0\.1\)\] {
+  --tw-shadow: 0 0 10px rgba(245,158,11,0.1);
+  --tw-shadow-colored: 0 0 10px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_10px_rgba\(6\2c 182\2c 212\2c 0\.1\)\] {
+  --tw-shadow: 0 0 10px rgba(6,182,212,0.1);
+  --tw-shadow-colored: 0 0 10px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_0_6px_\#10b981\] {
+  --tw-shadow: 0 0 6px #10b981;
+  --tw-shadow-colored: 0 0 6px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_4px_20px_rgba\(0\2c 0\2c 0\2c 0\.5\)\] {
+  --tw-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  --tw-shadow-colored: 0 4px 20px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[4px_0_24px_rgba\(0\2c 0\2c 0\2c 0\.8\)\] {
+  --tw-shadow: 4px 0 24px rgba(0,0,0,0.8);
+  --tw-shadow-colored: 4px 0 24px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.grayscale {
+  --tw-grayscale: grayscale(100%);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-opacity {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.selection\:bg-filed-cyan *::selection {
+  --tw-bg-opacity: 1;
+  background-color: rgb(6 182 212 / var(--tw-bg-opacity, 1));
+}
+.selection\:text-black *::selection {
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity, 1));
+}
+.selection\:bg-filed-cyan::selection {
+  --tw-bg-opacity: 1;
+  background-color: rgb(6 182 212 / var(--tw-bg-opacity, 1));
+}
+.selection\:text-black::selection {
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity, 1));
+}
+.hover\:border-border-hover:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(64 64 64 / var(--tw-border-opacity, 1));
+}
+.hover\:border-work-emerald\/50:hover {
+  border-color: rgb(16 185 129 / 0.5);
+}
+.hover\:bg-\[\#05120a\]:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 18 10 / var(--tw-bg-opacity, 1));
+}
+.hover\:opacity-100:hover {
+  opacity: 1;
+}
+.group:hover .group-hover\:text-\[\#333\] {
+  --tw-text-opacity: 1;
+  color: rgb(51 51 51 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-\[\#401515\] {
+  --tw-text-opacity: 1;
+  color: rgb(64 21 21 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-\[\#e5e5e5\] {
+  --tw-text-opacity: 1;
+  color: rgb(229 229 229 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-work-emerald {
+  --tw-text-opacity: 1;
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
+.group:hover .group-hover\:text-work-emerald\/70 {
+  color: rgb(16 185 129 / 0.7);
+}
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+@media (min-width: 768px) {
+
+  .md\:col-span-3 {
+    grid-column: span 3 / span 3;
+  }
+
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1280px) {
+
+  .xl\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
+  .xl\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
+  .xl\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}* {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  </style></head>
+<body class="bg-black text-[#d4d4d4] font-sans h-screen w-screen overflow-hidden flex selection:bg-filed-cyan selection:text-black" vid="8">
+
+    
+    <aside class="w-[420px] h-full flex flex-col border-r border-border bg-void shrink-0 z-10 relative shadow-[4px_0_24px_rgba(0,0,0,0.8)]" vid="9">
+        
+        
+        <header class="h-14 px-5 border-b border-border flex items-center justify-between shrink-0 bg-black" vid="10">
+            <div class="flex items-center gap-3" vid="11">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" class="text-[#666]" vid="12">
+                    <rect x="3" y="3" width="18" height="18" vid="13"></rect>
+                    <path d="M3 9h18" vid="14"></path>
+                    <path d="M9 21V9" vid="15"></path>
+                </svg>
+                <h1 class="font-mono text-[11px] uppercase tracking-widest text-[#a3a3a3]" vid="16">Local Catalog</h1>
+            </div>
+            <div class="font-mono text-[10px] text-[#666] tracking-wider" vid="17">
+                VOL: 04
+            </div>
+        </header>
+
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-4" vid="18">
+            
+            
+            <article class="bg-card border border-border hover:border-border-hover transition-colors rounded-none group cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="19">
+                
+                <div class="w-full h-52 bg-charcoal relative overflow-hidden border-b border-border tech-grid" vid="20">
+                    <div class="absolute inset-0 flex items-center justify-center text-[#222] group-hover:text-[#333] transition-colors" vid="21">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="square" vid="22">
+                            <rect x="3" y="3" width="18" height="18" vid="23"></rect>
+                            <circle cx="12" cy="12" r="4" vid="24"></circle>
+                            <path d="M12 8v8" vid="25"></path>
+                            <path d="M8 12h8" vid="26"></path>
+                        </svg>
+                    </div>
+                    
+                    <div class="absolute bottom-2 right-2 font-mono text-[9px] text-[#444]" vid="27">
+                        IMG_SRC: OPTICAL_01
+                    </div>
+                </div>
+                
+                
+                <div class="p-4 flex flex-col gap-3" vid="28">
+                    
+                    <div class="flex justify-between items-start" vid="29">
+                        <div class="inline-flex items-center px-2 py-0.5 border border-work-emerald/30 bg-work-emerald/10 text-work-emerald text-[9px] font-mono uppercase tracking-widest font-semibold shadow-[0_0_10px_rgba(16,185,129,0.1)]" vid="30">
+                            WORKING
+                        </div>
+                        <div class="text-[10px] font-mono text-[#666] text-right leading-tight tracking-wider" vid="31">
+                            34°02'11"N<br vid="32">118°17'28"W
+                        </div>
+                    </div>
+                    
+                    
+                    <p class="text-[13px] text-[#e5e5e5] leading-snug tracking-tight font-medium mt-1" vid="33">
+                        Epidermal chromatophore response isolation in high-UV environmental stress conditions.
+                    </p>
+                    
+                    
+                    <div class="flex gap-2 mt-1" vid="34">
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="35">PIGMENT</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="36">UV-RES</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="37">IN-VITRO</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-card border border-border hover:border-border-hover transition-colors rounded-none group cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="38">
+                
+                <div class="w-full h-52 bg-charcoal relative overflow-hidden border-b border-border tech-grid" vid="39">
+                    <div class="absolute inset-0 flex items-center justify-center text-[#222] group-hover:text-[#333] transition-colors" vid="40">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="square" vid="41">
+                            <rect x="3" y="3" width="18" height="18" vid="42"></rect>
+                            <circle cx="12" cy="12" r="4" vid="43"></circle>
+                            <path d="M12 8v8" vid="44"></path>
+                            <path d="M8 12h8" vid="45"></path>
+                        </svg>
+                    </div>
+                    <div class="absolute bottom-2 right-2 font-mono text-[9px] text-[#444]" vid="46">
+                        IMG_SRC: SCAN_MACRO
+                    </div>
+                </div>
+                
+                
+                <div class="p-4 flex flex-col gap-3" vid="47">
+                    
+                    <div class="flex justify-between items-start" vid="48">
+                        <div class="inline-flex items-center px-2 py-0.5 border border-raw-amber/30 bg-raw-amber/10 text-raw-amber text-[9px] font-mono uppercase tracking-widest font-semibold shadow-[0_0_10px_rgba(245,158,11,0.1)]" vid="49">
+                            RAW
+                        </div>
+                        <div class="text-[10px] font-mono text-[#444] text-right leading-tight tracking-wider" vid="50">
+                            UNKNOWN
+                        </div>
+                    </div>
+                    
+                    
+                    <p class="text-[13px] text-[#c0c0c0] leading-snug tracking-tight mt-1" vid="51">
+                        Initial morphological scan of deep-sea chitinous exoskeleton fragment. Unclassified structural anomalies.
+                    </p>
+                    
+                    
+                    <div class="flex gap-2 mt-1" vid="52">
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="53">BENTHIC</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="54">CHITIN</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="55">SCAN</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-card border border-border hover:border-border-hover transition-colors rounded-none group cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)]" vid="56">
+                
+                <div class="w-full h-52 bg-charcoal relative overflow-hidden border-b border-border tech-grid" vid="57">
+                    <div class="absolute inset-0 flex items-center justify-center text-[#222] group-hover:text-[#333] transition-colors" vid="58">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="square" vid="59">
+                            <rect x="3" y="3" width="18" height="18" vid="60"></rect>
+                            <circle cx="12" cy="12" r="4" vid="61"></circle>
+                            <path d="M12 8v8" vid="62"></path>
+                            <path d="M8 12h8" vid="63"></path>
+                        </svg>
+                    </div>
+                    <div class="absolute bottom-2 right-2 font-mono text-[9px] text-[#444]" vid="64">
+                        IMG_SRC: FIELD_09
+                    </div>
+                </div>
+                
+                
+                <div class="p-4 flex flex-col gap-3" vid="65">
+                    
+                    <div class="flex justify-between items-start" vid="66">
+                        <div class="inline-flex items-center px-2 py-0.5 border border-filed-cyan/30 bg-filed-cyan/10 text-filed-cyan text-[9px] font-mono uppercase tracking-widest font-semibold shadow-[0_0_10px_rgba(6,182,212,0.1)]" vid="67">
+                            FILED
+                        </div>
+                        <div class="text-[10px] font-mono text-[#666] text-right leading-tight tracking-wider" vid="68">
+                            18°55'42"N<br vid="69">155°41'10"W
+                        </div>
+                    </div>
+                    
+                    
+                    <p class="text-[13px] text-[#999] leading-snug tracking-tight mt-1" vid="70">
+                        Cataloged baseline metabolic telemetry data for volcanic vent proximity species.
+                    </p>
+                    
+                    
+                    <div class="flex gap-2 mt-1" vid="71">
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#666] text-[9px] font-mono uppercase tracking-widest" vid="72">METABOLIC</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#666] text-[9px] font-mono uppercase tracking-widest" vid="73">VENT</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#666] text-[9px] font-mono uppercase tracking-widest" vid="74">BASE</span>
+                    </div>
+                </div>
+            </article>
+
+            
+            <article class="bg-card border border-border hover:border-border-hover transition-colors rounded-none group cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.5)] opacity-80 hover:opacity-100" vid="75">
+                
+                <div class="w-full h-52 bg-[#080505] relative overflow-hidden border-b border-[#301010] tech-grid" vid="76">
+                    <div class="absolute inset-0 flex items-center justify-center text-[#301010] group-hover:text-[#401515] transition-colors" vid="77">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="square" vid="78">
+                            <rect x="3" y="3" width="18" height="18" vid="79"></rect>
+                            <line x1="9" y1="9" x2="15" y2="15" vid="80"></line>
+                            <line x1="15" y1="9" x2="9" y2="15" vid="81"></line>
+                        </svg>
+                    </div>
+                    <div class="absolute bottom-2 right-2 font-mono text-[9px] text-[#502020]" vid="82">
+                        IMG_SRC: ERR_NULL
+                    </div>
+                </div>
+                
+                
+                <div class="p-4 flex flex-col gap-3" vid="83">
+                    
+                    <div class="flex justify-between items-start" vid="84">
+                        <div class="inline-flex items-center px-2 py-0.5 border border-dead-rose/30 bg-dead-rose/10 text-dead-rose text-[9px] font-mono uppercase tracking-widest font-semibold shadow-[0_0_10px_rgba(244,63,94,0.1)]" vid="85">
+                            DEAD
+                        </div>
+                        <div class="text-[10px] font-mono text-[#555] text-right leading-tight tracking-wider" vid="86">
+                            45°17'38"N<br vid="87">121°41'52"W
+                        </div>
+                    </div>
+                    
+                    
+                    <p class="text-[13px] text-[#777] leading-snug tracking-tight mt-1 line-through decoration-[#444]" vid="88">
+                        Specimen degradation exceeding viable analysis thresholds due to acute thermal shock.
+                    </p>
+                    
+                    
+                    <div class="flex gap-2 mt-1" vid="89">
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#555] text-[9px] font-mono uppercase tracking-widest" vid="90">DEGRADED</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#555] text-[9px] font-mono uppercase tracking-widest" vid="91">THERMAL</span>
+                        <span class="px-1.5 py-0.5 bg-black border border-[#222] text-[#555] text-[9px] font-mono uppercase tracking-widest" vid="92">ARCHIVE</span>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+    </aside>
+
+    
+    <main class="flex-1 h-full flex flex-col bg-black relative" vid="93">
+        
+        
+        <header class="h-14 px-8 border-b border-border flex items-center justify-between bg-black z-20" vid="94">
+            <div class="flex items-center gap-6 font-mono text-[11px] uppercase tracking-widest" vid="95">
+                <span class="text-[#e5e5e5] font-bold" vid="96">SPECIMEN_DB</span>
+                <span class="text-[#555]" vid="97">/</span>
+                <span class="text-[#888]" vid="98">SESSION_ID: 98A-F</span>
+            </div>
+            <div class="flex items-center gap-6 font-mono text-[10px] uppercase tracking-widest" vid="99">
+                <div class="flex items-center gap-2" vid="100">
+                    <div class="w-1.5 h-1.5 bg-work-emerald rounded-none shadow-[0_0_6px_#10b981]" vid="101"></div>
+                    <span class="text-work-emerald" vid="102">SYS_ONLINE</span>
+                </div>
+                <span class="text-[#555]" vid="103">SYNC_09:42:11Z</span>
+            </div>
+        </header>
+
+        
+        <div class="flex-1 overflow-y-auto p-8 flex flex-col gap-10" vid="104">
+            
+            
+            <section class="w-full shrink-0" vid="105">
+                <div class="w-full h-40 border border-[#333] border-dashed bg-charcoal flex flex-col items-center justify-center hover:border-work-emerald/50 hover:bg-[#05120a] transition-all cursor-crosshair group relative overflow-hidden" vid="106">
+                    
+                    <div class="absolute inset-0 tech-grid opacity-50 group-hover:opacity-100 transition-opacity" vid="107"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center" vid="108">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" class="text-[#666] group-hover:text-work-emerald transition-colors mb-4" vid="109">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" vid="110"></path>
+                            <polyline points="17 8 12 3 7 8" vid="111"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15" vid="112"></line>
+                        </svg>
+                        <h2 class="font-mono text-xs tracking-[0.2em] text-[#a3a3a3] group-hover:text-[#e5e5e5] uppercase font-semibold" vid="113">
+                            Initiate_Intake_Protocol
+                        </h2>
+                        <p class="font-mono text-[10px] tracking-wider text-[#555] mt-2 group-hover:text-work-emerald/70" vid="114">
+                            DROP FIELD MEDIA / RAW TELEMETRY HERE
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            
+            <section class="flex-1 flex flex-col" vid="115">
+                
+                
+                <div class="flex justify-between items-end border-b border-[#333] pb-3 mb-6" vid="116">
+                    <div class="flex items-center gap-3" vid="117">
+                        <span class="font-mono text-[14px] text-[#e5e5e5] uppercase tracking-widest font-bold" vid="118">
+                            &gt;&gt; SPC-88.94X
+                        </span>
+                        <span class="px-2 py-0.5 bg-card border border-border text-[#888] text-[9px] font-mono uppercase tracking-widest" vid="119">
+                            ANALYSIS_ACTIVE
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-work-emerald tracking-widest uppercase" vid="120">
+                        <span class="terminal-blink" vid="121">_</span>
+                        LIVE_FEED
+                    </div>
+                </div>
+
+                
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1" vid="122">
+                    
+                    
+                    <div class="xl:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-4 auto-rows-min content-start" vid="123">
+                        
+                        
+                        <div class="bg-card border border-border p-3 flex flex-col justify-between h-20" vid="124">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest" vid="125">Class / Order</div>
+                            <div class="text-xs font-mono text-[#d4d4d4] uppercase tracking-wider" vid="126">Cephalopoda / Teuthida</div>
+                        </div>
+
+                        
+                        <div class="bg-card border border-border p-3 flex flex-col justify-between h-20" vid="127">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest" vid="128">Extraction Vector</div>
+                            <div class="text-xs font-mono text-[#d4d4d4] uppercase tracking-wider" vid="129">Submersible / Arm_2</div>
+                        </div>
+
+                        
+                        <div class="bg-card border border-border p-3 flex flex-col justify-between h-20" vid="130">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest" vid="131">Thermal Base</div>
+                            <div class="text-xs font-mono text-[#d4d4d4] uppercase tracking-wider" vid="132">277.15 K (4°C)</div>
+                        </div>
+
+                        
+                        <div class="bg-card border border-border p-3 flex flex-col justify-between h-20" vid="133">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest" vid="134">Spectroscopy</div>
+                            <div class="text-xs font-mono text-work-emerald uppercase tracking-wider" vid="135">780nm-1100nm [IR]</div>
+                        </div>
+
+                        
+                        <div class="bg-card border border-border p-3 flex flex-col justify-between h-20" vid="136">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest" vid="137">Cellular Viability</div>
+                            <div class="text-xs font-mono text-[#d4d4d4] uppercase tracking-wider" vid="138">84.2% / DECLINING</div>
+                        </div>
+
+                        
+                        <div class="bg-card border border-border p-3 flex flex-col justify-between h-20" vid="139">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest" vid="140">Protocol ID</div>
+                            <div class="text-xs font-mono text-[#d4d4d4] uppercase tracking-wider" vid="141">ISO-CHROM-99A</div>
+                        </div>
+
+                        
+                        <div class="col-span-2 md:col-span-3 bg-black border border-border mt-2 h-64 relative p-4 flex flex-col" vid="142">
+                            <div class="text-[9px] font-mono text-[#555] uppercase tracking-widest mb-4 absolute top-4 left-4" vid="143">
+                                WAVEFORM_ANALYSIS // CHROMATOPHORE_REACTIVITY
+                            </div>
+                            
+                            <div class="flex-1 mt-6 border-b border-l border-[#333] relative" vid="144">
+                                
+                                <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100%_20%] pointer-events-none" vid="145"></div>
+                                <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:10%_100%] pointer-events-none" vid="146"></div>
+                                
+                                
+                                <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100" vid="147">
+                                    <polyline points="0,50 10,48 20,55 30,20 40,80 50,45 60,52 70,10 80,60 90,48 100,50" fill="none" stroke="#10b981" stroke-width="0.5" vector-effect="non-scaling-stroke" vid="148"></polyline>
+                                    <polyline points="0,70 20,68 40,75 60,65 80,72 100,70" fill="none" stroke="#06b6d4" stroke-width="0.2" stroke-opacity="0.5" vector-effect="non-scaling-stroke" vid="149"></polyline>
+                                </svg>
+                            </div>
+                            
+                            <div class="flex justify-between text-[8px] font-mono text-[#444] mt-1 uppercase" vid="150">
+                                <span vid="151">T+0ms</span>
+                                <span vid="152">T+500ms</span>
+                                <span vid="153">T+1000ms</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    
+                    <div class="xl:col-span-1 bg-void border border-border flex flex-col h-full min-h-[400px]" vid="154">
+                        <div class="p-3 border-b border-[#222] bg-black" vid="155">
+                            <span class="text-[9px] font-mono text-[#666] uppercase tracking-widest" vid="156">Process Log</span>
+                        </div>
+                        <div class="flex-1 p-4 font-mono text-[10px] text-[#777] overflow-y-auto flex flex-col gap-1.5 uppercase tracking-wider leading-relaxed" vid="157">
+                            <p class="text-[#555]" vid="158">&gt;&gt; INITIATE SEQ_PROCESS...</p>
+                            <p vid="159">&gt;&gt; ALIGN_OPTICS: <span class="text-work-emerald" vid="160">OK</span></p>
+                            <p vid="161">&gt;&gt; TEMP_STABILIZED @ 277.15K</p>
+                            <p vid="162">&gt;&gt; AWAITING CALIBRATION...</p>
+                            <p vid="163">&gt;&gt; CALIBRATION MATRIX APPLIED</p>
+                            <p class="text-raw-amber" vid="164">&gt;&gt; WRN: MINOR FLUCTUATION IN TARGET BAND</p>
+                            <p vid="165">&gt;&gt; COMPENSATING...</p>
+                            <p vid="166">&gt;&gt; ISOLATION_CHAMBER_SEALED</p>
+                            <p vid="167">&gt;&gt; INJECTING REAGENT_A (0.05ml)</p>
+                            <p vid="168">&gt;&gt; MONITORING RESPONSE...</p>
+                            <p class="text-work-emerald" vid="169">&gt;&gt; RESPONSE DETECTED: +4.2mV</p>
+                            <p vid="170">&gt;&gt; LOGGING TO DB...</p>
+                            <p vid="171">&gt;&gt; ...</p>
+                            <p vid="172">&gt;&gt; INJECTING REAGENT_B (0.02ml)</p>
+                            <p class="text-dead-rose" vid="173">&gt;&gt; ERR: REACTION EXCEEDS PARAMETERS</p>
+                            <p vid="174">&gt;&gt; AUTO-DAMPENING ENGAGED</p>
+                            <p vid="175">&gt;&gt; STABILIZING...</p>
+                            <p class="text-work-emerald" vid="176">&gt;&gt; STABLE</p>
+                            <p vid="177">&gt;&gt; CONTINUING OBSERVATION...</p>
+                            <p class="text-[#444] terminal-blink mt-2" vid="178">_</p>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+
+</body></html>
