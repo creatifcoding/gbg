@@ -42,7 +42,10 @@ jobs:
             supported: true
     env:
       MANTIS_LAB: projects/biomemetics/labs/mantis
-      MANTIS_ISOLATION_ROOT: ${{ github.workspace }}/../mantis-lab-ci/${{ github.run_id }}
+      MANTIS_LAB_ROOT: ${{ github.workspace }}/projects/biomemetics/labs/mantis
+      # runner.temp is outside the worktree and has no `..` segment.
+      # upload-artifact rejects paths that contain `.` / `..`.
+      MANTIS_ISOLATION_ROOT: ${{ runner.temp }}/mantis-lab-ci/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -78,7 +81,8 @@ jobs:
         run: git diff --exit-code -- "$MANTIS_LAB/flake.nix" "$MANTIS_LAB/flake.lock"
 
       - name: mantis doctor (core)
-        run: nix develop ./"$MANTIS_LAB"#mantis-core --command mantis doctor
+        working-directory: ${{ env.MANTIS_LAB }}
+        run: nix develop .#mantis-core --command mantis doctor
 
       - name: Narrow shell checks
         working-directory: ${{ env.MANTIS_LAB }}

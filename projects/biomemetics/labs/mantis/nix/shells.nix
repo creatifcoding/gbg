@@ -25,7 +25,34 @@ let
       PYTHONNOUSERSITE = "1";
       PIP_NO_INDEX = "1";
       shellHook = ''
-        export MANTIS_LAB_ROOT="''${MANTIS_LAB_ROOT:-$PWD}"
+        is_mantis_lab_root() {
+          [[ -f "$1/workspace.json" && -f "$1/flake.nix" ]]
+        }
+        find_mantis_lab_root() {
+          local dir
+          dir="$(pwd)"
+          while true; do
+            if is_mantis_lab_root "$dir"; then
+              printf '%s\n' "$dir"
+              return 0
+            fi
+            if is_mantis_lab_root "$dir/projects/biomemetics/labs/mantis"; then
+              printf '%s\n' "$dir/projects/biomemetics/labs/mantis"
+              return 0
+            fi
+            if [[ "$dir" == "/" ]]; then
+              return 1
+            fi
+            dir="$(dirname "$dir")"
+          done
+        }
+        if [[ -z "''${MANTIS_LAB_ROOT:-}" ]] || ! is_mantis_lab_root "$MANTIS_LAB_ROOT"; then
+          if found="$(find_mantis_lab_root)"; then
+            export MANTIS_LAB_ROOT="$found"
+          else
+            export MANTIS_LAB_ROOT="''${MANTIS_LAB_ROOT:-$PWD}"
+          fi
+        fi
         if [[ -f "$MANTIS_LAB_ROOT/scripts/environment/isolation.sh" ]]; then
           # shellcheck source=/dev/null
           source "$MANTIS_LAB_ROOT/scripts/environment/isolation.sh"

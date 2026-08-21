@@ -62,9 +62,25 @@ in
     test -f "$TMPDIR/iso/result/doctor-report.json"
     mantis evidence "$TMPDIR/iso/result/doctor-report.json"
 
+    # GitHub Actions runs nix develop from the gbg repo root and used to
+    # export MANTIS_LAB_ROOT=$PWD. Doctor must still locate the nested lab
+    # and put scripts/environment/py on PYTHONPATH.
+    mkdir -p "$TMPDIR/repo/projects/biomemetics/labs"
+    cp -r ${labSrc} "$TMPDIR/repo/projects/biomemetics/labs/mantis"
+    chmod -R u+w "$TMPDIR/repo"
+    cd "$TMPDIR/repo"
+    export MANTIS_LAB_ROOT="$PWD"
+    export MANTIS_ISOLATION_ROOT="$TMPDIR/iso-parent"
+    mkdir -p "$MANTIS_ISOLATION_ROOT/result"
+    mantis --help > "$TMPDIR/help-parent.txt"
+    grep -q "mantis doctor" "$TMPDIR/help-parent.txt"
+    mantis doctor --output "$TMPDIR/iso-parent/result/doctor-report.json"
+    test -f "$TMPDIR/iso-parent/result/doctor-report.json"
+
     mkdir -p "$out"
     cp "$TMPDIR/iso/result/doctor-report.json" "$out/doctor-report.json"
     cp "$TMPDIR/help.txt" "$out/help.txt"
+    cp "$TMPDIR/iso-parent/result/doctor-report.json" "$out/doctor-report-from-repo-root.json"
   '';
 
   # Building a stub must not be treated as a product workflow pass.

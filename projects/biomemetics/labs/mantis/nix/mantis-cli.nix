@@ -13,15 +13,19 @@ in
 pkgs.writeShellScriptBin "mantis" ''
   set -euo pipefail
 
+  is_lab_root() {
+    [[ -f "$1/workspace.json" && -f "$1/flake.nix" ]]
+  }
+
   find_lab_root() {
     local dir
     dir="$(pwd)"
     while true; do
-      if [[ -f "$dir/workspace.json" && -f "$dir/flake.nix" ]]; then
+      if is_lab_root "$dir"; then
         printf '%s\n' "$dir"
         return 0
       fi
-      if [[ -f "$dir/projects/biomemetics/labs/mantis/workspace.json" ]]; then
+      if is_lab_root "$dir/projects/biomemetics/labs/mantis"; then
         printf '%s\n' "$dir/projects/biomemetics/labs/mantis"
         return 0
       fi
@@ -32,7 +36,9 @@ pkgs.writeShellScriptBin "mantis" ''
     done
   }
 
-  if [[ -n "''${MANTIS_LAB_ROOT:-}" ]]; then
+  # nix develop --command from the gbg repo root previously exported
+  # MANTIS_LAB_ROOT=$PWD. That path is not the lab; ignore it and rediscover.
+  if [[ -n "''${MANTIS_LAB_ROOT:-}" ]] && is_lab_root "$MANTIS_LAB_ROOT"; then
     lab_root="$MANTIS_LAB_ROOT"
   else
     lab_root="$(find_lab_root)" || {

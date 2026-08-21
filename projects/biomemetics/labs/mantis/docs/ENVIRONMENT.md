@@ -87,11 +87,19 @@ in a separate process after writing the report.
 ## CI
 
 `.github/workflows/mantis-lab.yml` invokes the nested flake by path with
-`--no-write-lock-file`. Nix cache keys are the lab `flake.lock` digest. Cache
-restore is never treated as a passing check. This runner is `x86_64-linux`;
-Darwin and `aarch64-linux` are flake outputs and must be named
-`UNSUPPORTED_PLATFORM` by doctor when their tools are absent, not skipped
-silently.
+`--no-write-lock-file`. Doctor and the narrow-shell checks run from
+`projects/biomemetics/labs/mantis` so the lab is the shell cwd. Isolation is
+`$RUNNER_TEMP/mantis-lab-ci/<run-id>` (no `..` segment; artifact upload
+rejects relative pathing). Nix cache keys are the lab `flake.lock` digest.
+Cache restore is never treated as a passing check.
+
+`nix develop` from the gbg repository root used to export `MANTIS_LAB_ROOT=$PWD`,
+which is not the lab and left `mantis_environment` off `PYTHONPATH`. The
+`mantis` wrapper and shell hook ignore a `MANTIS_LAB_ROOT` that lacks
+`workspace.json`+`flake.nix` and walk up, or into
+`projects/biomemetics/labs/mantis`. This runner is `x86_64-linux`; Darwin and
+`aarch64-linux` are flake outputs and must be named `UNSUPPORTED_PLATFORM` by
+doctor when their tools are absent, not skipped silently.
 
 ## Rollback
 
