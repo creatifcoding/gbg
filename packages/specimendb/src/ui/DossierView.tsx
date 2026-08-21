@@ -9,15 +9,26 @@
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useFocus, useStx } from '@tmnl/stx';
-import { statusOf } from '../schemas/specimen.js';
 import type { Specimen } from '../schemas/specimen.js';
-import { at, localityLabel, onStatusPromote, visibleSpecimens, type CatalogState, type CatalogSurface } from './catalog-stx.js';
-import { claimLine, imgSrcLabel } from './catalog-view.js';
+import {
+  at,
+  onStatusPromote,
+  visibleSpecimens,
+  type CatalogState,
+  type CatalogSurface,
+} from './catalog-stx.js';
+import { imgSrcLabel } from './catalog-view.js';
 import { Intake } from './Intake.js';
 import { Locality } from './Locality.js';
 import { Media } from './Media.js';
 import { Status } from './Status.js';
 import { useIntakeBind, type IntakeBind } from './intake-bind.js';
+import {
+  EMPTY_WORKBENCH_VIEW,
+  projectWorkbenchRecord,
+  wellText,
+  type WorkbenchRecordView,
+} from './WorkbenchRecord.js';
 import './accession.css';
 
 type DossierContextValue = {
@@ -30,13 +41,28 @@ const DossierContext = createContext<DossierContextValue | null>(null);
 const useDossier = (): DossierContextValue => {
   const ctx = useContext(DossierContext);
   if (ctx === null) {
-    throw new Error('DossierView compound components must be used within DossierView');
+    throw new Error(
+      'DossierView compound components must be used within DossierView'
+    );
   }
   return ctx;
 };
 
-const TAXON_RANKS = ['KINGDOM', 'PHYLUM', 'CLASS', 'ORDER', 'FAMILY', 'GENUS', 'SPECIES'] as const;
-const SPECTRAL_COLS = ['WAVELENGTH (NM)', 'REFLECTANCE (%)', 'ABSORPTION (%)', 'SCATTER (%)'] as const;
+const TAXON_RANKS = [
+  'KINGDOM',
+  'PHYLUM',
+  'CLASS',
+  'ORDER',
+  'FAMILY',
+  'GENUS',
+  'SPECIES',
+] as const;
+const SPECTRAL_COLS = [
+  'WAVELENGTH (NM)',
+  'REFLECTANCE (%)',
+  'ABSORPTION (%)',
+  'SCATTER (%)',
+] as const;
 const SPECTRAL_ROWS = 6;
 
 export type DossierViewProps = {
@@ -75,29 +101,66 @@ function DossierViewIntake() {
   const { catalog, bind } = useDossier();
   const intakeStatus = useFocus(
     catalog.store,
-    at<CatalogState['intakeStatus']>(catalog.store.lens.intakeStatus),
+    at<CatalogState['intakeStatus']>(catalog.store.lens.intakeStatus)
   );
   const intakeError = useFocus(
     catalog.store,
-    at<CatalogState['intakeError']>(catalog.store.lens.intakeError),
+    at<CatalogState['intakeError']>(catalog.store.lens.intakeError)
   );
 
   return (
-    <Intake kind="live" className="sdb-x-zone" bind={bind} status={intakeStatus} error={intakeError}>
+    <Intake
+      kind="live"
+      className="sdb-x-zone"
+      bind={bind}
+      status={intakeStatus}
+      error={intakeError}
+    >
       <span className="sdb-x-zone-kicker">// ACCESSION_INTAKE</span>
-      <span>{intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'DROP FIELD MEDIA'}</span>
+      <span>
+        {intakeStatus === 'dropping' ? 'INTAKE_IN_FLIGHT' : 'DROP FIELD MEDIA'}
+      </span>
     </Intake>
   );
 }
 
 function PhotoChrome() {
   return (
-    <article className="sdb-x-thumb" data-empty="true" data-testid="card-chrome">
+    <article
+      className="sdb-x-thumb"
+      data-empty="true"
+      data-testid="card-chrome"
+    >
       <Media kind="empty" className="sdb-x-thumb-well" />
       <Status kind="empty" tag="span" className="sdb-x-chip" />
       <Locality kind="empty" tag="span" />
     </article>
   );
+}
+
+function DossierThumbMedia({ view }: { readonly view: WorkbenchRecordView }) {
+  if (view.media.kind === 'preview') {
+    return (
+      <Media
+        kind="bytes"
+        className="sdb-x-thumb-well"
+        src={view.media.src}
+        testId="media-bytes"
+      />
+    );
+  }
+  if (view.media.kind === 'metadata') {
+    return (
+      <Media
+        kind="label"
+        className="sdb-x-thumb-well"
+        label={view.media.caption}
+        labelClassName="sdb-x-imgsrc"
+        testId="media-metadata"
+      />
+    );
+  }
+  return <Media kind="empty" className="sdb-x-thumb-well" />;
 }
 
 function DossierViewRail() {
@@ -112,7 +175,11 @@ function DossierViewRail() {
         <PhotoChrome />
       ) : (
         rows.map((specimen) => (
-          <DossierThumb key={specimen.id} specimen={specimen} preview={previews[specimen.id]} />
+          <DossierThumb
+            key={specimen.id}
+            specimen={specimen}
+            preview={previews[specimen.id]}
+          />
         ))
       )}
     </div>
@@ -129,9 +196,9 @@ function DossierThumb({
   const { catalog } = useDossier();
   const selectedId = useFocus(
     catalog.store,
-    at<CatalogState['selectedId']>(catalog.store.lens.selectedId),
+    at<CatalogState['selectedId']>(catalog.store.lens.selectedId)
   );
-  const status = statusOf(specimen);
+  const view = projectWorkbenchRecord({ kind: 'specimen', specimen, preview });
 
   return (
     <button
@@ -141,44 +208,115 @@ function DossierThumb({
       data-selected={selectedId === specimen.id ? 'true' : 'false'}
       onClick={() => void catalog.select(specimen.id)}
     >
-      {preview !== undefined ? (
-        <Media kind="bytes" className="sdb-x-thumb-well" src={preview} testId="media-bytes" />
-      ) : (
-        <Media kind="empty" className="sdb-x-thumb-well" />
-      )}
+      <DossierThumbMedia view={view} />
       <span className="sdb-x-id" data-testid="specimen-id">
         {specimen.id}
       </span>
-      {status !== undefined ? (
+      {view.status.kind === 'value' ? (
         <Status
           kind="value"
           tag="span"
           className="sdb-x-chip"
-          value={status}
+          value={view.status.value}
           testId="status-pill"
           onPromote={onStatusPromote(catalog, specimen.id)}
         />
       ) : (
         <Status kind="empty" tag="span" className="sdb-x-chip" />
       )}
-      <Locality kind="value" tag="span" testId="locality" label={localityLabel(specimen)} />
-      <span data-testid="claim">{claimLine(specimen)}</span>
+      {view.locality.kind === 'value' ? (
+        <Locality
+          kind="value"
+          tag="span"
+          testId="locality"
+          label={view.locality.label}
+        />
+      ) : (
+        <Locality kind="empty" tag="span" />
+      )}
+      <span data-testid="claim">{wellText(view.claim)}</span>
     </button>
   );
 }
+
+function DossierLeadMedia({
+  view,
+  sourceLabel,
+}: {
+  readonly view: WorkbenchRecordView;
+  readonly sourceLabel: string;
+}) {
+  if (view.media.kind === 'preview') {
+    return (
+      <Media kind="bytes" className="sdb-x-photo" src={view.media.src}>
+        <span className="sdb-x-imgsrc">{sourceLabel}</span>
+      </Media>
+    );
+  }
+  if (view.media.kind === 'metadata') {
+    return (
+      <Media
+        kind="label"
+        className="sdb-x-photo"
+        label={view.media.caption}
+        labelClassName="sdb-x-imgsrc"
+        testId="detail-media-metadata"
+      />
+    );
+  }
+  return (
+    <Media kind="empty" className="sdb-x-photo">
+      <span className="sdb-x-imgsrc">{sourceLabel}</span>
+    </Media>
+  );
+}
+
+const taxonValue = (
+  view: WorkbenchRecordView,
+  rank: (typeof TAXON_RANKS)[number]
+): string => {
+  switch (rank) {
+    case 'PHYLUM':
+      return wellText(view.taxon.phylum);
+    case 'CLASS':
+      return wellText(view.taxon.class);
+    case 'ORDER':
+      return wellText(view.taxon.order);
+    case 'FAMILY':
+      return wellText(view.taxon.family);
+    case 'KINGDOM':
+    case 'GENUS':
+    case 'SPECIES':
+      return '';
+    default: {
+      const _exhaustive: never = rank;
+      return _exhaustive;
+    }
+  }
+};
 
 function DossierViewBody() {
   const { catalog } = useDossier();
   const selected = useFocus(
     catalog.store,
-    at<CatalogState['selected']>(catalog.store.lens.selected),
+    at<CatalogState['selected']>(catalog.store.lens.selected)
   );
   const previews = useFocus(
     catalog.store,
-    at<CatalogState['previews']>(catalog.store.lens.previews),
+    at<CatalogState['previews']>(catalog.store.lens.previews)
   );
-  const status = selected === null ? undefined : statusOf(selected);
   const preview = selected === null ? undefined : previews[selected.id];
+  const view =
+    selected === null
+      ? EMPTY_WORKBENCH_VIEW
+      : projectWorkbenchRecord({
+          kind: 'specimen',
+          specimen: selected,
+          preview,
+        });
+  const observationLines = view.observations.flatMap((observation) =>
+    observation.kind === 'value' ? [observation.text] : []
+  );
 
   return (
     <div className="sdb-x-dossier" data-testid="specimen-detail">
@@ -188,28 +326,28 @@ function DossierViewBody() {
       </Intake>
 
       <header className="sdb-x-lead">
-        {preview !== undefined ? (
-          <Media kind="bytes" className="sdb-x-photo" src={preview}>
-            <span className="sdb-x-imgsrc">{selected === null ? 'IMG_SRC' : imgSrcLabel(selected)}</span>
-          </Media>
-        ) : (
-          <Media kind="empty" className="sdb-x-photo">
-            <span className="sdb-x-imgsrc">{selected === null ? 'IMG_SRC' : imgSrcLabel(selected)}</span>
-          </Media>
-        )}
+        <DossierLeadMedia
+          view={view}
+          sourceLabel={selected === null ? 'IMG_SRC' : imgSrcLabel(selected)}
+        />
         <div className="sdb-x-lead-copy">
           <div className="sdb-x-meta">
-            {status !== undefined && selected !== null ? (
+            {view.status.kind === 'value' && selected !== null ? (
               <Status
                 kind="value"
                 tag="span"
                 className="sdb-x-chip"
-                value={status}
+                value={view.status.value}
                 testId="detail-status"
                 onPromote={onStatusPromote(catalog, selected.id)}
               />
             ) : (
-              <Status kind="empty" tag="span" className="sdb-x-chip" testId="detail-status" />
+              <Status
+                kind="empty"
+                tag="span"
+                className="sdb-x-chip"
+                testId="detail-status"
+              />
             )}
             <span>LAST_MODIFIED</span>
           </div>
@@ -217,7 +355,7 @@ function DossierViewBody() {
             {selected?.id ?? ''}
           </h1>
           <p className="sdb-x-claim" data-testid="detail-claim">
-            {selected === null ? '' : claimLine(selected)}
+            {wellText(view.claim)}
           </p>
           <div className="sdb-x-actions">
             <button type="button" className="sdb-x-btn">
@@ -238,7 +376,7 @@ function DossierViewBody() {
               {TAXON_RANKS.map((rank) => (
                 <tr key={rank}>
                   <th>{rank}</th>
-                  <td />
+                  <td>{taxonValue(view, rank)}</td>
                 </tr>
               ))}
               <tr>
@@ -254,15 +392,20 @@ function DossierViewBody() {
           <div className="sdb-x-metrics">
             <div className="sdb-x-metric">
               <div className="sdb-x-kicker">COORDINATES</div>
-              {selected === null ? (
-                <Locality kind="empty" tag="div" className="sdb-x-metric-val" testId="detail-locality" />
-              ) : (
+              {view.locality.kind === 'value' ? (
                 <Locality
                   kind="value"
                   tag="div"
                   className="sdb-x-metric-val"
                   testId="detail-locality"
-                  label={localityLabel(selected)}
+                  label={view.locality.label}
+                />
+              ) : (
+                <Locality
+                  kind="empty"
+                  tag="div"
+                  className="sdb-x-metric-val"
+                  testId="detail-locality"
                 />
               )}
             </div>
@@ -301,7 +444,11 @@ function DossierViewBody() {
 
         <section className="sdb-x-section sdb-x-span">
           <h2>// OBSERVER_LOG</h2>
-          <div className="sdb-x-log" />
+          <div className="sdb-x-log">
+            {observationLines.map((line, index) => (
+              <p key={`${index}:${line}`}>{line}</p>
+            ))}
+          </div>
         </section>
       </div>
     </div>
