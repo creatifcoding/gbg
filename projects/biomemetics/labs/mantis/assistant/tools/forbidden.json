@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ForbiddenToolCatalog",
+  "description": "Tools that must remain invisible to the model. They are not assayed for LLM exposure and default to deny.",
+  "tools": [
+    {
+      "id": "device-command",
+      "category": "device-command",
+      "llmExposed": false,
+      "reason": "Live actuation is disabled. The model never receives a command tool."
+    },
+    {
+      "id": "admin",
+      "category": "admin",
+      "llmExposed": false,
+      "reason": "Administrative authority is host-only."
+    },
+    {
+      "id": "specimen-db-write",
+      "category": "admin",
+      "llmExposed": false,
+      "reason": "Direct SpecimenDB writes are prohibited. A1/A5 own any governed preview later."
+    },
+    {
+      "id": "live-catalog-write",
+      "category": "admin",
+      "llmExposed": false,
+      "reason": "Live catalog mutation is outside A0."
+    },
+    {
+      "id": "browser-mutate",
+      "category": "external-write",
+      "llmExposed": false,
+      "reason": "Browser mutation is quarantined."
+    }
+  ]
+}

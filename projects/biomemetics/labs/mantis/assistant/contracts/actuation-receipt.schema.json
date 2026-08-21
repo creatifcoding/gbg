@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:actuation-receipt:v1",
+  "title": "Mantis actuation receipt",
+  "description": "Result of an ActuationCommand. Distinct from intent and command. Absence of a receipt is not success.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "receiptId",
+    "commandId",
+    "recordedAt",
+    "disposition"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ActuationReceipt" },
+    "receiptId": {
+      "type": "string",
+      "pattern": "^rcpt\\.[a-z][a-z0-9.-]*$"
+    },
+    "commandId": {
+      "type": "string",
+      "pattern": "^cmd\\.[a-z][a-z0-9.-]*$"
+    },
+    "intentId": {
+      "type": "string",
+      "pattern": "^intent\\.[a-z][a-z0-9.-]*$"
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "disposition": {
+      "enum": ["accepted", "rejected", "expired", "faulted", "not-run"]
+    },
+    "detail": { "type": "string" }
+  },
+  "unevaluatedProperties": false
+}

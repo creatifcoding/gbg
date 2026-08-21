@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:care-subject:v1",
+  "title": "Mantis local care subject",
+  "description": "A local care identity. It is not a catalog Specimen and must not carry a Specimen ID, locality, or confirmed taxon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "careSubjectId",
+    "createdAt",
+    "housing",
+    "catalogSpecimen"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "CareSubject" },
+    "careSubjectId": {
+      "type": "string",
+      "pattern": "^care\\.[a-z][a-z0-9.-]*$"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "displayName": { "type": "string", "minLength": 1 },
+    "housing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": ["temporary-cup", "temporary-enclosure", "established-enclosure", "unknown"]
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "catalogSpecimen": { "const": false },
+    "taxonHypothesisRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional reference to a separate Interpretation. Never a confirmed taxon."
+    },
+    "notes": { "type": "string" }
+  },
+  "unevaluatedProperties": false
+}

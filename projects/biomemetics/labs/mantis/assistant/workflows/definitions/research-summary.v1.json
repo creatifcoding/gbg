@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.research-summary",
+  "version": "1.0.0",
+  "digest": "3f589793bd40ed991b3608f1416319bee2b2622a8d9c9344e9b738227262ae09",
+  "description": "Read-only fixture workflow that summarizes admitted care-source text. P0 only.",
+  "capabilityClass": "P0",
+  "author": "a0-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "topic": { "type": "string" } },
+    "required": ["topic"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": { "summary": { "type": "string" } },
+    "required": ["summary"]
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "lookup",
+      "toolId": "care-source-read"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "care-source-read",
+      "version": "1.0.0",
+      "assayId": "assay.care-source-read.v1"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  }
+}

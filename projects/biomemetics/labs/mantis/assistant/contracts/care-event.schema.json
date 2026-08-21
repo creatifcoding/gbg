@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:care-event:v1",
+  "title": "Mantis human-confirmed care event",
+  "description": "A keeper-confirmed care action. A recommendation is not a care event. offered, eaten, refused, and removed remain distinct.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "careEventId",
+    "careSubjectId",
+    "recordedAt",
+    "eventType",
+    "humanConfirmed"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "CareEvent" },
+    "careEventId": {
+      "type": "string",
+      "pattern": "^event\\.[a-z][a-z0-9.-]*$"
+    },
+    "careSubjectId": {
+      "type": "string",
+      "pattern": "^care\\.[a-z][a-z0-9.-]*$"
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "eventType": {
+      "enum": [
+        "offered",
+        "eaten",
+        "refused",
+        "removed",
+        "misted",
+        "cleaned",
+        "outcome"
+      ]
+    },
+    "humanConfirmed": { "const": true },
+    "idempotencyKey": { "type": "string", "minLength": 1 },
+    "adviceRef": {
+      "type": "string",
+      "pattern": "^advice\\.[a-z][a-z0-9.-]*$",
+      "description": "Optional advice that prompted the keeper. Presence does not make the advice itself an event."
+    },
+    "notes": { "type": "string" }
+  },
+  "unevaluatedProperties": false
+}

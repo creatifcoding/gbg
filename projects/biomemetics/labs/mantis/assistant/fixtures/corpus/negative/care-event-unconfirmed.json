@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareEvent",
+  "careEventId": "event.fixture-bad-unconfirmed",
+  "careSubjectId": "care.fixture-cup-01",
+  "recordedAt": "2026-08-21T00:15:00Z",
+  "eventType": "eaten",
+  "humanConfirmed": false
+}

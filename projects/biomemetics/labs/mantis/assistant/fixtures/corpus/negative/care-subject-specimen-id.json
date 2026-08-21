@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareSubject",
+  "careSubjectId": "care.fixture-bad-specimen",
+  "createdAt": "2026-08-21T00:00:00Z",
+  "housing": { "kind": "temporary-cup" },
+  "catalogSpecimen": false,
+  "specimenId": "spc_should_not_exist"
+}

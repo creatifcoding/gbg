@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareSubject",
+  "careSubjectId": "care.fixture-cup-01",
+  "createdAt": "2026-08-21T00:00:00Z",
+  "displayName": "temporary-cup subject",
+  "housing": { "kind": "temporary-cup", "notes": "unfamiliar juvenile in a cup" },
+  "catalogSpecimen": false
+}

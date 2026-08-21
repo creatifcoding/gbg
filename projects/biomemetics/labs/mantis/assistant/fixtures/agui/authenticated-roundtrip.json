@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "AguiRoundTripFixture",
+  "description": "Authenticated AG-UI fixture client through a Mastra agent. No app UI.",
+  "path": "/agui",
+  "agentId": "mantis-coordinator",
+  "principal": "principal.fixture.care-space-01",
+  "tokenHeader": "Authorization",
+  "unauthenticatedStatus": 401,
+  "message": "What do I do now for the cup subject?",
+  "expectTextIncludes": "CareAdvice"
+}

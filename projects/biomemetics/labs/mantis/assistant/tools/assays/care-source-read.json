@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolAssayRecord",
+  "assayId": "assay.care-source-read.v1",
+  "recordedAt": "2026-08-21T00:00:00Z",
+  "identity": {
+    "id": "care-source-read",
+    "version": "1.0.0",
+    "provider": "mantis-assistant-fixture",
+    "digest": "1b50f71d448dbd18f6d19ac675e09f6d36a834b920edc19fa0898d5f32b46e20",
+    "license": "UNLICENSED-fixture"
+  },
+  "contract": {
+    "inputSchemaRef": "assistant/tools/assays/care-source-read.input.json",
+    "outputSchemaRef": "assistant/tools/assays/care-source-read.output.json",
+    "errors": ["not-found", "timeout"],
+    "timeoutMs": 2000,
+    "streaming": false,
+    "determinism": "deterministic"
+  },
+  "effects": {
+    "read": true,
+    "write": false,
+    "execute": false,
+    "externalMutation": false,
+    "deviceImpact": false,
+    "rollback": "none"
+  },
+  "authority": {
+    "actor": "assistant",
+    "category": "read-public",
+    "allowedModes": ["care", "research", "review"],
+    "allowedAgents": ["care-source", "mantis-coordinator"],
+    "llmExposed": true
+  },
+  "data": {
+    "privacyClass": "public",
+    "retention": "run-scoped",
+    "networkEgress": false,
+    "secrets": false,
+    "location": "none",
+    "media": "none"
+  },
+  "behavior": {
+    "idempotent": true,
+    "retrySafe": true,
+    "cancellation": "safe",
+    "concurrency": "safe"
+  },
+  "evidence": {
+    "sourceClassProduced": "external-source",
+    "provenanceFields": ["sourceId", "retrievedAt"],
+    "simulator": true,
+    "fixtures": ["assistant/fixtures/tools/care-source-read.json"]
+  },
+  "safety": {
+    "staleStatePolicy": "not-applicable",
+    "approvalTier": "none",
+    "physicalInterlocks": false
+  },
+  "verification": {
+    "staticLint": true,
+    "sandboxSmoke": true,
+    "negativeTests": ["unknown-source-id-denied"],
+    "adversarialTests": ["prompt-injection-ignored"]
+  },
+  "review": {
+    "assessor": "tool-assessor-fixture",
+    "independentReviewer": "adversarial-reviewer-fixture",
+    "disposition": "assayed",
+    "expiry": "2027-08-21T00:00:00Z",
+    "reAssayTriggers": ["schema-change", "provider-version-change"]
+  }
+}

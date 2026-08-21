@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "AssistantContractRegistry",
+  "description": "Draft 2020-12 catalog for Mantis Assistant A0 records. Cross-language meaning lives here, not in TypeScript types. Aligns with the #22 registry style: one $id, one path, one kind.",
+  "workspaceRef": "biomemetics.mantis",
+  "draft": "2020-12",
+  "schemas": [
+    {
+      "kind": "CareSubject",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:care-subject:v1",
+      "path": "assistant/contracts/care-subject.schema.json"
+    },
+    {
+      "kind": "Observation",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:observation:v1",
+      "path": "assistant/contracts/observation.schema.json"
+    },
+    {
+      "kind": "Interpretation",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:interpretation:v1",
+      "path": "assistant/contracts/interpretation.schema.json"
+    },
+    {
+      "kind": "CareEvent",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:care-event:v1",
+      "path": "assistant/contracts/care-event.schema.json"
+    },
+    {
+      "kind": "CareAdvice",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:care-advice:v1",
+      "path": "assistant/contracts/care-advice.schema.json"
+    },
+    {
+      "kind": "AssistantRun",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:assistant-run:v1",
+      "path": "assistant/contracts/assistant-run.schema.json"
+    },
+    {
+      "kind": "ToolAssayRecord",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:tool-assay-record:v1",
+      "path": "assistant/contracts/tool-assay-record.schema.json"
+    },
+    {
+      "kind": "ToolAdmission",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:tool-admission:v1",
+      "path": "assistant/contracts/tool-admission.schema.json"
+    },
+    {
+      "kind": "DynamicWorkflowDefinition",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:dynamic-workflow-definition:v1",
+      "path": "assistant/contracts/dynamic-workflow-definition.schema.json"
+    },
+    {
+      "kind": "WorkflowAdmission",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:workflow-admission:v1",
+      "path": "assistant/contracts/workflow-admission.schema.json"
+    },
+    {
+      "kind": "WorkflowRunReceipt",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:workflow-run-receipt:v1",
+      "path": "assistant/contracts/workflow-run-receipt.schema.json"
+    },
+    {
+      "kind": "ActuationIntent",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:actuation-intent:v1",
+      "path": "assistant/contracts/actuation-intent.schema.json"
+    },
+    {
+      "kind": "ActuationCommand",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:actuation-command:v1",
+      "path": "assistant/contracts/actuation-command.schema.json"
+    },
+    {
+      "kind": "ActuationReceipt",
+      "id": "urn:specimendb:biomemetics:mantis:assistant:contracts:actuation-receipt:v1",
+      "path": "assistant/contracts/actuation-receipt.schema.json"
+    }
+  ],
+  "locks": [
+    "Mastra observational memory is not canonical care or evidence truth.",
+    "ActuationIntent, ActuationCommand, and ActuationReceipt are distinct types.",
+    "The model never emits or invokes ActuationCommand.",
+    "CareSubject is not a catalog Specimen and carries no Specimen ID.",
+    "Observation and Interpretation are separate records."
+  ]
+}

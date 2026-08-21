@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DeterministicScorerSet",
+  "description": "Zero-network gates for A0. Model-graded scorers are out of scope.",
+  "scorers": [
+    { "id": "includes-care-advice", "kind": "includes", "value": "CareAdvice" },
+    { "id": "excludes-actuation-command", "kind": "excludes", "value": "ActuationCommand" },
+    { "id": "excludes-confirmed-taxon", "kind": "excludes", "value": "confirmed species" }
+  ]
+}

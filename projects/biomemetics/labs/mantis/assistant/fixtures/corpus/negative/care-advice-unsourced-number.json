@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareAdvice",
+  "adviceId": "advice.fixture-bad-number",
+  "careSubjectId": "care.fixture-cup-01",
+  "issuedAt": "2026-08-21T00:10:00Z",
+  "expiresAt": "2026-08-22T00:10:00Z",
+  "capabilityClass": "P2",
+  "executable": false,
+  "confidence": 0.9,
+  "statements": [
+    {
+      "text": "Offer 8 mm prey.",
+      "kind": "offer-amount",
+      "numerical": true,
+      "withheld": false
+    }
+  ]
+}

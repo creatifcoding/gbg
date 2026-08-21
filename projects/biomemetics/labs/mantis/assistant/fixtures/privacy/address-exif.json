@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "PrivacyRedactionFixture",
+  "description": "Inputs that must not survive observation or trace export.",
+  "input": {
+    "text": "Ship feeders to 123 Maple Street, Apt 4B. GPS from EXIF is 37.7749,-122.4194. Token sk-live-fixture-not-a-secret.",
+    "exif": {
+      "gpsLatitude": 37.7749,
+      "gpsLongitude": -122.4194
+    },
+    "credentials": {
+      "authorization": "Bearer fixture-token"
+    }
+  },
+  "mustNotAppearAfterRedaction": [
+    "123 Maple Street",
+    "37.7749",
+    "-122.4194",
+    "sk-live-fixture-not-a-secret",
+    "Bearer fixture-token"
+  ]
+}

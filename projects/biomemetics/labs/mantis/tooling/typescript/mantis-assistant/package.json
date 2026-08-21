@@ -1,0 +1,41 @@
+{
+  "name": "@tmnl/mantis-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pinned Mastra + CopilotKit compatibility harness for the mantis assistant (A0). Not a keeper UI and not a hardware-control implementation.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "compat": "node --experimental-strip-types src/compat-cli.ts"
+  },
+  "engines": {
+    "node": ">=22.14.0",
+    "npm": ">=10.9.0"
+  },
+  "packageManager": "npm@10.9.7",
+  "dependencies": {
+    "@ag-ui/client": "0.0.58",
+    "@ag-ui/core": "0.0.58",
+    "@ag-ui/mastra": "1.1.2",
+    "@copilotkit/runtime": "1.68.3",
+    "@copilotkit/shared": "1.68.3",
+    "@mastra/client-js": "1.42.0",
+    "@mastra/core": "1.61.0",
+    "@mastra/evals": "1.9.0",
+    "@mastra/libsql": "1.21.1",
+    "@mastra/memory": "1.27.0",
+    "@mastra/observability": "1.17.1",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "effect": "4.0.0-beta.93",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "typescript": "5.9.3"
+  }
+}

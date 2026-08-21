@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "Interpretation",
+  "interpretationId": "interp.fixture-cup-01",
+  "careSubjectId": "care.fixture-cup-01",
+  "observationRefs": ["obs.fixture-cup-01"],
+  "recordedAt": "2026-08-21T00:02:00Z",
+  "recordClass": "interpretation",
+  "status": "hypothetical",
+  "claims": [
+    {
+      "kind": "taxon-rank",
+      "text": "Possibly a mantis nymph; rank remains unset.",
+      "confidence": 0.4,
+      "confirmed": false
+    }
+  ]
+}

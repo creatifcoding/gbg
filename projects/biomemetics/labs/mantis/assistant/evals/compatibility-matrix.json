@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "EvalProgram",
+  "description": "Deterministic A0 compatibility matrix. Model-graded scorers are not required. A beta capability that cannot be pinned and proven is QUARANTINED_UPSTREAM.",
+  "network": false,
+  "credentials": false,
+  "cases": [
+    "agui-streaming-reconnect",
+    "controller-modes-isolated-sessions",
+    "resource-thread-binding",
+    "mode-tool-deny-precedence",
+    "stale-approval-after-restart",
+    "constrained-subagent-boundary",
+    "thread-om-privacy-filter",
+    "dynamic-workflow-registration-version",
+    "workflow-suspend-resume",
+    "durable-reconnect-readonly",
+    "trace-redaction-run-correlation",
+    "deterministic-eval-invocation"
+  ]
+}

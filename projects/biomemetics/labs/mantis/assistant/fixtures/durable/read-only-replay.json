@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DurableReplayFixture",
+  "description": "Read-only durable reconnect. Replay must not increment externalEffectCount.",
+  "toolId": "care-source-read",
+  "sideEffectClass": "read-only",
+  "replaySafe": true,
+  "externalEffectCountAfterReconnect": 0
+}

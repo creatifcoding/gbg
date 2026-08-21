@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "AssistantRun",
+  "runId": "run.fixture-bad-om",
+  "startedAt": "2026-08-21T00:10:00Z",
+  "mode": "care",
+  "resourceId": "principal.fixture.care-space-01",
+  "threadId": "care:fixture-cup-01:conversation-01",
+  "memoryRecordClass": "observed",
+  "versions": {
+    "mastraCore": "1.61.0",
+    "copilotkitRuntime": "1.68.3",
+    "aguiMastra": "1.1.2",
+    "effect": "4.0.0-beta.93",
+    "typescript": "5.9.3",
+    "model": "mantis-fake-model@1.0.0",
+    "controllerConfig": "mantis-controller@0.1.0",
+    "tools": "none",
+    "memory": "thread-om@fixture",
+    "workflow": "none"
+  }
+}

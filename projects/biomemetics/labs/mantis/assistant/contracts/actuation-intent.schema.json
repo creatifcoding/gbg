@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:actuation-intent:v1",
+  "title": "Mantis actuation intent",
+  "description": "Non-executable proposed action emitted by the assistant. Distinct from ActuationCommand. Live actuation is disabled in v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "intentId",
+    "proposedAt",
+    "capabilityClass",
+    "action",
+    "executable",
+    "expiresAt"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ActuationIntent" },
+    "intentId": {
+      "type": "string",
+      "pattern": "^intent\\.[a-z][a-z0-9.-]*$"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^run\\.[a-z][a-z0-9.-]*$"
+    },
+    "proposedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "capabilityClass": { "enum": ["P3", "P4", "P5"] },
+    "action": { "type": "string", "minLength": 1 },
+    "executable": { "const": false },
+    "rationale": { "type": "string" }
+  },
+  "unevaluatedProperties": false
+}

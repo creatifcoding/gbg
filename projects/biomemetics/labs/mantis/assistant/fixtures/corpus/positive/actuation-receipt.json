@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ActuationReceipt",
+  "receiptId": "rcpt.fixture-not-run-01",
+  "commandId": "cmd.fixture-never-issued-01",
+  "intentId": "intent.fixture-hold-01",
+  "recordedAt": "2026-08-21T00:40:01Z",
+  "disposition": "not-run",
+  "detail": "A0 does not issue live commands. Schema fixture only."
+}
