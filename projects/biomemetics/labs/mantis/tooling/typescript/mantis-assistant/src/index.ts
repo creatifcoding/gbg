@@ -5,9 +5,8 @@ export { redactSensitive, asAssistantMemory } from './privacy.ts';
 export { FakeClock } from './clock.ts';
 export { loadCorpus, loadRegistry, validateInstance } from './contracts.ts';
 export {
-  CODEX_SUBSCRIPTION_AUTH_REQUIRED,
-  CODEX_SUBSCRIPTION_LIVE_DISABLED,
-  CodexSubscriptionGateError,
+  OPENROUTER_CREDENTIAL_REQUIRED,
+  OpenRouterGateError,
   createLiveLunaLane,
   usedBetaImportPaths,
 } from './mastra-adapter.ts';

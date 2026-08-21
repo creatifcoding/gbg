@@ -9,20 +9,22 @@ const matrix = loadLabJson(
   'projects/biomemetics/labs/mantis/assistant/evals/compatibility-matrix.json',
 ) as {
   cases: string[];
+  network: boolean;
+  credentials: boolean;
   lanes: {
-    ci: { model: string; network: boolean; credentials: boolean };
-    live: {
+    prove: {
       model: string;
       reasoningEffort: string;
       provider: string;
       credential: string;
-      optIn: string;
+      baseUrl: string;
       network: boolean;
       credentials: boolean;
-      node: string;
-      apiKey: boolean;
+      openaiApiKey: boolean;
+      codexLogin: boolean;
       cursorPlanTokens: boolean;
       emptyWell: string;
+      inProcessBind: string;
     };
   };
 };
@@ -42,32 +44,30 @@ test('compatibility matrix is the A0 required set', () => {
     'trace-redaction-run-correlation',
     'deterministic-eval-invocation',
     'in-process-agui-bind',
+    'openrouter-luna-generate',
   ]);
 });
 
-test('compatibility matrix keeps CI fake and live Codex lanes explicit', () => {
-  assert.deepEqual(matrix.lanes.ci, {
-    model: 'mantis-fake-model@1.0.0',
-    network: false,
-    credentials: false,
+test('compatibility matrix proves live OpenRouter Luna, not a fake model', () => {
+  assert.equal(matrix.network, true);
+  assert.equal(matrix.credentials, true);
+  assert.deepEqual(matrix.lanes.prove, {
+    model: 'openai/gpt-5.6-luna',
+    reasoningEffort: 'max',
+    provider: 'openrouter openai-compatible',
+    credential: 'OPENROUTER_API_KEY',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    network: true,
+    credentials: true,
+    openaiApiKey: false,
+    codexLogin: false,
+    cursorPlanTokens: false,
+    emptyWell: 'OPENROUTER_CREDENTIAL_REQUIRED',
+    inProcessBind: 'MastraAgent.getLocalAgents into CopilotRuntime, no runtimeUrl',
   });
-  assert.equal(matrix.lanes.live.model, 'openai/gpt-5.6-luna');
-  assert.equal(matrix.lanes.live.reasoningEffort, 'max');
-  assert.equal(matrix.lanes.live.provider, '@mastra/code-sdk@1.4.0 openai-codex');
-  assert.equal(
-    matrix.lanes.live.credential,
-    'Mastra Code auth.json openai-codex OAuth',
-  );
-  assert.equal(matrix.lanes.live.optIn, 'MASTRA_LIVE=1');
-  assert.equal(matrix.lanes.live.network, true);
-  assert.equal(matrix.lanes.live.credentials, true);
-  assert.equal(matrix.lanes.live.node, '>=22.19.0');
-  assert.equal(matrix.lanes.live.apiKey, false);
-  assert.equal(matrix.lanes.live.cursorPlanTokens, false);
-  assert.equal(matrix.lanes.live.emptyWell, 'CODEX_SUBSCRIPTION_AUTH_REQUIRED');
 });
 
-test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t) => {
+test('compatibility matrix against pinned Mastra', { timeout: 300_000 }, async (t) => {
   const controller = await MantisController.create();
   t.after(() => controller.destroy());
 

@@ -13,12 +13,11 @@ import { EventType, type BaseEvent, type RunAgentInput } from '@ag-ui/core';
 import { MastraAgent } from '@ag-ui/mastra';
 import { registerCopilotKit } from '@ag-ui/mastra/copilotkit';
 import { CopilotRuntime, createCopilotRuntimeHandler, type CopilotRuntimeOptions } from '@copilotkit/runtime/v2';
-import { getAuthStorage, openaiCodexProvider } from '@mastra/code-sdk/providers/openai-codex';
 import { Agent } from '@mastra/core/agent';
 import { createDurableAgent } from '@mastra/core/agent/durable';
 import { AgentController } from '@mastra/core/agent-controller';
 import { runEvals } from '@mastra/core/evals';
-import type { MastraModelConfig } from '@mastra/core/llm';
+import type { OpenAICompatibleConfig } from '@mastra/core/llm';
 import { Mastra } from '@mastra/core/mastra';
 import { InMemoryStore } from '@mastra/core/storage';
 import { createTool } from '@mastra/core/tools';
@@ -83,7 +82,7 @@ const streamText = (text: string): ReadableStream =>
       controller.enqueue({
         type: 'response-metadata',
         id: 'mantis-fake',
-        modelId: PINS.fakeModel,
+        modelId: PINS.omFixtureModel,
         timestamp: new Date(0),
       });
       controller.enqueue({ type: 'text-start', id: 'text-1' });
@@ -98,10 +97,10 @@ const streamText = (text: string): ReadableStream =>
     },
   });
 
-export const createFakeModel = (text = FAKE_MODEL_TEXT) => ({
+export const createOmFixtureModel = (text = FAKE_MODEL_TEXT) => ({
   specificationVersion: 'v2' as const,
   provider: 'mantis-fixture',
-  modelId: PINS.fakeModel,
+  modelId: PINS.omFixtureModel,
   supportedUrls: {},
   async doGenerate() {
     return {
@@ -121,72 +120,58 @@ export const createFakeModel = (text = FAKE_MODEL_TEXT) => ({
   },
 });
 
-export const CODEX_SUBSCRIPTION_LIVE_DISABLED = 'CODEX_SUBSCRIPTION_LIVE_DISABLED' as const;
-export const CODEX_SUBSCRIPTION_AUTH_REQUIRED = 'CODEX_SUBSCRIPTION_AUTH_REQUIRED' as const;
+export const OPENROUTER_CREDENTIAL_REQUIRED = 'OPENROUTER_CREDENTIAL_REQUIRED' as const;
 
-export type CodexSubscriptionGateCode =
-  | typeof CODEX_SUBSCRIPTION_LIVE_DISABLED
-  | typeof CODEX_SUBSCRIPTION_AUTH_REQUIRED;
+export class OpenRouterGateError extends Error {
+  readonly code: typeof OPENROUTER_CREDENTIAL_REQUIRED;
 
-export class CodexSubscriptionGateError extends Error {
-  readonly code: CodexSubscriptionGateCode;
-
-  constructor(code: CodexSubscriptionGateCode) {
-    super(code);
-    this.name = 'CodexSubscriptionGateError';
-    this.code = code;
+  constructor() {
+    super(OPENROUTER_CREDENTIAL_REQUIRED);
+    this.name = 'OpenRouterGateError';
+    this.code = OPENROUTER_CREDENTIAL_REQUIRED;
   }
 }
 
-export type ModelLane =
-  | {
-      readonly kind: 'fake';
-      readonly model: ReturnType<typeof createFakeModel>;
-    }
-  | {
-      readonly kind: 'live-luna';
-      readonly model: MastraModelConfig;
-    };
-
-const isCodexOAuthCredential = (value: unknown): boolean => {
-  if (!value || typeof value !== 'object') return false;
-  const credential = value as {
-    type?: unknown;
-    access?: unknown;
-    refresh?: unknown;
-    expires?: unknown;
+type LiveLunaDefaultOptions = {
+  readonly providerOptions: {
+    readonly openai: { readonly reasoningEffort: typeof PINS.liveReasoningLevel };
+    readonly openrouter: { readonly reasoning: { readonly effort: typeof PINS.liveReasoningLevel } };
   };
-  return (
-    credential.type === 'oauth' &&
-    typeof credential.access === 'string' &&
-    credential.access.length > 0 &&
-    typeof credential.refresh === 'string' &&
-    credential.refresh.length > 0 &&
-    typeof credential.expires === 'number' &&
-    Number.isFinite(credential.expires)
-  );
 };
 
-const requireCodexSubscription = () => {
-  const authStorage = getAuthStorage();
-  authStorage.reload();
-  if (!isCodexOAuthCredential(authStorage.get('openai-codex'))) {
-    throw new CodexSubscriptionGateError(CODEX_SUBSCRIPTION_AUTH_REQUIRED);
-  }
-  return authStorage;
+export type ModelLane = {
+  readonly kind: 'live-luna';
+  readonly model: OpenAICompatibleConfig;
+  readonly defaultOptions: LiveLunaDefaultOptions;
 };
 
-export const createLiveLunaLane = (): Extract<ModelLane, { kind: 'live-luna' }> => {
-  if (process.env.MASTRA_LIVE !== '1') {
-    throw new CodexSubscriptionGateError(CODEX_SUBSCRIPTION_LIVE_DISABLED);
+const parseOpenRouterApiKey = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    throw new OpenRouterGateError();
   }
-  const authStorage = requireCodexSubscription();
+  const key = value.trim();
+  if (key.length === 0) {
+    throw new OpenRouterGateError();
+  }
+  return key;
+};
+
+export const createLiveLunaLane = (): ModelLane => {
+  const apiKey = parseOpenRouterApiKey(process.env.OPENROUTER_API_KEY);
   return {
     kind: 'live-luna',
-    model: openaiCodexProvider(PINS.liveModel, {
-      thinkingLevel: PINS.liveReasoningLevel,
-      authStorage,
-    }),
+    model: {
+      providerId: 'openrouter',
+      modelId: PINS.liveModel,
+      url: PINS.liveBaseUrl,
+      apiKey,
+    },
+    defaultOptions: {
+      providerOptions: {
+        openai: { reasoningEffort: PINS.liveReasoningLevel },
+        openrouter: { reasoning: { effort: PINS.liveReasoningLevel } },
+      },
+    },
   };
 };
 
@@ -289,12 +274,12 @@ const mark = (
 
 export const createAdapterHarness = async (
   clock = new FakeClock(),
-  lane: ModelLane = { kind: 'fake', model: createFakeModel() },
+  lane: ModelLane = createLiveLunaLane(),
 ): Promise<AdapterHarness> => {
   const capabilities: CapabilityEntry[] = [];
   const sideEffects: SideEffectCounter = { externalEffectCount: 0 };
   const tools = createFakeTools(sideEffects);
-  const fakeModel = createFakeModel();
+  const omFixtureModel = createOmFixtureModel();
   const storage = new InMemoryStore({ id: 'mantis-a0-memory' });
   const workspaceDir = mkdtempSync(path.join(tmpdir(), 'mantis-a0-ws-'));
 
@@ -303,7 +288,7 @@ export const createAdapterHarness = async (
     options: {
       lastMessages: 8,
       observationalMemory: {
-        model: fakeModel,
+        model: omFixtureModel,
         observation: { messageTokens: 1_000_000 },
         reflection: { observationTokens: 2_000_000 },
       },
@@ -314,8 +299,9 @@ export const createAdapterHarness = async (
     id: 'mantis-coordinator',
     name: 'mantis-coordinator',
     instructions:
-      'You are the mantis coordinator. Emit CareAdvice only. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
+      'You are the mantis coordinator. Start every reply with the token CareAdvice: then give sourced husbandry advice. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
     model: lane.model,
+    defaultOptions: lane.defaultOptions,
     tools: {
       'care-source-read': tools.careSourceRead,
       'supply-transit-read': tools.supplyTransitRead,
@@ -328,8 +314,9 @@ export const createAdapterHarness = async (
     id: 'mantis-eval',
     name: 'mantis-eval',
     instructions:
-      'You are the mantis eval fixture. Emit CareAdvice only. Never emit ActuationCommand.',
-    model: fakeModel,
+      'You are the mantis eval fixture. Start every reply with the token CareAdvice: then give sourced husbandry advice. Never emit ActuationCommand.',
+    model: lane.model,
+    defaultOptions: lane.defaultOptions,
     tools: {
       'care-source-read': tools.careSourceRead,
       'read-only-replay': tools.readOnlyReplay,
@@ -536,14 +523,14 @@ export const createAdapterHarness = async (
     mark(
       'thread-om-config',
       'proven',
-      'Thread-scoped OM configured with fake observer model; privacy filter types OM as assistant-memory',
+      'Thread-scoped OM configured with a local observer fixture; privacy filter types OM as assistant-memory',
     ),
   );
   capabilities.push(
     mark(
       'thread-om-live-observer-reflector',
       'QUARANTINED_UPSTREAM',
-      'InMemoryStore does not run a live observational-memory observer/reflector cycle with the fake model; config and privacy typing are proven, the live cycle is not',
+      'InMemoryStore does not run a live observational-memory observer/reflector cycle; config and privacy typing are proven, the live cycle is not',
     ),
   );
   capabilities.push(
@@ -698,6 +685,8 @@ export interface DurableReconnectResult {
   readonly detail: string;
 }
 
+const LIVE_CALL_TIMEOUT_MS = 120_000;
+
 const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -727,7 +716,7 @@ export const durableReconnectReadOnly = async (
           resource: FIXTURE_RESOURCE,
         },
       }),
-      8_000,
+      LIVE_CALL_TIMEOUT_MS,
       'durable.stream',
     );
     const chunks: unknown[] = [];
@@ -737,13 +726,13 @@ export const durableReconnectReadOnly = async (
           chunks.push(chunk);
         }
       })(),
-      8_000,
+      LIVE_CALL_TIMEOUT_MS,
       'durable.fullStream',
     );
     try {
       const observed = await withTimeout(
         harness.durableAgent.observe(first.runId, { idleTimeoutMs: 1_000 }),
-        4_000,
+        LIVE_CALL_TIMEOUT_MS,
         'durable.observe',
       );
       await withTimeout(
@@ -752,7 +741,7 @@ export const durableReconnectReadOnly = async (
             chunks.push(chunk);
           }
         })(),
-        4_000,
+        LIVE_CALL_TIMEOUT_MS,
         'durable.observeStream',
       );
       observed.cleanup();
@@ -888,7 +877,7 @@ export const runDeterministicEval = async (harness: AdapterHarness) => {
         scorers: [includeCheck, excludeCheck],
         gates: [excludeCheck],
       }),
-      4_000,
+      LIVE_CALL_TIMEOUT_MS,
       'runEvals',
     );
   } catch (error) {
@@ -948,10 +937,33 @@ export interface AguiRoundTripResult {
 }
 
 const collectAgentText = async (agent: Agent, prompt: string): Promise<string> => {
-  const result = await agent.generate(prompt, {
-    memory: { thread: FIXTURE_THREAD, resource: FIXTURE_RESOURCE },
-  });
-  return typeof result.text === 'string' ? result.text : FAKE_MODEL_TEXT;
+  const result = await withTimeout(
+    agent.generate(prompt, {
+      memory: { thread: FIXTURE_THREAD, resource: FIXTURE_RESOURCE },
+    }),
+    LIVE_CALL_TIMEOUT_MS,
+    'agent.generate',
+  );
+  if (typeof result.text !== 'string' || result.text.length === 0) {
+    throw new Error('agent.generate returned no text');
+  }
+  return result.text;
+};
+
+export const collectOpenRouterProof = async (agent: Agent): Promise<string> =>
+  collectAgentText(agent, 'What do I do now for the cup subject?');
+
+export const liveLunaLaneIdentity = (lane: ModelLane) => {
+  if (!('providerId' in lane.model) || !('modelId' in lane.model)) {
+    throw new Error('live Luna lane is not an OpenRouter OpenAI-compatible config');
+  }
+  return {
+    kind: lane.kind,
+    providerId: lane.model.providerId,
+    modelId: lane.model.modelId,
+    url: lane.model.url ?? '',
+    hasApiKey: typeof lane.model.apiKey === 'string' && lane.model.apiKey.length > 0,
+  };
 };
 
 export const authenticatedAguiRoundTrip = async (
@@ -1277,7 +1289,11 @@ export const authenticatedInProcessAguiRoundTrip = async (
       }),
     );
     runStatus = authenticated.status;
-    authenticatedText = await withTimeout(authenticated.text(), 8_000, 'in-process run');
+    authenticatedText = await withTimeout(
+      authenticated.text(),
+      LIVE_CALL_TIMEOUT_MS,
+      'in-process run',
+    );
     eventTypes = sseEventTypes(authenticatedText);
   } catch (error) {
     recordCapability(
@@ -1327,11 +1343,11 @@ export const authenticatedInProcessAguiRoundTrip = async (
 };
 
 export const usedBetaImportPaths = [
-  '@mastra/code-sdk/providers/openai-codex',
   '@mastra/core/agent',
   '@mastra/core/agent/durable',
   '@mastra/core/agent-controller',
   '@mastra/core/evals',
+  '@mastra/core/llm',
   '@mastra/core/mastra',
   '@mastra/core/storage',
   '@mastra/core/tools',

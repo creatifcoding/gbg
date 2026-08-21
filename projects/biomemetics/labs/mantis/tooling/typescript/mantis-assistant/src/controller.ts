@@ -216,7 +216,7 @@ export class MantisController {
         aguiMastra: PINS.aguiMastra,
         effect: PINS.effect,
         typescript: PINS.typescript,
-        model: PINS.fakeModel,
+        model: PINS.liveModel,
         controllerConfig: PINS.controllerConfig,
         tools: 'care-source-read@1.0.0',
         memory: 'thread-om@fixture',

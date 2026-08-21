@@ -9,7 +9,6 @@
   },
   "scripts": {
     "test": "node --test --experimental-strip-types test/*.test.ts",
-    "test:live": "node --test --experimental-strip-types test/live-luna.live.ts",
     "typecheck": "tsc --noEmit",
     "compat": "node --experimental-strip-types src/compat-cli.ts"
   },
@@ -25,7 +24,6 @@
     "@copilotkit/runtime": "1.68.3",
     "@copilotkit/shared": "1.68.3",
     "@mastra/client-js": "1.42.0",
-    "@mastra/code-sdk": "1.4.0",
     "@mastra/core": "1.61.0",
     "@mastra/evals": "1.9.0",
     "@mastra/libsql": "1.21.1",

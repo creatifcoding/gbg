@@ -12,7 +12,8 @@ thread OM config and privacy typing are proven.
 
 ## Pins
 
-See `src/pins.ts` and this directory's `package-lock.json`.
+See `src/pins.ts` and this directory's `package-lock.json`. `@mastra/core`
+stays `1.61.0`.
 
 ## Commands
 
@@ -22,25 +23,21 @@ npm test
 npm run typecheck
 ```
 
-Tests use the committed lock, a fake model, fake tools, a fake clock, and
-in-memory storage. They do not use live credentials or network model providers.
+`npm test` is the proof. It calls `agent.generate` and the in-process
+CopilotRuntime bind against OpenRouter `openai/gpt-5.6-luna` with reasoning
+effort `max`. The canned fake-model sentence is not the proof.
 
-## Model lanes
+## Live OpenRouter lane
 
-CI uses `createFakeModel`, fake tools, and no credentials. The existing
-33-test proof remains offline.
+The coordinator and eval agents use Mastra's OpenAI-compatible model config
+against `https://openrouter.ai/api/v1`. The model id is `openai/gpt-5.6-luna`.
+The credential is `OPENROUTER_API_KEY` only.
 
-The live lane is opt-in. Run `MASTRA_LIVE=1 npm run test:live` after the user
-has authenticated through Mastra Code's Codex or ChatGPT subscription flow.
-The test skips without `MASTRA_LIVE=1`.
+A missing or empty `OPENROUTER_API_KEY` fails closed with
+`OPENROUTER_CREDENTIAL_REQUIRED`. The lane does not read `OPENAI_API_KEY`,
+does not use Codex or ChatGPT login, and does not consume Cursor plan tokens.
 
-The lane uses the pinned `@mastra/code-sdk@1.4.0` `openai-codex` provider with
-model `gpt-5.6-luna` and reasoning level `max`. The provider reads the
-subscription OAuth record from Mastra Code `auth.json` and owns token refresh.
-The lane never starts login, prints credentials, or accepts an API-key
-credential.
+Do not commit, log, or print the key.
 
-The package's fake CI lane supports Node `>=22.14.0`. The live provider package
-declares Node `>=22.19.0`. A missing subscription session fails closed with
-`CODEX_SUBSCRIPTION_AUTH_REQUIRED`. The in-process AG-UI bind remains
-`MastraAgent.getLocalAgents` into `CopilotRuntime`; it has no `runtimeUrl`.
+The in-process AG-UI bind remains `MastraAgent.getLocalAgents` into
+`CopilotRuntime`. It has no `runtimeUrl`.
