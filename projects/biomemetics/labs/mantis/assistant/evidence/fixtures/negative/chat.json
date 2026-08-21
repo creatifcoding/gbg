@@ -1,0 +1,7 @@
+{
+  "kind": "chat",
+  "messages": [
+    { "role": "user", "text": "What do I feed it?" },
+    { "role": "assistant", "text": "I can draft care advice. That is not evidence." }
+  ]
+}

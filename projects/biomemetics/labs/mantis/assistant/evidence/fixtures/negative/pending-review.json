@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "EvidenceRecord",
+  "evidenceId": "fixture-pending-review",
+  "workspaceRef": "biomemetics.mantis",
+  "claimRefs": ["claim:rail:contact-count"],
+  "sourceClass": "measured",
+  "recordedAt": "2026-08-20T12:00:00Z",
+  "producer": { "kind": "instrument", "name": "caliper", "version": "n/a" },
+  "environment": { "description": "theoretical fixture bench", "gitCommit": "1e6683272e4e15d50dd90b60fd3f7c0f3dd5bbb3" },
+  "method": {
+    "protocol": "count exposed pads",
+    "acceptance": "two agreeing counts"
+  },
+  "measurements": [
+    {
+      "parameterRef": "rail.contact_count",
+      "value": 12,
+      "unit": "count",
+      "uncertainty": 0,
+      "sampleCount": 1
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/fixtures/corpus/positive/contact-count.json",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mediaType": "application/json"
+    }
+  ],
+  "admissions": [
+    {
+      "claimRef": "claim:rail:contact-count",
+      "kind": "structure",
+      "text": "Coupon exposes twelve contacts."
+    }
+  ],
+  "result": {
+    "disposition": "supports",
+    "summary": "Pending review; cannot preview-attach.",
+    "limitations": ["Review has not accepted this record."]
+  },
+  "review": {
+    "status": "pending"
+  }
+}

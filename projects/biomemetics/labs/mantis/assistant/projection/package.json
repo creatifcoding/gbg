@@ -1,0 +1,18 @@
+{
+  "name": "@tmnl/mantis-assistant-projection",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Governed SpecimenDB projection preview for mantis assistant A5. Empty well; no live attach.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.3"
+  }
+}
