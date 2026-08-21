@@ -1,0 +1,21 @@
+{
+  "rows": 121,
+  "sourcedOrContract": 48,
+  "unverified": 73,
+  "footprints": [
+    "B27_RAIL_12NET_TARGET-2.54mm_UNVERIFIED-series",
+    "B50_BINDER_12NET_UNVERIFIED-series",
+    "FPC-22_0.5mm_UNVERIFIED-MPN",
+    "JST-SH-4_1mm_UNVERIFIED-header-MPN",
+    "MAX96717_PACKAGE_UNVERIFIED",
+    "MAX96724_PACKAGE_UNVERIFIED",
+    "Q1_LOADSWITCH_UNVERIFIED",
+    "S1_NO_SWITCH_UNVERIFIED",
+    "S2_NO_SWITCH_UNVERIFIED",
+    "TSSOP-24_PW_TI",
+    "VQFN-24_RGE_TI"
+  ],
+  "failures": [],
+  "kicadCli": "absent",
+  "erc": "not-run"
+}
