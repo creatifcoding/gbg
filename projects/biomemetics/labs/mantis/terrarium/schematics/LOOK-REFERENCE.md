@@ -18,4 +18,5 @@ If a later PR lands variant UI or product screenshots:
 
 HITL PNGs under `hitl/` are a separate look check. They are for judging
 shop-drawing appearance only. A PNG does not prove geometry or safety.
-See `HITL.md`.
+Projected sheets in this cut still need that look check: white field, dark
+strokes, third-angle title block. See `HITL.md`.

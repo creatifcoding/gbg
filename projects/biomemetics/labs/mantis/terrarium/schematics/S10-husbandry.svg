@@ -10,7 +10,7 @@
     .thin { stroke:#15171a; stroke-width:.28; fill:none; }
     .med { stroke:#15171a; stroke-width:.55; fill:none; }
     .heavy { stroke:#15171a; stroke-width:1.05; fill:none; }
-    .hidden { stroke:#59616b; stroke-width:.28; stroke-dasharray:2 1.2; fill:none; }
+    .hidden { stroke:#59616b; stroke-width:.22; stroke-dasharray:1.6 1.1; fill:none; }
     .phantom { stroke:#d65a24; stroke-width:.35; stroke-dasharray:5 1 1 1; fill:none; }
     .center { stroke:#73808d; stroke-width:.22; stroke-dasharray:4 1 1 1; fill:none; }
     .dim { stroke:#15171a; stroke-width:.25; fill:none; marker-start:url(#arr); marker-end:url(#arr); }
@@ -19,75 +19,372 @@
     .ref { fill:#ffffff; stroke:#15171a; stroke-width:.45; }
     .unverified { fill:#ffffff; stroke:#ba3d3d; stroke-width:.45; }
     .keepout { fill:#dd3c3c; fill-opacity:.08; stroke:#c63333; stroke-width:.35; stroke-dasharray:4 2; }
+    .hlr { stroke:#15171a; stroke-width:.45; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .hlr-keep { stroke:#c63333; stroke-width:.4; fill:none; stroke-dasharray:3.5 2; }
     .metal { fill:#f3f3f3; stroke:#15171a; stroke-width:.35; }
     .plastic { fill:#ffffff; stroke:#15171a; stroke-width:.35; }
     .cut { fill:url(#hatch); stroke:#15171a; stroke-width:.45; }
   </style>
 </defs>
 <rect x="8" y="8" width="404" height="249.0" rx="0" class="heavy"/>
-<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">SECTION THROUGH ANIMAL VOLUME</text>
-<text x="12" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="38" y="31" width="86" height="172" rx="0" class="heavy"/>
-<rect x="44" y="37" width="74" height="160" rx="0" class="thin" fill="#ffffff"/>
-<rect x="44" y="37" width="74" height="10" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="44" y="47" width="74" height="52" rx="0" class="keepout"/>
-<text x="81" y="70" font-size="3.4" font-weight="bold" text-anchor="middle" fill="#b52d2d">MOLT KEEP-OUT</text>
-<line x1="81" y1="99" x2="81" y2="181" class="thin"/>
-<path d="M60 130 C75 115 90 145 105 126" class="med"/>
-<rect x="47" y="184" width="68" height="9" rx="0" class="med" fill="#ffffff"/>
-<text x="81" y="213" font-size="2.4" font-weight="bold" text-anchor="middle">FALSE BOTTOM + 25 TRAY REF</text>
-<rect x="31" y="27" width="100" height="4" rx="0" class="med" fill="#ffffff"/>
-<rect x="25" y="25" width="20" height="8" rx="0" class="heavy" fill="#fff"/>
-<rect x="34" y="31" width="6" height="172" rx="0" class="keepout"/>
-<text x="37" y="118" font-size="2.6" font-weight="bold" text-anchor="start" fill="#b52d2d" transform="rotate(-90 37 118)">B20</text>
-<line x1="34" y1="31" x2="34" y2="203" class="phantom"/>
-<text x="22" y="90" font-size="2.2" font-weight="bold" text-anchor="start" transform="rotate(-90 22 90)">EXTERNAL RAIL</text>
-<text x="22" y="150" font-size="2.2" font-weight="bold" text-anchor="start" fill="#b52d2d" transform="rotate(-90 22 150)">NO METAL IN</text>
-<line x1="38" y1="31" x2="10" y2="31" class="thin"/>
-<line x1="38" y1="203" x2="10" y2="203" class="thin"/>
-<line x1="10" y1="31" x2="10" y2="203" class="dim"/>
-<text x="8.3" y="117.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 8.3 117.0)">500 LOCK</text>
-<rect x="44" y="166" width="5" height="18" rx="0" class="thin" fill="url(#screen)"/>
-<rect x="113" y="62" width="5" height="18" rx="0" class="thin" fill="url(#screen)"/>
-<path d="M28 177 C55 177 66 165 72 151" class="motion"/>
-<path d="M85 90 C100 78 110 71 132 70" class="motion"/>
-<text x="51" y="224" font-size="2.5" font-weight="bold" text-anchor="start">LOW INTAKE -&gt; HIGH EXHAUST</text>
-<text x="81" y="232" font-size="2.2" font-weight="bold" text-anchor="middle">NOMINAL CLEAR 202 W x 202 D x 427 H CALCULATED</text>
-<text x="161" y="15" font-size="3.2" font-weight="bold" text-anchor="start">DOOR SWING / SERVICE ENVELOPE</text>
-<text x="161" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="180" y="45" width="50" height="100" rx="0" class="heavy"/>
-<line x1="180" y1="45" x2="180" y2="145" class="heavy"/>
-<path d="M180 45 A100 100 0 0 1 280 145" class="phantom"/>
-<line x1="180" y1="145" x2="276" y2="145" class="motion"/>
-<text x="230" y="155" font-size="2.6" font-weight="bold" text-anchor="middle">90 deg MIN SERVICE SWING</text>
-<rect x="190" y="55" width="30" height="35" rx="0" class="keepout"/>
-<text x="205" y="73" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#b52d2d">UPPER</text>
-<text x="205" y="78" font-size="2.3" font-weight="bold" text-anchor="middle" fill="#b52d2d">CLEAR</text>
-<text x="286" y="15" font-size="3.2" font-weight="bold" text-anchor="start">DETAIL J - NYMPH-PROOF GAP</text>
-<text x="286" y="18.8" font-size="2.3" font-weight="normal" text-anchor="start">SCALE NTS - DO NOT SCALE</text>
-<rect x="310" y="42" width="28" height="72" rx="0" class="cut"/>
-<rect x="343" y="42" width="28" height="72" rx="0" class="cut"/>
-<rect x="337" y="48" width="7" height="60" rx="0" class="plastic"/>
-<line x1="338" y1="108" x2="338" y2="125" class="thin"/>
-<line x1="343" y1="108" x2="343" y2="125" class="thin"/>
-<line x1="338" y1="125" x2="343" y2="125" class="dim"/>
-<text x="340.5" y="123.6" font-size="2.7" font-weight="normal" text-anchor="middle">&lt;=0.50 TARGET</text>
-<text x="340" y="137" font-size="2.5" font-weight="bold" text-anchor="middle">LABYRINTH + COMPRESSIBLE WIPER</text>
-<text x="340" y="145" font-size="2.5" font-weight="bold" text-anchor="middle">SCREEN APERTURE &lt;=0.8 LOCK</text>
-<rect x="161" y="179" width="116" height="27.0" rx="0" class="unverified" fill="#ffffff"/>
-<text x="164" y="183.4" font-size="2.8" font-weight="bold" text-anchor="start">B20 KEEP-OUT (CAD-01)</text>
-<text x="164" y="188" font-size="2.45" font-weight="normal" text-anchor="start">Barrier bbox -8..250 X,</text>
-<text x="164" y="192" font-size="2.45" font-weight="normal" text-anchor="start">-8..250 Y, 0..500 Z REF.</text>
-<text x="164" y="196" font-size="2.45" font-weight="normal" text-anchor="start">Fused across front+left joints/splices/door.</text>
-<text x="164" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Not a film over contacts.</text>
-<text x="164" y="204" font-size="2.45" font-weight="normal" text-anchor="start">Molt keep-out 142 CALCULATED.</text>
-<rect x="289" y="179" width="116" height="27.0" rx="0" class="unverified" fill="#ffffff"/>
-<text x="292" y="183.4" font-size="2.8" font-weight="bold" text-anchor="start">WET-VOLUME RULE</text>
-<text x="292" y="188" font-size="2.45" font-weight="normal" text-anchor="start">No metal mesh / copper / pogo.</text>
-<text x="292" y="192" font-size="2.45" font-weight="normal" text-anchor="start">PETG or ASA wet parts.</text>
-<text x="292" y="196" font-size="2.45" font-weight="normal" text-anchor="start">Nymph gap &lt;=0.50 TARGET.</text>
-<text x="292" y="200" font-size="2.45" font-weight="normal" text-anchor="start">Solo animal. No taxon inferred.</text>
-<text x="292" y="204" font-size="2.45" font-weight="normal" text-anchor="start">Heat-mat pass only; no mains.</text>
+<text x="12" y="15" font-size="3.2" font-weight="bold" text-anchor="start">B20 WET-SIDE BARRIER (KEEP-OUT)</text>
+<text x="12" y="18.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:5  |  OCCT HLR</text>
+<text x="12" y="22.4" font-size="2.0" font-weight="normal" text-anchor="start">PR 34 B20 STEP  fe8f875a80b3  NO METAL IN WET VOLUME</text>
+<path d="M23.600 28.000 L25.600 28.000" class="hidden"/>
+<path d="M22.000 28.000 L23.600 28.000" class="hidden"/>
+<path d="M23.600 28.000 L25.600 28.000" class="hidden"/>
+<path d="M25.600 28.000 L73.600 28.000" class="hidden"/>
+<path d="M22.000 128.000 L22.000 28.000" class="hidden"/>
+<path d="M22.000 28.000 L23.600 28.000" class="hidden"/>
+<path d="M22.000 28.000 L25.600 28.000" class="hidden"/>
+<path d="M25.600 128.000 L73.600 128.000" class="hidden"/>
+<path d="M25.600 28.000 L25.600 128.000" class="hidden"/>
+<path d="M73.600 128.000 L73.600 28.000" class="hidden"/>
+<path d="M23.600 128.000 L25.600 128.000" class="hidden"/>
+<path d="M22.000 128.000 L22.000 28.000" class="hidden"/>
+<path d="M22.000 128.000 L23.600 128.000" class="hidden"/>
+<path d="M25.600 128.000 L25.600 28.000" class="hidden"/>
+<path d="M22.000 128.000 L22.000 28.000" class="hidden"/>
+<path d="M22.000 128.000 L25.600 128.000" class="hidden"/>
+<path d="M23.600 128.000 L25.600 128.000" class="hidden"/>
+<path d="M22.000 128.000 L23.600 128.000" class="hidden"/>
+<path d="M23.600 28.000 L25.600 28.000" class="hlr-keep"/>
+<path d="M22.000 28.000 L23.600 28.000" class="hlr-keep"/>
+<path d="M25.600 28.000 L73.600 28.000" class="hlr-keep"/>
+<path d="M23.600 128.000 L25.600 128.000" class="hlr-keep"/>
+<path d="M22.000 128.000 L22.000 28.000" class="hlr-keep"/>
+<path d="M22.000 128.000 L23.600 128.000" class="hlr-keep"/>
+<path d="M73.600 128.000 L73.600 28.000" class="hlr-keep"/>
+<path d="M25.600 128.000 L73.600 128.000" class="hlr-keep"/>
+<path d="M90.000 129.600 L90.000 29.600" class="hidden"/>
+<path d="M90.000 29.600 L90.000 28.000" class="hidden"/>
+<path d="M90.000 131.200 L90.000 129.600" class="hidden"/>
+<path d="M90.000 28.000 L97.600 28.000" class="hidden"/>
+<path d="M97.600 29.300 L97.600 28.000" class="hidden"/>
+<path d="M90.000 131.200 L97.600 131.200" class="hidden"/>
+<path d="M97.000 129.600 L97.600 129.600" class="hidden"/>
+<path d="M97.600 131.200 L97.600 129.600" class="hidden"/>
+<path d="M97.000 32.800 L97.000 29.600" class="hidden"/>
+<path d="M97.000 32.800 L97.000 129.600" class="hidden"/>
+<path d="M97.000 29.600 L97.600 29.600" class="hidden"/>
+<path d="M97.000 129.600 L98.600 129.600" class="hidden"/>
+<path d="M97.600 129.600 L97.600 32.800" class="hidden"/>
+<path d="M97.600 29.300 L98.600 29.300" class="hidden"/>
+<path d="M97.000 129.600 L97.000 29.600" class="hidden"/>
+<path d="M97.600 29.600 L98.600 29.600" class="hidden"/>
+<path d="M97.000 29.600 L98.600 29.600" class="hidden"/>
+<path d="M97.000 129.600 L98.600 129.600" class="hidden"/>
+<path d="M98.600 129.600 L100.600 129.600" class="hidden"/>
+<path d="M98.600 32.800 L97.600 32.800" class="hidden"/>
+<path d="M98.600 29.300 L148.600 29.300" class="hidden"/>
+<path d="M98.600 29.300 L148.600 29.300" class="hidden"/>
+<path d="M98.600 29.600 L98.600 29.300" class="hidden"/>
+<path d="M98.600 29.600 L98.600 29.300" class="hidden"/>
+<path d="M98.600 29.300 L148.600 29.300" class="hidden"/>
+<path d="M97.000 129.600 L97.000 29.600" class="hidden"/>
+<path d="M98.600 29.600 L100.600 29.600" class="hidden"/>
+<path d="M100.600 29.600 L148.600 29.600" class="hidden"/>
+<path d="M97.000 29.600 L98.600 29.600" class="hidden"/>
+<path d="M98.600 29.600 L100.600 29.600" class="hidden"/>
+<path d="M97.000 129.600 L98.600 129.600" class="hidden"/>
+<path d="M98.600 129.600 L100.600 129.600" class="hidden"/>
+<path d="M143.800 129.600 L148.600 129.600" class="hidden"/>
+<path d="M103.400 129.600 L143.800 129.600" class="hidden"/>
+<path d="M100.600 129.600 L103.400 129.600" class="hidden"/>
+<path d="M100.600 32.800 L98.600 32.800" class="hidden"/>
+<path d="M148.600 32.800 L100.600 32.800" class="hidden"/>
+<path d="M148.600 29.300 L150.200 29.300" class="hidden"/>
+<path d="M98.600 29.600 L148.600 29.600" class="hidden"/>
+<path d="M148.600 29.600 L148.600 29.300" class="hidden"/>
+<path d="M98.600 29.600 L148.600 29.600" class="hidden"/>
+<path d="M148.600 29.600 L148.600 29.300" class="hidden"/>
+<path d="M97.000 129.600 L97.000 29.600" class="hidden"/>
+<path d="M143.800 29.600 L148.600 29.600" class="hidden"/>
+<path d="M103.400 29.600 L143.800 29.600" class="hidden"/>
+<path d="M100.600 29.600 L103.400 29.600" class="hidden"/>
+<path d="M148.600 32.800 L150.200 32.800" class="hidden"/>
+<path d="M148.600 32.800 L148.600 29.600" class="hidden"/>
+<path d="M150.200 32.800 L150.200 29.300" class="hidden"/>
+<path d="M97.000 29.600 L98.600 29.600" class="hidden"/>
+<path d="M98.600 29.600 L100.600 29.600" class="hidden"/>
+<path d="M98.600 129.600 L100.600 129.600" class="hidden"/>
+<path d="M98.600 129.600 L100.600 129.600" class="hidden"/>
+<path d="M98.600 129.600 L100.600 129.600" class="hidden"/>
+<path d="M100.600 129.600 L103.400 129.600" class="hidden"/>
+<path d="M103.400 129.600 L143.800 129.600" class="hidden"/>
+<path d="M143.800 129.600 L148.600 129.600" class="hidden"/>
+<path d="M148.600 129.600 L148.600 124.800" class="hidden"/>
+<path d="M148.600 124.800 L148.600 81.800" class="hidden"/>
+<path d="M148.600 81.800 L148.600 79.600" class="hidden"/>
+<path d="M148.600 79.600 L148.600 77.400" class="hidden"/>
+<path d="M148.600 77.400 L148.600 74.800" class="hidden"/>
+<path d="M148.600 74.800 L148.600 34.400" class="hidden"/>
+<path d="M148.600 34.400 L148.600 29.600" class="hidden"/>
+<path d="M100.600 29.600 L103.400 29.600" class="hidden"/>
+<path d="M103.400 29.600 L143.800 29.600" class="hidden"/>
+<path d="M143.800 29.600 L148.600 29.600" class="hidden"/>
+<path d="M98.600 29.600 L100.600 29.600" class="hidden"/>
+<path d="M98.600 29.600 L100.600 29.600" class="hidden"/>
+<path d="M98.600 29.600 L100.600 29.600" class="hidden"/>
+<path d="M100.600 129.600 L103.400 129.600" class="hidden"/>
+<path d="M100.600 129.600 L103.400 129.600" class="hidden"/>
+<path d="M100.600 129.600 L103.400 129.600" class="hidden"/>
+<path d="M103.400 129.600 L143.800 129.600" class="hidden"/>
+<path d="M143.800 129.600 L148.600 129.600" class="hidden"/>
+<path d="M148.600 129.600 L148.600 124.800" class="hidden"/>
+<path d="M148.600 34.400 L148.600 29.600" class="hidden"/>
+<path d="M148.600 74.800 L148.600 34.400" class="hidden"/>
+<path d="M148.600 77.400 L148.600 74.800" class="hidden"/>
+<path d="M148.600 79.600 L148.600 77.400" class="hidden"/>
+<path d="M148.600 81.800 L148.600 79.600" class="hidden"/>
+<path d="M148.600 124.800 L148.600 81.800" class="hidden"/>
+<path d="M100.600 29.600 L103.400 29.600" class="hidden"/>
+<path d="M103.400 29.600 L143.800 29.600" class="hidden"/>
+<path d="M143.800 29.600 L148.600 29.600" class="hidden"/>
+<path d="M100.600 29.600 L103.400 29.600" class="hidden"/>
+<path d="M100.600 29.600 L103.400 29.600" class="hidden"/>
+<path d="M103.400 124.800 L103.400 81.800" class="hidden"/>
+<path d="M103.400 81.800 L103.400 79.600" class="hidden"/>
+<path d="M103.400 79.600 L103.400 77.400" class="hidden"/>
+<path d="M103.400 77.400 L103.400 74.800" class="hidden"/>
+<path d="M103.400 74.800 L103.400 34.400" class="hidden"/>
+<path d="M103.400 129.600 L143.800 129.600" class="hidden"/>
+<path d="M103.400 129.600 L143.800 129.600" class="hidden"/>
+<path d="M103.400 129.600 L103.400 124.800" class="hidden"/>
+<path d="M103.400 129.600 L103.400 124.800" class="hidden"/>
+<path d="M103.400 124.800 L143.800 124.800" class="hidden"/>
+<path d="M143.800 129.600 L143.800 124.800" class="hidden"/>
+<path d="M143.800 129.600 L148.600 129.600" class="hidden"/>
+<path d="M148.600 129.600 L148.600 124.800" class="hidden"/>
+<path d="M148.600 34.400 L148.600 29.600" class="hidden"/>
+<path d="M148.600 74.800 L148.600 34.400" class="hidden"/>
+<path d="M148.600 77.400 L148.600 74.800" class="hidden"/>
+<path d="M148.600 79.600 L148.600 77.400" class="hidden"/>
+<path d="M148.600 81.800 L148.600 79.600" class="hidden"/>
+<path d="M148.600 124.800 L148.600 81.800" class="hidden"/>
+<path d="M103.400 34.400 L143.800 34.400" class="hidden"/>
+<path d="M103.400 34.400 L103.400 29.600" class="hidden"/>
+<path d="M143.800 34.400 L143.800 29.600" class="hidden"/>
+<path d="M143.800 29.600 L148.600 29.600" class="hidden"/>
+<path d="M103.400 29.600 L143.800 29.600" class="hidden"/>
+<path d="M103.400 29.600 L143.800 29.600" class="hidden"/>
+<path d="M103.400 34.400 L103.400 29.600" class="hidden"/>
+<path d="M103.400 124.800 L143.800 124.800" class="hidden"/>
+<path d="M103.400 124.800 L103.400 81.800" class="hidden"/>
+<path d="M103.400 81.800 L103.400 79.600" class="hidden"/>
+<path d="M103.400 79.600 L103.400 77.400" class="hidden"/>
+<path d="M103.400 77.400 L103.400 74.800" class="hidden"/>
+<path d="M103.400 74.800 L103.400 34.400" class="hidden"/>
+<path d="M103.400 34.400 L143.800 34.400" class="hidden"/>
+<path d="M143.800 129.600 L148.600 129.600" class="hidden"/>
+<path d="M103.400 124.800 L143.800 124.800" class="hidden"/>
+<path d="M143.800 129.600 L143.800 124.800" class="hidden"/>
+<path d="M100.600 124.800 L103.400 124.800" class="hidden"/>
+<path d="M100.600 124.800 L103.400 124.800" class="hidden"/>
+<path d="M143.800 124.800 L103.400 124.800" class="hidden"/>
+<path d="M148.600 129.600 L148.600 124.800" class="hidden"/>
+<path d="M148.600 34.400 L148.600 29.600" class="hidden"/>
+<path d="M143.800 74.800 L143.800 34.400" class="hidden"/>
+<path d="M143.800 34.400 L148.600 34.400" class="hidden"/>
+<path d="M143.800 77.400 L143.800 74.800" class="hidden"/>
+<path d="M143.800 79.600 L143.800 77.400" class="hidden"/>
+<path d="M143.800 81.800 L143.800 79.600" class="hidden"/>
+<path d="M143.800 124.800 L148.600 124.800" class="hidden"/>
+<path d="M143.800 124.800 L143.800 81.800" class="hidden"/>
+<path d="M143.800 34.400 L103.400 34.400" class="hidden"/>
+<path d="M143.800 34.400 L143.800 29.600" class="hidden"/>
+<path d="M143.800 29.600 L148.600 29.600" class="hidden"/>
+<path d="M103.400 34.400 L143.800 34.400" class="hidden"/>
+<path d="M100.600 34.400 L103.400 34.400" class="hidden"/>
+<path d="M100.600 34.400 L103.400 34.400" class="hidden"/>
+<path d="M148.600 129.600 L148.600 124.800" class="hidden"/>
+<path d="M100.600 81.800 L100.600 124.800" class="hidden"/>
+<path d="M100.600 79.600 L100.600 81.800" class="hidden"/>
+<path d="M100.600 77.400 L100.600 79.600" class="hidden"/>
+<path d="M100.600 74.800 L100.600 77.400" class="hidden"/>
+<path d="M100.600 34.400 L100.600 74.800" class="hidden"/>
+<path d="M148.600 34.400 L148.600 29.600" class="hidden"/>
+<path d="M100.600 81.800 L100.600 124.800" class="hidden"/>
+<path d="M100.600 34.400 L100.600 74.800" class="hidden"/>
+<path d="M100.600 74.800 L100.600 77.400" class="hidden"/>
+<path d="M100.600 77.400 L100.600 79.600" class="hidden"/>
+<path d="M100.600 79.600 L100.600 81.800" class="hidden"/>
+<path d="M103.400 124.800 L103.400 81.800" class="hidden"/>
+<path d="M143.800 124.800 L148.600 124.800" class="hidden"/>
+<path d="M103.400 124.800 L103.400 81.800" class="hidden"/>
+<path d="M143.800 124.800 L143.800 81.800" class="hidden"/>
+<path d="M103.400 81.800 L103.400 79.600" class="hidden"/>
+<path d="M103.400 79.600 L103.400 77.400" class="hidden"/>
+<path d="M103.400 77.400 L103.400 74.800" class="hidden"/>
+<path d="M103.400 74.800 L103.400 34.400" class="hidden"/>
+<path d="M143.800 74.800 L143.800 34.400" class="hidden"/>
+<path d="M143.800 77.400 L143.800 74.800" class="hidden"/>
+<path d="M143.800 79.600 L143.800 77.400" class="hidden"/>
+<path d="M143.800 81.800 L143.800 79.600" class="hidden"/>
+<path d="M143.800 34.400 L148.600 34.400" class="hidden"/>
+<path d="M103.400 74.800 L103.400 34.400" class="hidden"/>
+<path d="M143.800 124.800 L143.800 81.800" class="hidden"/>
+<path d="M148.600 124.800 L148.600 81.800" class="hidden"/>
+<path d="M143.800 124.800 L143.800 81.800" class="hidden"/>
+<path d="M143.800 74.800 L143.800 34.400" class="hidden"/>
+<path d="M143.800 74.800 L143.800 34.400" class="hidden"/>
+<path d="M148.600 74.800 L148.600 34.400" class="hidden"/>
+<path d="M148.600 124.800 L148.600 81.800" class="hidden"/>
+<path d="M103.400 81.800 L103.400 79.600" class="hidden"/>
+<path d="M103.400 79.600 L103.400 77.400" class="hidden"/>
+<path d="M103.400 77.400 L103.400 74.800" class="hidden"/>
+<path d="M148.600 74.800 L148.600 34.400" class="hidden"/>
+<path d="M143.800 81.800 L143.800 79.600" class="hidden"/>
+<path d="M148.600 81.800 L148.600 79.600" class="hidden"/>
+<path d="M143.800 81.800 L143.800 79.600" class="hidden"/>
+<path d="M143.800 77.400 L143.800 74.800" class="hidden"/>
+<path d="M143.800 77.400 L143.800 74.800" class="hidden"/>
+<path d="M148.600 77.400 L148.600 74.800" class="hidden"/>
+<path d="M148.600 81.800 L148.600 79.600" class="hidden"/>
+<path d="M148.600 77.400 L148.600 74.800" class="hidden"/>
+<path d="M143.800 79.600 L143.800 77.400" class="hidden"/>
+<path d="M148.600 79.600 L148.600 77.400" class="hidden"/>
+<path d="M143.800 79.600 L143.800 77.400" class="hidden"/>
+<path d="M148.600 79.600 L148.600 77.400" class="hidden"/>
+<path d="M90.000 129.600 L90.000 29.600" class="hlr"/>
+<path d="M90.000 29.600 L90.000 28.000" class="hlr"/>
+<path d="M90.000 131.200 L90.000 129.600" class="hlr"/>
+<path d="M90.000 131.200 L97.600 131.200" class="hlr"/>
+<path d="M97.600 131.200 L97.600 129.600" class="hlr"/>
+<path d="M90.000 28.000 L97.600 28.000" class="hlr"/>
+<path d="M97.600 29.300 L97.600 28.000" class="hlr"/>
+<path d="M97.600 129.600 L97.600 32.800" class="hlr"/>
+<path d="M97.600 129.600 L98.600 129.600" class="hlr"/>
+<path d="M97.600 32.800 L98.600 32.800" class="hlr"/>
+<path d="M97.600 29.300 L98.600 29.300" class="hlr"/>
+<path d="M98.600 129.600 L100.600 129.600" class="hlr"/>
+<path d="M98.600 32.800 L148.600 32.800" class="hlr"/>
+<path d="M98.600 29.300 L148.600 29.300" class="hlr"/>
+<path d="M100.600 129.600 L148.600 129.600" class="hlr"/>
+<path d="M148.600 32.800 L150.200 32.800" class="hlr"/>
+<path d="M148.600 29.300 L150.200 29.300" class="hlr"/>
+<path d="M150.200 32.800 L150.200 29.300" class="hlr"/>
+<path d="M148.600 129.600 L148.600 32.800" class="hlr"/>
+<text x="22" y="140" font-size="2.6" font-weight="bold" text-anchor="start" fill="#ba3d3d">B20 KEEP-OUT</text>
+<text x="90" y="140" font-size="2.6" font-weight="bold" text-anchor="start">ASSEMBLY HLR</text>
+<line x1="22" y1="28" x2="12" y2="28" class="thin"/>
+<line x1="22" y1="128" x2="12" y2="128" class="thin"/>
+<line x1="12" y1="28" x2="12" y2="128" class="dim"/>
+<text x="10.3" y="78.0" font-size="2.7" font-weight="normal" text-anchor="middle" transform="rotate(-90 10.3 78.0)">500 LOCK / 500 B20</text>
+<text x="200" y="15" font-size="3.2" font-weight="bold" text-anchor="start">TOP: B20 VS B10 FRAME</text>
+<text x="200" y="18.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:8  |  OCCT HLR</text>
+<path d="M206.000 60.250 L207.250 60.250" class="hidden"/>
+<path d="M205.000 60.250 L205.000 59.250" class="hidden"/>
+<path d="M205.000 60.250 L206.000 60.250" class="hidden"/>
+<path d="M207.250 58.000 L237.250 58.000" class="hidden"/>
+<path d="M237.250 60.250 L237.250 58.000" class="hidden"/>
+<path d="M207.250 60.250 L237.250 60.250" class="hidden"/>
+<path d="M205.000 59.250 L205.000 58.000" class="hidden"/>
+<path d="M207.250 58.000 L207.250 28.000" class="hidden"/>
+<path d="M205.000 58.000 L205.000 28.000" class="hidden"/>
+<path d="M205.000 28.000 L207.250 28.000" class="hidden"/>
+<path d="M206.000 60.250 L207.250 60.250" class="hlr-keep"/>
+<path d="M205.000 60.250 L205.000 59.250" class="hlr-keep"/>
+<path d="M205.000 60.250 L206.000 60.250" class="hlr-keep"/>
+<path d="M207.250 60.250 L237.250 60.250" class="hlr-keep"/>
+<path d="M237.250 60.250 L237.250 58.000" class="hlr-keep"/>
+<path d="M207.250 58.000 L237.250 58.000" class="hlr-keep"/>
+<path d="M205.000 59.250 L205.000 58.000" class="hlr-keep"/>
+<path d="M207.250 58.000 L207.250 28.000" class="hlr-keep"/>
+<path d="M205.000 28.000 L207.250 28.000" class="hlr-keep"/>
+<path d="M205.000 58.000 L205.000 28.000" class="hlr-keep"/>
+<path d="M250.000 63.250 L250.000 32.000" class="hidden"/>
+<path d="M250.000 63.250 L281.250 63.250" class="hidden"/>
+<path d="M250.000 32.000 L281.250 32.000" class="hidden"/>
+<path d="M281.250 63.250 L281.250 32.000" class="hidden"/>
+<path d="M253.000 60.250 L278.250 60.250" class="hidden"/>
+<path d="M253.000 60.250 L253.000 35.000" class="hidden"/>
+<path d="M253.000 35.000 L278.250 35.000" class="hidden"/>
+<path d="M278.250 60.250 L278.250 35.000" class="hidden"/>
+<path d="M250.000 63.250 L250.000 32.000" class="hlr"/>
+<path d="M250.000 63.250 L281.250 63.250" class="hlr"/>
+<path d="M281.250 63.250 L281.250 32.000" class="hlr"/>
+<path d="M250.000 32.000 L281.250 32.000" class="hlr"/>
+<path d="M253.000 60.250 L278.250 60.250" class="hlr"/>
+<path d="M253.000 60.250 L253.000 35.000" class="hlr"/>
+<path d="M253.000 35.000 L278.250 35.000" class="hlr"/>
+<path d="M278.250 60.250 L278.250 35.000" class="hlr"/>
+<text x="200" y="78" font-size="3.2" font-weight="bold" text-anchor="start">DOOR B06 / LABYRINTH B07</text>
+<text x="200" y="81.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:8  |  OCCT HLR</text>
+<path d="M205.000 143.375 L205.000 90.000" class="hidden"/>
+<path d="M230.250 143.375 L230.250 90.000" class="hidden"/>
+<path d="M205.000 143.375 L230.250 143.375" class="hidden"/>
+<path d="M205.000 90.000 L230.250 90.000" class="hidden"/>
+<path d="M205.000 143.375 L205.000 90.000" class="hlr"/>
+<path d="M230.250 143.375 L230.250 90.000" class="hlr"/>
+<path d="M205.000 143.375 L230.250 143.375" class="hlr"/>
+<path d="M205.000 90.000 L230.250 90.000" class="hlr"/>
+<path d="M250.000 142.875 L250.000 88.000" class="hidden"/>
+<path d="M250.000 88.000 L276.750 88.000" class="hidden"/>
+<path d="M250.000 142.875 L276.750 142.875" class="hidden"/>
+<path d="M276.750 142.875 L276.750 88.000" class="hidden"/>
+<path d="M250.750 142.125 L250.750 88.750" class="hidden"/>
+<path d="M250.750 142.125 L276.000 142.125" class="hidden"/>
+<path d="M276.000 142.125 L276.000 88.750" class="hidden"/>
+<path d="M250.750 88.750 L276.000 88.750" class="hidden"/>
+<path d="M250.000 142.875 L250.000 88.000" class="hlr"/>
+<path d="M250.000 142.875 L276.750 142.875" class="hlr"/>
+<path d="M250.000 88.000 L276.750 88.000" class="hlr"/>
+<path d="M276.750 142.875 L276.750 88.000" class="hlr"/>
+<path d="M250.750 142.125 L250.750 88.750" class="hlr"/>
+<path d="M250.750 142.125 L276.000 142.125" class="hlr"/>
+<path d="M276.000 142.125 L276.000 88.750" class="hlr"/>
+<path d="M250.750 88.750 L276.000 88.750" class="hlr"/>
+<path d="M205 140 A40 40 0 0 1 255 180" class="phantom"/>
+<line x1="205" y1="140" x2="255" y2="180" class="motion"/>
+<text x="230" y="188" font-size="2.1" font-weight="bold" text-anchor="middle">90 deg MIN SERVICE SWING (MOTION OVERLAY)</text>
+<text x="12" y="150" font-size="3.2" font-weight="bold" text-anchor="start">LOW INTAKE B12 / FALSE BOTTOM B14</text>
+<text x="12" y="153.8" font-size="2.2" font-weight="normal" text-anchor="start">SCALE 1:5 / 1:8  |  OCCT HLR</text>
+<path d="M18.000 180.000 L18.000 164.000" class="hidden"/>
+<path d="M34.000 180.000 L34.000 164.000" class="hidden"/>
+<path d="M18.000 180.000 L34.000 180.000" class="hidden"/>
+<path d="M18.000 164.000 L34.000 164.000" class="hidden"/>
+<path d="M18.000 180.000 L18.000 164.000" class="hlr"/>
+<path d="M34.000 180.000 L34.000 164.000" class="hlr"/>
+<path d="M18.000 180.000 L34.000 180.000" class="hlr"/>
+<path d="M18.000 164.000 L34.000 164.000" class="hlr"/>
+<path d="M50.000 189.250 L50.000 164.000" class="hidden"/>
+<path d="M75.250 189.250 L75.250 164.000" class="hidden"/>
+<path d="M50.000 189.250 L75.250 189.250" class="hidden"/>
+<path d="M50.000 164.000 L75.250 164.000" class="hidden"/>
+<path d="M50.000 189.250 L50.000 164.000" class="hlr"/>
+<path d="M75.250 189.250 L75.250 164.000" class="hlr"/>
+<path d="M50.000 189.250 L75.250 189.250" class="hlr"/>
+<path d="M50.000 164.000 L75.250 164.000" class="hlr"/>
+<text x="18" y="210" font-size="2.2" font-weight="bold" text-anchor="start">FALSE BOTTOM + 25 TRAY REF</text>
+<rect x="160" y="196" width="118" height="27.0" rx="0" class="unverified" fill="#ffffff"/>
+<text x="163" y="200.4" font-size="2.8" font-weight="bold" text-anchor="start">B20 KEEP-OUT (CAD-01 STEP)</text>
+<text x="163" y="205" font-size="2.45" font-weight="normal" text-anchor="start">Barrier bbox -8..250 X,</text>
+<text x="163" y="209" font-size="2.45" font-weight="normal" text-anchor="start">-8..250 Y, 0..500 Z.</text>
+<text x="163" y="213" font-size="2.45" font-weight="normal" text-anchor="start">HLR of B20-animal-wet-barrier.step.</text>
+<text x="163" y="217" font-size="2.45" font-weight="normal" text-anchor="start">Not a film over contacts.</text>
+<text x="163" y="221" font-size="2.45" font-weight="normal" text-anchor="start">Molt keep-out 142 CALCULATED.</text>
+<rect x="288" y="196" width="116" height="27.0" rx="0" class="unverified" fill="#ffffff"/>
+<text x="291" y="200.4" font-size="2.8" font-weight="bold" text-anchor="start">WET-VOLUME RULE</text>
+<text x="291" y="205" font-size="2.45" font-weight="normal" text-anchor="start">No metal mesh / copper / pogo.</text>
+<text x="291" y="209" font-size="2.45" font-weight="normal" text-anchor="start">PETG or ASA wet parts.</text>
+<text x="291" y="213" font-size="2.45" font-weight="normal" text-anchor="start">Nymph gap &lt;=0.50 TARGET.</text>
+<text x="291" y="217" font-size="2.45" font-weight="normal" text-anchor="start">Solo animal. No taxon inferred.</text>
+<text x="291" y="221" font-size="2.45" font-weight="normal" text-anchor="start">Heat-mat pass only; no mains.</text>
+<line x1="12" y1="241" x2="22.0" y2="241" class="heavy"/>
+<line x1="12.0" y1="239.2" x2="12.0" y2="242.8" class="med"/>
+<text x="12.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">0</text>
+<line x1="14.0" y1="239.2" x2="14.0" y2="242.8" class="med"/>
+<text x="14.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">10</text>
+<line x1="16.0" y1="239.2" x2="16.0" y2="242.8" class="med"/>
+<text x="16.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">20</text>
+<line x1="18.0" y1="239.2" x2="18.0" y2="242.8" class="med"/>
+<text x="18.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">30</text>
+<line x1="20.0" y1="239.2" x2="20.0" y2="242.8" class="med"/>
+<text x="20.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">40</text>
+<line x1="22.0" y1="239.2" x2="22.0" y2="242.8" class="med"/>
+<text x="22.0" y="238.4" font-size="1.8" font-weight="normal" text-anchor="middle">50</text>
+<text x="25.0" y="241.6" font-size="2.1" font-weight="normal" text-anchor="start">mm  @ 1:5</text>
 <line x1="8" y1="257.0" x2="412" y2="257.0" class="heavy"/>
 <rect x="8" y="257.0" width="404" height="32" rx="0" class="med"/>
 <line x1="270" y1="257.0" x2="270" y2="289" class="med"/>
@@ -97,18 +394,18 @@
 <line x1="270" y1="278.0" x2="412" y2="278.0" class="thin"/>
 <text x="13" y="265.0" font-size="5.0" font-weight="bold" text-anchor="start">PARTICLE-BASE MANTIS TERRARIUM</text>
 <text x="13" y="272.0" font-size="4.0" font-weight="bold" text-anchor="start">HUSBANDRY INTERFERENCE</text>
-<text x="13" y="280.0" font-size="3.0" font-weight="bold" text-anchor="start" fill="#ba3d3d">THEORETICAL - VERIFY AGAINST STEP / FIRST ARTICLE</text>
+<text x="13" y="280.0" font-size="2.8" font-weight="bold" text-anchor="start" fill="#ba3d3d">DRAFT CAD - NOT SHOP-RELEASE (#31) / NOT FIRST ARTICLE</text>
 <text x="13" y="285.0" font-size="2.2" font-weight="normal" text-anchor="start">Units: mm | Projection: THIRD-ANGLE (ASME Y14.3) | Color: nets / motion / keep-out only</text>
 <text x="273" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">SCALE</text>
-<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">NTS</text>
+<text x="273" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">1:5</text>
 <text x="337" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">DATE</text>
 <text x="337" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">2026-08-20</text>
 <text x="379" y="261.0" font-size="1.9" font-weight="bold" text-anchor="start">REV</text>
-<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41</text>
+<text x="379" y="265.0" font-size="2.5" font-weight="normal" text-anchor="start">B-41P</text>
 <text x="273" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">SHEET</text>
 <text x="273" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">11 OF 12 / S10</text>
 <text x="337" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">STATUS</text>
-<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">THEORETICAL</text>
+<text x="337" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">DRAFT CAD</text>
 <text x="379" y="272.0" font-size="1.9" font-weight="bold" text-anchor="start">DRAWN</text>
 <text x="379" y="276.0" font-size="2.5" font-weight="normal" text-anchor="start">GBG#41</text>
 <text x="273" y="282.0" font-size="1.9" font-weight="bold" text-anchor="start">DWG</text>
@@ -120,8 +417,8 @@
 <path d="M226 276.0 L238 273.0 L238 284.0 L226 281.0 Z" class="med"/>
 <circle cx="246" cy="278.5" r="6" class="med"/>
 <text x="236" y="287.0" font-size="1.8" font-weight="bold" text-anchor="middle">3RD ANGLE</text>
-<rect x="196" y="264.0" width="58" height="7" rx="0" class="unverified"/>
-<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle" fill="#ba3d3d">NTS - DO NOT SCALE</text>
+<rect x="196" y="264.0" width="58" height="7" rx="0" class="ref"/>
+<text x="225" y="268.8" font-size="2.0" font-weight="bold" text-anchor="middle">TRUE-SCALE HLR</text>
 <line x1="198" y1="274.0" x2="206" y2="274.0" class="heavy"/>
 <text x="208" y="275.2" font-size="1.7" font-weight="normal" text-anchor="start">geom</text>
 <line x1="198" y1="278.5" x2="206" y2="278.5" class="motion"/>
