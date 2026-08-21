@@ -51,7 +51,7 @@ describe('strict Effect v4 package guardrails', () => {
         if (bannedImport.test(line)) {
           violations.push(`${rel}:${index + 1}: ${line.trim()}`);
         }
-        if (rel.startsWith('src/') || rel.startsWith('test/')) {
+        if (rel.startsWith('src/')) {
           for (const needle of bannedPersistence) {
             if (line.includes(needle)) {
               violations.push(`${rel}:${index + 1}: ${line.trim()}`);

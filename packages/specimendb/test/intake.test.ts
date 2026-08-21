@@ -9,7 +9,6 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
-import { SqlClient } from 'effect/unstable/sql/SqlClient';
 import { heicWithoutGps, jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { gpsFromExif, extractExifTags } from '../src/media/exif.js';
 import { catalogPgFromEnv } from '../src/repos/pg.js';
@@ -30,13 +29,7 @@ const runCatalog = async (program: Effect.Effect<unknown, unknown, never>) => {
   const root = await mkdtemp(join(tmpdir(), 'specimendb-'));
   try {
     await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const sql = yield* SqlClient;
-          yield* sql.unsafe(`TRUNCATE TABLE components, specimens CASCADE`);
-          yield* program;
-        }),
-      ).pipe(
+      Effect.scoped(program).pipe(
         Effect.provide(
           layer({
             pg: catalogPgFromEnv(),
