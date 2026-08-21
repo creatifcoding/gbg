@@ -1,0 +1,11 @@
+{
+  "name": "GBG monorepo (bun + Nx)",
+  "install": "command -v bun >/dev/null 2>&1 || curl -fsSL https://bun.sh/install | bash; export BUN_INSTALL=\"$HOME/.bun\"; export PATH=\"$BUN_INSTALL/bin:$PATH\"; bun install --frozen-lockfile",
+  "terminals": [
+    {
+      "name": "tmnl-web (vite)",
+      "command": "export BUN_INSTALL=\"$HOME/.bun\"; export PATH=\"$BUN_INSTALL/bin:$PATH\"; cd packages/tmnl && bunx vite"
+    }
+  ],
+  "ports": [1420]
+}
