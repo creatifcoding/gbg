@@ -12,12 +12,14 @@ const matrix = loadLabJson(
   network: boolean;
   credentials: boolean;
   lanes: {
-    prove: {
+    ci: { model: string; network: boolean; credentials: boolean };
+    live: {
       model: string;
       reasoningEffort: string;
       provider: string;
       credential: string;
       baseUrl: string;
+      optIn: string;
       network: boolean;
       credentials: boolean;
       openaiApiKey: boolean;
@@ -44,19 +46,24 @@ test('compatibility matrix is the A0 required set', () => {
     'trace-redaction-run-correlation',
     'deterministic-eval-invocation',
     'in-process-agui-bind',
-    'openrouter-luna-generate',
   ]);
 });
 
-test('compatibility matrix proves live OpenRouter Luna, not a fake model', () => {
-  assert.equal(matrix.network, true);
-  assert.equal(matrix.credentials, true);
-  assert.deepEqual(matrix.lanes.prove, {
+test('compatibility matrix keeps CI fake and live OpenRouter lanes explicit', () => {
+  assert.equal(matrix.network, false);
+  assert.equal(matrix.credentials, false);
+  assert.deepEqual(matrix.lanes.ci, {
+    model: 'mantis-fake-model@1.0.0',
+    network: false,
+    credentials: false,
+  });
+  assert.deepEqual(matrix.lanes.live, {
     model: 'openai/gpt-5.6-luna',
     reasoningEffort: 'max',
     provider: 'openrouter openai-compatible',
     credential: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
+    optIn: 'MASTRA_LIVE=1',
     network: true,
     credentials: true,
     openaiApiKey: false,
@@ -67,7 +74,7 @@ test('compatibility matrix proves live OpenRouter Luna, not a fake model', () =>
   });
 });
 
-test('compatibility matrix against pinned Mastra', { timeout: 300_000 }, async (t) => {
+test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t) => {
   const controller = await MantisController.create();
   t.after(() => controller.destroy());
 

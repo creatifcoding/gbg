@@ -18,7 +18,7 @@ export const PINS = {
   packageManager: 'npm@10.9.7',
   node: '>=22.14.0',
   controllerConfig: 'mantis-controller@0.1.0',
-  omFixtureModel: 'mantis-om-fixture@1.0.0',
+  fakeModel: 'mantis-fake-model@1.0.0',
   liveModel: 'openai/gpt-5.6-luna',
   liveReasoningLevel: 'max',
   liveBaseUrl: 'https://openrouter.ai/api/v1',
