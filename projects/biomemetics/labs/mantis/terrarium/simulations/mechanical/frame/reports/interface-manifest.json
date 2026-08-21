@@ -1,0 +1,41 @@
+{
+  "maturity": "DRAFT",
+  "status": "UNVERIFIED",
+  "coordinateFrame": "frame.world",
+  "axes": {
+    "x": "right",
+    "y": "back",
+    "z": "up"
+  },
+  "note": "KiCad board envelopes wait on sourced B27/B50 parts from #23. This proxy is the rail envelope only.",
+  "boards": [
+    {
+      "id": "B27-rail-dock-proxy",
+      "status": "unverified",
+      "matingPlane": "rail.top_front z=span",
+      "envelopeMm": [
+        250.0,
+        38.0,
+        16.0
+      ],
+      "holes": [],
+      "heightZones": [
+        "UNVERIFIED"
+      ]
+    },
+    {
+      "id": "B50-binder-proxy",
+      "status": "unverified",
+      "matingPlane": "carriage binder face, owned by #29",
+      "envelopeMm": [
+        60.0,
+        42.0,
+        28.0
+      ],
+      "holes": [],
+      "heightZones": [
+        "UNVERIFIED"
+      ]
+    }
+  ]
+}

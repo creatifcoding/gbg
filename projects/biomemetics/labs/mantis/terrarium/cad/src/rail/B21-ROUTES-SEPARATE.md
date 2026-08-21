@@ -1,0 +1,1 @@
+B21 is not a solid. Top-front and front-left vertical carriage routes are independent. A carriage does not turn the corner. Each route has its own B51 captive stops. Corner electrical splice hardware is UNVERIFIED and is not authored here.
