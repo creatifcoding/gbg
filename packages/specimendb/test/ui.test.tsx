@@ -239,12 +239,13 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).toContain('ACTIVE_RENDER');
     expect(view.queryByTestId('rail-query')).toBeNull();
     expect(view.queryByTestId('rail-filters')).toBeNull();
-    expect(view.queryByTestId('card-chrome')).toBeNull();
+    expect(view.getByTestId('card-chrome')).toBeTruthy();
     expect(calls.list).toBe(0);
     const html = view.container.textContent ?? '';
-    expect(html).toContain('SP-9942-X');
-    expect(html).toContain('OPTICAL_SCAN');
-    expect(html).toContain('R: 0.992');
+    expect(html).not.toContain('SP-9942-X');
+    expect(html).not.toContain('OPTICAL_SCAN');
+    expect(html).not.toContain('R: 0.992');
+    expect(html).not.toContain('Chordata');
     expect(html).not.toContain('Q QUERY ACCESSION ID');
     expect(html).not.toContain('DRAG_AND_DROP_ASSETS');
     view.unmount();
@@ -262,7 +263,8 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
 
     const workbench = render(React.createElement(WorkbenchPage, { client: emptyClient() }));
     expect(workbench.getByTestId('specimen-rail')).toBeTruthy();
-    expect(workbench.container.textContent).toContain('LAST_UPDATED');
+    expect(workbench.getByTestId('card-chrome')).toBeTruthy();
+    expect(workbench.getByTestId('last-updated').textContent).toBe('LAST_UPDATED');
     expect(workbench.container.textContent).not.toContain('NO RECORDS');
     expect(workbench.container.textContent).not.toContain('NO SELECTION');
     workbench.unmount();
@@ -374,7 +376,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).not.toContain('SP-2023-084');
   });
 
-  it('Workbench Phase 0 keeps source theater as look-only text and does not Promote', async () => {
+  it('Workbench Phase 0 keeps empty wells and does not Promote', async () => {
     let promote = 0;
     const client: SpecimenRpcClient = {
       List: () => Effect.succeed([]),
@@ -387,11 +389,16 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     };
     const view = render(React.createElement(WorkbenchPage, { client }));
     const html = view.container.textContent ?? '';
-    expect(html).toContain('SP-9942-X');
-    expect(html).toContain('Working');
-    expect(html).toContain('unknown');
-    expect(html).toContain('14.5995, 120.9842');
-    expect(html).toContain('Chordata');
+    expect(view.getByTestId('card-chrome')).toBeTruthy();
+    expect(html).toContain('Phylum');
+    expect(html).toContain('Class');
+    expect(html).toContain('Order');
+    expect(html).toContain('Family');
+    expect(html).not.toContain('SP-9942-X');
+    expect(html).not.toContain('Chordata');
+    expect(html).not.toContain('Mammalia');
+    expect(html).not.toContain('14.5995');
+    expect(html).not.toContain('120.4 MPa');
     expect(view.queryByTestId('status-pill')).toBeNull();
     expect(view.queryByTestId('intake-file')).toBeNull();
     expect(promote).toBe(0);
@@ -520,8 +527,8 @@ describe('six full pages', () => {
       Page: WorkbenchPage,
       testId: 'specimen-rail',
       copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'Properties Log'],
-      emptyChrome: false,
-      stripTheater: false,
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Assay',
