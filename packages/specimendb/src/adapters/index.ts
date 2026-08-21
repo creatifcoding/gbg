@@ -26,4 +26,11 @@ export {
   type Cad01Pack,
   type DeclaredEntity,
 } from './cad01-seed.js';
+export {
+  LANDING_PR96_REF,
+  NOTE81_REF,
+  QUARRY_PR95_REF,
+  WORKER_REF,
+  seedGeneratingNote,
+} from './generating-note.js';
 export { SpecimenRepoMemory } from './specimen-memory.js';

@@ -24,6 +24,12 @@ import {
   loadDeclaredEntities,
   seedCad01Hlr,
 } from '../src/adapters/cad01-seed.js';
+import {
+  LANDING_PR96_REF,
+  NOTE81_REF,
+  QUARRY_PR95_REF,
+  WORKER_REF,
+} from '../src/adapters/generating-note.js';
 import { declarationComponents } from '../src/adapters/activity.js';
 import { relationTargets } from '../src/schemas/components.js';
 import { CatalogRpcs } from '../src/rpc/CatalogRpcs.js';
@@ -110,8 +116,12 @@ describe('CAD-01 files on this ref', () => {
     expect(existsSync(join(repoRoot, 'projects/biomemetics/labs/mantis/evidence/fixtures/cube.step'))).toBe(
       false,
     );
+    const cubeOnRef =
+      'projects/biomemetics/labs/mantis/evidence/runs/environment/fixtures/review/cube.step';
+    expect(existsSync(join(repoRoot, cubeOnRef))).toBe(true);
     const declared = loadDeclaredEntities(repoRoot);
-    expect(declared.some((row) => row.mint.type === 'fixture')).toBe(false);
+    const cube = declared.find((row) => row.mint.type === 'fixture');
+    expect(cube?.bytes.path).toBe(cubeOnRef);
     expect(declared.some((row) => row.mint.kind === 'html')).toBe(false);
     expect(declared.filter((row) => row.mint.kind === 'solid' && row.mint.type === 'part').length).toBe(17);
     expect(declared.some((row) => row.mint.kind === 'report')).toBe(true);
@@ -121,7 +131,7 @@ describe('CAD-01 files on this ref', () => {
 });
 
 describe('CAD-01 seed (cheap mint, gated HLR)', () => {
-  it('mints kind+type over Postgres; Used/Generated only on the HLR activity', async () => {
+  it('mints kind+type over Postgres; HLR Used/Generated stay gated; #81 note constructs the relation', async () => {
     await runCatalog(
       Effect.gen(function* () {
         const catalog = yield* RpcTest.makeClient(CatalogRpcs);
@@ -183,7 +193,31 @@ describe('CAD-01 seed (cheap mint, gated HLR)', () => {
         expect(specimenEntities).toEqual([]);
 
         const byStep = yield* specimens.GetByRef({ ref: CAD01_SOLID_REF });
-        expect(byStep.map((row) => row.id)).toEqual([CAD01_PROJECT_REF]);
+        expect(byStep.map((row) => row.id).sort()).toEqual([CAD01_PROJECT_REF, NOTE81_REF].sort());
+
+        expect(seeded.note.id).toBe(NOTE81_REF);
+        expect(seeded.note.type).toBe('note');
+        expect(relationTargets(seeded.note.components, 'Used')).toEqual([QUARRY_PR95_REF]);
+        expect(relationTargets(seeded.note.components, 'Generated')).toEqual([
+          LANDING_PR96_REF,
+          CAD01_SOLID_REF,
+          CAD01_PROJECT_REF,
+        ]);
+        expect(seeded.note.components.some((c) => c._tag === 'Honesty')).toBe(false);
+
+        const quarry = yield* catalog.GetEntity({ entityId: QUARRY_PR95_REF });
+        expect(quarry.kind).toBe('pr');
+        expect(quarry.type).toBe('quarry');
+        expect(quarry.components.some((c) => c._tag === 'Used' || c._tag === 'Generated')).toBe(false);
+
+        const landing = yield* catalog.GetEntity({ entityId: LANDING_PR96_REF });
+        expect(landing.kind).toBe('pr');
+        expect(landing.type).toBe('landing');
+
+        const worker = yield* catalog.GetEntity({ entityId: WORKER_REF });
+        expect(worker.kind).toBe('activity');
+        expect(worker.type).toBe('worker');
+        expect(worker.components.some((c) => c._tag === 'Used' || c._tag === 'Generated')).toBe(false);
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });

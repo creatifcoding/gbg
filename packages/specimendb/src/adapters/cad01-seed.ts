@@ -25,6 +25,7 @@ import type { ContentAddress } from '../schemas/provenance.js';
 import { EntityState } from '../state/EntityState.js';
 import type { EntityMint } from '../state/EntityState.js';
 import { appendActivity, declarationComponents } from './activity.js';
+import { seedGeneratingNote } from './generating-note.js';
 
 /** Commit that added the terrarium / analog / contract trees on this ref. */
 export const CAD01_TREE_SHA = '60abe9434a4236baf17de2e9e6569b1b8a734298';
@@ -234,6 +235,7 @@ const discoverStepFiles = (dir: string, repoRoot: string): ReadonlyArray<string>
 
 const optionalCube = (repoRoot: string): DeclaredEntity | undefined => {
   const candidates = [
+    `${MANTIS}/evidence/runs/environment/fixtures/review/cube.step`,
     `${MANTIS}/evidence/fixtures/cube.step`,
     `${MANTIS}/evidence/cube.step`,
     `${MANTIS}/evidence/fixtures/corpus/cube.step`,
@@ -503,6 +505,7 @@ export const seedCad01Hlr = (): Effect.Effect<
     readonly pack: Cad01Pack;
     readonly records: ReadonlyArray<CatalogRecord>;
     readonly activity: CatalogRecord;
+    readonly note: CatalogRecord;
   },
   CatalogError | EntityNotFoundError | ActivityAppendError,
   EntityState
@@ -520,5 +523,6 @@ export const seedCad01Hlr = (): Effect.Effect<
     const records = yield* seedDeclared(pack.declared);
     const state = yield* EntityState;
     const activity = yield* appendActivity(state, pack.activity);
-    return { pack, records, activity };
+    const generating = yield* seedGeneratingNote([CAD01_SOLID_REF, CAD01_PROJECT_REF]);
+    return { pack, records, activity, note: generating.note };
   });
