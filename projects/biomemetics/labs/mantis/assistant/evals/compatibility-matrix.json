@@ -16,6 +16,7 @@
     "workflow-suspend-resume",
     "durable-reconnect-readonly",
     "trace-redaction-run-correlation",
-    "deterministic-eval-invocation"
+    "deterministic-eval-invocation",
+    "in-process-agui-bind"
   ]
 }

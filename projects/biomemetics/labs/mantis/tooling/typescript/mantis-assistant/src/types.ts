@@ -36,6 +36,15 @@ export interface SessionBinding {
   readonly scope: 'web' | 'background' | 'service-sim';
 }
 
+export type InProcessAguiBind = {
+  readonly kind: 'in-process-agui-bind';
+  readonly basePath: '/api/copilotkit';
+  readonly agentId: 'mantis-coordinator';
+  readonly resourceId: string;
+  readonly threadId: string;
+  readonly handler: (request: Request) => Promise<Response>;
+};
+
 export interface PolicyInput {
   readonly mode: ControllerMode;
   readonly toolId: string;

@@ -9,6 +9,7 @@ export { effectPin } from './effect-pin.ts';
 export type {
   CapabilityEntry,
   ControllerMode,
+  InProcessAguiBind,
   PolicyDecision,
   SessionBinding,
 } from './types.ts';

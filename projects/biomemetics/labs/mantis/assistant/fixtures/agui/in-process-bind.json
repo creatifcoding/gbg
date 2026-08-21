@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "in-process-agui-bind",
+  "description": "In-process CopilotKit fetch handler. No listen() and no runtimeUrl.",
+  "basePath": "/api/copilotkit",
+  "agentId": "mantis-coordinator",
+  "unauthenticatedStatus": 401
+}

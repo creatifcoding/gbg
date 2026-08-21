@@ -3,8 +3,10 @@ import { createHash } from 'node:crypto';
 import { FakeClock } from './clock.ts';
 import {
   authenticatedAguiRoundTrip,
+  authenticatedInProcessAguiRoundTrip,
   createAdapterHarness,
   createControllerSession,
+  createInProcessAguiBind,
   durableReconnectReadOnly,
   prohibitForkedSpecialist,
   recordThreadObservation,
@@ -281,6 +283,24 @@ export class MantisController {
 
   async aguiRoundTrip() {
     return authenticatedAguiRoundTrip(this.#harness);
+  }
+
+  inProcessAguiBind(binding: SessionBinding) {
+    try {
+      return createInProcessAguiBind(this.#harness, binding);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'in-process bind refused an unknown or unadmitted agent'
+      ) {
+        throw new FailClosedError(error.message);
+      }
+      throw error;
+    }
+  }
+
+  async inProcessAguiRoundTrip(binding: SessionBinding) {
+    return authenticatedInProcessAguiRoundTrip(this.#harness, binding);
   }
 
   async evals() {

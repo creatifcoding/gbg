@@ -12,6 +12,7 @@ import { HttpAgent } from '@ag-ui/client';
 import { EventType, type BaseEvent, type RunAgentInput } from '@ag-ui/core';
 import { MastraAgent } from '@ag-ui/mastra';
 import { registerCopilotKit } from '@ag-ui/mastra/copilotkit';
+import { CopilotRuntime, createCopilotRuntimeHandler, type CopilotRuntimeOptions } from '@copilotkit/runtime/v2';
 import { Agent } from '@mastra/core/agent';
 import { createDurableAgent } from '@mastra/core/agent/durable';
 import { AgentController } from '@mastra/core/agent-controller';
@@ -38,6 +39,7 @@ import type {
   CapabilityEntry,
   CapabilityStatus,
   ControllerMode,
+  InProcessAguiBind,
   SessionBinding,
   SpecialistId,
   ToolCategory,
@@ -1000,6 +1002,258 @@ export const authenticatedAguiRoundTrip = async (
   };
 };
 
+const IN_PROCESS_BASE_PATH = '/api/copilotkit' as const;
+const IN_PROCESS_AGENT_ID = 'mantis-coordinator' as const;
+
+const recordCapability = (
+  harness: AdapterHarness,
+  id: string,
+  status: CapabilityStatus,
+  detail: string,
+): void => {
+  const list = harness.capabilities as CapabilityEntry[];
+  const entry = mark(id, status, detail);
+  const index = list.findIndex((item) => item.id === id);
+  if (index >= 0) {
+    list[index] = entry;
+    return;
+  }
+  list.push(entry);
+};
+
+const inProcessUrl = (basePath: string, suffix: string): string =>
+  `http://localhost${basePath}${suffix}`;
+
+const utf8Encoder = new TextEncoder();
+
+const encodeStreamChunk = (chunk: unknown): Uint8Array => {
+  if (chunk instanceof Uint8Array) return chunk;
+  if (typeof chunk === 'string') return utf8Encoder.encode(chunk);
+  if (chunk instanceof ArrayBuffer) return new Uint8Array(chunk);
+  if (ArrayBuffer.isView(chunk)) {
+    return new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+  }
+  throw new Error(`in-process AG-UI bind cannot encode a ${typeof chunk} chunk`);
+};
+
+const asByteBody = (body: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> => {
+  const reader = body.getReader();
+  return new ReadableStream({
+    async pull(controller) {
+      const result = await reader.read();
+      if (result.done) {
+        controller.close();
+        return;
+      }
+      const chunk: unknown = result.value;
+      controller.enqueue(encodeStreamChunk(chunk));
+    },
+    cancel() {
+      return reader.cancel();
+    },
+  });
+};
+
+const asNodeResponse = (response: Response): Response => {
+  if (!response.body) return response;
+  return new Response(asByteBody(response.body), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+};
+
+const sseEventTypes = (text: string): string[] => {
+  const types: string[] = [];
+  for (const line of text.split('\n')) {
+    const payload = line.startsWith('data:') ? line.slice(5).trim() : '';
+    if (payload.length === 0 || payload === '[DONE]') continue;
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      if (parsed && typeof parsed === 'object' && 'type' in parsed) {
+        types.push(String((parsed as { type: unknown }).type));
+      }
+    } catch {
+      continue;
+    }
+  }
+  return types;
+};
+
+const infoAgentIds = (text: string): string[] => {
+  const parsed: unknown = JSON.parse(text);
+  if (!parsed || typeof parsed !== 'object' || !('agents' in parsed)) return [];
+  const agents = (parsed as { agents: unknown }).agents;
+  if (!agents || typeof agents !== 'object') return [];
+  return Object.keys(agents);
+};
+
+export const createInProcessAguiBind = (
+  harness: AdapterHarness,
+  binding: SessionBinding,
+  token = FIXTURE_TOKEN,
+): InProcessAguiBind => {
+  try {
+    // Memory-enabled coordinator throws AGENT_MEMORY_MISSING_RESOURCE_ID without resourceId.
+    const localAgents = MastraAgent.getLocalAgents({
+      mastra: harness.mastra,
+      resourceId: binding.resourceId,
+    });
+    const coordinator = localAgents[IN_PROCESS_AGENT_ID];
+    if (!coordinator) {
+      throw new Error('in-process bind refused an unknown or unadmitted agent');
+    }
+    const admittedAgents = { 'mantis-coordinator': coordinator };
+    const runtime = new CopilotRuntime({
+      // CopilotKit 1.68.3 types AbstractAgent from a nested 0.0.57 copy; getLocalAgents returns the 0.0.58 pin.
+      agents: admittedAgents as unknown as CopilotRuntimeOptions['agents'],
+    });
+    const copilotHandler = createCopilotRuntimeHandler({
+      runtime,
+      basePath: IN_PROCESS_BASE_PATH,
+      activateChannels: false,
+      hooks: {
+        onRequest({ request }) {
+          if (request.headers.get('authorization') !== `Bearer ${token}`) {
+            throw new Response('unauthorized', { status: 401 });
+          }
+        },
+      },
+    });
+    // EventEncoder.encode returns a string. Node's Response.text() only accepts Uint8Array chunks.
+    const handler = async (request: Request): Promise<Response> =>
+      asNodeResponse(await copilotHandler(request));
+    recordCapability(
+      harness,
+      'in-process-agui-bind',
+      'proven',
+      'MastraAgent.getLocalAgents into CopilotRuntime fetch handler at /api/copilotkit',
+    );
+    return {
+      kind: 'in-process-agui-bind',
+      basePath: IN_PROCESS_BASE_PATH,
+      agentId: IN_PROCESS_AGENT_ID,
+      resourceId: binding.resourceId,
+      threadId: binding.threadId,
+      handler,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('refused an unknown')) {
+      throw error;
+    }
+    recordCapability(
+      harness,
+      'in-process-agui-bind',
+      'QUARANTINED_UPSTREAM',
+      error instanceof Error ? error.message : String(error),
+    );
+    throw error;
+  }
+};
+
+export interface InProcessAguiRoundTripResult {
+  readonly unauthenticatedStatus: number;
+  readonly infoStatus: number;
+  readonly authenticatedText: string;
+  readonly eventTypes: readonly string[];
+  readonly agentIds: readonly string[];
+  readonly bind: InProcessAguiBind;
+}
+
+export const authenticatedInProcessAguiRoundTrip = async (
+  harness: AdapterHarness,
+  binding: SessionBinding,
+): Promise<InProcessAguiRoundTripResult> => {
+  const bind = createInProcessAguiBind(harness, binding);
+  const unauthenticated = await bind.handler(
+    new Request(inProcessUrl(bind.basePath, '/info'), { method: 'GET' }),
+  );
+  const info = await bind.handler(
+    new Request(inProcessUrl(bind.basePath, '/info'), {
+      method: 'GET',
+      headers: { authorization: `Bearer ${FIXTURE_TOKEN}` },
+    }),
+  );
+  const infoText = await withTimeout(info.text(), 4_000, 'in-process info');
+  const agentIds = info.status === 200 ? infoAgentIds(infoText) : [];
+  const runBody = JSON.stringify({
+    threadId: binding.threadId,
+    runId: 'run.fixture-a0-inprocess',
+    messages: [
+      {
+        id: 'msg-user-1',
+        role: 'user',
+        content: 'What do I do now for the cup subject?',
+      },
+    ],
+    tools: [],
+    context: [],
+    state: {},
+  });
+  let authenticatedText = '';
+  let eventTypes: string[] = [];
+  let runStatus = 0;
+  try {
+    const authenticated = await bind.handler(
+      new Request(inProcessUrl(bind.basePath, `/agent/${bind.agentId}/run`), {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${FIXTURE_TOKEN}`,
+          'content-type': 'application/json',
+        },
+        body: runBody,
+      }),
+    );
+    runStatus = authenticated.status;
+    authenticatedText = await withTimeout(authenticated.text(), 8_000, 'in-process run');
+    eventTypes = sseEventTypes(authenticatedText);
+  } catch (error) {
+    recordCapability(
+      harness,
+      'in-process-agui-bind',
+      'QUARANTINED_UPSTREAM',
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+  const unauthenticatedRun = await bind.handler(
+    new Request(inProcessUrl(bind.basePath, `/agent/${bind.agentId}/run`), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: runBody,
+    }),
+  );
+  if (unauthenticated.status !== 401 || unauthenticatedRun.status !== 401) {
+    recordCapability(
+      harness,
+      'in-process-agui-bind',
+      'QUARANTINED_UPSTREAM',
+      `expected 401 without Authorization, got info=${unauthenticated.status} run=${unauthenticatedRun.status}`,
+    );
+  }
+  const stillProven = harness.capabilities.find((entry) => entry.id === 'in-process-agui-bind')
+    ?.status === 'proven';
+  if (
+    stillProven &&
+    !authenticatedText.includes('CareAdvice') &&
+    eventTypes.length === 0
+  ) {
+    recordCapability(
+      harness,
+      'in-process-agui-bind',
+      'QUARANTINED_UPSTREAM',
+      `in-process run produced neither CareAdvice nor events (status ${runStatus}): ${authenticatedText.slice(0, 400)}`,
+    );
+  }
+  return {
+    unauthenticatedStatus: unauthenticated.status,
+    infoStatus: info.status,
+    authenticatedText,
+    eventTypes,
+    agentIds,
+    bind,
+  };
+};
+
 export const usedBetaImportPaths = [
   '@mastra/core/agent',
   '@mastra/core/agent/durable',
@@ -1017,4 +1271,5 @@ export const usedBetaImportPaths = [
   '@ag-ui/mastra/copilotkit',
   '@ag-ui/client',
   '@ag-ui/core',
+  '@copilotkit/runtime/v2',
 ] as const;

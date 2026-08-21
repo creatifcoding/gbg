@@ -23,6 +23,7 @@ test('compatibility matrix is the A0 required set', () => {
     'durable-reconnect-readonly',
     'trace-redaction-run-correlation',
     'deterministic-eval-invocation',
+    'in-process-agui-bind',
   ]);
 });
 
@@ -190,6 +191,43 @@ test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t
       roundTrip.authenticatedText.includes('CareAdvice') ||
         roundTrip.eventTypes.length > 0,
       JSON.stringify(roundTrip),
+    );
+  });
+
+  await t.test('in-process-agui-bind', async () => {
+    const fixture = loadLabJson(
+      'assistant/fixtures/agui/in-process-bind.json',
+    ) as {
+      kind: string;
+      basePath: string;
+      agentId: string;
+      unauthenticatedStatus: number;
+    };
+    const roundTrip = await controller.inProcessAguiRoundTrip(care);
+    const capability = controller.capabilities.find(
+      (entry) => entry.id === 'in-process-agui-bind',
+    );
+    assert.equal(roundTrip.unauthenticatedStatus, fixture.unauthenticatedStatus);
+    assert.equal(roundTrip.infoStatus, 200);
+    assert.ok(roundTrip.agentIds.includes(fixture.agentId));
+    assert.equal(roundTrip.agentIds.includes('device-command'), false);
+    assert.equal(roundTrip.agentIds.includes('mantis-eval'), false);
+    assert.equal(roundTrip.agentIds.includes('durableCoordinator'), false);
+    assert.equal(roundTrip.bind.kind, fixture.kind);
+    assert.equal(roundTrip.bind.basePath, fixture.basePath);
+    assert.equal(roundTrip.bind.agentId, fixture.agentId);
+    assert.equal('runtimeUrl' in roundTrip.bind, false);
+    if (capability?.status === 'QUARANTINED_UPSTREAM') {
+      assert.ok((capability.detail ?? '').length > 0);
+      return;
+    }
+    assert.ok(
+      roundTrip.authenticatedText.includes('CareAdvice') ||
+        roundTrip.eventTypes.length > 0,
+      JSON.stringify({
+        authenticatedText: roundTrip.authenticatedText,
+        eventTypes: roundTrip.eventTypes,
+      }),
     );
   });
 });
