@@ -523,6 +523,6 @@ export const seedCad01Hlr = (): Effect.Effect<
     const records = yield* seedDeclared(pack.declared);
     const state = yield* EntityState;
     const activity = yield* appendActivity(state, pack.activity);
-    const generating = yield* seedGeneratingNote([CAD01_SOLID_REF, CAD01_PROJECT_REF]);
+    const generating = yield* seedGeneratingNote();
     return { pack, records, activity, note: generating.note };
   });

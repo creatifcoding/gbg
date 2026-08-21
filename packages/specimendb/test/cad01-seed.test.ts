@@ -131,7 +131,7 @@ describe('CAD-01 files on this ref', () => {
 });
 
 describe('CAD-01 seed (cheap mint, gated HLR)', () => {
-  it('mints kind+type over Postgres; HLR Used/Generated stay gated; #81 note constructs the relation', async () => {
+  it('mints kind+type over Postgres; HLR Used/Generated stay gated; #81 note is cheap', async () => {
     await runCatalog(
       Effect.gen(function* () {
         const catalog = yield* RpcTest.makeClient(CatalogRpcs);
@@ -193,16 +193,14 @@ describe('CAD-01 seed (cheap mint, gated HLR)', () => {
         expect(specimenEntities).toEqual([]);
 
         const byStep = yield* specimens.GetByRef({ ref: CAD01_SOLID_REF });
-        expect(byStep.map((row) => row.id).sort()).toEqual([CAD01_PROJECT_REF, NOTE81_REF].sort());
+        expect(byStep.map((row) => row.id)).toEqual([CAD01_PROJECT_REF]);
 
         expect(seeded.note.id).toBe(NOTE81_REF);
+        expect(seeded.note.kind).toBe('activity');
         expect(seeded.note.type).toBe('note');
-        expect(relationTargets(seeded.note.components, 'Used')).toEqual([QUARRY_PR95_REF]);
-        expect(relationTargets(seeded.note.components, 'Generated')).toEqual([
-          LANDING_PR96_REF,
-          CAD01_SOLID_REF,
-          CAD01_PROJECT_REF,
-        ]);
+        expect(seeded.note.components.some((c) => c._tag === 'Used' || c._tag === 'Generated')).toBe(
+          false,
+        );
         expect(seeded.note.components.some((c) => c._tag === 'Honesty')).toBe(false);
 
         const quarry = yield* catalog.GetEntity({ entityId: QUARRY_PR95_REF });
