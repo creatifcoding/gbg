@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import Ajv2020 from 'ajv/dist/2020.js';
-import addFormats from 'ajv-formats';
+import { Ajv2020 } from 'ajv/dist/2020.js';
+import * as ajvFormats from 'ajv-formats';
 
 import { assistantRoot, contractRegistryPath, labRoot } from './paths.ts';
 
@@ -31,6 +31,16 @@ export interface ValidationResult {
   readonly errors: readonly string[];
 }
 
+const resolveCallable = (mod: unknown): ((instance: Ajv2020) => unknown) => {
+  if (typeof mod === 'function') return mod as (instance: Ajv2020) => unknown;
+  if (mod && typeof mod === 'object' && 'default' in mod) {
+    return resolveCallable((mod as { default: unknown }).default);
+  }
+  throw new Error('ajv-formats did not export a plugin function');
+};
+
+const addFormats = resolveCallable(ajvFormats);
+
 const ajv = new Ajv2020({
   allErrors: true,
   strict: false,
@@ -38,7 +48,11 @@ const ajv = new Ajv2020({
 });
 addFormats(ajv);
 
-const schemaCache = new Map<string, ReturnType<Ajv2020['compile']>>();
+type CompiledSchema = ((data: unknown) => boolean) & {
+  errors?: Array<{ instancePath: string; message?: string }> | null;
+};
+
+const schemaCache = new Map<string, CompiledSchema>();
 
 export const loadRegistry = (): ContractRegistry =>
   JSON.parse(readFileSync(contractRegistryPath, 'utf8')) as ContractRegistry;
@@ -61,7 +75,7 @@ export const compileSchema = (schemaRelative: string) => {
   const cached = schemaCache.get(schemaRelative);
   if (cached) return cached;
   const schema = JSON.parse(readFileSync(toLabPath(schemaRelative), 'utf8')) as object;
-  const compiled = ajv.compile(schema);
+  const compiled = ajv.compile(schema) as CompiledSchema;
   schemaCache.set(schemaRelative, compiled);
   return compiled;
 };

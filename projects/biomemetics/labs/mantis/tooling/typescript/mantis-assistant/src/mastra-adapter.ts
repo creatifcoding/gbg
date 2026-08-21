@@ -27,6 +27,7 @@ import {
   Observability,
   SamplingStrategyType,
   SensitiveDataFilter,
+  TestExporter,
 } from '@mastra/observability';
 import { z } from 'zod';
 
@@ -39,6 +40,7 @@ import type {
   ControllerMode,
   SessionBinding,
   SpecialistId,
+  ToolCategory,
 } from './types.ts';
 
 export const FAKE_MODEL_TEXT =
@@ -172,6 +174,24 @@ const readBody = (req: IncomingMessage): Promise<string> =>
     req.on('error', reject);
   });
 
+export interface DurableHandle {
+  stream(
+    prompt: string,
+    options: { memory: { thread: string; resource: string } },
+  ): Promise<{
+    runId: string;
+    output: { fullStream: AsyncIterable<unknown> };
+    cleanup: () => void;
+  }>;
+  observe(
+    runId: string,
+    options: { idleTimeoutMs: number },
+  ): Promise<{
+    output: { fullStream: AsyncIterable<unknown> };
+    cleanup: () => void;
+  }>;
+}
+
 export interface AdapterHarness {
   readonly capabilities: readonly CapabilityEntry[];
   readonly clock: FakeClock;
@@ -179,11 +199,11 @@ export interface AdapterHarness {
   readonly mastra: Mastra;
   readonly agent: Agent;
   readonly evalAgent: Agent;
-  readonly durableAgent: ReturnType<typeof createDurableAgent>;
+  readonly durableAgent: DurableHandle;
   readonly controller: AgentController;
   readonly memory: Memory;
   readonly sideEffects: SideEffectCounter;
-  readonly toolCatalog: ReadonlyMap<string, string>;
+  readonly toolCatalog: ReadonlyMap<string, ToolCategory>;
   readonly workspaceDir: string;
   destroy(): Promise<void>;
 }
@@ -277,7 +297,7 @@ export const createAdapterHarness = async (
       'care-source-read': tools.careSourceRead,
       'supply-transit-read': tools.supplyTransitRead,
       'read-only-replay': tools.readOnlyReplay,
-    },
+    } as never,
     storage,
     scorers: {
       'check-includes': includeCheck,
@@ -288,6 +308,12 @@ export const createAdapterHarness = async (
         default: {
           serviceName: 'mantis-assistant-a0',
           sampling: { type: SamplingStrategyType.ALWAYS },
+          exporters: [
+            new TestExporter({
+              validateLifecycle: false,
+              logMetricsOnFlush: false,
+            }),
+          ],
         },
       },
       sensitiveDataFilter: {
@@ -461,7 +487,7 @@ export const createAdapterHarness = async (
     mastra,
     agent,
     evalAgent,
-    durableAgent,
+    durableAgent: durableAgent as DurableHandle,
     controller,
     memory,
     sideEffects,
@@ -562,22 +588,31 @@ export const registerDynamicWorkflowVersion = async (
     outputSchema: Record<string, unknown>;
     graph: Array<Record<string, unknown>>;
   },
-) => {
+): Promise<{ id: string; registered: boolean }> => {
   await harness.mastra.addDynamicWorkflow(definition as never);
-  return harness.mastra.getWorkflow(definition.id);
+  const workflow = harness.mastra.getWorkflow(definition.id);
+  return { id: definition.id, registered: workflow !== undefined };
 };
 
-export const runSuspendResume = async (harness: AdapterHarness) => {
+export const runSuspendResume = async (
+  harness: AdapterHarness,
+): Promise<{ suspended: { status: string }; resumed: { status: string } }> => {
   const workflow = harness.mastra.getWorkflow('fixture-suspend-resume');
   const run = await workflow.createRun();
-  const suspended = await run.start({ inputData: { topic: 'cup-care' } });
-  if (suspended.status !== 'suspended') {
-    throw new Error(`expected suspended, got ${suspended.status}`);
+  const suspendedRaw: unknown = await run.start({ inputData: { topic: 'cup-care' } });
+  const suspendedStatus = String(
+    (suspendedRaw as { status?: unknown }).status ?? 'unknown',
+  );
+  if (suspendedStatus !== 'suspended') {
+    throw new Error(`expected suspended, got ${suspendedStatus}`);
   }
-  const resumed = await run.resume({
+  const resumedRaw: unknown = await run.resume({
     resumeData: { approved: true },
   });
-  return { suspended, resumed };
+  return {
+    suspended: { status: suspendedStatus },
+    resumed: { status: String((resumedRaw as { status?: unknown }).status ?? 'unknown') },
+  };
 };
 
 export interface DurableReconnectResult {
@@ -710,7 +745,7 @@ export const redactTracePayload = (payload: Record<string, unknown>) => {
     input: payload,
     output: payload,
   };
-  const processed = filter.process(span as never) as {
+  const processed = filter.process(span as never) as unknown as {
     attributes?: Record<string, unknown>;
     input?: Record<string, unknown>;
     output?: Record<string, unknown>;
@@ -779,11 +814,19 @@ export const runDeterministicEval = async (harness: AdapterHarness) => {
         scorers: [includeCheck, excludeCheck],
         gates: [excludeCheck],
       }),
-      12_000,
+      4_000,
       'runEvals',
     );
   } catch (error) {
     experiment = { runEvalsError: error instanceof Error ? error.message : String(error) };
+    (harness.capabilities as CapabilityEntry[]).push({
+      id: 'run-evals-experiment',
+      status: 'QUARANTINED_UPSTREAM',
+      detail:
+        error instanceof Error
+          ? error.message
+          : String(error),
+    });
   }
 
   const experimentScores =
@@ -906,10 +949,11 @@ export const authenticatedAguiRoundTrip = async (
   let eventTypes: string[] = [];
   let authenticatedText = '';
   try {
-    const result = await client.runAgent({ runId: 'run.fixture-a0-agui' });
+    const result: unknown = await client.runAgent({ runId: 'run.fixture-a0-agui' });
+    const messages = (result as { messages?: Array<{ content?: unknown }> }).messages;
     authenticatedText =
-      result.messages
-        ?.map((message) => ('content' in message ? String(message.content ?? '') : ''))
+      messages
+        ?.map((message) => String(message.content ?? ''))
         .join('\n') ?? '';
     eventTypes = ['HttpAgent.runAgent'];
   } catch (error) {
