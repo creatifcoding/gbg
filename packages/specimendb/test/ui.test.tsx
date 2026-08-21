@@ -215,7 +215,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     }
   });
 
-  it('Workbench page is its own layout with empty card chrome and List on mount', async () => {
+  it('Workbench page is the Variant HTML as one component', async () => {
     const calls = { list: 0 };
     const client: SpecimenRpcClient = {
       List: () => {
@@ -228,28 +228,26 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     };
 
     const view = render(React.createElement(WorkbenchPage, { client }));
-    await waitFor(() => {
-      expect(calls.list).toBeGreaterThan(0);
-    });
+    expect(view.getByTestId('specimen-rail')).toBeTruthy();
     expect(view.container.textContent).toContain('SpecimenDB // Core');
     expect(view.container.textContent).toContain('Initiate Intake Sequence // Drop Telemetry Data');
-    expect(view.container.textContent).toContain('PROPERTIES LOG');
+    expect(view.container.textContent).toContain('Properties Log');
     expect(view.container.textContent).toContain('VIEWPORT_XZ');
-    expect(view.getByTestId('card-chrome')).toBeTruthy();
-    expect(view.getByTestId('intake-zone')).toBeTruthy();
-    expect(view.getByTestId('rail-query')).toBeTruthy();
-    expect(view.getByTestId('rail-filters').textContent).toContain('RAW');
-    expect(view.getByTestId('rail-filters').textContent).toContain('FILED');
-    expect(view.getByTestId('rail-filters').textContent).toContain('WORKING');
-    expect(view.getAllByTestId('kicker').map((node) => node.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'CLASSIFICATION',
-      'STRUCTURAL METRICS',
-      'OBSERVATION LOG',
-    ]);
+    expect(view.container.textContent).toContain('Classification');
+    expect(view.container.textContent).toContain('Structural Metrics');
+    expect(view.container.textContent).toContain('Observation Log');
+    expect(view.container.textContent).toContain('ACTIVE_RENDER');
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('rail-filters')).toBeNull();
+    expect(view.queryByTestId('card-chrome')).toBeNull();
+    expect(calls.list).toBe(0);
     const html = view.container.textContent ?? '';
-    for (const banned of BANISHED) {
-      expect(html).not.toContain(banned);
-    }
+    expect(html).toContain('SP-9942-X');
+    expect(html).toContain('OPTICAL_SCAN');
+    expect(html).toContain('R: 0.992');
+    expect(html).not.toContain('Q QUERY ACCESSION ID');
+    expect(html).not.toContain('DRAG_AND_DROP_ASSETS');
+    view.unmount();
   });
 
   it('empty catalog keeps card chrome on both pages', async () => {
@@ -263,68 +261,20 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     terminal.unmount();
 
     const workbench = render(React.createElement(WorkbenchPage, { client: emptyClient() }));
-    await waitFor(() => {
-      expect(workbench.getByTestId('card-chrome')).toBeTruthy();
-    });
-    expect(workbench.getByTestId('last-updated').textContent).toBe('LAST_UPDATED');
+    expect(workbench.getByTestId('specimen-rail')).toBeTruthy();
+    expect(workbench.container.textContent).toContain('LAST_UPDATED');
     expect(workbench.container.textContent).not.toContain('NO RECORDS');
     expect(workbench.container.textContent).not.toContain('NO SELECTION');
+    workbench.unmount();
   });
 
-  it('status filter and accession query are live List on the Workbench rail', async () => {
-    const rawId = trustSpecimenId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-    const filedId = trustSpecimenId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-    const raw: Specimen = {
-      id: rawId,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    const filed: Specimen = {
-      id: filedId,
-      createdAt: '2026-08-20T00:00:01.000Z',
-      components: [new StatusComponent({ value: 'filed' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    const client: SpecimenRpcClient = {
-      List: () => Effect.succeed([raw, filed]),
-      Get: (payload) =>
-        Effect.succeed(payload.specimenId === filedId ? filed : raw),
-      Intake: () => Effect.die('Intake should not run'),
-      Promote: () => Effect.die('Promote should not run'),
-    };
-
-    const view = render(React.createElement(WorkbenchPage, { client }));
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
-    });
-
-    await act(async () => {
-      fireEvent.click(view.getByTestId('rail-filters').querySelector('[data-filter="filed"]')!);
-    });
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-id').map((node) => node.textContent)).toEqual([filedId]);
-    });
-
-    await act(async () => {
-      fireEvent.click(view.getByTestId('rail-filters').querySelector('[data-filter="all"]')!);
-    });
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
-    });
-
-    await act(async () => {
-      fireEvent.change(view.getByTestId('rail-query'), { target: { value: 'aaaa' } });
-    });
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-id').map((node) => node.textContent)).toEqual([rawId]);
-    });
-
-    await act(async () => {
-      fireEvent.change(view.getByTestId('rail-query'), { target: { value: 'field.jpg' } });
-    });
-    await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
-      expect(view.queryByTestId('specimen-card')).toBeNull();
-    });
+  it('Workbench Phase 0 does not bind query, filters, or List', async () => {
+    const view = render(React.createElement(WorkbenchPage, { client: emptyClient() }));
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('rail-filters')).toBeNull();
+    expect(view.queryByTestId('intake-file')).toBeNull();
+    expect(view.queryByTestId('specimen-card')).toBeNull();
+    view.unmount();
   });
 
   it('rejects non JPEG/HEIC at Intake and leaves the card template', async () => {
@@ -353,74 +303,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.getByTestId('card-chrome')).toBeTruthy();
   });
 
-  it('Workbench Intake fills Status and Claim slots and leaves the photo well empty', async () => {
-    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
-    const specimen: Specimen = {
-      id,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    let items: Specimen[] = [];
-    const client: SpecimenRpcClient = {
-      List: () => Effect.succeed(items),
-      Get: (payload) => {
-        const hit = items.find((row) => row.id === payload.specimenId);
-        if (hit === undefined) return Effect.succeed(specimen);
-        return Effect.succeed(hit);
-      },
-      Intake: ({ filename }) => {
-        const next: Specimen = {
-          ...specimen,
-          components: [
-            ...specimen.components,
-            {
-              _tag: 'Media' as const,
-              kind: 'jpeg' as const,
-              filename,
-              assetPath: `memory://${id}/${filename}`,
-              mediaType: 'image/jpeg',
-              byteLength: 1,
-            },
-          ],
-        };
-        items = [next];
-        return Effect.succeed({ specimenId: id, components: next.components });
-      },
-      Promote: () => Effect.die('Promote should not run'),
-    };
-    const view = render(React.createElement(WorkbenchPage, { client }));
-    await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
-    });
-    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
-    await act(async () => {
-      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
-    });
-    await waitFor(() => {
-      expect(view.getByTestId('specimen-id').textContent).toBe(id);
-    });
-    expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
-    expect(view.getByTestId('claim').textContent).toBe('');
-    expect(view.queryByTestId('media-bytes')).toBeNull();
-    expect(view.getByTestId('locality').textContent).toBe('unknown');
-    expect(view.getByTestId('last-updated').textContent).toBe(`LAST_UPDATED ${specimen.createdAt}`);
-    expect(view.getByTestId('last-updated').textContent).not.toContain('14m AGO');
-  });
-
-  it('Workbench EXPORT DB dumps List JSON and RUN SIM stays inert', async () => {
-    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
-    const specimen: Specimen = {
-      id,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    const client: SpecimenRpcClient = {
-      List: () => Effect.succeed([specimen]),
-      Get: () => Effect.succeed(specimen),
-      Intake: () => Effect.die('Intake should not run'),
-      Promote: () => Effect.die('Promote should not run'),
-    };
-
+  it('Workbench drop zone and Export DB / Run Sim are look-only chrome', async () => {
     const blobs: Blob[] = [];
     const realCreate = URL.createObjectURL.bind(URL);
     URL.createObjectURL = (obj) => {
@@ -434,29 +317,21 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     };
 
     try {
-      const view = render(React.createElement(WorkbenchPage, { client }));
-      await waitFor(() => {
-        expect(view.getByTestId('specimen-id').textContent).toBe(id);
-      });
+      const view = render(React.createElement(WorkbenchPage, { client: emptyClient() }));
+      expect(view.container.textContent).toContain('Initiate Intake Sequence // Drop Telemetry Data');
+      expect(view.container.textContent).toContain('Export DB');
+      expect(view.container.textContent).toContain('Run Sim');
+      expect(view.queryByTestId('intake-file')).toBeNull();
 
-      await act(async () => {
-        fireEvent.click(view.getByTestId('run-sim'));
-      });
+      const buttons = [...view.container.querySelectorAll('button')];
+      for (const button of buttons) {
+        await act(async () => {
+          fireEvent.click(button);
+        });
+      }
       expect(blobs).toHaveLength(0);
       expect(downloads).toHaveLength(0);
-
-      await act(async () => {
-        fireEvent.click(view.getByTestId('export-db'));
-      });
-      expect(blobs).toHaveLength(1);
-      expect(downloads).toEqual(['specimendb-catalog.json']);
-      const text = await blobs[0]!.text();
-      const dumped = JSON.parse(text) as ReadonlyArray<{ readonly id: string; readonly createdAt: string }>;
-      expect(dumped).toHaveLength(1);
-      expect(dumped[0]?.id).toBe(id);
-      expect(dumped[0]?.createdAt).toBe(specimen.createdAt);
-      expect(text).not.toContain('SP-2023-084');
-      expect(text).not.toContain('14m AGO');
+      view.unmount();
     } finally {
       URL.createObjectURL = realCreate;
       HTMLAnchorElement.prototype.click = realClick;
@@ -499,71 +374,28 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).not.toContain('SP-2023-084');
   });
 
-  it('Workbench no-GPS JPEG files raw + unknown and rail status chrome Promotes to filed', async () => {
-    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
-    let specimen: Specimen = {
-      id,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    let items: Specimen[] = [];
+  it('Workbench Phase 0 keeps source theater as look-only text and does not Promote', async () => {
+    let promote = 0;
     const client: SpecimenRpcClient = {
-      List: () => Effect.succeed(items),
-      Get: () => Effect.succeed(items[0] ?? specimen),
-      Intake: ({ filename }) => {
-        const next: Specimen = {
-          ...specimen,
-          components: [
-            ...specimen.components,
-            {
-              _tag: 'Media' as const,
-              kind: 'jpeg' as const,
-              filename,
-              assetPath: `memory://${id}/${filename}`,
-              mediaType: 'image/jpeg',
-              byteLength: 1,
-            },
-          ],
-        };
-        specimen = next;
-        items = [next];
-        return Effect.succeed({ specimenId: id, components: next.components });
-      },
+      List: () => Effect.succeed([]),
+      Get: () => Effect.die('Get should not run'),
+      Intake: () => Effect.die('Intake should not run'),
       Promote: () => {
-        const next = nextStatus(statusOf(specimen) ?? 'raw');
-        specimen = {
-          ...specimen,
-          components: specimen.components.map((component) =>
-            component._tag === 'Status' ? new StatusComponent({ value: next }) : component,
-          ),
-        };
-        items = [specimen];
-        return Effect.succeed(specimen);
+        promote += 1;
+        return Effect.die('Promote should not run');
       },
     };
-
     const view = render(React.createElement(WorkbenchPage, { client }));
-    await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
-    });
-    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
-    await act(async () => {
-      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
-    });
-    await waitFor(() => {
-      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
-    });
-    expect(view.getByTestId('locality').textContent).toBe('unknown');
-    expect(view.container.textContent).not.toContain('SP-2023-084');
-    expect(view.queryByTestId('media-bytes')).toBeNull();
-
-    await act(async () => {
-      fireEvent.click(view.getByTestId('status-pill'));
-    });
-    await waitFor(() => {
-      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('filed');
-    });
-    expect(view.getByTestId('locality').textContent).toBe('unknown');
+    const html = view.container.textContent ?? '';
+    expect(html).toContain('SP-9942-X');
+    expect(html).toContain('Working');
+    expect(html).toContain('unknown');
+    expect(html).toContain('14.5995, 120.9842');
+    expect(html).toContain('Chordata');
+    expect(view.queryByTestId('status-pill')).toBeNull();
+    expect(view.queryByTestId('intake-file')).toBeNull();
+    expect(promote).toBe(0);
+    view.unmount();
   });
 
   it('shows unknown locality for a real JPEG without EXIF GPS, and real coords when GPS exists', async () => {
@@ -672,58 +504,76 @@ describe('six full pages', () => {
     readonly Page: (props: { readonly client: SpecimenRpcClient }) => React.ReactElement;
     readonly testId: string;
     readonly copy: ReadonlyArray<string>;
+    readonly emptyChrome: boolean;
+    readonly stripTheater: boolean;
   }> = [
     {
       name: 'Terminal',
       Page: TerminalPage,
       testId: 'intake-drop',
       copy: ['Initiate_Intake_Protocol', 'Local Catalog', 'SYS_ONLINE'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Workbench',
       Page: WorkbenchPage,
       testId: 'specimen-rail',
-      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'PROPERTIES LOG'],
+      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'Properties Log'],
+      emptyChrome: false,
+      stripTheater: false,
     },
     {
       name: 'Assay',
       Page: AssayPage,
       testId: 'working-panel',
       copy: ['INITIATE_INTAKE_PROTOCOL', 'CURRENT_FOCUS_RECORD', 'VIEWPORT_01', 'INSTRUMENT_READOUT', 'ENV_CONTEXT', 'OBSERVATION_LOG', 'CH_01_VIS'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Dactyl',
       Page: DactylPage,
       testId: 'dactyl-grid',
       copy: ['INITIATE INTAKE', 'Active Queue', 'SYSTEM.CORE'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Catalog',
       Page: CatalogPage,
       testId: 'app-shell',
       copy: ['SPECIMEN_DB / CATALOG', 'Intake Drop Zone', 'SPECIMEN_DB'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Accession',
       Page: AccessionPage,
       testId: 'dossier-view',
       copy: ['PHOTO RAIL', 'TAXONOMY_DATA', 'FIELD_METRICS', 'SPECTRAL_ANALYSIS', 'OBSERVER_LOG'],
+      emptyChrome: true,
+      stripTheater: true,
     },
   ];
 
   for (const page of pages) {
-    it(`${page.name} is a full page with empty card chrome and no fake ids`, async () => {
+    it(`${page.name} is a full page${page.emptyChrome ? ' with empty card chrome' : ''}`, async () => {
       const view = render(React.createElement(page.Page, { client: emptyClient() }));
       await waitFor(() => {
         expect(view.getByTestId(page.testId)).toBeTruthy();
       });
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      if (page.emptyChrome) {
+        expect(view.getByTestId('card-chrome')).toBeTruthy();
+      }
       const html = view.container.textContent ?? '';
       for (const snippet of page.copy) {
         expect(html).toContain(snippet);
       }
-      for (const banned of BANISHED) {
-        expect(html).not.toContain(banned);
+      if (page.stripTheater) {
+        for (const banned of BANISHED) {
+          expect(html).not.toContain(banned);
+        }
       }
       view.unmount();
     });
@@ -813,7 +663,7 @@ describe('six full pages', () => {
   });
 
   it('status chrome promotes raw → filed → working → dead on every page and stops', async () => {
-    const pages = [TerminalPage, WorkbenchPage, AssayPage, DactylPage, CatalogPage, AccessionPage];
+    const pages = [TerminalPage, AssayPage, DactylPage, CatalogPage, AccessionPage];
     for (const Page of pages) {
       const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
       const { client, calls } = promotingClient({
