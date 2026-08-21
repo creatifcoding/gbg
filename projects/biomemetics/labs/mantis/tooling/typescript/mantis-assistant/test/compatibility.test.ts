@@ -10,17 +10,16 @@ const matrix = loadLabJson(
 ) as {
   cases: string[];
   lanes: {
-    ci: { model: string; network: boolean; credentials: boolean; node: string };
+    ci: { model: string; network: boolean; credentials: boolean };
     live: {
       model: string;
-      reasoningLevel: string;
-      credential: string;
+      reasoningEffort: string;
+      provider: string;
+      status: string;
+      gap: string;
       optIn: string;
-      network: boolean;
-      credentials: boolean;
-      node: string;
-      apiKey: boolean;
-      cursorCredentials: boolean;
+      loginStatus: string;
+      cursorPlanTokens: boolean;
     };
   };
 };
@@ -43,22 +42,23 @@ test('compatibility matrix is the A0 required set', () => {
   ]);
 });
 
-test('compatibility matrix keeps CI fake and live OAuth lanes explicit', () => {
+test('compatibility matrix keeps CI fake and live quarantine explicit', () => {
   assert.deepEqual(matrix.lanes.ci, {
     model: 'mantis-fake-model@1.0.0',
     network: false,
     credentials: false,
-    node: '>=22.14.0',
   });
-  assert.equal(matrix.lanes.live.model, 'gpt-5.6-luna');
-  assert.equal(matrix.lanes.live.reasoningLevel, 'max');
-  assert.equal(matrix.lanes.live.credential, 'Codex or ChatGPT subscription OAuth');
+  assert.equal(matrix.lanes.live.model, 'openai/gpt-5.6-luna');
+  assert.equal(matrix.lanes.live.reasoningEffort, 'max');
+  assert.equal(matrix.lanes.live.provider, 'Mastra Code openai-codex pattern');
+  assert.equal(matrix.lanes.live.status, 'QUARANTINED_UPSTREAM');
+  assert.equal(
+    matrix.lanes.live.gap,
+    '@mastra/core@1.61.0 has no ChatGPT/Codex OAuth provider or subscription token store',
+  );
   assert.equal(matrix.lanes.live.optIn, 'MASTRA_LIVE=1');
-  assert.equal(matrix.lanes.live.network, true);
-  assert.equal(matrix.lanes.live.credentials, true);
-  assert.equal(matrix.lanes.live.node, '>=22.19.0');
-  assert.equal(matrix.lanes.live.apiKey, false);
-  assert.equal(matrix.lanes.live.cursorCredentials, false);
+  assert.equal(matrix.lanes.live.loginStatus, 'LOGIN_NEEDED after the provider is pinned');
+  assert.equal(matrix.lanes.live.cursorPlanTokens, false);
 });
 
 test('compatibility matrix against pinned Mastra', { timeout: 60_000 }, async (t) => {

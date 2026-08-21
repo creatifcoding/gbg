@@ -119,52 +119,21 @@ export const createFakeModel = (text = FAKE_MODEL_TEXT) => ({
   },
 });
 
-export const LIVE_LUNA_DISABLED = 'LIVE_LUNA_DISABLED' as const;
-export const LIVE_LUNA_CREDENTIAL_REQUIRED = 'LIVE_LUNA_CREDENTIAL_REQUIRED' as const;
+export const LIVE_LUNA_QUARANTINED_UPSTREAM = 'LIVE_LUNA_QUARANTINED_UPSTREAM' as const;
+export const LIVE_LUNA_GAP =
+  'QUARANTINED_UPSTREAM: @mastra/core@1.61.0 has no ChatGPT/Codex OAuth provider or subscription token store; the openai-codex provider lives in Mastra Code outside the pinned A0 dependency set.';
 
-export type LiveLunaErrorCode =
-  | typeof LIVE_LUNA_DISABLED
-  | typeof LIVE_LUNA_CREDENTIAL_REQUIRED;
+export class LiveLunaQuarantinedError extends Error {
+  readonly code = LIVE_LUNA_QUARANTINED_UPSTREAM;
 
-export class LiveLunaError extends Error {
-  readonly code: LiveLunaErrorCode;
-
-  constructor(code: LiveLunaErrorCode) {
-    super(code);
-    this.name = 'LiveLunaError';
-    this.code = code;
+  constructor() {
+    super(LIVE_LUNA_GAP);
+    this.name = 'LiveLunaQuarantinedError';
   }
 }
 
-type AgentConfig = ConstructorParameters<typeof Agent>[0];
-
-type ModelLane =
-  | {
-      readonly kind: 'fake';
-      readonly model: ReturnType<typeof createFakeModel>;
-    }
-  | {
-      readonly kind: 'live-luna';
-      readonly model: 'openai/gpt-5.6-luna';
-      readonly defaultOptions: NonNullable<AgentConfig['defaultOptions']>;
-    };
-
-export const createLiveLunaLane = (): Extract<ModelLane, { kind: 'live-luna' }> => {
-  if (process.env.MASTRA_LIVE !== '1') {
-    throw new LiveLunaError(LIVE_LUNA_DISABLED);
-  }
-  if (!process.env.OPENAI_API_KEY?.trim()) {
-    throw new LiveLunaError(LIVE_LUNA_CREDENTIAL_REQUIRED);
-  }
-  return {
-    kind: 'live-luna',
-    model: PINS.liveModel,
-    defaultOptions: {
-      providerOptions: {
-        openai: { reasoningEffort: PINS.liveReasoningLevel },
-      },
-    },
-  };
+export const createLiveLunaLane = (): never => {
+  throw new LiveLunaQuarantinedError();
 };
 
 export interface SideEffectCounter {
@@ -266,7 +235,6 @@ const mark = (
 
 export const createAdapterHarness = async (
   clock = new FakeClock(),
-  lane: ModelLane = { kind: 'fake', model: createFakeModel() },
 ): Promise<AdapterHarness> => {
   const capabilities: CapabilityEntry[] = [];
   const sideEffects: SideEffectCounter = { externalEffectCount: 0 };
@@ -292,8 +260,7 @@ export const createAdapterHarness = async (
     name: 'mantis-coordinator',
     instructions:
       'You are the mantis coordinator. Emit CareAdvice only. Never emit ActuationCommand. Never claim a taxon is confirmed. Observational memory is assistant-memory, not evidence.',
-    model: lane.model,
-    ...(lane.kind === 'live-luna' ? { defaultOptions: lane.defaultOptions } : {}),
+    model: fakeModel,
     tools: {
       'care-source-read': tools.careSourceRead,
       'supply-transit-read': tools.supplyTransitRead,

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test --experimental-strip-types test/*.test.ts",
-    "test:live": "node --test --experimental-strip-types test/live-luna.test.ts",
+    "test:live": "node --test --experimental-strip-types test/live-luna.live.ts",
     "typecheck": "tsc --noEmit",
     "compat": "node --experimental-strip-types src/compat-cli.ts"
   },

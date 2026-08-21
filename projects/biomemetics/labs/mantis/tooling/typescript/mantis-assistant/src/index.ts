@@ -5,10 +5,10 @@ export { redactSensitive, asAssistantMemory } from './privacy.ts';
 export { FakeClock } from './clock.ts';
 export { loadCorpus, loadRegistry, validateInstance } from './contracts.ts';
 export {
-  CODEX_SUBSCRIPTION_AUTH_REQUIRED,
-  CODEX_SUBSCRIPTION_LIVE_DISABLED,
-  CodexSubscriptionError,
-  createCodexSubscriptionModel,
+  LIVE_LUNA_GAP,
+  LIVE_LUNA_QUARANTINED_UPSTREAM,
+  LiveLunaQuarantinedError,
+  createLiveLunaLane,
   usedBetaImportPaths,
 } from './mastra-adapter.ts';
 export { effectPin } from './effect-pin.ts';

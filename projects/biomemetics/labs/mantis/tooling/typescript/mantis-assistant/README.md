@@ -30,15 +30,14 @@ in-memory storage. They do not use live credentials or network model providers.
 CI uses `createFakeModel`, fake tools, and no credentials. The existing
 33-test proof remains offline.
 
-The live lane is opt-in. With `OPENAI_API_KEY` already set in the environment,
-run `MASTRA_LIVE=1 npm run test:live`.
-Mastra's model router consumes `openai/gpt-5.6-luna` and requests
-`reasoningEffort: "max"`.
+The requested live lane is `QUARANTINED_UPSTREAM`. The pinned
+`@mastra/core@1.61.0` model router does not expose the ChatGPT or Codex OAuth
+provider used by Mastra Code. The official `openai-codex` provider lives
+outside this package's pinned A0 dependency set, so this harness does not
+start OAuth, read a pasted key, or call a Cursor endpoint.
 
-The harness does not consume Cursor plan tokens directly and does not call a
-Cursor endpoint. Mastra 1.61.0 documents `OPENAI_API_KEY` for the OpenAI
-provider. The live lane never asks for, stores, or prints that value.
-
-If `MASTRA_LIVE` is absent, the live test skips. If the gate is on and
-`OPENAI_API_KEY` is absent, the lane fails closed with
-`LIVE_LUNA_CREDENTIAL_REQUIRED`. The fake CI lane is unaffected.
+Run `MASTRA_LIVE=1 npm run test:live` to inspect the quarantine assertion. The
+test skips without the opt-in. It reports
+`LIVE_LUNA_QUARANTINED_UPSTREAM` with the exact provider gap. `LOGIN_NEEDED`
+applies only after a pinned provider can consume the user's existing
+Codex or ChatGPT subscription session.
