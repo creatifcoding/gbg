@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "mantis-ee")(type "KiCad")(uri "${KIPRJMOD}/../libs/symbols/mantis-ee.kicad_sym")(options "")(descr "Mantis EE-01 UNVERIFIED envelopes (read-only consume)"))
+)

@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "filename": "proto-fab.kicad_jobset",
+    "version": 1,
+    "issue": 26,
+    "status": "PLANNING-ONLY",
+    "qualified": false,
+    "note": "Do not execute until kicad-cli and fabricator stackup are pinned. IPC-2581/ODB++ omitted."
+  },
+  "jobs": [
+    {
+      "id": "gerber-x2",
+      "type": "pcb_export_gerbers",
+      "description": "Gerber X2 — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    },
+    {
+      "id": "excellon",
+      "type": "pcb_export_drill",
+      "description": "Excellon — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    },
+    {
+      "id": "position",
+      "type": "pcb_export_pos",
+      "description": "Position file — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    },
+    {
+      "id": "assembly-pdf",
+      "type": "pcb_export_pdf",
+      "description": "Assembly PDF — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    },
+    {
+      "id": "fabrication-pdf",
+      "type": "pcb_export_pdf",
+      "description": "Fabrication PDF — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    },
+    {
+      "id": "netlist",
+      "type": "sch_export_netlist",
+      "description": "Netlist — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_sch"
+    },
+    {
+      "id": "step",
+      "type": "pcb_export_3d",
+      "description": "STEP — planned, not executed; 3D models empty in #23",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    },
+    {
+      "id": "erc",
+      "type": "sch_erc",
+      "description": "ERC — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_sch"
+    },
+    {
+      "id": "drc",
+      "type": "pcb_drc",
+      "description": "DRC — planned, not executed",
+      "source": "${KIPRJMOD}/fixture.kicad_pcb"
+    }
+  ]
+}

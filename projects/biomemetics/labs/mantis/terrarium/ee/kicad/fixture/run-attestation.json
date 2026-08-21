@@ -1,0 +1,18 @@
+{
+  "schema": "mantis.ee.fixture.run-attestation.v1",
+  "issue": 26,
+  "baseBranch": "feat/mantis-biomemetics-lab",
+  "baseSha": "6feb3a4a10a052826c6fcdfa153137745fd80095",
+  "sourceCouponFacts": "closed PR 40 / cursor/mantis-ee-26-proto-fab-376a @ a9918b32",
+  "adaptation": "consume #23 libs+contracts on lab base; freeze #24/#25 net names; do not recreate camera-tx/carriage/rail-rx/power-control",
+  "modelAttestation": {
+    "requested": "Grok 4.5 non-fast",
+    "thisRun": "cursor-grok-4.5",
+    "fast": false
+  },
+  "parentsUnadmitted": ["23", "24", "25"],
+  "boardsAbsentOnBase": ["power-control", "camera-tx", "carriage", "rail-rx"],
+  "evidenceClass": "theoretical / PROTO-FAB draft",
+  "qualified": false,
+  "shopRelease": false
+}
