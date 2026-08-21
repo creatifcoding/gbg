@@ -1,0 +1,12 @@
+{
+  "$schema": "./observation.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "ObservationCatalog",
+  "workspaceRef": "biomemetics.mantis",
+  "catalogSpecimen": false,
+  "taxon": {
+    "status": "unknown",
+    "reason": "no-real-media"
+  },
+  "records": []
+}

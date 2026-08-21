@@ -1,0 +1,8 @@
+{
+  "$schema": "./analog.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "AnalogCatalog",
+  "workspaceRef": "biomemetics.mantis",
+  "catalogSpecimen": false,
+  "records": []
+}

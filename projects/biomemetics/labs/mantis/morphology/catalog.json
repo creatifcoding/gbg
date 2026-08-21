@@ -1,0 +1,8 @@
+{
+  "$schema": "./structure.schema.json",
+  "schemaVersion": "1.0.0",
+  "kind": "StructureCatalog",
+  "workspaceRef": "biomemetics.mantis",
+  "catalogSpecimen": false,
+  "records": []
+}

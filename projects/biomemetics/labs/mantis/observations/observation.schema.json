@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:observations:observation-catalog:v1",
+  "title": "Mantis observation catalog",
+  "description": "Source-linked observations. Empty until real media exists. Taxon is unknown unless a cited guess is supplied. GPS and locality are not representable.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workspaceRef",
+    "catalogSpecimen",
+    "taxon",
+    "records"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "ObservationCatalog"
+    },
+    "workspaceRef": {
+      "const": "biomemetics.mantis"
+    },
+    "catalogSpecimen": {
+      "const": false
+    },
+    "taxon": {
+      "$ref": "#/$defs/taxon"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": ["pending", "accepted", "rejected", "superseded"]
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewedAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": ["accepted", "rejected"]
+              }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "required": ["reviewer", "reviewedAt"]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "taxon": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": ["unknown", "cited-guess"]
+        },
+        "reason": {
+          "enum": ["no-real-media", "media-without-citation"]
+        },
+        "rank": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "citation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "required": ["reason"],
+            "not": {
+              "anyOf": [
+                { "required": ["rank"] },
+                { "required": ["name"] },
+                { "required": ["confidence"] },
+                { "required": ["citation"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "cited-guess"
+              }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "required": ["name", "confidence", "citation"],
+            "not": {
+              "required": ["reason"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "media": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256",
+        "mediaType",
+        "license",
+        "consent"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(image|video|audio)/.+"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consent": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "statement": {
+      "type": "object",
+      "required": ["text", "status"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": ["observed", "interpreted", "unverified"]
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "measurement": {
+      "type": "object",
+      "required": [
+        "parameterRef",
+        "value",
+        "unit",
+        "uncertainty",
+        "method",
+        "scaleEvidence"
+      ],
+      "properties": {
+        "parameterRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scaleEvidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sampleCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "kind",
+        "observationId",
+        "workspaceRef",
+        "recordedAt",
+        "media",
+        "statements",
+        "taxon",
+        "review"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "kind": {
+          "const": "Observation"
+        },
+        "observationId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "workspaceRef": {
+          "const": "biomemetics.mantis"
+        },
+        "recordedAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "media": {
+          "$ref": "#/$defs/media"
+        },
+        "statements": {
+          "type": "array",
+          "minItems": 1,
+          "contains": {
+            "type": "object",
+            "required": ["status"],
+            "properties": {
+              "status": {
+                "const": "observed"
+              }
+            }
+          },
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "taxon": {
+          "$ref": "#/$defs/taxon"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}
