@@ -60,3 +60,5 @@ Static page in [`capture/`](./capture/), also served at `/capture/` on the testb
 Effect pin matches `@tmnl/msh`: `effect@4.0.0-beta.93`. Persistence is `@effect/sql-pg@4.0.0-beta.93` (peers that pin) against ordinary Postgres. Do not take `@effect/sql-pglite`. Do not add DuckDB. The repo talks `SqlClient`. L1 is Postgres. There is no second catalog.
 
 Activity log tables (`lab_activities`, `lab_used`, `lab_generated`) live in that same catalog. They are append-only.
+
+Catalog tests talk to Postgres (`SPECIMENDB_PG_URL`, default `postgres://specimendb:specimendb@127.0.0.1:5432/specimendb`). A `postgres:16` compose file is at [`docker/docker-compose.yml`](./docker/docker-compose.yml) (host port 5434). The Vite testbed stays in-memory. Capture still does not talk to the database.
