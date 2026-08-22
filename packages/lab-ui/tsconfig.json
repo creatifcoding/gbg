@@ -15,11 +15,7 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "jsx": "react-jsx",
-    "jsxImportSource": "react",
-    "baseUrl": ".",
-    "paths": {
-      "@tmnl/datagrid": ["../datagrid/src/index.ts"]
-    }
+    "jsxImportSource": "react"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test", "**/*.test.ts", "**/*.test.tsx"]
