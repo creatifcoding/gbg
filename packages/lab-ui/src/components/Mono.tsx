@@ -11,7 +11,7 @@ export function Mono({ size = 'body', children, style, ...props }: MonoProps) {
     <span
       {...props}
       style={{
-        color: chrome.color.textmain,
+        color: chrome.color.primary,
         fontFamily: chrome.font.mono,
         fontSize: chrome.type.size[size],
         fontWeight: chrome.type.weight.regular,

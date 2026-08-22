@@ -16,8 +16,8 @@ const sizeValue = {
 } as const;
 
 const toneValue = {
-  muted: chrome.color.textmuted,
-  dim: chrome.color.textdim,
+  muted: chrome.color.secondary,
+  dim: chrome.color.muted,
 } as const;
 
 export function Kicker({

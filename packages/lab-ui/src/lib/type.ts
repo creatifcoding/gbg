@@ -1,27 +1,29 @@
+import { VANTA_TYPOGRAPHY } from './vanta.js';
+
 export const typeFace = {
-  sans: 'Inter, sans-serif',
-  mono: 'IBM Plex Mono, monospace',
+  sans: VANTA_TYPOGRAPHY.family.sans,
+  mono: VANTA_TYPOGRAPHY.family.mono,
 } as const;
 
 export const typeSize = {
-  micro: '9px',
-  label: '10px',
-  kicker: '11px',
-  body: '12px',
-  copy: '14px',
+  micro: VANTA_TYPOGRAPHY.size.sm,
+  label: VANTA_TYPOGRAPHY.size.sm,
+  kicker: VANTA_TYPOGRAPHY.size.sm,
+  body: VANTA_TYPOGRAPHY.size.sm,
+  copy: VANTA_TYPOGRAPHY.size.md,
 } as const;
 
 export const typeTrack = {
-  kicker: '0.2em',
-  wider: '0.05em',
-  widest: '0.1em',
-  tight: '-0.025em',
+  kicker: VANTA_TYPOGRAPHY.preset.label.letterSpacing,
+  wider: VANTA_TYPOGRAPHY.tracking.wider,
+  widest: VANTA_TYPOGRAPHY.tracking.widest,
+  tight: VANTA_TYPOGRAPHY.tracking.tight,
 } as const;
 
 export const typeWeight = {
-  regular: 400,
-  medium: 500,
-  semibold: 600,
+  regular: VANTA_TYPOGRAPHY.weight.normal,
+  medium: VANTA_TYPOGRAPHY.weight.medium,
+  semibold: VANTA_TYPOGRAPHY.weight.semibold,
 } as const;
 
 export type TypeSize = keyof typeof typeSize;

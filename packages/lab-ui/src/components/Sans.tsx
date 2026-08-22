@@ -11,7 +11,7 @@ export function Sans({ size = 'copy', children, style, ...props }: SansProps) {
     <span
       {...props}
       style={{
-        color: chrome.color.textmain,
+        color: chrome.color.primary,
         fontFamily: chrome.font.sans,
         fontSize: chrome.type.size[size],
         fontWeight: chrome.type.weight.regular,

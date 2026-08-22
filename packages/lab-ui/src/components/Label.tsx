@@ -10,7 +10,7 @@ export function Label({ children, style, ...props }: LabelProps) {
     <span
       {...props}
       style={{
-        color: chrome.color.textdim,
+        color: chrome.color.muted,
         fontFamily: chrome.font.mono,
         fontSize: chrome.type.size.label,
         fontWeight: chrome.type.weight.regular,

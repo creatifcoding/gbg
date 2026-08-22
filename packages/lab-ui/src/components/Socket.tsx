@@ -23,10 +23,8 @@ export function Socket({ kind = 'value', children, style, ...props }: SocketProp
         minHeight:
           kind === 'media' ? chrome.space.mediaHeight : chrome.space.valueMin,
         background:
-          kind === 'media' ? chrome.color.void : chrome.color.charcoal500,
-        border: `1px solid ${
-          kind === 'media' ? chrome.color.charcoal200 : chrome.color.charcoal300
-        }`,
+          kind === 'media' ? chrome.color.void : chrome.color.elevated,
+        border: `1px solid ${chrome.color.border}`,
         borderRadius: chrome.radius.frame,
         ...style,
       }}

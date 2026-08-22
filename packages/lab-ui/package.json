@@ -1,7 +1,7 @@
 {
   "name": "@gbg/lab-ui",
   "version": "0.0.1",
-  "description": "Lab design system. Type, color, space, radius, chrome.",
+  "description": "Lab design system. VANTA paint, chrome, blank sockets.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

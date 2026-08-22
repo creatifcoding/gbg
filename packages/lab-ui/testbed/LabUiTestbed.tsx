@@ -3,7 +3,7 @@ import { chrome, Kicker, Label, Mono, Pill, Sans, Socket } from '../src/index.ts
 
 const frame: CSSProperties = {
   boxSizing: 'border-box',
-  border: `1px solid ${chrome.color.charcoal300}`,
+  border: `1px solid ${chrome.color.border}`,
   borderRadius: chrome.radius.frame,
   background: chrome.color.void,
 };
@@ -15,8 +15,8 @@ export function LabUiTestbed() {
         display: 'flex',
         flexWrap: 'wrap',
         minHeight: '100vh',
-        background: chrome.color.charcoal600,
-        color: chrome.color.textmain,
+        background: chrome.color.base,
+        color: chrome.color.primary,
         fontFamily: chrome.font.sans,
       }}
     >
@@ -28,7 +28,7 @@ export function LabUiTestbed() {
           flexShrink: 0,
           width: chrome.space.railWidth,
           maxWidth: '100%',
-          borderColor: chrome.color.charcoal300,
+          borderColor: chrome.color.border,
         }}
       >
         <header
@@ -38,7 +38,7 @@ export function LabUiTestbed() {
             boxSizing: 'border-box',
             height: chrome.space.headerHeight,
             paddingInline: chrome.space.cardPadding,
-            borderBottom: `1px solid ${chrome.color.charcoal300}`,
+            borderBottom: `1px solid ${chrome.color.border}`,
           }}
         >
           <Kicker size={11}>lab ui // chrome</Kicker>
@@ -62,7 +62,7 @@ export function LabUiTestbed() {
           flex: 1,
           minWidth: chrome.space.railWidth,
           alignContent: 'flex-start',
-          background: chrome.color.charcoal600,
+          background: chrome.color.base,
         }}
       >
         <section
@@ -106,7 +106,7 @@ export function LabUiTestbed() {
               height: chrome.space.headerHeight,
               paddingInline: chrome.space.cardPadding,
               background: chrome.color.void,
-              borderBottom: `1px solid ${chrome.color.charcoal300}`,
+              borderBottom: `1px solid ${chrome.color.border}`,
             }}
           >
             <Kicker>inspector</Kicker>
@@ -138,7 +138,7 @@ function Card() {
         flexDirection: 'column',
         gap: chrome.space.gap,
         padding: chrome.space.cardPadding,
-        background: chrome.color.charcoal500,
+        background: chrome.color.elevated,
       }}
     >
       <div
@@ -179,7 +179,7 @@ function Row({ label }: { readonly label: string }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: chrome.space.gap,
-        borderBottom: `1px solid ${chrome.color.charcoal300}`,
+        borderBottom: `1px solid ${chrome.color.border}`,
         paddingBottom: chrome.space.cardPadding,
       }}
     >

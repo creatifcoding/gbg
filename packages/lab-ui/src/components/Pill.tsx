@@ -10,11 +10,11 @@ export type PillProps = Omit<ComponentPropsWithoutRef<'span'>, 'children'> & {
 };
 
 const toneColor = {
-  empty: chrome.color.textdim,
-  working: chrome.color.emerald500,
-  raw: chrome.color.amber500,
-  filed: chrome.color.cyan500,
-  dead: chrome.color.rose500,
+  empty: chrome.color.muted,
+  working: chrome.color.emerald,
+  raw: chrome.color.amber,
+  filed: chrome.color.cyan,
+  dead: chrome.color.rose,
 } as const;
 
 export function Pill({ tone = 'empty', children, style, ...props }: PillProps) {
@@ -36,7 +36,7 @@ export function Pill({ tone = 'empty', children, style, ...props }: PillProps) {
         minHeight: chrome.space.statusDot,
         padding: `${chrome.space.pillBlockPadding} ${chrome.space.pillInlinePadding}`,
         background: chrome.color.void,
-        border: `1px solid ${chrome.color.charcoal200}`,
+        border: `1px solid ${chrome.color.border}`,
         borderRadius: chrome.radius.frame,
         color,
         fontFamily: chrome.font.mono,
