@@ -349,6 +349,25 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     view.unmount();
   });
 
+  it('keeps Workbench source scrollbar treatment', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/ui/ImportedWorkbench.css'),
+      'utf8'
+    );
+    expect(css).toContain('width: 4px');
+    expect(css).toContain('height: 4px');
+    expect(css).toContain('border-left: 1px solid #1a1a1a');
+    expect(css).toContain('background: #333');
+    expect(css).toContain('background: #555');
+    expect(css).toContain('scrollbar-width: thin');
+    expect(css).not.toContain('scrollbar-width: none');
+    expect(css).not.toMatch(
+      /\.imported-workbench \*::-webkit-scrollbar\s*\{[^}]*display:\s*none/s
+    );
+  });
+
   it('rejects non JPEG/HEIC at Intake and leaves the card template', async () => {
     let intake = 0;
     const client: SpecimenRpcClient = {
