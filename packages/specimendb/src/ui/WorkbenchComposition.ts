@@ -94,6 +94,18 @@ export const WORKBENCH_COMPOSITION = {
                 { vid: '40', role: 'well', name: 'Tag' },
               ],
             },
+            {
+              vid: '41',
+              name: 'WorkbenchCard',
+              role: 'pattern',
+              pattern: 'card',
+            },
+            {
+              vid: '60',
+              name: 'WorkbenchCard',
+              role: 'pattern',
+              pattern: 'card',
+            },
           ],
         },
       ],
@@ -236,6 +248,8 @@ export const WORKBENCH_COMPOSITION = {
   ],
 } as const satisfies CompositionNode;
 
+export const EMPTY_RAIL_CARD_VIDS = ['22', '41', '60'] as const;
+
 export const ACCEPTED_BOUNDARIES: readonly AcceptedBoundary[] = [
   {
     name: 'WorkbenchHeader',
@@ -253,8 +267,9 @@ export const ACCEPTED_BOUNDARIES: readonly AcceptedBoundary[] = [
     name: 'WorkbenchCardList',
     sourceVid: '21',
     responsibility:
-      'Scroll well that repeats WorkbenchCard or keeps the empty card drawn.',
-    evidence: 'vid 21 overflow column. HTML repeats the vid 22 card pattern.',
+      'Scroll well that repeats WorkbenchCard. Empty catalog draws three templates (vids 22, 41, 60) with empty wells.',
+    evidence:
+      'vid 21 overflow column. HTML repeats the vid 22 card at 41 and 60 in the lock viewport. Vids 79 and 98 are below-fold theater, not a fourth empty frame.',
     rejectedAlternatives: [
       'shared PhotoRail from DossierView',
       'virtualized generic list',

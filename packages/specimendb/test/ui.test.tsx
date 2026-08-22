@@ -28,6 +28,7 @@ import { trustEntityRef, trustSpecimenId } from '../src/schemas/identifiers.js';
 import { decodeLabEntity } from '../src/schemas/provenance.js';
 import {
   ACCEPTED_BOUNDARIES,
+  EMPTY_RAIL_CARD_VIDS,
   REFUSED_BOUNDARIES,
   W7_BOUNDARY,
   WORKBENCH_COMPOSITION,
@@ -92,6 +93,19 @@ function WorkbenchPage({
   const catalog = useMemo(() => createCatalog(client), [client]);
   return React.createElement(SpecimenRail, { catalog, provenance });
 }
+
+const emptyWorkbenchCards = (view: {
+  getAllByTestId: (id: string) => HTMLElement[];
+  queryByTestId: (id: string) => HTMLElement | null;
+}) => {
+  const cards = view.getAllByTestId('card-chrome');
+  expect(cards).toHaveLength(EMPTY_RAIL_CARD_VIDS.length);
+  expect(cards.map((card) => card.getAttribute('vid'))).toEqual([
+    ...EMPTY_RAIL_CARD_VIDS,
+  ]);
+  expect(view.queryByTestId('specimen-card')).toBeNull();
+  return cards;
+};
 
 function CatalogPage({ client }: { readonly client: SpecimenRpcClient }) {
   const catalog = useMemo(() => createCatalog(client), [client]);
@@ -293,11 +307,11 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).toContain('ACTIVE_RENDER');
     expect(view.queryByTestId('rail-query')).toBeNull();
     expect(view.queryByTestId('rail-filters')).toBeNull();
-    expect(view.getByTestId('card-chrome')).toBeTruthy();
+    emptyWorkbenchCards(view);
     await waitFor(() => {
       expect(calls.list).toBeGreaterThan(0);
     });
-    expect(view.getByTestId('card-chrome')).toBeTruthy();
+    emptyWorkbenchCards(view);
     const html = view.container.textContent ?? '';
     expect(html).not.toContain('SP-9942-X');
     expect(html).not.toContain('OPTICAL_SCAN');
@@ -325,7 +339,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     );
     await waitFor(() => {
       expect(workbench.getByTestId('specimen-rail')).toBeTruthy();
-      expect(workbench.getByTestId('card-chrome')).toBeTruthy();
+      emptyWorkbenchCards(workbench);
     });
     expect(workbench.getByTestId('last-updated').textContent).toBe(
       'LAST_UPDATED'
@@ -340,7 +354,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       React.createElement(WorkbenchPage, { client: emptyClient() })
     );
     await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      emptyWorkbenchCards(view);
     });
     expect(view.queryByTestId('rail-query')).toBeNull();
     expect(view.queryByTestId('rail-filters')).toBeNull();
@@ -494,7 +508,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     };
     const view = render(React.createElement(WorkbenchPage, { client }));
     const html = view.container.textContent ?? '';
-    expect(view.getByTestId('card-chrome')).toBeTruthy();
+    emptyWorkbenchCards(view);
     expect(html).toContain('Phylum');
     expect(html).toContain('Class');
     expect(html).toContain('Order');
@@ -535,6 +549,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(W7_BOUNDARY.status).toBe('no-separate-pane');
     expect(WORKBENCH_COMPOSITION.stylingOnly).toBe(true);
     expect(WORKBENCH_COMPOSITION.vid).toBe('12');
+    expect([...EMPTY_RAIL_CARD_VIDS]).toEqual(['22', '41', '60']);
   });
 
   it('Workbench lists real specimens and binds Status, Locality, Media, Claim, tags, Taxon, Used, Generated, Bytes, Observation, createdAt', async () => {
@@ -698,7 +713,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     view.unmount();
   });
 
-  it('Workbench optional LabEntity fills Used, Generated, Bytes, and W7 log lines', async () => {
+  it('Workbench optional LabEntity fills Used, Generated, and W7; empty rail cards stay empty', async () => {
     const { readFileSync } = await import('node:fs');
     const { dirname, join } = await import('node:path');
     const { fileURLToPath } = await import('node:url');
@@ -722,17 +737,13 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       })
     );
     await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      emptyWorkbenchCards(view);
     });
     expect(view.getByTestId('provenance-note').textContent).toContain(
       'gbg:step:B01@fe8f875a'
     );
-    expect(view.getByTestId('media-caption').textContent).toContain(
-      'fe8f875a80b37a1003f05f3a0190fbe2f0417842'
-    );
-    expect(view.getByTestId('media-metadata').textContent).toContain(
-      'fe8f875a80b37a1003f05f3a0190fbe2f0417842'
-    );
+    expect(view.queryByTestId('media-caption')).toBeNull();
+    expect(view.queryByTestId('media-metadata')).toBeNull();
     expect(view.getAllByTestId('w7').map((node) => node.textContent)).toEqual(
       expect.arrayContaining([
         'W7 WHO freecad-part-occt',
@@ -977,7 +988,11 @@ describe('six full pages', () => {
         expect(view.getByTestId(page.testId)).toBeTruthy();
       });
       if (page.emptyChrome) {
-        expect(view.getByTestId('card-chrome')).toBeTruthy();
+        if (page.name === 'Workbench') {
+          emptyWorkbenchCards(view);
+        } else {
+          expect(view.getByTestId('card-chrome')).toBeTruthy();
+        }
       }
       const html = view.container.textContent ?? '';
       for (const snippet of page.copy) {

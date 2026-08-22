@@ -35,6 +35,7 @@ export { SpecimenRail } from './SpecimenRail.js';
 export type { SpecimenRailProps } from './SpecimenRail.js';
 export {
   ACCEPTED_BOUNDARIES,
+  EMPTY_RAIL_CARD_VIDS,
   REFUSED_BOUNDARIES,
   W7_BOUNDARY,
   WORKBENCH_COMPOSITION,

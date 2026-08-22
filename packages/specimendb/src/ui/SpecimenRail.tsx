@@ -21,7 +21,9 @@ import {
   type CatalogSurface,
 } from './catalog-stx.js';
 import type { StatusPromote } from './Status.js';
+import { EMPTY_RAIL_CARD_VIDS } from './WorkbenchComposition.js';
 import {
+  EMPTY_WORKBENCH_VIEW,
   metricsNoteOf,
   projectWorkbenchRecord,
   wellText,
@@ -83,7 +85,6 @@ type WorkbenchTreeProps = {
   readonly cards: 'chrome' | readonly WorkbenchRecordView[];
   readonly selected: WorkbenchRecordView;
   readonly selectedId: SpecimenId | null;
-  readonly chrome: WorkbenchRecordView;
   readonly onSelect?: (id: SpecimenId) => void;
   readonly onPromote?: (id: SpecimenId) => StatusPromote;
 };
@@ -224,11 +225,13 @@ function TagWellView({
 function WorkbenchCard({
   view,
   selected,
+  cardVid = '22',
   onSelect,
   onPromote,
 }: {
   readonly view: WorkbenchRecordView;
   readonly selected: boolean;
+  readonly cardVid?: string;
   readonly onSelect?: (id: SpecimenId) => void;
   readonly onPromote?: (id: SpecimenId) => StatusPromote;
 }) {
@@ -247,7 +250,7 @@ function WorkbenchCard({
   return (
     <div
       className={CARD_CLASS}
-      vid="22"
+      vid={cardVid}
       data-empty={empty ? 'true' : undefined}
       data-testid={empty ? 'card-chrome' : 'specimen-card'}
       data-selected={empty ? undefined : selected ? 'true' : 'false'}
@@ -358,13 +361,11 @@ function WorkbenchCard({
 
 function WorkbenchCardList({
   cards,
-  chrome,
   selectedId,
   onSelect,
   onPromote,
 }: {
   readonly cards: WorkbenchTreeProps['cards'];
-  readonly chrome: WorkbenchRecordView;
   readonly selectedId: SpecimenId | null;
   readonly onSelect?: (id: SpecimenId) => void;
   readonly onPromote?: (id: SpecimenId) => StatusPromote;
@@ -372,7 +373,14 @@ function WorkbenchCardList({
   return (
     <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3" vid="21">
       {cards === 'chrome' ? (
-        <WorkbenchCard view={chrome} selected={false} />
+        EMPTY_RAIL_CARD_VIDS.map((cardVid) => (
+          <WorkbenchCard
+            key={cardVid}
+            view={EMPTY_WORKBENCH_VIEW}
+            selected={false}
+            cardVid={cardVid}
+          />
+        ))
       ) : (
         cards.map((view) => (
           <WorkbenchCard
@@ -795,7 +803,6 @@ function WorkbenchTree({
   cards,
   selected,
   selectedId,
-  chrome,
   onSelect,
   onPromote,
 }: WorkbenchTreeProps) {
@@ -811,7 +818,6 @@ function WorkbenchTree({
         <WorkbenchHeader />
         <WorkbenchCardList
           cards={cards}
-          chrome={chrome}
           selectedId={selectedId}
           onSelect={onSelect}
           onPromote={onPromote}
@@ -874,7 +880,6 @@ function WorkbenchLive({
       cards={cards}
       selected={selected}
       selectedId={value.selectedId}
-      chrome={projectWorkbenchRecord({ kind: 'empty' }, provenance)}
       onSelect={(id) => {
         void catalog.select(id);
       }}
@@ -892,7 +897,6 @@ export function SpecimenRail(props: SpecimenRailProps = {}) {
           cards="chrome"
           selected={projectWorkbenchRecord({ kind: 'empty' }, provenance)}
           selectedId={null}
-          chrome={projectWorkbenchRecord({ kind: 'empty' }, provenance)}
         />
       ) : (
         <WorkbenchLive catalog={props.catalog} provenance={provenance} />
