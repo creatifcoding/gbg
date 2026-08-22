@@ -14,6 +14,10 @@ CAD-01 and HLR are minted from in-tree files on this ref. Not an invented specim
 
 The assembly STEP is `kind=solid` `type=assembly`. Part STEPs are `type=part`. Sheets S00-S11 are `type=projected` or `type=diagram` (S08/S09 diagram). The HLR activity (`type=hlr`) Uses the STEP and Generates S00-S11. who/how is `generate_schematics.py`, where is `unknown`, why is `#58`. Bytes cites path + sha256 + git SHA. Seed does not copy STEP or SVG into the specimen AssetStore.
 
+## EVA
+
+EVA is a Postgres SQL SourceAdapter (`kind=sql`). `query(sql)` returns an Apache Arrow table over `entities` and `components` after CAD-01/HLR seed. The adapter matches the AVA SourceAdapter contract in `packages/tmnl/src-ava` (`kind`, `id`, `query` → Arrow). It does not run the Rust AVA runtime. The graph well stays empty.
+
 ## Empty wells
 
 Empty wells are drawn regions with a missing component. The chrome is on the page. The component is not. Do not invent one to look complete.
