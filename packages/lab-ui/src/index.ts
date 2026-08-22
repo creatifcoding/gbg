@@ -34,6 +34,14 @@ export {
   ValueCell,
 } from './components/grid-cells.js';
 
+export {
+  Table,
+  BLANK_TABLE_COLUMNS,
+  BLANK_TABLE_ROWS,
+  type TableProps,
+  type TableRow,
+} from './components/Table.js';
+
 export { Label, type LabelProps } from './components/Label.js';
 export {
   Kicker,
