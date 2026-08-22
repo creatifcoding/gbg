@@ -95,6 +95,7 @@
   "workspaces": [
     "packages/*",
     "!packages/codemode-pi",
-    "!packages/pi-workflows"
+    "!packages/pi-workflows",
+    "!packages/cluster"
   ]
 }

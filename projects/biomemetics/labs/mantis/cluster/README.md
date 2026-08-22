@@ -1,14 +1,18 @@
 # Mantis cluster
 
-Alchemy v2 roseleaf of `biomemetics.mantis`. Same nesting as
+Thin roseleaf of `biomemetics.mantis`. Consumes `@gbg/cluster` and extends it
+with mantis-specific Manifests. Same nesting as
 `projects/biomemetics/labs/mantis/procurement/`: a private `@mantis/*`
-package in the lab tree, not a `packages/*` project.
+package in the lab tree.
+
+This directory does not own an Alchemy stack. The one stack lives in
+`packages/cluster` (`@gbg/cluster`). Do not add `alchemy.run.ts` here.
 
 Workloads target kube context `k3d-tmnl` on whatever host currently has
 that context. This directory does not create the cluster and does not
 deploy. It does not edit `procurement/`. procurementbot owns that book.
-This roseleaf only reserves the namespace so the Start applet can be
-hosted later.
+The `procurement` Namespace Manifest is reserved so the Start applet can
+be hosted later as a `LabApplet`.
 
 ## Cluster
 
@@ -22,21 +26,17 @@ k8s-cluster-create
 
 `k8s-cluster-create` lives in `packages/tmnl/nix/modules/k8s.nix`. Do not
 copy it here. Alchemy resolves kubeconfig from `$KUBECONFIG` or
-`~/.kube/config`. There is no host path in this stack.
+`~/.kube/config`.
 
-## Stack
+## Extensions
 
-`alchemy.run.ts` is the composition root. Run commands from this directory
-so `Alchemy.localState()` writes `.alchemy/` here.
-
-- `Kubernetes.providers()` only
-- `Alchemy.localState()`
-- `Kubernetes.KubeConfig({ context: "k3d-tmnl" })`
-- a `procurement` Namespace via `Kubernetes.Manifest`
+- `procurement` Namespace Manifest (`src/manifests.ts`)
+- later: a `LabApplet` for the Start app
 
 ## Hold deploy
 
-Do not run `alchemy deploy` from this land.
+Do not run `alchemy deploy` from this land. Deploy, when allowed, is
+`packages/cluster/alchemy.run.ts`.
 
 ```text
 npm install

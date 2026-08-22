@@ -1,0 +1,23 @@
+{
+  "name": "@gbg/cluster",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/cluster/src",
+  "projectType": "library",
+  "tags": ["scope:gbg", "type:lib", "domain:cluster"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm test",
+        "cwd": "packages/cluster"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run typecheck",
+        "cwd": "packages/cluster"
+      }
+    }
+  }
+}
