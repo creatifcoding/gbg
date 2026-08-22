@@ -69,6 +69,13 @@ describe('AppendActivity / GetByRef', () => {
         expect(relationTargets(appended.components, 'Generated')).toEqual([
           'gbg:step:B01@fe8f875a',
         ]);
+        expect(appended.components.some((c) => c._tag === 'Who')).toBe(true);
+        expect(appended.components.some((c) => c._tag === 'When')).toBe(true);
+        expect(appended.components.some((c) => c._tag === 'Where')).toBe(true);
+        expect(appended.components.some((c) => c._tag === 'Why')).toBe(true);
+        expect(appended.components.some((c) => c._tag === 'How')).toBe(true);
+        const who = appended.components.find((c) => c._tag === 'Who');
+        expect(who?._tag === 'Who' && who.label).toBe('freecad-part-occt');
 
         const byActivity = yield* client.GetByRef({
           ref: trustEntityRef('gbg:activity:freecad-part-occt@fe8f875a'),
@@ -84,6 +91,17 @@ describe('AppendActivity / GetByRef', () => {
         expect(relationTargets(byGenerated[0]?.components ?? [], 'Generated')).toContain(
           'gbg:step:B01@fe8f875a',
         );
+
+        const byWho = yield* client.GetByRef({ who: 'freecad-part-occt' });
+        expect(byWho.map((row) => row.id)).toEqual(['gbg:activity:freecad-part-occt@fe8f875a']);
+        const byWhy = yield* client.GetByRef({ why: '#28' });
+        expect(byWhy.map((row) => row.id)).toEqual(['gbg:activity:freecad-part-occt@fe8f875a']);
+        const bySha = yield* client.GetByRef({
+          gitSha: 'fe8f875a80b37a1003f05f3a0190fbe2f0417842',
+        });
+        expect(bySha.map((row) => row.id)).toEqual(['gbg:activity:freecad-part-occt@fe8f875a']);
+        const byWhen = yield* client.GetByRef({ startedAt: '2026-08-20T10:05:07Z' });
+        expect(byWhen.map((row) => row.id)).toEqual(['gbg:activity:freecad-part-occt@fe8f875a']);
       }) as Effect.Effect<unknown, unknown, never>,
     );
   });

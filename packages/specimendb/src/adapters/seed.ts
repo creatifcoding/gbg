@@ -14,6 +14,7 @@ import {
   mintFromLabEntity,
   relationsFromLabEntity,
   runActivitySystem,
+  w7FromLabEntity,
 } from './activity.js';
 
 export const seedLabEntity = (
@@ -23,6 +24,7 @@ export const seedLabEntity = (
     const state = yield* EntityState;
     if (entity.kind === 'activity') {
       const relations = relationsFromLabEntity(entity);
+      const w7 = w7FromLabEntity(entity);
       return yield* runActivitySystem(state, {
         id: entity.ref,
         type: entity.type,
@@ -30,6 +32,11 @@ export const seedLabEntity = (
         generated: relations.generated,
         createdAt: mintFromLabEntity(entity).createdAt,
         requireTargets: false,
+        ...(w7.who !== undefined ? { who: w7.who } : {}),
+        ...(w7.when !== undefined ? { when: w7.when } : {}),
+        ...(w7.where !== undefined ? { where: w7.where } : {}),
+        ...(w7.why !== undefined ? { why: w7.why } : {}),
+        ...(w7.how !== undefined ? { how: w7.how } : {}),
       });
     }
     return yield* state.ensure(mintFromLabEntity(entity), labEntityComponents(entity));

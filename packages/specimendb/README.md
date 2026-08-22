@@ -12,7 +12,7 @@ Intake still files a JPEG as Status `raw`. Locality is `unknown` unless EXIF or 
 
 CAD-01 and HLR are minted from in-tree files on this ref. Not an invented specimen.
 
-The assembly STEP is `kind=solid` `type=assembly`. Part STEPs are `type=part`. Sheets S00-S11 are `type=projected` or `type=diagram` (S08/S09 diagram). The HLR activity (`type=hlr`) Uses the STEP and Generates S00-S11. who/how is `generate_schematics.py`, where is `unknown`, why is `#58`. Bytes cites path + sha256 + git SHA. Seed does not copy STEP or SVG into the specimen AssetStore.
+The assembly STEP is `kind=solid` `type=assembly`. Part STEPs are `type=part`. Sheets S00-S11 are `type=projected` or `type=diagram` (S08/S09 diagram). The HLR activity (`type=hlr`) Uses the STEP and Generates S00-S06. A separate export activity (`type=export`) Generates the CAD-01 assembly STEP. who/how on HLR is `generate_schematics.py`, on export is `freecad-part-occt`. where is `unknown`. why is `#58` (HLR) and `#20` (export). Bytes cites path + sha256 + git SHA. Seed does not copy STEP or SVG into the specimen AssetStore.
 
 ## Empty wells
 
@@ -30,7 +30,7 @@ Empty wells are drawn regions with a missing component. The chrome is on the pag
 | `Project` | HLR: Used(step) Generated(svgs/sheets). |
 | `Doctor` | Mint an activity for a run; Generated defaults to the run. |
 | `AppendActivity` | Append-only activity: refuse to rewrite a ref; corrections append a new one with Supersedes. |
-| `GetByRef` | Activities whose id, Used, Generated, or Supersedes target matches. |
+| `GetByRef` | Activities whose id, Used, Generated, or Supersedes target matches `{ ref }`. Walk Who / Why / When by `{ who }`, `{ why }`, `{ gitSha }`, or `{ startedAt }`. |
 | `GetEntity` / `ListEntities` / `GetComponents` | Read an entity and the components keyed by `entity_id`. |
 | `Attach` | Attach one component to an existing entity. |
 | `MintEntity` | Mint a catalog entity and attach the components the caller walked. Seed uses this. |

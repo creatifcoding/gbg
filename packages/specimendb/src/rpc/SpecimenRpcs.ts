@@ -11,7 +11,7 @@ import * as Schema from 'effect/Schema';
 import * as Rpc from 'effect/unstable/rpc/Rpc';
 import * as RpcGroup from 'effect/unstable/rpc/RpcGroup';
 import {
-  activitiesByRef,
+  queryActivities,
   appendActivity,
   doctorActivityRef,
   projectActivityRef,
@@ -135,7 +135,7 @@ export const SpecimenRpcsLive = SpecimenRpcs.toLayer(
           generated: payload.generated ?? [payload.run],
         }),
       AppendActivity: (payload) => appendActivity(state, payload),
-      GetByRef: (payload) => activitiesByRef(state, payload.ref),
+      GetByRef: (payload) => queryActivities(state, payload),
     });
   }),
 );
