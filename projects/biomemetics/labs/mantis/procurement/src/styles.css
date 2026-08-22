@@ -1,0 +1,223 @@
+:root {
+  --lino: #b7b9ad;
+  --card: #efe6d4;
+  --ink: #241c16;
+  --muted: #5c564c;
+  --fiber: #6b4a34;
+  --acrylic: #2f7a72;
+  --stamp-fail: #9c2f24;
+  --stamp-ref: #355f78;
+  --stamp-lock: #6b4a34;
+  --well: #e4dcc8;
+  --rule: #8a8374;
+  --type-display: 'Azeret Mono', ui-monospace, monospace;
+  --type-body: 'Schibsted Grotesk', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--lino);
+  color: var(--ink);
+  font-family: var(--type-body);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+a {
+  color: var(--acrylic);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--fiber);
+  outline-offset: 2px;
+}
+
+.shell {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+.mast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.mast h1 {
+  margin: 0;
+  font-family: var(--type-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.honesty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.rail a {
+  display: inline-block;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--type-display);
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rail a[aria-current='page'] {
+  background: var(--ink);
+  color: var(--card);
+}
+
+.lede {
+  margin: 0 0 1.25rem;
+  max-width: 42rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.9375rem;
+}
+
+th {
+  font-family: var(--type-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.balloon {
+  font-family: var(--type-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.qty {
+  font-family: var(--type-display);
+  white-space: nowrap;
+}
+
+.stamp {
+  display: inline-block;
+  min-width: 6.5rem;
+  padding: 0.15rem 0.4rem;
+  border: 2px solid currentColor;
+  font-family: var(--type-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.stamp-ref {
+  color: var(--stamp-ref);
+}
+
+.stamp-lock {
+  color: var(--stamp-lock);
+}
+
+.stamp-unverified,
+.stamp-draft,
+.stamp-null {
+  color: var(--stamp-fail);
+}
+
+.stamp-orderable {
+  color: var(--acrylic);
+}
+
+.stamp-null {
+  border-style: dashed;
+}
+
+.well {
+  min-height: 2.1rem;
+  min-width: 5.5rem;
+  border: 1.5px dashed var(--rule);
+  background: var(--well);
+  padding: 0.25rem 0.4rem;
+}
+
+.well[data-empty='true']::after {
+  content: '';
+  display: block;
+  height: 0.9rem;
+}
+
+.well-label {
+  display: block;
+  font-family: var(--type-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.refuse {
+  color: var(--stamp-fail);
+  font-size: 0.875rem;
+}
+
+.empty-board {
+  background: var(--card);
+  border: 2px dashed var(--rule);
+  padding: 1.5rem;
+}
+
+button.try {
+  font-family: var(--type-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
