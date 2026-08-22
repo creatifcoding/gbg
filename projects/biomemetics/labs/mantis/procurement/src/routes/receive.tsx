@@ -1,8 +1,17 @@
+import {
+  Grid,
+  HeaderCell,
+  Mono,
+  Socket,
+  SocketCell,
+  ValueCell,
+  Kicker,
+} from '@gbg/lab-ui';
 import { createFileRoute } from '@tanstack/react-router';
 import { useFocus } from '@tmnl/stx';
 import { getReceive } from '../server/fns';
 import type { ReceivePayload } from '../store/book';
-import { Well } from '../ui/marks';
+import { Board, BoardKicker, Inspector, gridFill } from '../ui/board';
 import { at, receiveDraft } from '../ui/stores';
 
 export const Route = createFileRoute('/receive')({
@@ -10,54 +19,87 @@ export const Route = createFileRoute('/receive')({
   component: ReceivePage,
 });
 
+const lotColumns = [
+  {
+    field: 'receipt_id',
+    headerName: 'Receipt',
+    headerComponent: HeaderCell,
+    cellRenderer: ValueCell,
+    flex: 1,
+  },
+  {
+    field: 'po',
+    headerName: 'PO',
+    headerComponent: HeaderCell,
+    cellRenderer: SocketCell,
+    width: 140,
+  },
+  {
+    field: 'lot_id',
+    headerName: 'Lot',
+    headerComponent: HeaderCell,
+    cellRenderer: ValueCell,
+    flex: 1,
+  },
+  {
+    field: 'part_id',
+    headerName: 'ID',
+    headerComponent: HeaderCell,
+    cellRenderer: ValueCell,
+    width: 72,
+  },
+  {
+    field: 'qty',
+    headerName: 'Qty',
+    headerComponent: HeaderCell,
+    cellRenderer: ValueCell,
+    width: 96,
+  },
+];
+
 function ReceivePage() {
   const { receipts, lots }: ReceivePayload = Route.useLoaderData();
   const draftPart = useFocus(receiveDraft, at(receiveDraft.lens.partId));
   const draftQty = useFocus(receiveDraft, at(receiveDraft.lens.qty));
 
+  const rows = lots.map((lot) => ({
+    receipt_id: lot.receipt_id ?? '',
+    po: '',
+    lot_id: lot.lot_id,
+    part_id: lot.part_id,
+    qty: lot.qty ?? '',
+  }));
+
   return (
-    <div className="board">
-      <p className="kicker">
-        Receipt and lot. Empty until something actually arrives. Nothing has been
+    <Board>
+      <BoardKicker>
+        Receipt and lot. Blank until something actually arrives. Nothing has been
         received.
-      </p>
-      <div className="draft">
-        <span className="kicker">Receive draft</span>
-        <Well label="part" value={draftPart} />
-        <Well label="qty" value={draftQty} />
-      </div>
+      </BoardKicker>
+      <Inspector>
+        <Kicker>Receive draft</Kicker>
+        <Socket aria-label="part">{draftPart ?? undefined}</Socket>
+        <Socket aria-label="qty">{draftQty === '' ? undefined : draftQty}</Socket>
+      </Inspector>
       {receipts.length === 0 && lots.length === 0 ? (
-        <div className="empty-board">
-          <Well label="receipt" />
-          <Well label="lot" />
-          <p>No receipts. No lots.</p>
-        </div>
+        <Inspector>
+          <Socket aria-label="receipt" />
+          <Socket aria-label="lot" />
+          <Mono>No receipts. No lots.</Mono>
+        </Inspector>
       ) : (
-        <table className="register">
-          <thead>
-            <tr>
-              <th>Receipt</th>
-              <th>PO</th>
-              <th>Lot</th>
-              <th>ID</th>
-              <th>Qty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lots.map((lot) => (
-              <tr key={lot.lot_id}>
-                <td>{lot.receipt_id}</td>
-                <td>
-                  <Well label="PO" />
-                </td>
-                <td>{lot.lot_id}</td>
-                <td className="col-id">{lot.part_id}</td>
-                <td className="col-qty">{lot.qty}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ flex: 1, minHeight: gridFill.minHeight }}>
+          <Grid
+            columnDefs={lotColumns}
+            rowData={rows}
+            getRowId={(params: { data?: { lot_id?: string } }) =>
+              String(params.data?.lot_id ?? '')
+            }
+            suppressCellFocus
+            style={gridFill}
+          />
+        </div>
       )}
-    </div>
+    </Board>
   );
 }

@@ -1,15 +1,117 @@
+import {
+  Grid,
+  HeaderCell,
+  SocketCell,
+  ValueCell,
+  chrome,
+} from '@gbg/lab-ui';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useFocus, useStxSet } from '@tmnl/stx';
 import { getBuy, tryIssuePo } from '../server/fns';
 import type { BuyPayload } from '../store/book';
 import { gateCopy } from '../store/gate';
-import { Slot, Well } from '../ui/marks';
+import { Board, BoardKicker, gridFill } from '../ui/board';
+import { ClassCell } from '../ui/cells';
 import { at, buyAttempt } from '../ui/stores';
 
 export const Route = createFileRoute('/buy')({
   loader: () => getBuy(),
   component: BuyPage,
 });
+
+type BuyRow = {
+  balloon_id: string;
+  class: string;
+  sku: string;
+  vendor: string;
+  quote: string;
+  gate: string;
+};
+
+function TryPoCell(params: {
+  data?: BuyRow;
+  context?: { attempt: (id: string) => void };
+}) {
+  const id = params.data?.balloon_id;
+  return (
+    <button
+      type="button"
+      className="try"
+      onClick={() => {
+        if (id) {
+          params.context?.attempt(id);
+        }
+      }}
+      style={{
+        color: chrome.color.secondary,
+        background: chrome.color.void,
+        border: `1px solid ${chrome.color.border}`,
+        fontFamily: chrome.font.mono,
+        fontSize: chrome.type.size.micro,
+        letterSpacing: chrome.type.tracking.wider,
+        textTransform: 'uppercase',
+        cursor: 'pointer',
+        padding: `${chrome.space.pillBlockPadding} ${chrome.space.pillInlinePadding}`,
+      }}
+    >
+      Try PO
+    </button>
+  );
+}
+
+const buyColumns = [
+  {
+    field: 'balloon_id',
+    headerName: 'ID',
+    headerComponent: HeaderCell,
+    cellRenderer: ValueCell,
+    width: 72,
+  },
+  {
+    field: 'class',
+    headerName: 'Class',
+    headerComponent: HeaderCell,
+    cellRenderer: ClassCell,
+    width: 140,
+  },
+  {
+    field: 'sku',
+    headerName: 'SKU',
+    headerComponent: HeaderCell,
+    cellRenderer: SocketCell,
+    width: 140,
+  },
+  {
+    field: 'vendor',
+    headerName: 'Vendor',
+    headerComponent: HeaderCell,
+    cellRenderer: SocketCell,
+    width: 140,
+  },
+  {
+    field: 'quote',
+    headerName: 'Quote',
+    headerComponent: HeaderCell,
+    cellRenderer: SocketCell,
+    width: 140,
+  },
+  {
+    field: 'gate',
+    headerName: 'Gate',
+    headerComponent: HeaderCell,
+    cellRenderer: ValueCell,
+    flex: 1,
+    minWidth: 160,
+  },
+  {
+    field: 'try',
+    headerName: ' ',
+    headerComponent: HeaderCell,
+    cellRenderer: TryPoCell,
+    width: 96,
+    sortable: false,
+  },
+];
 
 function BuyPage() {
   const { parts, skus, suppliers, quotes, orders, gates }: BuyPayload =
@@ -28,71 +130,39 @@ function BuyPage() {
     await router.invalidate();
   };
 
+  const rows: BuyRow[] = parts.map((part) => {
+    const sku = skus.find((row) => row.balloon_id === part.balloon_id);
+    const gate = gates.find((row) => row.balloon_id === part.balloon_id)?.gate;
+    return {
+      balloon_id: part.balloon_id,
+      class: part.class ?? '',
+      sku: sku?.mpn ?? '',
+      vendor: '',
+      quote: '',
+      gate: gate && !gate.ok ? gate.reason : '',
+    };
+  });
+
   return (
-    <div className="board">
-      <p className="kicker">
-        SKU, vendor, quote, and purchase order. The class gate refuses
-        UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing
-        quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors:{' '}
-        {suppliers.length}. Quotes: {quotes.length}. Purchase orders:{' '}
-        {orders.length}.
-      </p>
+    <Board>
+      <BoardKicker>
+        {`SKU, vendor, quote, and purchase order. The class gate refuses UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors: ${String(suppliers.length)}. Quotes: ${String(quotes.length)}. Purchase orders: ${String(orders.length)}.`}
+      </BoardKicker>
       {partId !== null && copy !== null ? (
-        <p className="kicker" role="status">
-          {partId}: {copy}
-        </p>
+        <BoardKicker>{`${partId}: ${copy}`}</BoardKicker>
       ) : null}
-      <table className="register">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Class</th>
-            <th>SKU</th>
-            <th>Vendor</th>
-            <th>Quote</th>
-            <th>Gate</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {parts.map((part) => {
-            const sku = skus.find((row) => row.balloon_id === part.balloon_id);
-            const gate = gates.find((row) => row.balloon_id === part.balloon_id)
-              ?.gate;
-            return (
-              <tr key={part.balloon_id}>
-                <td className="col-id">{part.balloon_id}</td>
-                <td className="col-class">
-                  <Slot value={part.class} />
-                </td>
-                <td className="col-sku">
-                  <Well label="SKU" value={sku?.mpn} />
-                </td>
-                <td>
-                  <Well label="vendor" />
-                </td>
-                <td>
-                  <Well label="quote" />
-                </td>
-                <td className="refuse">
-                  {gate && !gate.ok ? gate.reason : null}
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="try"
-                    onClick={() => {
-                      void attempt(part.balloon_id);
-                    }}
-                  >
-                    Try PO
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+      <div style={{ flex: 1, minHeight: gridFill.minHeight }}>
+        <Grid
+          columnDefs={buyColumns}
+          rowData={rows}
+          context={{ attempt }}
+          getRowId={(params: { data?: { balloon_id?: string } }) =>
+            String(params.data?.balloon_id ?? '')
+          }
+          suppressCellFocus
+          style={gridFill}
+        />
+      </div>
+    </Board>
   );
 }

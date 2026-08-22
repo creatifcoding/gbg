@@ -72,7 +72,7 @@ export const gateCopy: Record<GateReason, string> = {
   class_draft: 'DRAFT cannot become an order.',
   class_not_orderable:
     'REF and LOCK are design confidence, not a buy. orderable is its own class.',
-  missing_sku: 'No manufacturer SKU. Empty well is not a part number.',
+  missing_sku: 'No manufacturer SKU. A blank socket is not a part number.',
   missing_vendor: 'No supplier party. A name in a sentence is not a vendor row.',
   missing_quote: 'No quote. Cannot issue a purchase order.',
 };

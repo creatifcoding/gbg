@@ -1,45 +1,39 @@
+import { Mono, Socket, Table } from '@gbg/lab-ui';
 import { createFileRoute } from '@tanstack/react-router';
 import { getVendors } from '../server/fns';
 import type { VendorsPayload } from '../store/book';
-import { Well } from '../ui/marks';
+import { Board, BoardKicker, Inspector } from '../ui/board';
 
 export const Route = createFileRoute('/vendors')({
   loader: () => getVendors(),
   component: VendorsPage,
 });
 
+const vendorColumns = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'name', header: 'Item' },
+];
+
 function VendorsPage() {
   const { suppliers }: VendorsPayload = Route.useLoaderData();
 
   return (
-    <div className="board">
-      <p className="kicker">
+    <Board>
+      <BoardKicker>
         Supplier parties only. A name in a BOM sentence is not a row. An empty
         list is correct.
-      </p>
+      </BoardKicker>
       {suppliers.length === 0 ? (
-        <div className="empty-board">
-          <Well label="supplier_party" />
-          <p>No vendor rows.</p>
-        </div>
+        <Inspector>
+          <Socket aria-label="supplier_party" />
+          <Mono>No vendor rows.</Mono>
+        </Inspector>
       ) : (
-        <table className="register">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Item</th>
-            </tr>
-          </thead>
-          <tbody>
-            {suppliers.map((row) => (
-              <tr key={row.id}>
-                <td className="col-id">{row.id}</td>
-                <td className="col-item">{row.name}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table
+          columns={vendorColumns}
+          data={suppliers.map((row) => ({ id: row.id, name: row.name }))}
+        />
       )}
-    </div>
+    </Board>
   );
 }

@@ -14,8 +14,15 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.5",
+    "@gbg/lab-ui": "file:../../../../../packages/lab-ui",
     "@tanstack/react-router": "^1.170.31",
     "@tanstack/react-start": "^1.168.48",
+    "@tanstack/react-table": "^8.21.3",
+    "@tmnl/lnk": "file:../../../../../packages/lnk",
+    "@tmnl/msh": "file:../../../../../packages/msh",
+    "@tmnl/pct": "file:../../../../../packages/pct",
+    "ag-grid-community": "^34.0.0",
+    "ag-grid-react": "^34.0.0",
     "effect": "4.0.0-beta.93",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

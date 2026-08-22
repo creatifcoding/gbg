@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
+import { MANTIS_PROCUREMENT_PCT_CONTRACT } from '../wire';
 import {
   loadBuy,
   loadFooter,
@@ -14,6 +15,8 @@ import {
   type RegisterPayload,
   type VendorsPayload,
 } from '../store/book';
+
+void MANTIS_PROCUREMENT_PCT_CONTRACT;
 
 export const getRegister = createServerFn({ method: 'GET' }).handler(
   async (): Promise<RegisterPayload> => loadRegister(),
