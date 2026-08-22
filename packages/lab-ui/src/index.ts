@@ -18,6 +18,22 @@ export { space, type SpaceName } from './lib/space.js';
 export { radius, type RadiusName } from './lib/radius.js';
 export { chrome, type Chrome } from './lib/chrome.js';
 
+export { vantaGridTheme, createVantaGridTheme } from './lib/grid-theme.js';
+export {
+  Grid,
+  BLANK_COLUMNS,
+  BLANK_ROWS,
+  type GridProps,
+  type GridBridgeHandle,
+} from './components/Grid.js';
+export {
+  HeaderCell,
+  KickerHeader,
+  SocketCell,
+  StatusCell,
+  ValueCell,
+} from './components/grid-cells.js';
+
 export { Label, type LabelProps } from './components/Label.js';
 export {
   Kicker,

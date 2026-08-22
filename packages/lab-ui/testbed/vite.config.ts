@@ -6,6 +6,11 @@ export default defineConfig({
   root: __dirname,
   appType: 'spa',
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@tmnl/datagrid': path.resolve(__dirname, '../../datagrid/src/index.ts'),
+    },
+  },
   server: {
     host: true,
     port: 4178,

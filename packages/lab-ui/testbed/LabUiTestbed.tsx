@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { chrome, Kicker, Label, Mono, Pill, Sans, Socket } from '../src/index.ts';
+import { Grid, chrome, Kicker, Label, Mono, Pill, Sans, Socket } from '../src/index.ts';
 
 const frame: CSSProperties = {
   boxSizing: 'border-box',
@@ -124,6 +124,19 @@ export function LabUiTestbed() {
             <Row label="tags" />
           </div>
         </aside>
+        <section
+          style={{
+            ...frame,
+            display: 'flex',
+            flex: '1 1 100%',
+            flexDirection: 'column',
+            gap: chrome.space.gap,
+            padding: chrome.space.cardPadding,
+          }}
+        >
+          <Kicker>grid</Kicker>
+          <Grid />
+        </section>
       </main>
     </div>
   );

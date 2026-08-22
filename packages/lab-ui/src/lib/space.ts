@@ -7,6 +7,7 @@ export const space = {
   pillBlockPadding: '0.125rem',
   statusDot: '0.375rem',
   mediaHeight: '10rem',
+  gridHeight: '16rem',
   valueMin: '1em',
 } as const;
 

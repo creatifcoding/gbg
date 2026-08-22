@@ -24,6 +24,11 @@
     "testbed": "vite --config testbed/vite.config.ts",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@tmnl/datagrid": "workspace:*",
+    "ag-grid-community": "^34.0.0",
+    "ag-grid-react": "^34.0.0"
+  },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"

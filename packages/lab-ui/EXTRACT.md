@@ -4,7 +4,7 @@
 
 The first cut was mined from six Variant boards: Workbench, Terminal, Catalog, Assay, Dactyl, and Accession. Matching those files harder is done. Do not add more HTML-cited tokens.
 
-Workbench set the chrome this package ships. Space and blank sockets stay from that extract. Color and type now resolve to TMNL Vantablack.
+Workbench set the chrome this package ships. Space and blank sockets stay from that extract. Color and type now resolve to TMNL Vantablack. Tables come from `Grid`, which wraps `@tmnl/datagrid` and paints with VANTA.
 
 The box is drawn. The value is blank.
 
