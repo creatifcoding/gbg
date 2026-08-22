@@ -66,6 +66,16 @@ import {
   type ViewportSocket,
   type WorkbenchSockets,
 } from './WorkbenchSockets.js';
+import {
+  Kicker,
+  Label,
+  Mono,
+  Pill,
+  Sans,
+  Socket,
+  labBoxPaint,
+  labTextPaint,
+} from './WorkbenchLabUi.js';
 import './ImportedWorkbench.css';
 
 const WorkbenchSocketsContext = createContext<WorkbenchSockets | null>(null);
@@ -87,12 +97,6 @@ type StatusChrome = {
   readonly well: string;
   readonly dot: string;
   readonly label: string;
-};
-
-const EMPTY_STATUS_CHROME: StatusChrome = {
-  well: 'flex items-center gap-1.5 px-1.5 py-0.5 border border-charcoal-300',
-  dot: 'w-1.5 h-1.5 bg-charcoal-200',
-  label: 'font-mono text-[9px] uppercase tracking-wider text-textdim',
 };
 
 const STATUS_CHROME: Record<SpecimenStatus, StatusChrome> = {
@@ -140,13 +144,14 @@ function WorkbenchHeader() {
     >
       <div className="flex items-center gap-2" vid="15">
         <i className="ph ph-database text-textdim" vid="16"></i>
-        <span
+        <Label
           className="font-mono text-[10px] uppercase tracking-widest text-textmuted"
           vid="17"
           data-chrome="header"
+          style={labTextPaint}
         >
           {WORKBENCH_CHROME.header}
-        </span>
+        </Label>
       </div>
       <div className="flex gap-2" vid="18">
         <button
@@ -182,16 +187,29 @@ function WorkbenchPropertyRow({
       <span className="text-textmuted" vid={labelVid}>
         {label}
       </span>
-      <span
-        className={`text-textmain${
-          value.length === 0 ? ' workbench-empty-value' : ''
-        }`}
-        vid={valueVid}
-        data-testid={valueTestId}
-        data-socket={socket}
-      >
-        {value}
-      </span>
+      {value.length === 0 ? (
+        <Socket
+          className="text-textmain workbench-empty-value"
+          style={labBoxPaint}
+        >
+          <span
+            vid={valueVid}
+            data-testid={valueTestId}
+            data-socket={socket}
+          >
+            {''}
+          </span>
+        </Socket>
+      ) : (
+        <span
+          className="text-textmain"
+          vid={valueVid}
+          data-testid={valueTestId}
+          data-socket={socket}
+        >
+          {value}
+        </span>
+      )}
     </div>
   );
 }
@@ -205,13 +223,22 @@ function MediaCaption({ well }: { readonly well: MediaWell }) {
   const live = well.kind === 'empty' ? '' : well.caption;
   const caption = live.length > 0 ? live : wellText(textWellOf(captionSlot));
   const blank = caption.length === 0;
+  if (blank) {
+    return (
+      <Socket
+        className="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10 workbench-empty-caption"
+        vid="31"
+        style={labBoxPaint}
+      >
+        <span data-socket="scan-type">{''}</span>
+      </Socket>
+    );
+  }
   return (
     <div
-      className={`absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10${
-        blank ? ' workbench-empty-caption' : ''
-      }`}
+      className="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10"
       vid="31"
-      data-testid={caption.length > 0 ? 'media-caption' : undefined}
+      data-testid="media-caption"
       data-socket="scan-type"
     >
       {caption}
@@ -276,16 +303,26 @@ function TagWellView({
   readonly well: TagWell;
   readonly vid: string;
 }) {
+  if (well.kind === 'empty') {
+    return (
+      <Socket
+        className="font-mono text-[9px] text-textdim workbench-empty-tag"
+        style={labBoxPaint}
+      >
+        <span vid={vid} data-socket="tag">
+          {''}
+        </span>
+      </Socket>
+    );
+  }
   return (
     <span
-      className={`font-mono text-[9px] text-textdim${
-        well.kind === 'empty' ? ' workbench-empty-tag' : ''
-      }`}
+      className="font-mono text-[9px] text-textdim"
       vid={vid}
-      data-testid={well.kind === 'value' ? 'tag' : undefined}
+      data-testid="tag"
       data-socket="tag"
     >
-      {well.kind === 'value' ? well.value : ''}
+      {well.value}
     </span>
   );
 }
@@ -354,7 +391,7 @@ function WorkbenchCard({
   const empty = id.kind === 'empty';
   const specimenId = id.kind === 'value' ? id.id : undefined;
   const statusChrome =
-    status.kind === 'value' ? STATUS_CHROME[status.value] : EMPTY_STATUS_CHROME;
+    status.kind === 'value' ? STATUS_CHROME[status.value] : undefined;
   const promote =
     specimenId !== undefined &&
     status.kind === 'value' &&
@@ -388,17 +425,25 @@ function WorkbenchCard({
       }}
     >
       <div className="flex justify-between items-start" vid="23">
-        <div
-          className={`font-mono text-sm text-textmain font-medium ${
-            empty ? 'workbench-empty-title' : ''
-          }`}
-          vid="24"
-          data-testid={id.kind === 'value' ? 'specimen-id' : undefined}
-          data-socket="title"
-        >
-          {id.kind === 'value' ? id.id : ''}
-        </div>
-        {status.kind === 'value' ? (
+        {empty ? (
+          <Socket
+            className="font-mono text-sm text-textmain font-medium workbench-empty-title"
+            vid="24"
+            style={labBoxPaint}
+          >
+            <span data-socket="title">{''}</span>
+          </Socket>
+        ) : (
+          <div
+            className="font-mono text-sm text-textmain font-medium"
+            vid="24"
+            data-testid={id.kind === 'value' ? 'specimen-id' : undefined}
+            data-socket="title"
+          >
+            {id.kind === 'value' ? id.id : ''}
+          </div>
+        )}
+        {status.kind === 'value' && statusChrome !== undefined ? (
           <Status
             kind="value"
             tag="div"
@@ -415,30 +460,34 @@ function WorkbenchCard({
             </span>
           </Status>
         ) : (
-          <Status
-            kind="empty"
-            tag="div"
-            className={`${statusChrome.well} workbench-empty-status`}
+          <Pill
+            className="workbench-empty-status"
             vid="25"
-            socket="status"
-          >
-            <div className={statusChrome.dot} vid="26"></div>
-            <span className={statusChrome.label} vid="27"></span>
-          </Status>
+            data-socket="status"
+            style={labBoxPaint}
+          />
         )}
       </div>
 
       <MediaWellView well={media} />
-      <div
-        className={`text-xs text-textmain leading-snug tracking-tight ${
-          claim.kind === 'empty' ? 'workbench-empty-claim' : ''
-        }`}
-        vid="32"
-        data-testid={claim.kind === 'value' ? 'claim' : undefined}
-        data-socket="claim"
-      >
-        {wellText(claim)}
-      </div>
+      {claim.kind === 'empty' ? (
+        <Socket
+          className="text-xs text-textmain leading-snug tracking-tight workbench-empty-claim"
+          vid="32"
+          style={labBoxPaint}
+        >
+          <span data-socket="claim">{''}</span>
+        </Socket>
+      ) : (
+        <div
+          className="text-xs text-textmain leading-snug tracking-tight"
+          vid="32"
+          data-testid="claim"
+          data-socket="claim"
+        >
+          {wellText(claim)}
+        </div>
+      )}
       <div className="flex flex-col gap-2 mt-1" vid="33">
         <div className="flex items-center gap-1.5 text-textmuted" vid="34">
           <i className="ph ph-crosshair text-xs" vid="35"></i>
@@ -453,13 +502,18 @@ function WorkbenchCard({
               label={locality.label}
             />
           ) : (
-            <Locality
-              kind="empty"
-              tag="span"
+            <Socket
               className="font-mono text-[10px] workbench-empty-locality"
-              vid="36"
-              socket="locality"
-            />
+              style={labBoxPaint}
+            >
+              <Locality
+                kind="empty"
+                tag="span"
+                className="font-mono text-[10px]"
+                vid="36"
+                socket="locality"
+              />
+            </Socket>
           )}
         </div>
         <div
@@ -584,7 +638,7 @@ function WorkbenchViewport() {
         vid="152"
         data-chrome="viewport-xz"
       >
-        {WORKBENCH_CHROME.viewport}
+        <Mono style={labTextPaint}>{WORKBENCH_CHROME.viewport}</Mono>
       </div>
       <div
         className="absolute top-3 right-3 font-mono text-[10px] text-textdim"
@@ -592,7 +646,9 @@ function WorkbenchViewport() {
         data-chrome="mag"
         data-socket="viewport-mag"
       >
-        {`${WORKBENCH_CHROME.mag}${wellText(textWellOf(mag))}`}
+        <Mono style={labTextPaint}>
+          {`${WORKBENCH_CHROME.mag}${wellText(textWellOf(mag))}`}
+        </Mono>
       </div>
       <div
         className="absolute bottom-3 left-3 font-mono text-[10px] text-textdim flex items-center gap-2"
@@ -603,7 +659,7 @@ function WorkbenchViewport() {
           className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
           vid="155"
         ></div>
-        {WORKBENCH_CHROME.activeRender}
+        <Mono style={labTextPaint}>{WORKBENCH_CHROME.activeRender}</Mono>
       </div>
       <div
         className="absolute bottom-3 right-3 font-mono text-[10px] text-textdim"
@@ -728,7 +784,15 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
             data-testid="detail-id"
             data-socket="selected-id"
           >
-            {id.kind === 'value' ? id.id : ''}
+            {id.kind === 'empty' ? (
+              <Socket style={labBoxPaint}>
+                <Mono style={labTextPaint}>{''}</Mono>
+              </Socket>
+            ) : (
+              <Mono style={labTextPaint}>
+                {id.kind === 'value' ? id.id : ''}
+              </Mono>
+            )}
           </h1>
           <p
             className={`font-sans text-textmuted mt-1 tracking-tight text-sm${
@@ -738,7 +802,13 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
             data-testid="detail-claim"
             data-socket="claim"
           >
-            {wellText(claim)}
+            {claim.kind === 'empty' ? (
+              <Socket style={labBoxPaint}>
+                <Sans style={labTextPaint}>{''}</Sans>
+              </Socket>
+            ) : (
+              <Sans style={labTextPaint}>{wellText(claim)}</Sans>
+            )}
           </p>
         </div>
         <div className="flex gap-3" vid="148">
@@ -801,13 +871,15 @@ function WorkbenchClassification({
         className="flex items-center justify-between border-b border-charcoal-300 pb-1.5"
         vid="174"
       >
-        <span
+        <Kicker
           className="font-mono text-[10px] uppercase tracking-widest text-textdim"
           vid="175"
           data-chrome="classification"
+          tone="dim"
+          style={labTextPaint}
         >
           {WORKBENCH_CHROME.classification}
-        </span>
+        </Kicker>
         <i className="ph ph-dna text-textdim" vid="176"></i>
       </div>
       <div className="space-y-1.5 font-mono text-xs" vid="177">
@@ -895,13 +967,15 @@ function WorkbenchStructuralMetrics({
         className="flex items-center justify-between border-b border-charcoal-300 pb-1.5"
         vid="191"
       >
-        <span
+        <Kicker
           className="font-mono text-[10px] uppercase tracking-widest text-textdim"
           vid="192"
           data-chrome="structural-metrics"
+          tone="dim"
+          style={labTextPaint}
         >
           {WORKBENCH_CHROME.structuralMetrics}
-        </span>
+        </Kicker>
         <i className="ph ph-hexagon text-textdim" vid="193"></i>
       </div>
       <div className="space-y-1.5 font-mono text-xs" vid="194">
@@ -997,13 +1071,15 @@ function WorkbenchObservationLog({
         className="flex items-center justify-between border-b border-charcoal-300 pb-1.5"
         vid="211"
       >
-        <span
+        <Kicker
           className="font-mono text-[10px] uppercase tracking-widest text-textdim"
           vid="212"
           data-chrome="observation-log"
+          tone="dim"
+          style={labTextPaint}
         >
           {WORKBENCH_CHROME.observationLog}
-        </span>
+        </Kicker>
         <i className="ph ph-terminal-window text-textdim" vid="213"></i>
       </div>
       <div
@@ -1042,18 +1118,27 @@ function WorkbenchObservationLog({
         data-testid="last-updated"
         vid="217"
       >
-        <span vid="218" data-chrome="last-updated">
-          {WORKBENCH_CHROME.lastUpdated}
-        </span>
-        <span
-          vid="219"
-          data-socket="last-updated"
-          className={
-            createdAt.kind === 'empty' ? 'workbench-empty-timestamp' : undefined
-          }
+        <Label
+          vid="218"
+          data-chrome="last-updated"
+          style={labTextPaint}
         >
-          {wellText(createdAt)}
-        </span>
+          {WORKBENCH_CHROME.lastUpdated}
+        </Label>
+        {createdAt.kind === 'empty' ? (
+          <Socket
+            className="workbench-empty-timestamp"
+            style={labBoxPaint}
+          >
+            <span vid="219" data-socket="last-updated">
+              {''}
+            </span>
+          </Socket>
+        ) : (
+          <span vid="219" data-socket="last-updated">
+            {wellText(createdAt)}
+          </span>
+        )}
       </div>
     </div>
   );

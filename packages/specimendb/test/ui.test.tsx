@@ -47,6 +47,12 @@ import { IntakeDrop } from '../src/ui/IntakeDrop.js';
 import { SpecimenRail } from '../src/ui/SpecimenRail.js';
 import { WorkingPanel } from '../src/ui/WorkingPanel.js';
 import {
+  labFont,
+  labRadius,
+  labSpace,
+  labType,
+} from '../src/ui/WorkbenchLabUi.js';
+import {
   WORKBENCH_CHROME,
   createWorkbenchSockets,
 } from '../src/ui/WorkbenchSockets.js';
@@ -527,6 +533,74 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(lines).toContain('Make FieldCam');
     expect(view.container.textContent).not.toContain('GPSLatitude');
     expect(view.container.textContent).not.toContain('SP-2023-084');
+  });
+
+  it('Workbench /rail consumes lab-ui primitives and keeps paint off the charcoal dump', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const view = render(
+      React.createElement(WorkbenchPage, { client: emptyClient() })
+    );
+    await waitFor(() => {
+      emptyWorkbenchCards(view);
+    });
+    const cards = view.getAllByTestId('card-chrome');
+    expect(cards.map((card) => card.getAttribute('vid'))).toEqual(['22', '41', '60']);
+    const statusSlots = view.container.querySelectorAll(
+      '.workbench-empty-status[data-tone="empty"][data-socket="status"]'
+    );
+    expect(statusSlots).toHaveLength(3);
+    for (const slot of statusSlots) {
+      expect(slot.textContent).toBe('');
+    }
+    expect(
+      view.container.querySelector('[data-chrome="header"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.header);
+    expect(
+      view.container.querySelector('[data-chrome="classification"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.classification);
+    expect(
+      view.container.querySelector('[data-chrome="structural-metrics"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.structuralMetrics);
+    expect(
+      view.container.querySelector('[data-chrome="observation-log"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.observationLog);
+    expect(
+      view.container.querySelector('[data-chrome="last-updated"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.lastUpdated);
+    expect(
+      view.container.querySelector('[data-socket="scan-type"]')?.textContent
+    ).toBe('');
+    const html = view.container.textContent ?? '';
+    for (const banned of BANISHED) {
+      expect(html).not.toContain(banned);
+    }
+    expect(html).not.toContain('OPTICAL_SCAN');
+    expect(html).not.toMatch(/WORKING|RAW|FILED/i);
+
+    const uiDir = resolve(process.cwd(), 'src/ui');
+    const consume = readFileSync(resolve(uiDir, 'WorkbenchLabUi.ts'), 'utf8');
+    expect(consume).toContain("from '@gbg/lab-ui'");
+    expect(consume).not.toMatch(
+      /import \{[\s\S]*\bcolor\b[\s\S]*\} from '@gbg\/lab-ui'/
+    );
+    expect(consume).not.toContain('chrome');
+    expect(consume).not.toContain('charcoal500');
+    expect(consume).not.toContain('textmain');
+    expect(consume).not.toContain('VANTA_');
+    expect(labFont.mono.length).toBeGreaterThan(0);
+    expect(labType.size.label.length).toBeGreaterThan(0);
+    expect(labSpace.gap.length).toBeGreaterThan(0);
+    expect(labRadius.statusDot.length).toBeGreaterThan(0);
+    for (const name of readdirSync(uiDir)) {
+      if (name === 'WorkbenchLabUi.ts' || !/\.(ts|tsx)$/.test(name)) continue;
+      const src = readFileSync(resolve(uiDir, name), 'utf8');
+      expect(src).not.toContain("from '@gbg/lab-ui'");
+      expect(src).not.toContain("from \"@gbg/lab-ui\"");
+    }
+    view.unmount();
   });
 
   it('Workbench Phase 0 keeps blank slots and does not Promote', async () => {
