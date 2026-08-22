@@ -183,7 +183,9 @@ function WorkbenchPropertyRow({
         {label}
       </span>
       <span
-        className="text-textmain"
+        className={`text-textmain${
+          value.length === 0 ? ' workbench-empty-value' : ''
+        }`}
         vid={valueVid}
         data-testid={valueTestId}
         data-socket={socket}
@@ -195,12 +197,22 @@ function WorkbenchPropertyRow({
 }
 
 function MediaCaption({ well }: { readonly well: MediaWell }) {
-  const caption = well.kind === 'empty' ? '' : well.caption;
+  const sockets = useWorkbenchSockets();
+  const captionSlot = useFocus(
+    sockets.media,
+    socketAt<MediaSocket, MediaSocket['caption']>(sockets.media.lens.caption)
+  );
+  const live = well.kind === 'empty' ? '' : well.caption;
+  const caption = live.length > 0 ? live : wellText(textWellOf(captionSlot));
+  const blank = caption.length === 0;
   return (
     <div
-      className="absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10"
+      className={`absolute bottom-2 left-2 font-mono text-[9px] text-textdim z-10${
+        blank ? ' workbench-empty-caption' : ''
+      }`}
       vid="31"
       data-testid={caption.length > 0 ? 'media-caption' : undefined}
+      data-socket="scan-type"
     >
       {caption}
     </div>
@@ -709,7 +721,9 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
           vid="145"
         >
           <h1
-            className="font-mono text-3xl text-textmain tracking-tight"
+            className={`font-mono text-3xl text-textmain tracking-tight${
+              id.kind === 'empty' ? ' workbench-empty-stage-id' : ''
+            }`}
             vid="146"
             data-testid="detail-id"
             data-socket="selected-id"
@@ -717,7 +731,9 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
             {id.kind === 'value' ? id.id : ''}
           </h1>
           <p
-            className="font-sans text-textmuted mt-1 tracking-tight text-sm"
+            className={`font-sans text-textmuted mt-1 tracking-tight text-sm${
+              claim.kind === 'empty' ? ' workbench-empty-stage-claim' : ''
+            }`}
             vid="147"
             data-testid="detail-claim"
             data-socket="claim"
@@ -1029,7 +1045,13 @@ function WorkbenchObservationLog({
         <span vid="218" data-chrome="last-updated">
           {WORKBENCH_CHROME.lastUpdated}
         </span>
-        <span vid="219" data-socket="last-updated">
+        <span
+          vid="219"
+          data-socket="last-updated"
+          className={
+            createdAt.kind === 'empty' ? 'workbench-empty-timestamp' : undefined
+          }
+        >
           {wellText(createdAt)}
         </span>
       </div>

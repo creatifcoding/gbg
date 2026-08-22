@@ -267,7 +267,7 @@ export const ACCEPTED_BOUNDARIES: readonly AcceptedBoundary[] = [
     name: 'WorkbenchCardList',
     sourceVid: '21',
     responsibility:
-      'Scroll well that repeats WorkbenchCard. Empty catalog draws three templates (vids 22, 41, 60) with empty wells.',
+      'Scroll that repeats WorkbenchCard. Blank catalog draws three templates (vids 22, 41, 60). Slots are sized. Values stay blank.',
     evidence:
       'vid 21 overflow column. HTML repeats the vid 22 card at 41 and 60 in the lock viewport. Vids 79 and 98 are below-fold theater, not a fourth empty frame.',
     rejectedAlternatives: [
@@ -282,7 +282,7 @@ export const ACCEPTED_BOUNDARIES: readonly AcceptedBoundary[] = [
     sourceVid: '22',
     responsibility: 'One rail card. Empty chrome or one specimen projection.',
     evidence:
-      'vid 22 card with id, Status, Media, claim, Locality, three tag wells',
+      'vid 22 card with id, Status, Media, claim, Locality, three tag slots',
     rejectedAlternatives: [
       'AnalogCard kit',
       'DossierThumb shared card',

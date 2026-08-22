@@ -1098,18 +1098,26 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
   background: #555;
 }
 
+/* Blank slots keep the 9263d787 card and inspector line boxes. No fake fill. */
+
 .imported-workbench .workbench-empty-status {
   min-height: 20px;
-  min-width: 4.25rem;
+  min-width: 4.75rem;
 }
 
 .imported-workbench .workbench-empty-title {
-  min-height: 20px;
+  min-height: 1.25rem;
   min-width: 9ch;
 }
 
 .imported-workbench .workbench-empty-claim {
-  min-height: 1.375rem;
+  min-height: calc(0.75rem * 1.375);
+}
+
+.imported-workbench .workbench-empty-caption {
+  display: inline-block;
+  min-height: 9px;
+  min-width: 12ch;
 }
 
 .imported-workbench .workbench-empty-locality {
@@ -1125,11 +1133,32 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
 .imported-workbench .workbench-empty-tag {
   display: inline-block;
   min-height: 12px;
-  min-width: 6ch;
+  min-width: 12ch;
 }
 
 .imported-workbench .workbench-empty-stage-copy {
-  min-height: 56px;
+  min-height: 3.75rem;
+}
+
+.imported-workbench .workbench-empty-stage-id {
+  min-height: 2.25rem;
+  min-width: 9ch;
+}
+
+.imported-workbench .workbench-empty-stage-claim {
+  min-height: 1.25rem;
+}
+
+.imported-workbench .workbench-empty-value {
+  display: inline-block;
+  min-width: 9ch;
+  min-height: 1rem;
+}
+
+.imported-workbench .workbench-empty-timestamp {
+  display: inline-block;
+  min-width: 16ch;
+  min-height: 10px;
 }
 
 .imported-workbench .workbench-empty-metrics-note {
@@ -1137,5 +1166,5 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
 }
 
 .imported-workbench .workbench-empty-observation-body {
-  min-height: 137px;
+  min-height: 168px;
 }

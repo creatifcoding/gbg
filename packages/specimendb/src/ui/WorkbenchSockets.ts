@@ -1,8 +1,8 @@
 /**
- * Workbench latent wells as one stx() store per concern.
+ * Workbench latent slots as one stx() store per concern.
  * Parent (SpecimenRail) owns the bag. Children useFocus a slice.
- * Sockets start empty. Hydration from catalog entities comes later.
- * Status is a phase literal, not stxMachine. Empty catalog has no actor.
+ * Sockets start with blank values. Hydration from catalog entities comes later.
+ * Status is a phase literal, not stxMachine. Blank catalog has no actor.
  *
  * @module @tmnl/specimendb/ui
  */
@@ -180,6 +180,7 @@ export class MediaSocket extends Schema.TaggedClass<MediaSocket>()(
   'MediaSocket',
   {
     well: MediaSlot,
+    caption: TextSlot,
   }
 ) {}
 
@@ -369,7 +370,9 @@ export const createWorkbenchSockets = (): WorkbenchSockets => ({
       third: emptyTag(),
     })
   ),
-  media: stx(new MediaSocket({ well: new MediaEmpty({}) })),
+  media: stx(
+    new MediaSocket({ well: new MediaEmpty({}), caption: emptyText() })
+  ),
   taxon: stx(
     new TaxonSocket({
       phylum: emptyText(),

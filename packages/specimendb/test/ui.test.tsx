@@ -112,11 +112,15 @@ const emptyWorkbenchCards = (view: {
     expect(card.querySelector('.workbench-empty-title')).toBeTruthy();
     expect(card.querySelector('.workbench-empty-status')).toBeTruthy();
     expect(card.querySelector('.workbench-empty-claim')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-caption')).toBeTruthy();
     expect(card.querySelector('.workbench-empty-locality')).toBeTruthy();
     expect(card.querySelectorAll('.workbench-empty-tag')).toHaveLength(3);
     expect(card.querySelector('[data-socket="title"]')?.textContent).toBe('');
     expect(card.querySelector('[data-socket="status"]')?.textContent).toBe('');
     expect(card.querySelector('[data-socket="claim"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="scan-type"]')?.textContent).toBe(
+      ''
+    );
     expect(card.querySelector('[data-socket="locality"]')?.textContent).toBe(
       ''
     );
@@ -401,9 +405,11 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(css).toContain('background: #555');
     expect(css).toContain('scrollbar-width: thin');
     expect(css).toContain('min-width: 9ch');
-    expect(css).toContain('min-width: 4.25rem');
+    expect(css).toContain('min-width: 4.75rem');
     expect(css).toContain('min-width: 7ch');
-    expect(css).toContain('min-width: 6ch');
+    expect(css).toContain('min-width: 12ch');
+    expect(css).toContain('workbench-empty-caption');
+    expect(css).toContain('workbench-empty-value');
     expect(css).not.toContain('scrollbar-width: none');
     expect(css).not.toMatch(
       /\.imported-workbench \*::-webkit-scrollbar\s*\{[^}]*display:\s*none/s
@@ -523,7 +529,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).not.toContain('SP-2023-084');
   });
 
-  it('Workbench Phase 0 keeps empty wells and does not Promote', async () => {
+  it('Workbench Phase 0 keeps blank slots and does not Promote', async () => {
     let promote = 0;
     const client: SpecimenRpcClient = {
       List: () => Effect.succeed([]),
@@ -567,6 +573,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(first.tags.get().second._tag).toBe('TagEmpty');
     expect(first.tags.get().third._tag).toBe('TagEmpty');
     expect(first.media.get().well._tag).toBe('MediaEmpty');
+    expect(first.media.get().caption._tag).toBe('TextEmpty');
     expect(first.taxon.get().phylum._tag).toBe('TextEmpty');
     expect(first.taxon.get().class._tag).toBe('TextEmpty');
     expect(first.taxon.get().order._tag).toBe('TextEmpty');
@@ -654,6 +661,16 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(
       view.container.querySelector('[data-socket="last-updated"]')?.textContent
     ).toBe('');
+    expect(view.container.querySelector('.workbench-empty-stage-id')).toBeTruthy();
+    expect(
+      view.container.querySelector('.workbench-empty-stage-claim')
+    ).toBeTruthy();
+    expect(view.container.querySelectorAll('.workbench-empty-value').length).toBe(
+      8
+    );
+    expect(
+      view.container.querySelector('.workbench-empty-timestamp')
+    ).toBeTruthy();
     expect(view.queryByTestId('rail-query')).toBeNull();
     expect(view.queryByTestId('status-pill')).toBeNull();
     const html = view.container.textContent ?? '';
