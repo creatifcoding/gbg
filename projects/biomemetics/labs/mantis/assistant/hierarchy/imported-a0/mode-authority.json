@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ModeAuthorityPolicy",
+  "description": "The client cannot choose an arbitrary resource, mode, agent, or tool. Mode switching cannot elevate authority without host policy.",
+  "modes": {
+    "care": { "rank": 1, "initialAuthority": "read-draft-remind" },
+    "observe": { "rank": 1, "initialAuthority": "selected-media-read-draft" },
+    "research": { "rank": 2, "initialAuthority": "read-reviewable-drafts" },
+    "terrarium-read": { "rank": 1, "initialAuthority": "fresh-read-only" },
+    "review": { "rank": 2, "initialAuthority": "validate-draft-disposition" },
+    "service-sim": { "rank": 0, "initialAuthority": "simulator-only", "isolatedSession": true }
+  },
+  "elevation": "host-policy-only",
+  "clientMaySelect": {
+    "resource": false,
+    "mode": false,
+    "agent": false,
+    "tool": false
+  }
+}

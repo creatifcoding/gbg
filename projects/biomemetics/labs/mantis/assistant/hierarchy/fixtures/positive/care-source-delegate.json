@@ -1,0 +1,9 @@
+{
+  "specialist": "care-source",
+  "mode": "care",
+  "threadId": "care:fixture-cup-01:conversation-01",
+  "careSubjectId": "care.fixture-cup-01",
+  "goal": "advice",
+  "transcriptExcerpt": "cup",
+  "sourceStatus": "reviewed-source"
+}

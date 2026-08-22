@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DelegationRejectDataset",
+  "cases": [
+    {
+      "id": "forked-true",
+      "input": {
+        "specialist": "care-source",
+        "mode": "care",
+        "threadId": "care:fixture-cup-01:conversation-01",
+        "careSubjectId": "care.fixture-cup-01",
+        "goal": "advice",
+        "transcriptExcerpt": "cup",
+        "forked": true
+      },
+      "reason": "forked-prohibited"
+    },
+    {
+      "id": "mode-elevation",
+      "input": {
+        "specialist": "care-source",
+        "mode": "care",
+        "threadId": "care:fixture-cup-01:conversation-01",
+        "careSubjectId": "care.fixture-cup-01",
+        "goal": "advice",
+        "transcriptExcerpt": "cup",
+        "targetMode": "review"
+      },
+      "reason": "privilege-escalation"
+    },
+    {
+      "id": "self-admit-assessor",
+      "input": {
+        "specialist": "tool-assessor",
+        "mode": "review",
+        "threadId": "care:fixture-cup-01:conversation-01",
+        "careSubjectId": "care.fixture-cup-01",
+        "goal": "assay",
+        "transcriptExcerpt": "candidate tool",
+        "admit": true
+      },
+      "reason": "self-review"
+    },
+    {
+      "id": "taxon-confirmed",
+      "input": {
+        "specialist": "taxon-hypothesis",
+        "mode": "research",
+        "threadId": "care:fixture-cup-01:conversation-01",
+        "careSubjectId": "care.fixture-cup-01",
+        "goal": "identify",
+        "transcriptExcerpt": "photo notes",
+        "confirmed": true
+      },
+      "reason": "confirmed-taxon"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "evidence-curator",
+  "purpose": "Draft claim-bound evidence packets. Cannot accept its own evidence.",
+  "sourceClass": "evidence-draft",
+  "modes": ["research", "review"],
+  "tools": ["evidence-draft-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["accept-own-evidence", "write-specimendb"],
+  "yieldKind": "evidence-draft",
+  "forked": false
+}

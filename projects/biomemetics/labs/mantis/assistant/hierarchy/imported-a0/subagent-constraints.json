@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SubagentConstraintPolicy",
+  "description": "Domain and safety specialists use normal constrained subagents. forked:true is prohibited where the child definition's tool or instruction boundary matters.",
+  "coordinator": "mantis-coordinator",
+  "specialists": [
+    "care-source",
+    "observation-extractor",
+    "taxon-hypothesis",
+    "supply-transit",
+    "terrarium-diagnostician",
+    "evidence-curator",
+    "workflow-composer",
+    "tool-assessor",
+    "adversarial-reviewer"
+  ],
+  "forked": {
+    "domainRoles": "prohibit",
+    "safetyRoles": "prohibit"
+  },
+  "delegation": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "capSteps": true,
+    "blockPrivilegeEscalation": true
+  }
+}

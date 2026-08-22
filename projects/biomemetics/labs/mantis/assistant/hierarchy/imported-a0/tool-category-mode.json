@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolCategoryModePolicy",
+  "description": "Deny is absolute. Unknown tools deny. Session approvals do not survive restart and never widen a mode allowlist. device-command and admin are never LLM-visible.",
+  "unknownTool": "deny",
+  "categories": [
+    "read-public",
+    "read-private",
+    "draft-local",
+    "external-write",
+    "device-intent",
+    "device-command",
+    "admin"
+  ],
+  "modes": {
+    "care": {
+      "allow": ["read-public", "read-private", "draft-local"],
+      "ask": ["external-write"],
+      "deny": ["device-intent", "device-command", "admin"]
+    },
+    "observe": {
+      "allow": ["read-public", "draft-local"],
+      "ask": ["read-private"],
+      "deny": ["external-write", "device-intent", "device-command", "admin"]
+    },
+    "research": {
+      "allow": ["read-public", "read-private", "draft-local"],
+      "ask": ["external-write"],
+      "deny": ["device-intent", "device-command", "admin"]
+    },
+    "terrarium-read": {
+      "allow": ["read-public"],
+      "ask": ["read-private"],
+      "deny": ["draft-local", "external-write", "device-intent", "device-command", "admin"]
+    },
+    "review": {
+      "allow": ["read-public", "read-private", "draft-local"],
+      "ask": [],
+      "deny": ["external-write", "device-intent", "device-command", "admin"]
+    },
+    "service-sim": {
+      "allow": ["read-public", "draft-local"],
+      "ask": ["read-private"],
+      "deny": ["external-write", "device-intent", "device-command", "admin"]
+    }
+  },
+  "absoluteDenyCategories": ["device-command", "admin"],
+  "absoluteDenyToolIds": [
+    "device-command",
+    "admin",
+    "specimen-db-write",
+    "live-catalog-write",
+    "browser-mutate"
+  ],
+  "precedence": ["absolute-deny", "per-tool-deny", "unknown-deny", "mode-deny", "mode-ask", "mode-allow"]
+}

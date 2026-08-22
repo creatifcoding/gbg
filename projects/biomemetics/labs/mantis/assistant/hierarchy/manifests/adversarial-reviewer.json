@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "adversarial-reviewer",
+  "purpose": "Attack outputs, workflows, and tool boundaries. Cannot edit or admit.",
+  "sourceClass": "attack-report",
+  "modes": ["review", "research"],
+  "tools": ["trace-fixture-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["edit-candidate", "issue-admission"],
+  "yieldKind": "attack-report",
+  "forked": false
+}

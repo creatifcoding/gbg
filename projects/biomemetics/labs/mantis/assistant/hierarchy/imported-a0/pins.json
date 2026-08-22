@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "A0PinSnapshot",
+  "pr": 100,
+  "branch": "cursor/mantis-assistant-a0-9bdb",
+  "sha": "a02d73e8f340b672a3ca057945cdbea01f90cac5",
+  "mastraCore": "1.61.0",
+  "copilotkitRuntime": "1.68.3",
+  "aguiMastra": "1.1.2",
+  "liveModel": "openrouter/deepseek/deepseek-v4-flash-0731",
+  "controllerConfig": "mantis-controller@0.1.0",
+  "omLiveObserverReflector": "QUARANTINED_UPSTREAM"
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ObservationalMemoryPolicy",
+  "memoryRecordClass": "assistant-memory",
+  "threadScopedOm": "on",
+  "resourceScopedOm": "off",
+  "observerReflector": "QUARANTINED_UPSTREAM",
+  "canonicalCorrectionRewritesText": false,
+  "deleteIsTombstone": true,
+  "workingMemoryFields": ["preferences", "activeGoal", "unresolvedQuestions"]
+}

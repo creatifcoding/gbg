@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "PrivacyPolicy",
+  "description": "Exact address, EXIF location, credentials, and raw tokens are excluded before observational memory and before trace export. OM records are assistant-memory.",
+  "stripBeforeObservation": [
+    "exact-address",
+    "exif-location",
+    "credentials",
+    "raw-tokens"
+  ],
+  "stripBeforeTraceExport": [
+    "exact-address",
+    "exif-location",
+    "credentials",
+    "raw-tokens",
+    "private-media-bytes"
+  ],
+  "memoryRecordClass": "assistant-memory",
+  "resourceScopedOm": "off",
+  "threadScopedOm": "on"
+}

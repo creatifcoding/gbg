@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "supply-transit",
+  "purpose": "Current prey and supply availability and route planning.",
+  "sourceClass": "ephemeral-inventory",
+  "modes": ["care", "research"],
+  "tools": ["supply-transit-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["retain-address", "purchase", "infer-locality"],
+  "yieldKind": "supply-plan",
+  "forked": false
+}

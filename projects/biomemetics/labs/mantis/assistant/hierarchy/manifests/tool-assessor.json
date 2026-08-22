@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "tool-assessor",
+  "purpose": "Inspect and test a candidate tool. Cannot admit the tool it assessed.",
+  "sourceClass": "assay-report",
+  "modes": ["research", "review"],
+  "tools": ["assay-sandbox-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["admit-tool"],
+  "yieldKind": "assay-report",
+  "forked": false
+}

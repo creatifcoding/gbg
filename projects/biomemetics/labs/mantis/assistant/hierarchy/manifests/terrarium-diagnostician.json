@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "terrarium-diagnostician",
+  "purpose": "Explain telemetry, freshness, rail state, and faults. Never actuate.",
+  "sourceClass": "telemetry-read",
+  "modes": ["terrarium-read", "service-sim", "research"],
+  "tools": ["telemetry-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["clear-latch", "move-rail", "energize"],
+  "yieldKind": "diagnostic-read",
+  "forked": false
+}
