@@ -119,7 +119,7 @@ function RegisterPage() {
       </BoardKicker>
       <div
         data-region="register-table"
-        style={{ flex: 1, minHeight: gridFill.minHeight }}
+        style={{ flex: 1, minHeight: 0, height: 0 }}
       >
         <Grid
           columnDefs={registerColumns}

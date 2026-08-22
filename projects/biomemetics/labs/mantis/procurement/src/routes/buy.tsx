@@ -151,7 +151,7 @@ function BuyPage() {
       {partId !== null && copy !== null ? (
         <BoardKicker>{`${partId}: ${copy}`}</BoardKicker>
       ) : null}
-      <div style={{ flex: 1, minHeight: gridFill.minHeight }}>
+      <div style={{ flex: 1, minHeight: 0, height: 0 }}>
         <Grid
           columnDefs={buyColumns}
           rowData={rows}

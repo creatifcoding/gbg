@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start';
-import { MANTIS_PROCUREMENT_PCT_CONTRACT } from '../wire';
 import {
   loadBuy,
   loadFooter,
@@ -16,7 +15,7 @@ import {
   type VendorsPayload,
 } from '../store/book';
 
-void MANTIS_PROCUREMENT_PCT_CONTRACT;
+// Book I/O is local PGlite. No published pct contract: see src/wire.ts.
 
 export const getRegister = createServerFn({ method: 'GET' }).handler(
   async (): Promise<RegisterPayload> => loadRegister(),

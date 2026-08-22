@@ -18,4 +18,7 @@ export const aliases = {
     repoRoot,
     'packages/lnk/src/contracts/index.ts',
   ),
+  'ag-grid-community': path.join(here, 'node_modules/ag-grid-community'),
+  'ag-grid-react': path.join(here, 'node_modules/ag-grid-react'),
+  '@tanstack/react-table': path.join(here, 'node_modules/@tanstack/react-table'),
 } as const;

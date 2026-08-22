@@ -65,7 +65,7 @@ function NeedPage() {
         First-tower kit versus on-hand. Demand qty is the register text. The word
         set is not an integer. On-hand stays blank until a lot exists.
       </BoardKicker>
-      <div style={{ flex: 1, minHeight: gridFill.minHeight }}>
+      <div style={{ flex: 1, minHeight: 0, height: 0 }}>
         <Grid
           columnDefs={needColumns}
           rowData={rows}
