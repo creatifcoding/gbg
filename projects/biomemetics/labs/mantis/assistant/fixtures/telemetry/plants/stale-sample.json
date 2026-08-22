@@ -1,7 +1,6 @@
 {
   "id": "stale-sample",
   "phase": "link-trained",
-  "clockMs": 1755820800000,
   "samples": [
     {
       "kind": "reading",

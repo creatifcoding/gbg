@@ -187,6 +187,12 @@ export const assertLegal = (input: {
   readonly interlocks: Interlocks;
   readonly contact: 'seated' | 'settling' | 'ambiguous' | 'clear';
 }): void => {
+  if (q1Energized(input.interlocks.q1) && (isOpen(input.interlocks.s1) || isOpen(input.interlocks.s2))) {
+    throw new IllegalPlantError('Q1 cannot energize while S1 or S2 is open');
+  }
+  if (input.phase === 'lifted' && q1Energized(input.interlocks.q1)) {
+    throw new IllegalPlantError('lifted carriage cannot keep Q1 on');
+  }
   const video = deriveVideo(input);
   if (input.phase === 'link-trained' && video.kind !== 'available') {
     throw new IllegalPlantError(
@@ -195,12 +201,6 @@ export const assertLegal = (input: {
   }
   if (input.phase !== 'link-trained' && video.kind === 'available') {
     throw new IllegalPlantError(`${input.phase} cannot admit video`);
-  }
-  if (q1Energized(input.interlocks.q1) && (isOpen(input.interlocks.s1) || isOpen(input.interlocks.s2))) {
-    throw new IllegalPlantError('Q1 cannot energize while S1 or S2 is open');
-  }
-  if (input.phase === 'lifted' && q1Energized(input.interlocks.q1)) {
-    throw new IllegalPlantError('lifted carriage cannot keep Q1 on');
   }
 };
 

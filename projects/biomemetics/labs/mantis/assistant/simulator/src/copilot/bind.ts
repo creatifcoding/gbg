@@ -4,22 +4,12 @@ import { createTool } from '@mastra/core/tools';
 import { MastraAgent } from '@ag-ui/mastra';
 import { registerCopilotKit } from '@ag-ui/mastra/copilotkit';
 import { CopilotRuntime, createCopilotRuntimeHandler } from '@copilotkit/runtime/v2';
-import { z } from 'zod';
 
-import { explain } from '../explain.ts';
-import { loadPlant } from '../fixtures.ts';
-import { READ_TOOL_ID, READ_TOOL_DESCRIPTION, refuseWrite } from '../refuse-write.ts';
-import { view } from '../view.ts';
+import { READ_TOOL_DESCRIPTION, READ_TOOL_ID, readInputSchema, runRead } from '../read-tool.ts';
 
 export const DIAGNOSTICIAN_ID = 'terrarium-diagnostician';
 export const IN_PROCESS_BASE_PATH = '/api/copilotkit';
 export const FIXTURE_RESOURCE = 'principal.fixture.service-sim';
-
-const readInputSchema = z
-  .object({
-    fixtureId: z.string().min(1).optional(),
-  })
-  .strict();
 
 const streamText = (text: string): ReadableStream =>
   new ReadableStream({
@@ -71,23 +61,7 @@ export const createReadTool = () =>
     id: READ_TOOL_ID,
     description: READ_TOOL_DESCRIPTION,
     inputSchema: readInputSchema,
-    execute: async (context) => {
-      refuseWrite(context);
-      const parsed = readInputSchema.parse(
-        context && typeof context === 'object' && 'fixtureId' in context
-          ? { fixtureId: (context as { fixtureId?: unknown }).fixtureId }
-          : context && typeof context === 'object' && 'context' in context
-            ? (context as { context?: unknown }).context
-            : {},
-      );
-      refuseWrite(parsed);
-      const painted = view(loadPlant(parsed.fixtureId ?? 'known-fresh'));
-      return {
-        sourceClass: 'simulated' as const,
-        view: painted,
-        explanation: explain(painted),
-      };
-    },
+    execute: async (input) => runRead(input),
   });
 
 export const createDiagnostician = () => {

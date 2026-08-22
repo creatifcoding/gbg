@@ -1,7 +1,6 @@
 {
   "id": "fault-pinch",
   "phase": "pinch-safe",
-  "clockMs": 1755820800000,
   "samples": [
     {
       "kind": "reading",

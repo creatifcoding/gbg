@@ -3,6 +3,7 @@ import {
   CALIBRATION_REVISION,
   EPOCH_MS,
   FRESH_WITHIN_MS,
+  PHASES,
   type ChannelId,
   type FixtureId,
   type Instant,
@@ -89,17 +90,43 @@ export const parseSample = (raw: FixtureSample): Sample => {
   }
 };
 
-export const receiptFromJson = (raw: {
-  readonly id: string;
-  readonly href: string;
-  readonly recordedAt: string;
-  readonly sourceClass: 'simulated';
-}): Receipt => ({
-  id: asReceiptId(raw.id),
-  href: raw.href,
-  recordedAt: asInstant(raw.recordedAt),
-  sourceClass: 'simulated',
-});
+export const receiptFromJson = (raw: unknown): Receipt => {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('receipt is not an object');
+  }
+  const record = raw as Record<string, unknown>;
+  if (record.sourceClass !== 'simulated') {
+    throw new Error('A4a receipt must be sourceClass simulated');
+  }
+  if (typeof record.id !== 'string' || typeof record.href !== 'string' || typeof record.recordedAt !== 'string') {
+    throw new Error('receipt missing id, href, or recordedAt');
+  }
+  return {
+    id: asReceiptId(record.id),
+    href: record.href,
+    recordedAt: asInstant(record.recordedAt),
+    sourceClass: 'simulated',
+  };
+};
+
+export const fixtureFileFromJson = (raw: unknown): FixtureFile => {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('fixture is not an object');
+  }
+  const record = raw as Record<string, unknown>;
+  if (typeof record.id !== 'string' || typeof record.phase !== 'string' || !Array.isArray(record.samples)) {
+    throw new Error('fixture missing id, phase, or samples');
+  }
+  if (!(PHASES as readonly string[]).includes(record.phase)) {
+    throw new Error(`unknown phase ${record.phase}`);
+  }
+  return {
+    id: record.id,
+    phase: record.phase as FixtureFile['phase'],
+    clockMs: typeof record.clockMs === 'number' ? record.clockMs : undefined,
+    samples: record.samples as FixtureFile['samples'],
+  };
+};
 
 export const assemblePlant = (
   file: FixtureFile,

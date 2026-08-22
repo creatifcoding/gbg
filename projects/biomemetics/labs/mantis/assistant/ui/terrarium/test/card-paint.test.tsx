@@ -1,16 +1,12 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { loadPlant } from '../../../simulator/src/fixtures.ts';
-import { injectFault, injectStale } from '../../../simulator/src/inject.ts';
-import { CHANNEL } from '../../../simulator/src/types.ts';
-import { view } from '../../../simulator/src/view.ts';
 import { galleryViews } from '../src/gallery.tsx';
 import { TerrariumCard } from '../src/TerrariumCard.tsx';
 
 describe('TerrariumCard paints fixture honesty', () => {
   it('paints known and simulated on known-fresh', () => {
-    const { container } = render(<TerrariumCard view={view(loadPlant('known-fresh'))} />);
+    const { container } = render(<TerrariumCard view={galleryViews.known} />);
     const card = container.querySelector('.terra-card');
     expect(card?.getAttribute('data-source-class')).toBe('simulated');
     expect(card?.getAttribute('data-video')).toBe('available');
@@ -26,16 +22,14 @@ describe('TerrariumCard paints fixture honesty', () => {
   });
 
   it('paints stale after inject', () => {
-    const painted = view(injectStale(loadPlant('known-fresh'), CHANNEL.dryBulb));
-    const { container } = render(<TerrariumCard view={painted} />);
+    const { container } = render(<TerrariumCard view={galleryViews.stale} />);
     expect(container.querySelector('[data-channel="air.dry-bulb"]')?.getAttribute('data-honesty')).toBe(
       'stale',
     );
   });
 
   it('paints faulted and mutes video after pinch inject', () => {
-    const painted = view(injectFault(loadPlant('known-fresh'), 'pinch'));
-    const { container } = render(<TerrariumCard view={painted} />);
+    const { container } = render(<TerrariumCard view={galleryViews.faulted} />);
     expect(container.querySelector('.terra-card')?.getAttribute('data-video')).toBe('unavailable');
     expect(
       container.querySelector('[data-channel="rail.local-branch-voltage"]')?.getAttribute('data-honesty'),
@@ -44,7 +38,7 @@ describe('TerrariumCard paints fixture honesty', () => {
   });
 
   it('paints unavailable channels from the fixture', () => {
-    const { container } = render(<TerrariumCard view={view(loadPlant('unavailable-channels'))} />);
+    const { container } = render(<TerrariumCard view={galleryViews.unavailable} />);
     expect(
       container.querySelector('[data-channel="air.relative-humidity"]')?.getAttribute('data-honesty'),
     ).toBe('unavailable');
