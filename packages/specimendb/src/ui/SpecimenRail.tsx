@@ -213,7 +213,9 @@ function TagWellView({
 }) {
   return (
     <span
-      className="font-mono text-[9px] text-textdim"
+      className={`font-mono text-[9px] text-textdim${
+        well.kind === 'empty' ? ' workbench-empty-tag' : ''
+      }`}
       vid={vid}
       data-testid={well.kind === 'value' ? 'tag' : undefined}
     >
@@ -337,7 +339,7 @@ function WorkbenchCard({
             <Locality
               kind="empty"
               tag="span"
-              className="font-mono text-[10px]"
+              className="font-mono text-[10px] workbench-empty-locality"
               vid="36"
             />
           )}

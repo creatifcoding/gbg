@@ -1099,19 +1099,33 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
 }
 
 .imported-workbench .workbench-empty-status {
-  min-height: 24px;
+  min-height: 20px;
+  min-width: 4.25rem;
 }
 
 .imported-workbench .workbench-empty-title {
-  min-height: 14px;
+  min-height: 20px;
+  min-width: 9ch;
 }
 
 .imported-workbench .workbench-empty-claim {
-  min-height: 20px;
+  min-height: 1.375rem;
+}
+
+.imported-workbench .workbench-empty-locality {
+  display: inline-block;
+  min-height: 10px;
+  min-width: 7ch;
 }
 
 .imported-workbench .workbench-empty-tags {
-  min-height: 19px;
+  min-height: 12px;
+}
+
+.imported-workbench .workbench-empty-tag {
+  display: inline-block;
+  min-height: 12px;
+  min-width: 6ch;
 }
 
 .imported-workbench .workbench-empty-stage-copy {

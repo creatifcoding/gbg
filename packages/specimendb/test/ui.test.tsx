@@ -104,6 +104,14 @@ const emptyWorkbenchCards = (view: {
     ...EMPTY_RAIL_CARD_VIDS,
   ]);
   expect(view.queryByTestId('specimen-card')).toBeNull();
+  for (const card of cards) {
+    expect(card.querySelector('.workbench-empty-title')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-status')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-claim')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-locality')).toBeTruthy();
+    expect(card.querySelectorAll('.workbench-empty-tag')).toHaveLength(3);
+    expect(card.textContent).not.toMatch(/WORKING|RAW|FILED/i);
+  }
   return cards;
 };
 
@@ -376,6 +384,10 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(css).toContain('background: #333');
     expect(css).toContain('background: #555');
     expect(css).toContain('scrollbar-width: thin');
+    expect(css).toContain('min-width: 9ch');
+    expect(css).toContain('min-width: 4.25rem');
+    expect(css).toContain('min-width: 7ch');
+    expect(css).toContain('min-width: 6ch');
     expect(css).not.toContain('scrollbar-width: none');
     expect(css).not.toMatch(
       /\.imported-workbench \*::-webkit-scrollbar\s*\{[^}]*display:\s*none/s
