@@ -8,11 +8,29 @@ instance or schema. No purchase order has been issued.
 
 | Route | Job |
 | --- | --- |
-| `/register` | B01–B52, class stamp, qty as text, notes. SKU wells render empty. |
+| `/register` | B01–B52, class slot, qty as text, notes. SKU wells render empty. |
 | `/buy` | SKU, vendor, quote, PO. The class gate blocks issue. No seeded PO. |
 | `/receive` | Receipt and lot. Empty until something arrives. |
 | `/need` | First-tower kit vs on-hand. Demand qty stays text (`set`, `1+`, `0-1`). |
 | `/vendors` | Supplier parties. An empty list is correct. |
+
+One shell owns the five tabs. Each route is an outlet table. `/` redirects to
+`/register`.
+
+## Look
+
+Look is copied from Variant HTML (Catalog/Workbench), not from a chalkboard
+sketch. Three named regions:
+
+| Region | Source |
+| --- | --- |
+| Constellation tab rail | `docs/variant/e90f6c74-5f26-4990-9cb8-0f76ff18f3d8.html` thin chrome |
+| Register table | `docs/variant/9263d787-0811-440f-8822-f31ee93b56a8.html` IBM Plex Mono + Inter |
+| Footer gate | kickers from `docs/variant/8a21a4b1-d6cc-415e-954b-6288c6a0b0b1.html` |
+
+Type is Inter 400/500 and IBM Plex Mono 400/500/600. Kickers are 9px at
+letter-spacing 0.2em. Color is `#0a0a0a` / `#080808` / `#1a1a1a` / `#222` with
+zinc hairlines. The surface does not import specimendb UI.
 
 ## Class gate
 

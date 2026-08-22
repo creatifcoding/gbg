@@ -1,12 +1,14 @@
 import { createServerFn } from '@tanstack/react-start';
 import {
   loadBuy,
+  loadFooter,
   loadNeed,
   loadReceive,
   loadRegister,
   loadVendors,
   tryIssue,
   type BuyPayload,
+  type FooterPayload,
   type NeedPayload,
   type ReceivePayload,
   type RegisterPayload,
@@ -31,6 +33,10 @@ export const getNeed = createServerFn({ method: 'GET' }).handler(
 
 export const getVendors = createServerFn({ method: 'GET' }).handler(
   async (): Promise<VendorsPayload> => loadVendors(),
+);
+
+export const getFooter = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<FooterPayload> => loadFooter(),
 );
 
 export const tryIssuePo = createServerFn({ method: 'POST' })

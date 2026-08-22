@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 const tools = [
@@ -10,25 +10,27 @@ const tools = [
 ] as const;
 
 export function Shell({
-  current,
+  poCount,
   children,
 }: {
-  current: (typeof tools)[number]['to'] | '/';
+  poCount: number;
   children: ReactNode;
 }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   return (
     <div className="shell">
       <header className="mast">
-        <h1>Mantis procurement</h1>
-        <p className="honesty">Register only. No purchase order has been issued.</p>
+        <span className="mast-brand">Mantis / Procurement</span>
+        <span className="mast-sys">Register only</span>
       </header>
       <nav aria-label="constellation">
-        <ul className="rail">
+        <ul className="rail" data-region="constellation-tab-rail">
           {tools.map((tool) => (
             <li key={tool.to}>
               <Link
                 to={tool.to}
-                aria-current={current === tool.to ? 'page' : undefined}
+                aria-current={pathname === tool.to ? 'page' : undefined}
               >
                 {tool.label}
               </Link>
@@ -36,36 +38,13 @@ export function Shell({
           ))}
         </ul>
       </nav>
-      {children}
-    </div>
-  );
-}
-
-export function ClassStamp({ value }: { value: string | null }) {
-  if (value === null) {
-    return (
-      <span className="stamp stamp-null" title="No class token">
-        no class
-      </span>
-    );
-  }
-  const tone =
-    value === 'UNVERIFIED' || value === 'DRAFT'
-      ? 'stamp-unverified'
-      : value === 'LOCK'
-        ? 'stamp-lock'
-        : value === 'orderable'
-          ? 'stamp-orderable'
-          : 'stamp-ref';
-  return <span className={`stamp ${tone}`}>{value}</span>;
-}
-
-export function EmptyWell({ label, value }: { label: string; value?: string | null }) {
-  const empty = value === undefined || value === null || value === '';
-  return (
-    <div className="well" data-empty={empty ? 'true' : 'false'}>
-      <span className="well-label">{label}</span>
-      {empty ? null : value}
+      <main className="outlet">{children}</main>
+      <footer className="gate" data-region="footer-gate">
+        <span className="gate-copy">
+          {poCount === 0 ? 'gate closed, no PO.' : 'gate closed.'}
+        </span>
+        <span className="gate-copy">No purchase order has been issued.</span>
+      </footer>
     </div>
   );
 }

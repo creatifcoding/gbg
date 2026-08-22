@@ -1,9 +1,10 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useFocus, useStxSet } from '@tmnl/stx';
 import { getBuy, tryIssuePo } from '../server/fns';
 import type { BuyPayload } from '../store/book';
-import { gateCopy, type GateResult } from '../store/gate';
-import { ClassStamp, EmptyWell, Shell } from '../ui/shell';
+import { gateCopy } from '../store/gate';
+import { Slot, Well } from '../ui/marks';
+import { at, buyAttempt } from '../ui/stores';
 
 export const Route = createFileRoute('/buy')({
   loader: () => getBuy(),
@@ -14,36 +15,34 @@ function BuyPage() {
   const { parts, skus, suppliers, quotes, orders, gates }: BuyPayload =
     Route.useLoaderData();
   const router = useRouter();
-  const [proof, setProof] = useState<{ partId: string; gate: GateResult } | null>(
-    null,
-  );
+  const partId = useFocus(buyAttempt, at(buyAttempt.lens.partId));
+  const copy = useFocus(buyAttempt, at(buyAttempt.lens.copy));
+  const { set } = useStxSet(buyAttempt);
 
-  const attempt = async (partId: string) => {
-    const gate = await tryIssuePo({ data: { partId } });
-    setProof({ partId, gate });
+  const attempt = async (id: string) => {
+    const gate = await tryIssuePo({ data: { partId: id } });
+    set({
+      partId: id,
+      copy: gate.ok ? 'gate closed.' : `${gate.reason}. ${gateCopy[gate.reason]}`,
+    });
     await router.invalidate();
   };
 
   return (
-    <Shell current="/buy">
-      <p className="lede">
-        SKU, vendor, quote, and purchase order. The class gate refuses UNVERIFIED,
-        DRAFT, NULL class, missing SKU, missing vendor, and missing quote. REF and
-        LOCK are not a buy. No purchase order is seeded.
-      </p>
-      <p>
-        Vendors: {suppliers.length}. Quotes: {quotes.length}. Purchase orders:{' '}
+    <div className="board">
+      <p className="kicker">
+        SKU, vendor, quote, and purchase order. The class gate refuses
+        UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing
+        quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors:{' '}
+        {suppliers.length}. Quotes: {quotes.length}. Purchase orders:{' '}
         {orders.length}.
       </p>
-      {proof ? (
-        <p className="refuse" role="status">
-          {proof.partId}:{' '}
-          {proof.gate.ok
-            ? 'issued'
-            : `${proof.gate.reason}. ${gateCopy[proof.gate.reason]}`}
+      {partId !== null && copy !== null ? (
+        <p className="kicker" role="status">
+          {partId}: {copy}
         </p>
       ) : null}
-      <table>
+      <table className="register">
         <thead>
           <tr>
             <th>ID</th>
@@ -58,21 +57,22 @@ function BuyPage() {
         <tbody>
           {parts.map((part) => {
             const sku = skus.find((row) => row.balloon_id === part.balloon_id);
-            const gate = gates.find((row) => row.balloon_id === part.balloon_id)?.gate;
+            const gate = gates.find((row) => row.balloon_id === part.balloon_id)
+              ?.gate;
             return (
               <tr key={part.balloon_id}>
-                <td className="balloon">{part.balloon_id}</td>
-                <td>
-                  <ClassStamp value={part.class} />
+                <td className="col-id">{part.balloon_id}</td>
+                <td className="col-class">
+                  <Slot value={part.class} />
+                </td>
+                <td className="col-sku">
+                  <Well label="SKU" value={sku?.mpn} />
                 </td>
                 <td>
-                  <EmptyWell label="SKU" value={sku?.mpn} />
+                  <Well label="vendor" />
                 </td>
                 <td>
-                  <EmptyWell label="vendor" />
-                </td>
-                <td>
-                  <EmptyWell label="quote" />
+                  <Well label="quote" />
                 </td>
                 <td className="refuse">
                   {gate && !gate.ok ? gate.reason : null}
@@ -93,6 +93,6 @@ function BuyPage() {
           })}
         </tbody>
       </table>
-    </Shell>
+    </div>
   );
 }

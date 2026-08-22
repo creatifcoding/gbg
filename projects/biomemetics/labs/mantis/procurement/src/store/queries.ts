@@ -118,6 +118,16 @@ export const listPurchaseOrders = async (
     ),
   );
 
+export const countPurchaseOrders = async (db: PGlite): Promise<number> => {
+  const rows = rowsOf(
+    await db.query<{ n: string }>(
+      'SELECT COUNT(*)::text AS n FROM purchase_order',
+    ),
+  );
+  const n = rows[0]?.n;
+  return n === undefined ? 0 : Number(n);
+};
+
 export const listReceipts = async (db: PGlite): Promise<ReceiptRow[]> =>
   rowsOf(
     await db.query<ReceiptRow>(

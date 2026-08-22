@@ -1,6 +1,7 @@
 import { canIssuePurchaseOrder, parsePartClass, type GateResult } from './gate';
 import { openStore } from './open';
 import {
+  countPurchaseOrders,
   issuePurchaseOrder,
   listAlternates,
   listLots,
@@ -53,6 +54,10 @@ export type VendorsPayload = {
   suppliers: Awaited<ReturnType<typeof listSuppliers>>;
 };
 
+export type FooterPayload = {
+  poCount: number;
+};
+
 export const loadRegister = async (): Promise<RegisterPayload> => {
   const db = await getStore();
   const [parts, skus, alternates, whereUsed] = await Promise.all([
@@ -102,6 +107,11 @@ export const loadNeed = async (): Promise<NeedPayload> => {
 export const loadVendors = async (): Promise<VendorsPayload> => {
   const db = await getStore();
   return { suppliers: await listSuppliers(db) };
+};
+
+export const loadFooter = async (): Promise<FooterPayload> => {
+  const db = await getStore();
+  return { poCount: await countPurchaseOrders(db) };
 };
 
 export const tryIssue = async (partId: string): Promise<GateResult> => {

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { getNeed } from '../server/fns';
 import type { NeedPayload } from '../store/book';
-import { ClassStamp, EmptyWell, Shell } from '../ui/shell';
+import { Slot, Well } from '../ui/marks';
 
 export const Route = createFileRoute('/need')({
   loader: () => getNeed(),
@@ -12,17 +12,17 @@ function NeedPage() {
   const { lines }: NeedPayload = Route.useLoaderData();
 
   return (
-    <Shell current="/need">
-      <p className="lede">
+    <div className="board">
+      <p className="kicker">
         First-tower kit versus on-hand. Demand qty is the register text. The word
         set is not an integer. On-hand stays empty until a lot exists.
       </p>
-      <table>
+      <table className="register">
         <thead>
           <tr>
             <th>ID</th>
             <th>Item</th>
-            <th>Demand (text)</th>
+            <th>Qty</th>
             <th>On hand</th>
             <th>Class</th>
           </tr>
@@ -30,19 +30,19 @@ function NeedPage() {
         <tbody>
           {lines.map((line) => (
             <tr key={line.balloon_id}>
-              <td className="balloon">{line.balloon_id}</td>
-              <td>{line.name}</td>
-              <td className="qty">{line.qty_text}</td>
+              <td className="col-id">{line.balloon_id}</td>
+              <td className="col-item">{line.name}</td>
+              <td className="col-qty">{line.qty_text}</td>
               <td>
-                <EmptyWell label="lot qty" value={line.on_hand} />
+                <Well label="lot qty" value={line.on_hand} />
               </td>
-              <td>
-                <ClassStamp value={line.class} />
+              <td className="col-class">
+                <Slot value={line.class} />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </Shell>
+    </div>
   );
 }
