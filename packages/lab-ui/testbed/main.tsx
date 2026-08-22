@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LabUiTestbed } from '../src/components/testbed/LabUiTestbed.tsx';
 import { chrome } from '../src/lib/chrome.ts';
+import { LabUiTestbed } from './LabUiTestbed.tsx';
 
 const root = document.getElementById('root');
 if (!root) {

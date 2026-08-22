@@ -1,11 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { chrome } from '../../lib/chrome.js';
-import { Kicker } from '../Kicker.js';
-import { Label } from '../Label.js';
-import { Mono } from '../Mono.js';
-import { Pill } from '../Pill.js';
-import { Sans } from '../Sans.js';
-import { Socket } from '../Socket.js';
+import { chrome, Kicker, Label, Mono, Pill, Sans, Socket } from '../src/index.ts';
 
 const frame: CSSProperties = {
   boxSizing: 'border-box',
