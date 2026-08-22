@@ -1,0 +1,8 @@
+// Cursor Cloud: install puts the official Paper Desktop AppImage on PATH as `paper`.
+// Paper MCP is http://127.0.0.1:29979/mcp and needs a signed-in Desktop with a file open.
+// Sign-in is a one-time environment/snapshot step; this config does not fake a session.
+{
+  "name": "gbg (Paper Desktop)",
+  "install": "bash .cursor/scripts/install-paper.sh",
+  "start": "bash .cursor/scripts/start-paper.sh"
+}
