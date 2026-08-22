@@ -27,12 +27,7 @@ export const resolveA0File = (relativeFromAssistant: string, assistantRoot?: str
   const liveRoot = assistantRoot ?? assistantRootFromLab;
   const live = path.join(liveRoot, relativeFromAssistant);
   if (existsSync(live)) return live;
-  const mapped = relativeFromAssistant.replace(/^tools\/forbidden\.json$/, 'imported-a0/forbidden-tools.json');
-  if (mapped.startsWith('imported-a0/')) {
-    return path.join(importedA0Dir, path.basename(mapped));
-  }
-  const base = path.basename(relativeFromAssistant);
-  return path.join(importedA0Dir, base);
+  return path.join(importedA0Dir, path.basename(relativeFromAssistant));
 };
 
 export const loadA0Json = <T>(relativeFromAssistant: string, assistantRoot?: string): T =>

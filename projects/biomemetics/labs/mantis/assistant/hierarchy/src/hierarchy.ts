@@ -93,7 +93,7 @@ export const openHierarchy = (options?: OpenHierarchyOptions): Hierarchy => {
     const digest = digestOf(input);
     const prior = byDigest.get(digest);
     if (prior !== undefined) return prior;
-    const authorized = authorize({ input, registry, policy: policies.delegation });
+    const authorized = authorize({ input, registry });
     if (authorized.kind === 'rejected') {
       attempts.set(authorized.attempt.attemptId, authorized.attempt);
       byDigest.set(digest, authorized.attempt);
@@ -119,12 +119,6 @@ export const openHierarchy = (options?: OpenHierarchyOptions): Hierarchy => {
         threadId: '',
         reasons: ['unknown-specialist'],
       };
-    }
-    if (existing.state === 'running') {
-      const cancelled = { ...existing, state: 'cancelled' as const };
-      attempts.set(existing.attemptId, cancelled);
-      byDigest.set(existing.digest, cancelled);
-      return cancelled;
     }
     return existing;
   };

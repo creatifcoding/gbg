@@ -21,7 +21,10 @@ test('delegation reject dataset', () => {
     const attempt = hierarchy.delegate(row.input);
     assert.equal(attempt.state, 'rejected', row.id);
     if (attempt.state !== 'rejected') continue;
-    assert.ok(attempt.reasons.includes(row.reason as never), row.id);
+    assert.ok(
+      attempt.reasons.some((reason) => reason === row.reason),
+      row.id,
+    );
   }
 });
 

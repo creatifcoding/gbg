@@ -88,23 +88,12 @@ export type RejectedAttempt = {
   readonly reasons: readonly [RejectionReason, ...RejectionReason[]];
 };
 
-export type RunningAttempt = AttemptBase & { readonly state: 'running' };
-
 export type CompletedAttempt = AttemptBase & {
   readonly state: 'completed';
   readonly yield: PolicyDryRunYield;
 };
 
-export type CancelledAttempt = AttemptBase & { readonly state: 'cancelled' };
-
-export type TimeoutAttempt = AttemptBase & { readonly state: 'timeout' };
-
-export type DelegationAttempt =
-  | RejectedAttempt
-  | RunningAttempt
-  | CompletedAttempt
-  | CancelledAttempt
-  | TimeoutAttempt;
+export type DelegationAttempt = RejectedAttempt | CompletedAttempt;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -220,7 +209,6 @@ export type AuthorizeResult =
 export const authorize = (args: {
   readonly input: unknown;
   readonly registry: LoadedRegistry;
-  readonly policy: DelegationPolicy;
 }): AuthorizeResult => {
   const parsed = parseDelegationRequest(args.input);
   const digest = digestOf(args.input);
