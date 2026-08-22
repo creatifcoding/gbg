@@ -272,7 +272,9 @@ function WorkbenchCard({
     >
       <div className="flex justify-between items-start" vid="23">
         <div
-          className="font-mono text-sm text-textmain font-medium"
+          className={`font-mono text-sm text-textmain font-medium ${
+            empty ? 'workbench-empty-title' : ''
+          }`}
           vid="24"
           data-testid={view.id.kind === 'value' ? 'specimen-id' : undefined}
         >
@@ -294,7 +296,12 @@ function WorkbenchCard({
             </span>
           </Status>
         ) : (
-          <Status kind="empty" tag="div" className={statusChrome.well} vid="25">
+          <Status
+            kind="empty"
+            tag="div"
+            className={`${statusChrome.well} workbench-empty-status`}
+            vid="25"
+          >
             <div className={statusChrome.dot} vid="26"></div>
             <span className={statusChrome.label} vid="27"></span>
           </Status>
@@ -303,7 +310,9 @@ function WorkbenchCard({
 
       <MediaWellView well={view.media} />
       <div
-        className="text-xs text-textmain leading-snug tracking-tight"
+        className={`text-xs text-textmain leading-snug tracking-tight ${
+          view.claim.kind === 'empty' ? 'workbench-empty-claim' : ''
+        }`}
         vid="32"
         data-testid={view.claim.kind === 'value' ? 'claim' : undefined}
       >
@@ -330,7 +339,14 @@ function WorkbenchCard({
             />
           )}
         </div>
-        <div className="flex gap-2" vid="37">
+        <div
+          className={`flex gap-2 ${
+            view.tags.every((tag) => tag.kind === 'empty')
+              ? 'workbench-empty-tags'
+              : ''
+          }`}
+          vid="37"
+        >
           <TagWellView well={view.tags[0]} vid="38" />
           <TagWellView well={view.tags[1]} vid="39" />
           <TagWellView well={view.tags[2]} vid="40" />
@@ -519,7 +535,12 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
         vid="143"
       ></div>
       <header className="flex justify-between items-start mb-6 z-10" vid="144">
-        <div vid="145">
+        <div
+          className={
+            view.id.kind === 'empty' ? 'workbench-empty-stage-copy' : undefined
+          }
+          vid="145"
+        >
           <h1
             className="font-mono text-3xl text-textmain tracking-tight"
             vid="146"
@@ -667,7 +688,9 @@ function WorkbenchStructuralMetrics({
         />
       </div>
       <div
-        className="mt-2 p-2 bg-charcoal-500 border border-charcoal-300 font-mono text-[10px] text-emerald-400 flex items-start gap-2"
+        className={`mt-2 p-2 bg-charcoal-500 border border-charcoal-300 font-mono text-[10px] text-emerald-400 flex items-start gap-2 ${
+          note.length === 0 ? 'workbench-empty-metrics-note' : ''
+        }`}
         vid="207"
       >
         <i className="ph ph-check-circle mt-0.5" vid="208"></i>
@@ -707,7 +730,9 @@ function WorkbenchObservationLog({
         <i className="ph ph-terminal-window text-textdim" vid="213"></i>
       </div>
       <div
-        className="font-sans text-xs text-textmuted leading-relaxed tracking-tight space-y-3"
+        className={`font-sans text-xs text-textmuted leading-relaxed tracking-tight space-y-3 ${
+          lines.length === 0 ? 'workbench-empty-observation-body' : ''
+        }`}
         vid="214"
       >
         {lines.length === 0
