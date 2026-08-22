@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "noEmit": true,
     "skipLibCheck": true,
-    "verbatimModuleSyntax": true,
-    "allowImportingTsExtensions": true,
-    "types": ["bun"]
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "types": ["node"]
   },
-  "include": ["alchemy.run.ts", "test/**/*.ts"]
+  "include": ["alchemy.run.ts", "test", "vitest.config.ts"]
 }

@@ -1,18 +1,20 @@
 {
-  "name": "@tmnl/mantis-cluster",
+  "name": "@mantis/cluster",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Alchemy v2 stack targeting k3d-tmnl for the mantis lab",
+  "description": "Mantis lab Alchemy stack. Targets k3d-tmnl. Does not deploy.",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "alchemy": "2.0.0-beta.74",
     "effect": "4.0.0-rc.110"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "~5.9.2"
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

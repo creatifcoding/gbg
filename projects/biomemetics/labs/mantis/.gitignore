@@ -4,5 +4,4 @@ __pycache__/
 node_modules/
 dist/
 target/
-.alchemy/
 evidence/generated/
