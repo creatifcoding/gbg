@@ -47,10 +47,10 @@ import { IntakeDrop } from '../src/ui/IntakeDrop.js';
 import { SpecimenRail } from '../src/ui/SpecimenRail.js';
 import { WorkingPanel } from '../src/ui/WorkingPanel.js';
 import {
-  labFont,
-  labRadius,
-  labSpace,
-  labType,
+  VANTA_COLORS,
+  VANTA_TYPOGRAPHY,
+  labBoxPaint,
+  labTextPaint,
 } from '../src/ui/WorkbenchLabUi.js';
 import {
   WORKBENCH_CHROME,
@@ -583,17 +583,37 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     const uiDir = resolve(process.cwd(), 'src/ui');
     const consume = readFileSync(resolve(uiDir, 'WorkbenchLabUi.ts'), 'utf8');
     expect(consume).toContain("from '@gbg/lab-ui'");
+    expect(consume).toContain('VANTA_COLORS');
+    expect(consume).toContain('VANTA_TYPOGRAPHY');
+    expect(consume).toContain('VANTA_');
     expect(consume).not.toMatch(
       /import \{[\s\S]*\bcolor\b[\s\S]*\} from '@gbg\/lab-ui'/
     );
-    expect(consume).not.toContain('chrome');
+    expect(consume).not.toMatch(
+      /import \{[\s\S]*\bchrome\b[\s\S]*\} from '@gbg\/lab-ui'/
+    );
     expect(consume).not.toContain('charcoal500');
     expect(consume).not.toContain('textmain');
-    expect(consume).not.toContain('VANTA_');
-    expect(labFont.mono.length).toBeGreaterThan(0);
-    expect(labType.size.label.length).toBeGreaterThan(0);
-    expect(labSpace.gap.length).toBeGreaterThan(0);
-    expect(labRadius.statusDot.length).toBeGreaterThan(0);
+    expect(consume).not.toContain('packages/tmnl/src/components/portal/tokens');
+    expect(consume).not.toContain('@/components/portal/tokens');
+    expect(labTextPaint.color).toBe(VANTA_COLORS.text.muted);
+    expect(labBoxPaint.color).toBe(VANTA_COLORS.text.primary);
+    expect(labBoxPaint.background).toBe(VANTA_COLORS.surface.void);
+    expect(labBoxPaint.borderColor).toBe(VANTA_COLORS.surface.border);
+    const header = view.container.querySelector('[data-chrome="header"]');
+    expect(header).toBeInstanceOf(HTMLElement);
+    if (header instanceof HTMLElement) {
+      expect(header.style.color).toBe(VANTA_COLORS.text.muted);
+    }
+    const box = view.container.querySelector('.workbench-empty-value');
+    expect(box).toBeInstanceOf(HTMLElement);
+    if (box instanceof HTMLElement) {
+      expect(box.style.color).toBe(VANTA_COLORS.text.primary);
+      expect(box.style.background).toBe(VANTA_COLORS.surface.void);
+      expect(box.style.borderColor).toBe(VANTA_COLORS.surface.border);
+    }
+    expect(typeof VANTA_TYPOGRAPHY.family.mono).toBe('string');
+    expect(VANTA_TYPOGRAPHY.family.mono.length).toBeGreaterThan(0);
     for (const name of readdirSync(uiDir)) {
       if (name === 'WorkbenchLabUi.ts' || !/\.(ts|tsx)$/.test(name)) continue;
       const src = readFileSync(resolve(uiDir, name), 'utf8');
