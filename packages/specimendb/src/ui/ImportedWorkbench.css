@@ -1099,7 +1099,7 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
 }
 
 .imported-workbench .workbench-empty-status {
-  min-height: 23px;
+  min-height: 24px;
 }
 
 .imported-workbench .workbench-empty-title {
@@ -1107,21 +1107,21 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
 }
 
 .imported-workbench .workbench-empty-claim {
-  min-height: 18px;
+  min-height: 20px;
 }
 
 .imported-workbench .workbench-empty-tags {
-  min-height: 17px;
+  min-height: 19px;
 }
 
 .imported-workbench .workbench-empty-stage-copy {
-  min-height: 52px;
+  min-height: 56px;
 }
 
 .imported-workbench .workbench-empty-metrics-note {
-  min-height: 36px;
+  min-height: 52px;
 }
 
 .imported-workbench .workbench-empty-observation-body {
-  min-height: 128px;
+  min-height: 137px;
 }
