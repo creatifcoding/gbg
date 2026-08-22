@@ -7,8 +7,13 @@
  * @module @tmnl/specimendb/ui
  */
 
-import { useEffect } from 'react';
-import { useStx } from '@tmnl/stx';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+} from 'react';
+import { useFocus, useStx } from '@tmnl/stx';
 import type { SpecimenId } from '../schemas/identifiers.js';
 import type { SpecimenStatus } from '../schemas/components.js';
 import { Intake } from './Intake.js';
@@ -33,7 +38,45 @@ import {
   type WorkbenchProvenance,
   type WorkbenchRecordView,
 } from './WorkbenchRecord.js';
+import {
+  WORKBENCH_CHROME,
+  createWorkbenchSockets,
+  createdAtWellOf,
+  idWellOf,
+  localityWellOf,
+  mediaWellOf,
+  preferLiveWell,
+  socketAt,
+  statusWellOf,
+  tagWellOf,
+  textWellOf,
+  type ClaimSocket,
+  type IntakeSocket,
+  type LastUpdatedSocket,
+  type LocalitySocket,
+  type MediaSocket,
+  type MetricsSocket,
+  type ObservationSocket,
+  type RailQuerySocket,
+  type SelectedSocket,
+  type StatusSocket,
+  type TagsSocket,
+  type TaxonSocket,
+  type TitleSocket,
+  type ViewportSocket,
+  type WorkbenchSockets,
+} from './WorkbenchSockets.js';
 import './ImportedWorkbench.css';
+
+const WorkbenchSocketsContext = createContext<WorkbenchSockets | null>(null);
+
+function useWorkbenchSockets(): WorkbenchSockets {
+  const sockets = useContext(WorkbenchSocketsContext);
+  if (sockets === null) {
+    throw new Error('SpecimenRail owns Workbench sockets');
+  }
+  return sockets;
+}
 
 export type SpecimenRailProps = {
   readonly catalog?: CatalogSurface;
@@ -100,8 +143,9 @@ function WorkbenchHeader() {
         <span
           className="font-mono text-[10px] uppercase tracking-widest text-textmuted"
           vid="17"
+          data-chrome="header"
         >
-          SpecimenDB // Core
+          {WORKBENCH_CHROME.header}
         </span>
       </div>
       <div className="flex gap-2" vid="18">
@@ -123,6 +167,7 @@ function WorkbenchPropertyRow({
   label,
   value,
   valueTestId,
+  socket,
 }: {
   readonly rowVid: string;
   readonly labelVid: string;
@@ -130,13 +175,19 @@ function WorkbenchPropertyRow({
   readonly label: string;
   readonly value: string;
   readonly valueTestId?: string;
+  readonly socket?: string;
 }) {
   return (
     <div className="flex justify-between" vid={rowVid}>
       <span className="text-textmuted" vid={labelVid}>
         {label}
       </span>
-      <span className="text-textmain" vid={valueVid} data-testid={valueTestId}>
+      <span
+        className="text-textmain"
+        vid={valueVid}
+        data-testid={valueTestId}
+        data-socket={socket}
+      >
         {value}
       </span>
     </div>
@@ -178,6 +229,7 @@ function MediaWellView({ well }: { readonly well: MediaWell }) {
         vid="28"
         src={well.src}
         testId="media-bytes"
+        socket="media"
       >
         {chrome}
       </Media>
@@ -192,13 +244,14 @@ function MediaWellView({ well }: { readonly well: MediaWell }) {
         label={well.caption}
         labelClassName="hidden"
         testId="media-metadata"
+        socket="media"
       >
         {chrome}
       </Media>
     );
   }
   return (
-    <Media kind="empty" className={MEDIA_CLASS} vid="28">
+    <Media kind="empty" className={MEDIA_CLASS} vid="28" socket="media">
       {chrome}
     </Media>
   );
@@ -218,6 +271,7 @@ function TagWellView({
       }`}
       vid={vid}
       data-testid={well.kind === 'value' ? 'tag' : undefined}
+      data-socket="tag"
     >
       {well.kind === 'value' ? well.value : ''}
     </span>
@@ -237,15 +291,61 @@ function WorkbenchCard({
   readonly onSelect?: (id: SpecimenId) => void;
   readonly onPromote?: (id: SpecimenId) => StatusPromote;
 }) {
-  const empty = view.id.kind === 'empty';
-  const specimenId = view.id.kind === 'value' ? view.id.id : undefined;
+  const sockets = useWorkbenchSockets();
+  const titleSlot = useFocus(
+    sockets.title,
+    socketAt<TitleSocket, TitleSocket['well']>(sockets.title.lens.well)
+  );
+  const phase = useFocus(
+    sockets.status,
+    socketAt<StatusSocket, StatusSocket['phase']>(sockets.status.lens.phase)
+  );
+  const claimSlot = useFocus(
+    sockets.claim,
+    socketAt<ClaimSocket, ClaimSocket['well']>(sockets.claim.lens.well)
+  );
+  const localitySlot = useFocus(
+    sockets.locality,
+    socketAt<LocalitySocket, LocalitySocket['well']>(
+      sockets.locality.lens.well
+    )
+  );
+  const mediaSlot = useFocus(
+    sockets.media,
+    socketAt<MediaSocket, MediaSocket['well']>(sockets.media.lens.well)
+  );
+  const tagFirst = useFocus(
+    sockets.tags,
+    socketAt<TagsSocket, TagsSocket['first']>(sockets.tags.lens.first)
+  );
+  const tagSecond = useFocus(
+    sockets.tags,
+    socketAt<TagsSocket, TagsSocket['second']>(sockets.tags.lens.second)
+  );
+  const tagThird = useFocus(
+    sockets.tags,
+    socketAt<TagsSocket, TagsSocket['third']>(sockets.tags.lens.third)
+  );
+  const id = preferLiveWell(view.id, idWellOf(titleSlot));
+  const status = preferLiveWell(view.status, statusWellOf(phase));
+  const claim = preferLiveWell(view.claim, textWellOf(claimSlot));
+  const locality = preferLiveWell(
+    view.locality,
+    localityWellOf(localitySlot)
+  );
+  const media = preferLiveWell(view.media, mediaWellOf(mediaSlot));
+  const tags = [
+    preferLiveWell(view.tags[0], tagWellOf(tagFirst)),
+    preferLiveWell(view.tags[1], tagWellOf(tagSecond)),
+    preferLiveWell(view.tags[2], tagWellOf(tagThird)),
+  ] as const;
+  const empty = id.kind === 'empty';
+  const specimenId = id.kind === 'value' ? id.id : undefined;
   const statusChrome =
-    view.status.kind === 'value'
-      ? STATUS_CHROME[view.status.value]
-      : EMPTY_STATUS_CHROME;
+    status.kind === 'value' ? STATUS_CHROME[status.value] : EMPTY_STATUS_CHROME;
   const promote =
     specimenId !== undefined &&
-    view.status.kind === 'value' &&
+    status.kind === 'value' &&
     onPromote !== undefined
       ? onPromote(specimenId)
       : undefined;
@@ -281,23 +381,25 @@ function WorkbenchCard({
             empty ? 'workbench-empty-title' : ''
           }`}
           vid="24"
-          data-testid={view.id.kind === 'value' ? 'specimen-id' : undefined}
+          data-testid={id.kind === 'value' ? 'specimen-id' : undefined}
+          data-socket="title"
         >
-          {view.id.kind === 'value' ? view.id.id : ''}
+          {id.kind === 'value' ? id.id : ''}
         </div>
-        {view.status.kind === 'value' ? (
+        {status.kind === 'value' ? (
           <Status
             kind="value"
             tag="div"
             className={statusChrome.well}
             vid="25"
-            value={view.status.value}
+            value={status.value}
             testId="status-pill"
+            socket="status"
             onPromote={promote}
           >
             <div className={statusChrome.dot} vid="26"></div>
             <span className={statusChrome.label} vid="27">
-              {view.status.value}
+              {status.value}
             </span>
           </Status>
         ) : (
@@ -306,6 +408,7 @@ function WorkbenchCard({
             tag="div"
             className={`${statusChrome.well} workbench-empty-status`}
             vid="25"
+            socket="status"
           >
             <div className={statusChrome.dot} vid="26"></div>
             <span className={statusChrome.label} vid="27"></span>
@@ -313,27 +416,29 @@ function WorkbenchCard({
         )}
       </div>
 
-      <MediaWellView well={view.media} />
+      <MediaWellView well={media} />
       <div
         className={`text-xs text-textmain leading-snug tracking-tight ${
-          view.claim.kind === 'empty' ? 'workbench-empty-claim' : ''
+          claim.kind === 'empty' ? 'workbench-empty-claim' : ''
         }`}
         vid="32"
-        data-testid={view.claim.kind === 'value' ? 'claim' : undefined}
+        data-testid={claim.kind === 'value' ? 'claim' : undefined}
+        data-socket="claim"
       >
-        {wellText(view.claim)}
+        {wellText(claim)}
       </div>
       <div className="flex flex-col gap-2 mt-1" vid="33">
         <div className="flex items-center gap-1.5 text-textmuted" vid="34">
           <i className="ph ph-crosshair text-xs" vid="35"></i>
-          {view.locality.kind === 'value' ? (
+          {locality.kind === 'value' ? (
             <Locality
               kind="value"
               tag="span"
               className="font-mono text-[10px]"
               vid="36"
               testId="locality"
-              label={view.locality.label}
+              socket="locality"
+              label={locality.label}
             />
           ) : (
             <Locality
@@ -341,20 +446,21 @@ function WorkbenchCard({
               tag="span"
               className="font-mono text-[10px] workbench-empty-locality"
               vid="36"
+              socket="locality"
             />
           )}
         </div>
         <div
           className={`flex gap-2 ${
-            view.tags.every((tag) => tag.kind === 'empty')
+            tags.every((tag) => tag.kind === 'empty')
               ? 'workbench-empty-tags'
               : ''
           }`}
           vid="37"
         >
-          <TagWellView well={view.tags[0]} vid="38" />
-          <TagWellView well={view.tags[1]} vid="39" />
-          <TagWellView well={view.tags[2]} vid="40" />
+          <TagWellView well={tags[0]} vid="38" />
+          <TagWellView well={tags[1]} vid="39" />
+          <TagWellView well={tags[2]} vid="40" />
         </div>
       </div>
     </div>
@@ -372,8 +478,21 @@ function WorkbenchCardList({
   readonly onSelect?: (id: SpecimenId) => void;
   readonly onPromote?: (id: SpecimenId) => StatusPromote;
 }) {
+  const sockets = useWorkbenchSockets();
+  const query = useFocus(
+    sockets.railQuery,
+    socketAt<RailQuerySocket, RailQuerySocket['query']>(
+      sockets.railQuery.lens.query
+    )
+  );
+  // Workbench has no query input. The socket stays subscribed and empty.
+  void query;
   return (
-    <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3" vid="21">
+    <div
+      className="flex-1 overflow-y-auto p-3 flex flex-col gap-3"
+      vid="21"
+      data-socket="rail-query"
+    >
       {cards === 'chrome' ? (
         EMPTY_RAIL_CARD_VIDS.map((cardVid) => (
           <WorkbenchCard
@@ -399,11 +518,18 @@ function WorkbenchCardList({
 }
 
 function WorkbenchIntakeChrome() {
+  const sockets = useWorkbenchSockets();
+  const mode = useFocus(
+    sockets.intake,
+    socketAt<IntakeSocket, IntakeSocket['mode']>(sockets.intake.lens.mode)
+  );
   return (
     <Intake
-      kind="chrome"
+      kind={mode}
       className="h-32 border-b border-charcoal-300 p-4 shrink-0 bg-void relative z-20"
       vid="137"
+      socket="intake"
+      chrome="intake"
     >
       <div
         className="w-full h-full border border-dashed border-charcoal-200 bg-charcoal-600 hover:bg-charcoal-500 hover:border-textdim transition-all cursor-crosshair flex flex-col items-center justify-center gap-2 group corner-brackets"
@@ -417,7 +543,7 @@ function WorkbenchIntakeChrome() {
           className="font-mono text-[11px] text-textdim uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors"
           vid="140"
         >
-          Initiate Intake Sequence // Drop Telemetry Data
+          {WORKBENCH_CHROME.intake}
         </span>
       </div>
     </Intake>
@@ -425,6 +551,17 @@ function WorkbenchIntakeChrome() {
 }
 
 function WorkbenchViewport() {
+  const sockets = useWorkbenchSockets();
+  const mag = useFocus(
+    sockets.viewport,
+    socketAt<ViewportSocket, ViewportSocket['mag']>(sockets.viewport.lens.mag)
+  );
+  const readout = useFocus(
+    sockets.viewport,
+    socketAt<ViewportSocket, ViewportSocket['readout']>(
+      sockets.viewport.lens.readout
+    )
+  );
   return (
     <div
       className="flex-1 border border-charcoal-300 bg-void relative flex items-center justify-center overflow-hidden z-10 corner-brackets"
@@ -433,29 +570,36 @@ function WorkbenchViewport() {
       <div
         className="absolute top-3 left-3 font-mono text-[10px] text-textdim"
         vid="152"
+        data-chrome="viewport-xz"
       >
-        VIEWPORT_XZ
+        {WORKBENCH_CHROME.viewport}
       </div>
       <div
         className="absolute top-3 right-3 font-mono text-[10px] text-textdim"
         vid="153"
+        data-chrome="mag"
+        data-socket="viewport-mag"
       >
-        MAG
+        {`${WORKBENCH_CHROME.mag}${wellText(textWellOf(mag))}`}
       </div>
       <div
         className="absolute bottom-3 left-3 font-mono text-[10px] text-textdim flex items-center gap-2"
         vid="154"
+        data-chrome="active-render"
       >
         <div
           className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
           vid="155"
         ></div>
-        ACTIVE_RENDER
+        {WORKBENCH_CHROME.activeRender}
       </div>
       <div
         className="absolute bottom-3 right-3 font-mono text-[10px] text-textdim"
         vid="156"
-      ></div>
+        data-socket="viewport-readout"
+      >
+        {wellText(textWellOf(readout))}
+      </div>
 
       <div
         className="relative w-[400px] h-[400px] flex items-center justify-center"
@@ -535,6 +679,19 @@ function WorkbenchViewport() {
 }
 
 function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
+  const sockets = useWorkbenchSockets();
+  const selected = useFocus(
+    sockets.selectedId,
+    socketAt<SelectedSocket, SelectedSocket['well']>(
+      sockets.selectedId.lens.well
+    )
+  );
+  const claimSlot = useFocus(
+    sockets.claim,
+    socketAt<ClaimSocket, ClaimSocket['well']>(sockets.claim.lens.well)
+  );
+  const id = preferLiveWell(view.id, idWellOf(selected));
+  const claim = preferLiveWell(view.claim, textWellOf(claimSlot));
   return (
     <div
       className="flex-1 border-r border-charcoal-300 p-6 flex flex-col relative overflow-hidden bg-void"
@@ -547,7 +704,7 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
       <header className="flex justify-between items-start mb-6 z-10" vid="144">
         <div
           className={
-            view.id.kind === 'empty' ? 'workbench-empty-stage-copy' : undefined
+            id.kind === 'empty' ? 'workbench-empty-stage-copy' : undefined
           }
           vid="145"
         >
@@ -555,29 +712,33 @@ function WorkbenchStage({ view }: { readonly view: WorkbenchRecordView }) {
             className="font-mono text-3xl text-textmain tracking-tight"
             vid="146"
             data-testid="detail-id"
+            data-socket="selected-id"
           >
-            {view.id.kind === 'value' ? view.id.id : ''}
+            {id.kind === 'value' ? id.id : ''}
           </h1>
           <p
             className="font-sans text-textmuted mt-1 tracking-tight text-sm"
             vid="147"
             data-testid="detail-claim"
+            data-socket="claim"
           >
-            {wellText(view.claim)}
+            {wellText(claim)}
           </p>
         </div>
         <div className="flex gap-3" vid="148">
           <button
             className="px-4 py-1.5 bg-void border border-charcoal-200 text-textmuted hover:text-textmain hover:border-charcoal-100 font-mono text-[11px] uppercase tracking-widest transition-colors"
             vid="149"
+            data-chrome="export-db"
           >
-            Export DB
+            {WORKBENCH_CHROME.exportDb}
           </button>
           <button
             className="px-4 py-1.5 bg-void border border-emerald-900/50 text-emerald-500 hover:bg-emerald-950/20 hover:border-emerald-700 font-mono text-[11px] uppercase tracking-widest transition-colors"
             vid="150"
+            data-chrome="run-sim"
           >
-            Run Sim
+            {WORKBENCH_CHROME.runSim}
           </button>
         </div>
       </header>
@@ -595,6 +756,29 @@ function WorkbenchClassification({
 }: {
   readonly view: WorkbenchRecordView;
 }) {
+  const sockets = useWorkbenchSockets();
+  const phylum = useFocus(
+    sockets.taxon,
+    socketAt<TaxonSocket, TaxonSocket['phylum']>(sockets.taxon.lens.phylum)
+  );
+  const taxonClass = useFocus(
+    sockets.taxon,
+    socketAt<TaxonSocket, TaxonSocket['class']>(sockets.taxon.lens.class)
+  );
+  const order = useFocus(
+    sockets.taxon,
+    socketAt<TaxonSocket, TaxonSocket['order']>(sockets.taxon.lens.order)
+  );
+  const family = useFocus(
+    sockets.taxon,
+    socketAt<TaxonSocket, TaxonSocket['family']>(sockets.taxon.lens.family)
+  );
+  const taxon = {
+    phylum: preferLiveWell(view.taxon.phylum, textWellOf(phylum)),
+    class: preferLiveWell(view.taxon.class, textWellOf(taxonClass)),
+    order: preferLiveWell(view.taxon.order, textWellOf(order)),
+    family: preferLiveWell(view.taxon.family, textWellOf(family)),
+  };
   return (
     <div className="space-y-3" vid="173">
       <div
@@ -604,8 +788,9 @@ function WorkbenchClassification({
         <span
           className="font-mono text-[10px] uppercase tracking-widest text-textdim"
           vid="175"
+          data-chrome="classification"
         >
-          Classification
+          {WORKBENCH_CHROME.classification}
         </span>
         <i className="ph ph-dna text-textdim" vid="176"></i>
       </div>
@@ -614,33 +799,37 @@ function WorkbenchClassification({
           rowVid="178"
           labelVid="179"
           valueVid="180"
-          label="Phylum"
-          value={rankWell(view.taxon.phylum)}
+          label={WORKBENCH_CHROME.phylum}
+          value={rankWell(taxon.phylum)}
           valueTestId="taxon-phylum"
+          socket="taxon-phylum"
         />
         <WorkbenchPropertyRow
           rowVid="181"
           labelVid="182"
           valueVid="183"
-          label="Class"
-          value={rankWell(view.taxon.class)}
+          label={WORKBENCH_CHROME.class}
+          value={rankWell(taxon.class)}
           valueTestId="taxon-class"
+          socket="taxon-class"
         />
         <WorkbenchPropertyRow
           rowVid="184"
           labelVid="185"
           valueVid="186"
-          label="Order"
-          value={rankWell(view.taxon.order)}
+          label={WORKBENCH_CHROME.order}
+          value={rankWell(taxon.order)}
           valueTestId="taxon-order"
+          socket="taxon-order"
         />
         <WorkbenchPropertyRow
           rowVid="187"
           labelVid="188"
           valueVid="189"
-          label="Family"
-          value={rankWell(view.taxon.family)}
+          label={WORKBENCH_CHROME.family}
+          value={rankWell(taxon.family)}
           valueTestId="taxon-family"
+          socket="taxon-family"
         />
       </div>
     </div>
@@ -652,7 +841,38 @@ function WorkbenchStructuralMetrics({
 }: {
   readonly view: WorkbenchRecordView;
 }) {
-  const note = metricsNoteOf(view);
+  const sockets = useWorkbenchSockets();
+  const tensile = useFocus(
+    sockets.metrics,
+    socketAt<MetricsSocket, MetricsSocket['tensile']>(
+      sockets.metrics.lens.tensile
+    )
+  );
+  const density = useFocus(
+    sockets.metrics,
+    socketAt<MetricsSocket, MetricsSocket['density']>(
+      sockets.metrics.lens.density
+    )
+  );
+  const hardness = useFocus(
+    sockets.metrics,
+    socketAt<MetricsSocket, MetricsSocket['hardness']>(
+      sockets.metrics.lens.hardness
+    )
+  );
+  const overlap = useFocus(
+    sockets.metrics,
+    socketAt<MetricsSocket, MetricsSocket['overlap']>(
+      sockets.metrics.lens.overlap
+    )
+  );
+  const noteSlot = useFocus(
+    sockets.metrics,
+    socketAt<MetricsSocket, MetricsSocket['note']>(sockets.metrics.lens.note)
+  );
+  const liveNote = metricsNoteOf(view);
+  const note =
+    liveNote.length > 0 ? liveNote : wellText(textWellOf(noteSlot));
   return (
     <div className="space-y-3" vid="190">
       <div
@@ -662,8 +882,9 @@ function WorkbenchStructuralMetrics({
         <span
           className="font-mono text-[10px] uppercase tracking-widest text-textdim"
           vid="192"
+          data-chrome="structural-metrics"
         >
-          Structural Metrics
+          {WORKBENCH_CHROME.structuralMetrics}
         </span>
         <i className="ph ph-hexagon text-textdim" vid="193"></i>
       </div>
@@ -672,29 +893,33 @@ function WorkbenchStructuralMetrics({
           rowVid="195"
           labelVid="196"
           valueVid="197"
-          label="Tensile_Str"
-          value=""
+          label={WORKBENCH_CHROME.tensile}
+          value={wellText(textWellOf(tensile))}
+          socket="metrics-tensile"
         />
         <WorkbenchPropertyRow
           rowVid="198"
           labelVid="199"
           valueVid="200"
-          label="Density"
-          value=""
+          label={WORKBENCH_CHROME.density}
+          value={wellText(textWellOf(density))}
+          socket="metrics-density"
         />
         <WorkbenchPropertyRow
           rowVid="201"
           labelVid="202"
           valueVid="203"
-          label="Hardness_HV"
-          value=""
+          label={WORKBENCH_CHROME.hardness}
+          value={wellText(textWellOf(hardness))}
+          socket="metrics-hardness"
         />
         <WorkbenchPropertyRow
           rowVid="204"
           labelVid="205"
           valueVid="206"
-          label="Overlap_Idx"
-          value=""
+          label={WORKBENCH_CHROME.overlap}
+          value={wellText(textWellOf(overlap))}
+          socket="metrics-overlap"
         />
       </div>
       <div
@@ -707,6 +932,7 @@ function WorkbenchStructuralMetrics({
         <span
           vid="209"
           data-testid={note.length > 0 ? 'provenance-note' : undefined}
+          data-socket="metrics-note"
         >
           {note}
         </span>
@@ -720,11 +946,35 @@ function WorkbenchObservationLog({
 }: {
   readonly view: WorkbenchRecordView;
 }) {
-  const observations = view.observations.flatMap((observation) =>
+  const sockets = useWorkbenchSockets();
+  const first = useFocus(
+    sockets.observation,
+    socketAt<ObservationSocket, ObservationSocket['first']>(
+      sockets.observation.lens.first
+    )
+  );
+  const second = useFocus(
+    sockets.observation,
+    socketAt<ObservationSocket, ObservationSocket['second']>(
+      sockets.observation.lens.second
+    )
+  );
+  const updated = useFocus(
+    sockets.lastUpdated,
+    socketAt<LastUpdatedSocket, LastUpdatedSocket['well']>(
+      sockets.lastUpdated.lens.well
+    )
+  );
+  const observations = [
+    preferLiveWell(view.observations[0], textWellOf(first)),
+    preferLiveWell(view.observations[1], textWellOf(second)),
+  ] as const;
+  const createdAt = preferLiveWell(view.createdAt, createdAtWellOf(updated));
+  const observationLines = observations.flatMap((observation) =>
     observation.kind === 'value' ? [observation.text] : []
   );
   const w7 = view.w7.kind === 'value' ? view.w7.lines : [];
-  const lines = [...observations, ...w7];
+  const lines = [...observationLines, ...w7];
   return (
     <div className="space-y-3" vid="210">
       <div
@@ -734,8 +984,9 @@ function WorkbenchObservationLog({
         <span
           className="font-mono text-[10px] uppercase tracking-widest text-textdim"
           vid="212"
+          data-chrome="observation-log"
         >
-          Observation Log
+          {WORKBENCH_CHROME.observationLog}
         </span>
         <i className="ph ph-terminal-window text-textdim" vid="213"></i>
       </div>
@@ -746,13 +997,24 @@ function WorkbenchObservationLog({
         vid="214"
       >
         {lines.length === 0
-          ? [215, 216].map((sourceVid) => (
-              <p key={sourceVid} vid={String(sourceVid)}></p>
+          ? [215, 216].map((sourceVid, index) => (
+              <p
+                key={sourceVid}
+                vid={String(sourceVid)}
+                data-socket={index === 0 ? 'observation-first' : 'observation-second'}
+              ></p>
             ))
           : lines.map((line, index) => (
               <p
                 key={`${index}:${line}`}
-                data-testid={index < observations.length ? 'observation' : 'w7'}
+                data-testid={index < observationLines.length ? 'observation' : 'w7'}
+                data-socket={
+                  index === 0
+                    ? 'observation-first'
+                    : index === 1
+                      ? 'observation-second'
+                      : undefined
+                }
                 vid={String(215 + index)}
               >
                 {line}
@@ -764,8 +1026,12 @@ function WorkbenchObservationLog({
         data-testid="last-updated"
         vid="217"
       >
-        <span vid="218">LAST_UPDATED</span>
-        <span vid="219">{wellText(view.createdAt)}</span>
+        <span vid="218" data-chrome="last-updated">
+          {WORKBENCH_CHROME.lastUpdated}
+        </span>
+        <span vid="219" data-socket="last-updated">
+          {wellText(createdAt)}
+        </span>
       </div>
     </div>
   );
@@ -785,8 +1051,9 @@ function WorkbenchPropertiesLog({
         <span
           className="font-mono text-[10px] uppercase tracking-[0.2em] text-textmuted"
           vid="171"
+          data-chrome="properties-log"
         >
-          Properties Log
+          {WORKBENCH_CHROME.propertiesLog}
         </span>
       </div>
       <div
@@ -892,17 +1159,20 @@ function WorkbenchLive({
 
 export function SpecimenRail(props: SpecimenRailProps = {}) {
   const provenance = props.provenance ?? { kind: 'none' };
+  const sockets = useMemo(() => createWorkbenchSockets(), []);
   return (
-    <div className="imported-workbench" data-testid="specimen-rail">
-      {props.catalog === undefined ? (
-        <WorkbenchTree
-          cards="chrome"
-          selected={projectWorkbenchRecord({ kind: 'empty' }, provenance)}
-          selectedId={null}
-        />
-      ) : (
-        <WorkbenchLive catalog={props.catalog} provenance={provenance} />
-      )}
-    </div>
+    <WorkbenchSocketsContext.Provider value={sockets}>
+      <div className="imported-workbench" data-testid="specimen-rail">
+        {props.catalog === undefined ? (
+          <WorkbenchTree
+            cards="chrome"
+            selected={projectWorkbenchRecord({ kind: 'empty' }, provenance)}
+            selectedId={null}
+          />
+        ) : (
+          <WorkbenchLive catalog={props.catalog} provenance={provenance} />
+        )}
+      </div>
+    </WorkbenchSocketsContext.Provider>
   );
 }

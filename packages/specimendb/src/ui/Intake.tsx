@@ -12,6 +12,8 @@ type IntakeBase = {
   readonly className: string;
   readonly children: ReactNode;
   readonly vid?: string;
+  readonly socket?: string;
+  readonly chrome?: string;
 };
 
 export type IntakeChrome = IntakeBase & {
@@ -28,9 +30,20 @@ export type IntakeLive = IntakeBase & {
 export type IntakeProps = IntakeChrome | IntakeLive;
 
 export function Intake(props: IntakeProps) {
+  const named =
+    props.socket === undefined && props.chrome === undefined
+      ? undefined
+      : {
+          ...(props.socket === undefined
+            ? {}
+            : { 'data-socket': props.socket }),
+          ...(props.chrome === undefined
+            ? {}
+            : { 'data-chrome': props.chrome }),
+        };
   if (props.kind === 'chrome') {
     return (
-      <div className={props.className} vid={props.vid}>
+      <div className={props.className} vid={props.vid} {...named}>
         {props.children}
       </div>
     );
@@ -54,6 +67,7 @@ export function Intake(props: IntakeProps) {
         data-active={bind.active ? 'true' : 'false'}
         data-status={status}
         vid={props.vid}
+        {...named}
         onClick={bind.open}
         onDragEnter={bind.onDragEnter}
         onDragOver={bind.onDragOver}

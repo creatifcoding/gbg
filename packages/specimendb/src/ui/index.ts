@@ -54,6 +54,12 @@ export type {
   WorkbenchRecord,
   WorkbenchRecordView,
 } from './WorkbenchRecord.js';
+export {
+  WORKBENCH_CHROME,
+  createWorkbenchSockets,
+  socketAt,
+} from './WorkbenchSockets.js';
+export type { WorkbenchSockets } from './WorkbenchSockets.js';
 export { Status } from './Status.js';
 export type {
   StatusEmpty,

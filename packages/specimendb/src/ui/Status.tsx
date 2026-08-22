@@ -17,6 +17,7 @@ type StatusBase = {
   readonly className: string;
   readonly children?: ReactNode;
   readonly vid?: string;
+  readonly socket?: string;
 };
 
 export type StatusEmpty = StatusBase & {
@@ -35,9 +36,16 @@ export type StatusProps = StatusEmpty | StatusValue;
 
 export function Status(props: StatusProps) {
   const Tag = props.tag;
+  const socket =
+    props.socket === undefined ? undefined : { 'data-socket': props.socket };
   if (props.kind === 'empty') {
     return (
-      <Tag className={props.className} data-testid={props.testId} vid={props.vid}>
+      <Tag
+        className={props.className}
+        data-testid={props.testId}
+        vid={props.vid}
+        {...socket}
+      >
         {props.children}
       </Tag>
     );
@@ -49,6 +57,7 @@ export function Status(props: StatusProps) {
       data-status={props.value}
       data-testid={props.testId}
       vid={props.vid}
+      {...socket}
       {...(promote !== undefined ? { 'data-promote': 'true', onClick: promote } : {})}
     >
       {props.children ?? props.value}

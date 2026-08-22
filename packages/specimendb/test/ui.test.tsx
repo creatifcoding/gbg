@@ -46,6 +46,10 @@ import { DossierView } from '../src/ui/DossierView.js';
 import { IntakeDrop } from '../src/ui/IntakeDrop.js';
 import { SpecimenRail } from '../src/ui/SpecimenRail.js';
 import { WorkingPanel } from '../src/ui/WorkingPanel.js';
+import {
+  WORKBENCH_CHROME,
+  createWorkbenchSockets,
+} from '../src/ui/WorkbenchSockets.js';
 import { jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { MemoryCatalogLive } from '../testbed/memory-rpc.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
@@ -110,6 +114,18 @@ const emptyWorkbenchCards = (view: {
     expect(card.querySelector('.workbench-empty-claim')).toBeTruthy();
     expect(card.querySelector('.workbench-empty-locality')).toBeTruthy();
     expect(card.querySelectorAll('.workbench-empty-tag')).toHaveLength(3);
+    expect(card.querySelector('[data-socket="title"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="status"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="claim"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="locality"]')?.textContent).toBe(
+      ''
+    );
+    expect(
+      [...card.querySelectorAll('[data-socket="tag"]')].map(
+        (node) => node.textContent
+      )
+    ).toEqual(['', '', '']);
+    expect(card.querySelector('[data-socket="media"]')).toBeTruthy();
     expect(card.textContent).not.toMatch(/WORKING|RAW|FILED/i);
   }
   return cards;
@@ -533,6 +549,120 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.queryByTestId('status-pill')).toBeNull();
     expect(view.queryByTestId('intake-file')).toBeNull();
     expect(promote).toBe(0);
+    view.unmount();
+  });
+
+  it('Workbench sockets start empty and chrome labels still render', async () => {
+    const first = createWorkbenchSockets();
+    const second = createWorkbenchSockets();
+    expect(first.status).not.toBe(second.status);
+    expect(first.intake.get().mode).toBe('chrome');
+    expect(first.selectedId.get().well._tag).toBe('IdEmpty');
+    expect(first.railQuery.get().query).toBe('');
+    expect(first.title.get().well._tag).toBe('IdEmpty');
+    expect(first.status.get().phase).toBe('empty');
+    expect(first.locality.get().well._tag).toBe('LocalityEmpty');
+    expect(first.claim.get().well._tag).toBe('TextEmpty');
+    expect(first.tags.get().first._tag).toBe('TagEmpty');
+    expect(first.tags.get().second._tag).toBe('TagEmpty');
+    expect(first.tags.get().third._tag).toBe('TagEmpty');
+    expect(first.media.get().well._tag).toBe('MediaEmpty');
+    expect(first.taxon.get().phylum._tag).toBe('TextEmpty');
+    expect(first.taxon.get().class._tag).toBe('TextEmpty');
+    expect(first.taxon.get().order._tag).toBe('TextEmpty');
+    expect(first.taxon.get().family._tag).toBe('TextEmpty');
+    expect(first.metrics.get().tensile._tag).toBe('TextEmpty');
+    expect(first.metrics.get().density._tag).toBe('TextEmpty');
+    expect(first.metrics.get().hardness._tag).toBe('TextEmpty');
+    expect(first.metrics.get().overlap._tag).toBe('TextEmpty');
+    expect(first.metrics.get().note._tag).toBe('TextEmpty');
+    expect(first.observation.get().first._tag).toBe('TextEmpty');
+    expect(first.observation.get().second._tag).toBe('TextEmpty');
+    expect(first.lastUpdated.get().well._tag).toBe('InstantEmpty');
+    expect(first.viewport.get().mag._tag).toBe('TextEmpty');
+    expect(first.viewport.get().readout._tag).toBe('TextEmpty');
+
+    const view = render(
+      React.createElement(WorkbenchPage, { client: emptyClient() })
+    );
+    await waitFor(() => {
+      emptyWorkbenchCards(view);
+    });
+    expect(
+      view.container.querySelector('[data-chrome="header"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.header);
+    expect(
+      view.container.querySelector('[data-chrome="intake"]')?.textContent
+    ).toContain(WORKBENCH_CHROME.intake);
+    expect(
+      view.container.querySelector('[data-chrome="viewport-xz"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.viewport);
+    expect(
+      view.container.querySelector('[data-chrome="mag"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.mag);
+    expect(
+      view.container.querySelector('[data-chrome="active-render"]')?.textContent
+    ).toContain(WORKBENCH_CHROME.activeRender);
+    expect(
+      view.container.querySelector('[data-chrome="export-db"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.exportDb);
+    expect(
+      view.container.querySelector('[data-chrome="run-sim"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.runSim);
+    expect(
+      view.container.querySelector('[data-chrome="classification"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.classification);
+    expect(
+      view.container.querySelector('[data-chrome="structural-metrics"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.structuralMetrics);
+    expect(
+      view.container.querySelector('[data-chrome="observation-log"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.observationLog);
+    expect(
+      view.container.querySelector('[data-chrome="last-updated"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.lastUpdated);
+    expect(
+      view.container.querySelector('[data-socket="viewport-mag"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.mag);
+    expect(
+      view.container.querySelector('[data-socket="viewport-readout"]')
+        ?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-phylum"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-class"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-order"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-family"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="metrics-tensile"]')
+        ?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="observation-first"]')
+        ?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="last-updated"]')?.textContent
+    ).toBe('');
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('status-pill')).toBeNull();
+    const html = view.container.textContent ?? '';
+    expect(html).not.toContain('400x');
+    expect(html).not.toContain('SP-9942-X');
+    expect(html).not.toContain('OPTICAL_SCAN');
+    expect(html).not.toContain('R: 0.992');
+    expect(html).not.toContain('Chordata');
+    expect(html).not.toContain('WORKING');
     view.unmount();
   });
 
