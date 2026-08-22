@@ -8,11 +8,14 @@ LOG="${PAPER_LOG:-/tmp/paper-desktop.log}"
 MCP_URL="http://127.0.0.1:29979/mcp"
 export PATH="/usr/local/bin:${HOME}/.local/bin:${PATH}"
 
-mcp_up() {
-  curl -sf --max-time 2 "${MCP_URL}" >/dev/null 2>&1
+mcp_listening() {
+  # GET is often 404. Any HTTP status means the port is bound.
+  local code
+  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 2 "${MCP_URL}" 2>/dev/null || true)"
+  [[ "${code}" =~ ^[1-5][0-9][0-9]$ ]]
 }
 
-if mcp_up; then
+if mcp_listening; then
   echo "start-paper: MCP already listening at ${MCP_URL}"
   exit 0
 fi
@@ -34,7 +37,7 @@ if ! command -v paper >/dev/null 2>&1; then
   exit 0
 fi
 
-if pgrep -f 'Paper.AppImage' >/dev/null 2>&1; then
+if pgrep -x Paper.AppImage >/dev/null 2>&1; then
   echo "start-paper: Paper.AppImage already running"
   exit 0
 fi
@@ -45,9 +48,9 @@ disown "${paper_pid}" 2>/dev/null || true
 echo "start-paper: launched paper pid ${paper_pid} (DISPLAY=${DISPLAY}) log ${LOG}"
 
 i=0
-while [[ "${i}" -lt 5 ]]; do
-  if mcp_up; then
-    echo "start-paper: MCP listening at ${MCP_URL}"
+while [[ "${i}" -lt 30 ]]; do
+  if mcp_listening; then
+    echo "start-paper: MCP listening at ${MCP_URL} (sign-in and a file open are still required for a usable session)"
     exit 0
   fi
   if ! kill -0 "${paper_pid}" 2>/dev/null; then
@@ -58,5 +61,5 @@ while [[ "${i}" -lt 5 ]]; do
   sleep 1
 done
 
-echo "start-paper: Paper is up but MCP is not answering yet at ${MCP_URL} (needs a signed-in Desktop with a file open)"
+echo "start-paper: Paper is up but MCP is not listening yet at ${MCP_URL} (needs a signed-in Desktop with a file open); see ${LOG}"
 exit 0

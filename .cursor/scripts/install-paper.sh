@@ -2,6 +2,12 @@
 # Cursor Cloud: install puts the official Paper Desktop AppImage on PATH as `paper`.
 # Paper MCP is http://127.0.0.1:29979/mcp and needs a signed-in Desktop with a file open.
 # Sign-in is a one-time environment/snapshot step; this script does not fake a session.
+#
+# This repo is a flake (`.envrc` → `use flake`, `nix/devshell.nix`). Paper Desktop
+# is not a flake output. The official Linux binary is the AppImage. Cursor cloud
+# VMs do not ship `nix`; do not apt-get around that. Xvfb and fonts are already
+# on the default Ubuntu image. Missing FUSE uses APPIMAGE_EXTRACT_AND_RUN on
+# this same AppImage.
 set -euo pipefail
 
 PAPER_URL="https://download.paper.design/linux/appImage"
@@ -20,41 +26,15 @@ fi
 
 PAPER_APPIMAGE="${PAPER_LIB}/Paper.AppImage"
 
-pkg_installed() {
-  dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'
-}
+if command -v nix >/dev/null 2>&1; then
+  echo "install-paper: nix is on PATH; leave fuse/xvfb/fonts to the flake or host"
+else
+  echo "install-paper: no nix on this VM (repo flake is unused here)"
+fi
 
-ensure_pkg() {
-  local pkg="$1"
-  if pkg_installed "$pkg"; then
-    return 0
-  fi
-  as_root apt-get update -qq
-  as_root apt-get install -y --no-install-recommends "$pkg"
-}
-
-ensure_one_pkg() {
-  local pkg
-  for pkg in "$@"; do
-    if pkg_installed "$pkg"; then
-      return 0
-    fi
-  done
-  as_root apt-get update -qq
-  for pkg in "$@"; do
-    if as_root apt-get install -y --no-install-recommends "$pkg"; then
-      return 0
-    fi
-  done
-  echo "install-paper: none of $* could be installed; AppImage extract-and-run remains the fallback" >&2
-  return 0
-}
-
-# AppImage runtime wants FUSE 2. Ubuntu 24.04 ships libfuse2t64. fuse3 is a last resort.
-export DEBIAN_FRONTEND=noninteractive
-ensure_one_pkg libfuse2t64 libfuse2 fuse3
-ensure_pkg xvfb
-ensure_one_pkg fonts-liberation fonts-dejavu-core fonts-noto-core
+if ! command -v Xvfb >/dev/null 2>&1; then
+  echo "install-paper: Xvfb is not on PATH; start will log and continue" >&2
+fi
 
 as_root mkdir -p "${PAPER_LIB}"
 
