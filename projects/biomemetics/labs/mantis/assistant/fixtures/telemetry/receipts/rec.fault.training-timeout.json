@@ -1,0 +1,1 @@
+{"id":"rec.fault.training-timeout","href":"receipts/rec.fault.training-timeout.json","recordedAt":"2026-08-22T00:00:00.000Z","sourceClass":"simulated","channel":"rail.local-branch-voltage","fault":"training-timeout","unit":"V"}

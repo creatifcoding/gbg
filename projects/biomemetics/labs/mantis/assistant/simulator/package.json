@@ -1,0 +1,30 @@
+{
+  "name": "@tmnl/mantis-assistant-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A4a read-only simulated terrarium plant. Not a live gateway. No actuator path.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "sim": "node --experimental-strip-types src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.14.0",
+    "npm": ">=10.9.0"
+  },
+  "packageManager": "npm@10.9.7",
+  "dependencies": {
+    "@ag-ui/mastra": "1.1.2",
+    "@copilotkit/runtime": "1.68.3",
+    "@mastra/core": "1.61.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "typescript": "5.9.3"
+  }
+}

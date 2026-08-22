@@ -1,0 +1,39 @@
+{
+  "id": "unavailable-channels",
+  "phase": "mechanically-seated",
+  "clockMs": 1755820800000,
+  "samples": [
+    {
+      "kind": "reading",
+      "channel": "air.dry-bulb",
+      "value": 22.0,
+      "unit": "°C",
+      "uncertainty": { "kind": "symmetric", "value": 0.5, "unit": "°C" },
+      "observedAt": "2026-08-22T00:00:00.000Z",
+      "claim": "sensor-fixture",
+      "receiptId": "rec.air.dry-bulb.known"
+    },
+    {
+      "kind": "unavailable",
+      "channel": "air.relative-humidity",
+      "reason": "hygrometer fixture not bound",
+      "receiptId": "rec.air.relative-humidity.unavailable"
+    },
+    {
+      "kind": "unavailable",
+      "channel": "enclosure.illuminance",
+      "reason": "camera metadata absent; A4a has no live stream",
+      "receiptId": "rec.enclosure.illuminance.unavailable"
+    },
+    {
+      "kind": "reading",
+      "channel": "rail.local-branch-voltage",
+      "value": 0,
+      "unit": "V",
+      "uncertainty": { "kind": "unverified", "note": "discharge threshold is unverified in interfaces.json" },
+      "observedAt": "2026-08-22T00:00:00.000Z",
+      "claim": "sensor-fixture",
+      "receiptId": "rec.rail.local-branch-voltage.known"
+    }
+  ]
+}
