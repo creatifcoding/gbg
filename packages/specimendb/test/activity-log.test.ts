@@ -1,8 +1,3 @@
-/**
- * Append-only activity system: Used / Generated / Supersedes on entity_id.
- * Port of PR 92 ActivityRepo.append invariant. No lab_activities table.
- */
-
 import { mkdtemp, rm } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -14,9 +9,20 @@ import * as Result from 'effect/Result';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
 import { SqlClient } from 'effect/unstable/sql/SqlClient';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
+import { CatalogRpcs } from '../src/rpc/CatalogRpcs.js';
 import { decodeLabEntity } from '../src/schemas/provenance.js';
 import { relationTargets } from '../src/schemas/components.js';
 import { trustEntityRef } from '../src/schemas/identifiers.js';
+import {
+  CAD01_COMMITTED_AT,
+  CAD01_HLR_SHEET_REFS,
+  CAD01_PROJECT_REF,
+  CAD01_SOLID_REF,
+  CAD01_TREE_SHA,
+  loadCad01Pack,
+} from '../src/adapters/cad01-seed.js';
+import { declarationComponents } from '../src/adapters/activity.js';
+import { MemoryCatalogLive } from '../testbed/memory-rpc.js';
 import { testCatalogLayer } from './catalog-pg.js';
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'provenance');
@@ -228,6 +234,81 @@ describe('AppendActivity / GetByRef', () => {
         });
         expect(rows).toEqual([]);
       }) as Effect.Effect<unknown, unknown, never>,
+    );
+  });
+});
+
+describe('AppendActivity / GetByRef (memory)', () => {
+  it('walks W7 and a CAD-01 HLR correction as a new ref', async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const catalog = yield* RpcTest.makeClient(CatalogRpcs);
+          const client = yield* RpcTest.makeClient(SpecimenRpcs);
+          const activity = originalActivity();
+          const appended = yield* client.AppendActivity(activity);
+          expect(appended.components.some((c) => c._tag === 'Who')).toBe(true);
+          const byWho = yield* client.GetByRef({ who: 'freecad-part-occt' });
+          expect(byWho.map((row) => row.id)).toEqual([activity.ref]);
+
+          const pack = loadCad01Pack();
+          for (const row of pack.declared) {
+            yield* catalog.MintEntity({
+              id: row.mint.id,
+              kind: row.mint.kind,
+              type: row.mint.type,
+              createdAt: row.mint.createdAt,
+              components: [
+                ...declarationComponents({
+                  kind: row.mint.kind,
+                  type: row.mint.type,
+                  bytes: row.bytes,
+                }),
+              ],
+            });
+          }
+          yield* client.AppendActivity(pack.exportActivity);
+          const hlr = yield* client.AppendActivity(pack.activity);
+          const generated = relationTargets(hlr.components, 'Generated');
+          expect(generated).toEqual([...CAD01_HLR_SHEET_REFS]);
+
+          const correction = decodeLabEntity({
+            _tag: 'LabEntity',
+            ref: 'gbg:activity:project-cad01-corrected@pr58',
+            kind: 'activity',
+            type: 'hlr',
+            label: 'HLR/project CAD-01 sheets (correction)',
+            class: 'theoretical',
+            who: [
+              {
+                _tag: 'Agent',
+                agentType: 'software',
+                label: 'generate_schematics.py',
+              },
+            ],
+            what: {
+              used: [CAD01_SOLID_REF],
+              generated: [...CAD01_HLR_SHEET_REFS],
+            },
+            when: { startedAt: CAD01_COMMITTED_AT, gitSha: CAD01_TREE_SHA },
+            where: 'unknown',
+            why: '#58',
+            how: 'generate_schematics.py',
+            used: [CAD01_SOLID_REF],
+            generated: [...CAD01_HLR_SHEET_REFS],
+            supersedes: CAD01_PROJECT_REF,
+          });
+          yield* client.AppendActivity(correction);
+          const history = yield* client.GetByRef({ ref: CAD01_PROJECT_REF });
+          expect(history.map((row) => row.id)).toEqual(
+            expect.arrayContaining([CAD01_PROJECT_REF, correction.ref]),
+          );
+          const original = history.find((row) => row.id === CAD01_PROJECT_REF);
+          expect(relationTargets(original?.components ?? [], 'Generated')).toEqual(generated);
+          const dup = yield* Effect.result(client.AppendActivity(pack.activity));
+          expect(Result.isFailure(dup)).toBe(true);
+        }),
+      ).pipe(Effect.provide(MemoryCatalogLive)) as Effect.Effect<unknown>,
     );
   });
 });

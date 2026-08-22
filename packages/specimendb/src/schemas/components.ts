@@ -143,7 +143,6 @@ export class ObservationComponent extends Schema.TaggedClass<ObservationComponen
   text: Schema.String,
 }) {}
 
-/** W7 who. What is Used + Generated; there is no WhatComponent. */
 export class WhoComponent extends Schema.TaggedClass<WhoComponent>()('Who', {
   agentType: AgentType,
   label: Schema.String.check(Schema.isMinLength(1)),
@@ -156,7 +155,7 @@ export class WhenComponent extends Schema.TaggedClass<WhenComponent>()('When', {
   gitSha: Schema.optional(Schema.String),
 }) {}
 
-/** `unknown` is a legal value. Do not invent GPS. */
+/** The string `unknown` is a value. Do not omit. Do not invent GPS. */
 export class WhereComponent extends Schema.TaggedClass<WhereComponent>()('Where', {
   value: Schema.String.check(Schema.isMinLength(1)),
 }) {}

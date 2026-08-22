@@ -1,8 +1,3 @@
-/**
- * In-repo lab files as cheap entities (kind + type). HLR and STEP export are
- * gated activities. No specimen. No GPS/taxon/SKU. Honesty is not attached on mint.
- */
-
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

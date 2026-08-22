@@ -17,7 +17,6 @@ export {
   runActivitySystem,
   w7Components,
   w7FromLabEntity,
-  type ActivityQuery,
   type ActivityRelations,
   type ActivityW7,
 } from './activity.js';

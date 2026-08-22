@@ -1,6 +1,5 @@
 /**
  * Activity systems. Used / Generated / Supersedes hang on the activity's entity_id.
- * W7 hangs as Who / When / Where / Why / How when it arrived. What is Used + Generated.
  * Corrections append a new ref. There is no lab_activities / lab_used / lab_generated table.
  *
  * @module @tmnl/specimendb/adapters/activity
@@ -28,8 +27,15 @@ import {
   EntityNotFoundError,
 } from '../schemas/errors.js';
 import { parseEntityRef, trustEntityRef, type EntityRef } from '../schemas/identifiers.js';
-import type { Agent, EntityKind, EntityType, LabEntity, ProvenanceWhen } from '../schemas/provenance.js';
-import type { ContentAddress } from '../schemas/provenance.js';
+import type {
+  Agent,
+  ContentAddress,
+  EntityKind,
+  EntityType,
+  GetByRefPayload,
+  LabEntity,
+  ProvenanceWhen,
+} from '../schemas/provenance.js';
 import type { CatalogRecord } from '../schemas/entity.js';
 import type { EntityStateShape, EntityMint } from '../state/EntityState.js';
 
@@ -47,13 +53,6 @@ export interface ActivityW7 {
   readonly how?: string;
 }
 
-export type ActivityQuery =
-  | { readonly ref: EntityRef }
-  | { readonly who: string }
-  | { readonly why: string }
-  | { readonly gitSha: string }
-  | { readonly startedAt: string };
-
 export const uniqueEntityRefs = (refs: ReadonlyArray<EntityRef>): ReadonlyArray<EntityRef> => {
   const seen = new Set<string>();
   const out: Array<EntityRef> = [];
@@ -65,7 +64,6 @@ export const uniqueEntityRefs = (refs: ReadonlyArray<EntityRef>): ReadonlyArray<
   return out;
 };
 
-/** Copy used/generated from LabEntity (`what.used ?? used`). */
 export const relationsFromLabEntity = (entity: LabEntity): ActivityRelations => ({
   used: uniqueEntityRefs([...(entity.what?.used ?? []), ...(entity.used ?? [])]),
   generated: uniqueEntityRefs([...(entity.what?.generated ?? []), ...(entity.generated ?? [])]),
@@ -148,7 +146,6 @@ export const activityComponents = (
   return out;
 };
 
-/** Kind + Type + Bytes. Honesty stays gated. W7 attaches when it arrived. */
 export const labEntityComponents = (entity: LabEntity): ReadonlyArray<Component> => {
   const declared = declarationComponents({
     kind: entity.kind,
@@ -258,10 +255,6 @@ export const runActivitySystem = (
   });
 };
 
-/**
- * PR 92 `ActivityRepo.append` invariant, as a system:
- * refuse to rewrite a ref; corrections append a new one; attach Used/Generated/Supersedes and W7.
- */
 export const appendActivity = (
   state: EntityStateShape,
   entity: LabEntity,
@@ -372,7 +365,7 @@ export const activitiesByWhen = (
 
 export const queryActivities = (
   state: EntityStateShape,
-  query: ActivityQuery,
+  query: GetByRefPayload,
 ): Effect.Effect<ReadonlyArray<CatalogRecord>, CatalogError> => {
   if ('ref' in query) return activitiesByRef(state, query.ref);
   if ('who' in query) return activitiesByWho(state, query.who);

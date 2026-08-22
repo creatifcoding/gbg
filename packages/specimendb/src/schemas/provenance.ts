@@ -10,8 +10,7 @@
  * Honesty class lives on the generated entity. Operations are entities.
  *
  * Catalog SoT is Postgres (`entities` + `components`). Activity append is a
- * system: Used / Generated / Supersedes and W7 (Who / When / Where / Why / How)
- * hang on `entity_id`. What is Used + Generated.
+ * system: Used / Generated / Supersedes hang on `entity_id`.
  *
  * @module @tmnl/specimendb/schemas/provenance
  */
@@ -229,7 +228,6 @@ export const decodeDoctorReportPayload = Schema.decodeUnknownSync(DoctorReportPa
 
 const queryString = Schema.String.check(Schema.isMinLength(1));
 
-/** Single-key query. `{ ref }` callers stay valid. Walks activity components. */
 export const GetByRefPayload = Schema.Union([
   Schema.Struct({ ref: EntityRef }),
   Schema.Struct({ who: queryString }),

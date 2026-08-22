@@ -71,8 +71,11 @@ export const CAD01_SHEET_REFS: ReadonlyArray<EntityRef> = SHEETS.map((sheet) =>
   trustEntityRef(`gbg:sheet:${sheet.local}@pr58`),
 );
 
-/** S00–S06. S07 is topology; S08/S09 are diagram; PDF is not an HLR output. */
-export const CAD01_HLR_SHEET_REFS: ReadonlyArray<EntityRef> = CAD01_SHEET_REFS.slice(0, 7);
+const HLR_SHEET_LOCALS = new Set(['S00', 'S01', 'S02', 'S03', 'S04', 'S05', 'S06']);
+
+export const CAD01_HLR_SHEET_REFS: ReadonlyArray<EntityRef> = SHEETS.filter((sheet) =>
+  HLR_SHEET_LOCALS.has(sheet.local),
+).map((sheet) => trustEntityRef(`gbg:sheet:${sheet.local}@pr58`));
 
 const PART_STEPS: ReadonlyArray<{ readonly local: string; readonly path: string }> = [
   { local: 'B01', path: `${TERRARIUM}/cad/src/frame/exports/B01-corner-block.step` },
