@@ -77,6 +77,10 @@ const FORBIDDEN_MPNS = [
   '4685',
   'TPS25221',
   'M80-5101242',
+  '39512000440',
+  '91292A113',
+  '11565A11',
+  '154002.0',
 ];
 
 const load = async () => {
@@ -188,6 +192,11 @@ describe('seed from BOM.md', () => {
     expect(byId.B44?.notes).toContain('Rejected as a selection');
     expect(byId.B44?.notes).toContain('Stop until a page prints a 2 A fuse');
     expect(byId.B44?.notes).toContain('Do not claim CAD printed 0154002.DR');
+    expect(byId.B44?.notes).toContain('$1.411 snapshot is NOT a quote');
+    expect(byId.B27?.notes).toContain('do not treat this as accepted against a wet/animal balloon');
+    expect(byId.B48?.notes).toContain('Not a 12 V interrupt');
+    expect(byId.B50?.notes).toContain('Pinout not invented');
+    expect(byId.B11?.notes).toContain('UNVERIFIED stop');
     expect(byId.B09?.notes).toContain('CAD miss');
     expect(byId.B16?.notes).toContain('PT2683');
     expect(byId.B37?.notes).toContain('Adafruit 6034');
@@ -249,6 +258,14 @@ describe('seed from BOM.md', () => {
     expect(byPart('B47')).toEqual(['C28S-11.00-SPS8-SPS8']);
     expect(byPart('B50')).toEqual(['39-01-2120']);
     expect(byPart('B19')).toEqual(['319-10-108-00-001000']);
+    expect(byPart('B27')).toEqual(['816-22-012-10-000101']);
+    expect(byPart('B44')).toEqual(['0154002.DR']);
+    expect(byPart('B48')).toEqual(['D2FS-F-N', 'TPS259830LNRGER']);
+    expect(byPart('B25')).toEqual(['LC032C08M']);
+    expect(byPart('B05')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
+    expect(byPart('B06')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
+    expect(byPart('B08')).toEqual(['1588A714', '1588A724', '1588A733']);
+    expect(byPart('B41')).toEqual(['53111420', 'CD20MA-BK']);
 
     const mpns = new Set(skus.map((row) => row.mpn));
     for (const forbidden of FORBIDDEN_MPNS) {
@@ -271,6 +288,13 @@ describe('seed from BOM.md', () => {
       'quote-particle-b42',
       'quote-particle-b43',
     ]);
+    expect(JSON.stringify(quotes)).not.toContain('1.411');
+    expect(JSON.stringify(quotes)).not.toContain('39512000440');
+    const quoteAttrs = await db.query<{ attrs: unknown }>(
+      'SELECT attrs FROM quote',
+    );
+    expect(JSON.stringify(quoteAttrs.rows)).not.toContain('1.411');
+    expect(JSON.stringify(quoteAttrs.rows)).not.toContain('39512000440');
 
     await db.close();
   });

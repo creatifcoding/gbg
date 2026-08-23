@@ -94,7 +94,7 @@ const CAD_NOTES: Record<string, string> = {
   B11: [
     'constraint.',
     'CAD miss: common 18x16 insect mesh is cited around 1.2 mm hole (PVC-coated fiberglass listing); that misses LOCK <=0.80 mm nonmetal aperture.',
-    'McMaster insect screens printed no aperture in mm. No selected PN. Stop until a finer nonmetal mesh page is opened. No metal mesh.',
+    'McMaster insect screens printed no aperture in mm. None selected. UNVERIFIED stop until a finer nonmetal mesh page is opened. No metal mesh.',
   ].join(' '),
   B12: 'CAD miss this pass. No catalog MPN.',
   B13: 'CAD miss this pass. No catalog MPN.',
@@ -234,7 +234,7 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B50: [
     '`C01`-`C12` mirror required nets; series, pin geometry, controlled-impedance launch, mate order, current, hot-unplug behavior, and durability `UNVERIFIED`.',
-    'Rejected: opened Molex 1053081212 Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12.',
+    'Rejected: opened Molex 1053081212 Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. Pinout not invented. UNVERIFIED stop on that Nano-Fit.',
     'Series/housing candidate only, not selected as the keyed 12-net: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. No C01-C12 pinout. SI launch, mate order, hot-unplug UNVERIFIED.',
     'Do not file Harwin M80-5101242. Source: https://www.heilind.eu/mol39-01-2120.html',
   ].join(' '),
@@ -475,7 +475,7 @@ INSERT INTO alternate (id, part_id, name, status, manufacturer, mpn, notes)
 VALUES (
   ${dollar('alt-B48-supervisor')},
   ${dollar('B48')},
-  ${dollar('supervisor / discharge / bus isolation')},
+  ${dollar('supervisor / discharge / bus isolation / AND timing')},
   ${dollar('rejected')},
   NULL,
   NULL,
@@ -491,7 +491,7 @@ VALUES (
   ${dollar('rejected')},
   ${dollar('Molex')},
   ${dollar('1053081212')},
-  ${dollar('Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. No MPN selected.')}
+  ${dollar('Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. Pinout not invented. No MPN selected.')}
 )
 ON CONFLICT (id) DO NOTHING;
 
