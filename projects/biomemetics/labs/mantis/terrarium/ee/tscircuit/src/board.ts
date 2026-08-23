@@ -5,8 +5,9 @@ import {
   BINDER_CONTACTS,
   BRANCH_ENABLE,
   BUS_NET_ALIASES,
+  headerConnections,
+  headerPinLabels,
   RAIL_CONTACTS,
-  tscircuitTokenFor,
   type BinderContact,
   type BusNetAlias,
   type RailContact,
@@ -31,24 +32,6 @@ export type IndexedCoupon = {
   readonly binderContacts: readonly BinderContact[];
   readonly netAliases: readonly BusNetAlias[];
   readonly circuitJson: readonly unknown[];
-};
-
-const headerPinLabels = (contacts: readonly (RailContact | BinderContact)[]): Record<string, string> => {
-  const labels: Record<string, string> = {};
-  for (const [index, contact] of contacts.entries()) {
-    labels[String(index + 1)] = contact.pin;
-  }
-  return labels;
-};
-
-const headerConnections = (
-  contacts: readonly (RailContact | BinderContact)[],
-): Record<string, string> => {
-  const connections: Record<string, string> = {};
-  for (const [index, contact] of contacts.entries()) {
-    connections[`pin${index + 1}`] = `net.${tscircuitTokenFor(contact.net)}`;
-  }
-  return connections;
 };
 
 export const compileIndexedCoupon = (): IndexedCoupon => {

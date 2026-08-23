@@ -4,6 +4,7 @@ import test from 'node:test';
 import { ADMITTED_BALLOON_IDS, BALLOONS } from '../src/balloons.ts';
 import { compileIndexedCoupon } from '../src/board.ts';
 import { BRANCH_ENABLE, RAIL_CONTACTS, tscircuitTokenFor } from '../src/nets.ts';
+import { TSCI_SEARCH } from '../src/search.ts';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -105,6 +106,15 @@ test('P01-P12 net names exist', () => {
     const alias = coupon.netAliases.find((entry) => entry.net === contact.net);
     assert.ok(alias, contact.net);
     assert.equal(alias.tscircuitToken, tscircuitTokenFor(contact.net));
+  }
+});
+
+test('tsci search stopped without selecting an MPN', () => {
+  assert.ok(TSCI_SEARCH.length > 0);
+  for (const stop of TSCI_SEARCH) {
+    assert.equal(stop.manufacturerPartNumber, '');
+    assert.equal(stop.admittedSeries, false);
+    assert.equal(stop.status, 'unverified');
   }
 });
 

@@ -10,7 +10,12 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@tscircuit/fanout-solver": ["./src/fanout-solver-shim.d.ts"]
+    },
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist", "index.circuit.tsx"]
 }

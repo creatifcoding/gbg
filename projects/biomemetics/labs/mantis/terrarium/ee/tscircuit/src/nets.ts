@@ -130,6 +130,26 @@ export const BINDER_CONTACTS: readonly BinderContact[] = [
   { pin: 'C12', net: 'HSGND', mirrors: 'P12' },
 ];
 
+export const headerPinLabels = (
+  contacts: readonly (RailContact | BinderContact)[],
+): Record<string, string> => {
+  const labels: Record<string, string> = {};
+  for (const [index, contact] of contacts.entries()) {
+    labels[`pin${index + 1}`] = contact.pin;
+  }
+  return labels;
+};
+
+export const headerConnections = (
+  contacts: readonly (RailContact | BinderContact)[],
+): Record<string, string> => {
+  const connections: Record<string, string> = {};
+  for (const [index, contact] of contacts.entries()) {
+    connections[`pin${index + 1}`] = `net.${tscircuitTokenFor(contact.net)}`;
+  }
+  return connections;
+};
+
 export const BRANCH_ENABLE = {
   kind: 's1-and-s2',
   expression: 'S1 AND S2',
