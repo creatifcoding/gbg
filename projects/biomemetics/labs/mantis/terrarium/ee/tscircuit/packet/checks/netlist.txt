@@ -1,0 +1,106 @@
+Errors: 0
+Warnings: 0
+
+Readable Netlist:
+COMPONENTS:
+ - B27: B27, source_component
+ - B50: B50, source_component
+ - B44: B44, source_component
+ - S1: S1, source_component
+ - S2: S2, source_component
+ - Q1: Q1, source_component
+
+NET: VIN_B
+  - B50 C02
+  - B27 P02
+
+NET: GND_A
+  - B50 C03
+  - B27 P03
+
+NET: GND_B
+  - B50 C04
+  - B27 P04
+
+NET: SDA
+  - B50 C05
+  - B27 P05
+
+NET: SCL
+  - B50 C06
+  - B27 P06
+
+NET: UID
+  - B50 C07
+  - B27 P07
+
+NET: FAULT_N_IRQ
+  - B50 C08
+  - B27 P08
+
+NET: GMSL_P
+  - B50 C10
+  - B27 P10
+
+NET: GMSL_N
+  - B50 C11
+  - B27 P11
+
+NET: HSGND
+  - B50 C12
+  - B50 C09
+  - B27 P12
+  - B27 P09
+
+NET: VIN_A
+  - B44 pin1
+  - B50 C01
+  - B27 P01
+
+
+COMPONENT_PINS:
+B27
+- pin1(P01): NETS(VIN_A)
+- pin2(P02): NETS(VIN_B)
+- pin3(P03): NETS(GND_A)
+- pin4(P04): NETS(GND_B)
+- pin5(P05): NETS(SDA)
+- pin6(P06): NETS(SCL)
+- pin7(P07): NETS(UID)
+- pin8(P08): NETS(FAULT_N_IRQ)
+- pin9(P09): NETS(HSGND)
+- pin10(P10): NETS(GMSL_P)
+- pin11(P11): NETS(GMSL_N)
+- pin12(P12): NETS(HSGND)
+
+B50
+- pin1(C01): NETS(VIN_A)
+- pin2(C02): NETS(VIN_B)
+- pin3(C03): NETS(GND_A)
+- pin4(C04): NETS(GND_B)
+- pin5(C05): NETS(SDA)
+- pin6(C06): NETS(SCL)
+- pin7(C07): NETS(UID)
+- pin8(C08): NETS(FAULT_N_IRQ)
+- pin9(C09): NETS(HSGND)
+- pin10(C10): NETS(GMSL_P)
+- pin11(C11): NETS(GMSL_N)
+- pin12(C12): NETS(HSGND)
+
+B44
+- pin1(left): NETS(VIN_A)
+- pin2(right): NOT_CONNECTED
+
+S1
+- pin1: NOT_CONNECTED
+- pin2: NOT_CONNECTED
+
+S2
+- pin1: NOT_CONNECTED
+- pin2: NOT_CONNECTED
+
+Q1
+- pin1(drain): NOT_CONNECTED
+- pin2(source): NOT_CONNECTED
+- pin3(gate): NOT_CONNECTED
+
