@@ -193,6 +193,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B37?.notes).toContain('Adafruit 6034');
     expect(byId.B47?.notes).toContain('C28S-11.00-SPS8-SPS8');
     expect(byId.B49?.class).toBeNull();
+    expect(byId.B49?.notes).toContain('A2A1A0 strap');
+    expect(byId.B49?.notes).toContain('8-Nov-2025');
 
     const alternates = await listAlternates(db);
     expect(alternates.map((row) => row.id).sort()).toEqual([

@@ -228,7 +228,8 @@ const CAD_NOTES: Record<string, string> = {
   B49: [
     'device documented; address, reset, hot-insertion behavior, carrier, and need remain `UNVERIFIED`.',
     'Texas Instruments TCA9548A. Packages printed TSSOP (PW) 24, VQFN (RGE) 24, VSSOP (DGS) 24; 1.65-5.5 V; reset; Supports hot insertion.',
-    'Datasheet Rev. H package option addendum Active/Production rows: TCA9548ADGSR, TCA9548AMRGER, TCA9548APWR, TCA9548ARGER. Omit .B and G4 aliases. No suffix selected. No price/lead on the datasheet.',
+    'Datasheet Rev. H package option addendum (8-Nov-2025) Active/Production rows: TCA9548ADGSR, TCA9548AMRGER, TCA9548APWR, TCA9548ARGER. Omit .B and G4 aliases. No suffix selected. No price/lead on the datasheet.',
+    'Carrier / A2A1A0 strap / RESET wiring / whether we need it stay UNVERIFIED.',
     `Sources: ${TCA9548A_PAGE} ${TCA9548A_DATASHEET}`,
   ].join(' '),
   B50: [
