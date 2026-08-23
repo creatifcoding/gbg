@@ -21,3 +21,6 @@ Copied from the hunt brief. This run did not re-select them.
 - B05/B06 Sheet Haus A000AN03.0L0GPCTE (3 mm). Cuts REF. ePlastics 0.118" is not 3.00 mm LOCK.
 - B08 McMaster 1588A714 family. Door REF.
 - STOP already: B26 rollers, B35 brick mount, B40 gasket, B11 screen (no printed aperture).
+- B19 assembly+stack UNVERIFIED. Candidate 319-10-108-00-001000 (8-pos Mill-Max target). Pyralux AP materials only. No stack.
+- B37 candidates Adafruit 6034/6035/6036 (22-pin 0.5 mm, 50/100/200 mm). Exact length/orientation UNVERIFIED. 22-to-15 rejected.
+- B47 C28S-11.00-SPS8-SPS8 one 100 ohm pair. Four-channel V-dock SI UNVERIFIED.

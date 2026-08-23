@@ -34,6 +34,8 @@ Miss. UNVERIFIED STOP. No catalog SKU on a page I opened.
 | Serpro | https://www.serpro.co.uk/37-5-x-23cm-Laboratory-Tray-Drip-Pan | Model TRAY18257. External 37.5 x 23 x 6 cm. 6 cm is 60 mm, outside 20-30 mm. Rejected. |
 | United Scientific LTRAY1 | https://www.unitedsci.com/laboratory-supplies/general-labware/laboratory-trays-flat-pp.html | 15 in x 11.5 in flat PP tray. Depth not printed as 20-30 mm. Not taken. |
 
+This pass also opened ENPAC 5248-YE. That page prints 3.25 in height (about 83 mm), outside 20-30 mm. Rejected.
+
 Miss on 20-30 mm. UNVERIFIED STOP.
 
 ## B16 drain plug plus insect baffle
@@ -50,7 +52,9 @@ Miss on the combined item. UNVERIFIED STOP. I did not stitch a plug SKU to a str
 
 Search returned Misumi HFS5-4040 as 40 mm x 40 mm. Direct DETAIL fetches of Misumi US pages were JS shells with no SKU body. 40 mm is not the 38 mm REF envelope.
 
-Miss. UNVERIFIED STOP. I did not substitute 40 mm for 38 mm.
+This pass also opened a factory 38-series listing (Shanghai Minjian / mjaluprofile) that describes 38 mm x 38 mm T-slot as a product family. No distributor orderable MPN on that page. Not taken.
+
+Miss. UNVERIFIED STOP. I did not substitute 40 mm for 38 mm. I did not invent a factory-listing SKU.
 
 ## B20, B21, B22, B23, B24, B28, B29, B30, B31, B32, B33, B34
 

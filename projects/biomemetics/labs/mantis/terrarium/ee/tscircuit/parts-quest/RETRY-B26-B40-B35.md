@@ -6,7 +6,7 @@ Class: UNVERIFIED
 
 ## Queries actually run
 
-No separate non-walled DETAIL page this hunt printed a roller SKU, a gasket-stock SKU with compression, or a Tachyon/M1 brick-mount SKU.
+No separate non-walled DETAIL page this hunt printed a roller SKU, a gasket-stock SKU with compression, or a Tachyon/M1 brick-mount SKU. This pass did not open a new non-walled SKU for those three either.
 
 B11 retry is in `B11.md`.
 
