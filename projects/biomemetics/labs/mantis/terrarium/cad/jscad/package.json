@@ -8,11 +8,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "generate": "node --experimental-strip-types src/generate.ts",
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@jscad/modeling": "^2.13.0"
+    "@jscad/modeling": "^2.13.0",
+    "@jscad/svg-serializer": "^2.3.21"
   },
   "devDependencies": {
     "@types/node": "^25.9.5",
