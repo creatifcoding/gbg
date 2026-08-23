@@ -33,6 +33,9 @@ const D2FS =
 const TPS259830 =
   'https://www.digikey.com/en/products/detail/texas-instruments/TPS259830LNRGER/22106807';
 const LEE_LC032 = 'https://www.leespring.com/product/compression-spring-lc032c08m-music-wire';
+const LITTELFUSE_154 =
+  'https://www.littelfuse.com/assetdocs/littelfuse-fuse-154-series-data-sheet?assetguid=a8a8a462-7295-481b-a91b-d770dabf005b';
+const MOLEX_39_01_2120 = 'https://www.heilind.eu/mol39-01-2120.html';
 const LAPP_M20 =
   'https://e.lapp.com/in/p/plastic-cable-glands/skintop-st-m-20x1-5-ral-7035-lgy-53111420';
 const SEALCON_M20 = 'https://www.sealconusa.com/product/cd20ma-bk/';
@@ -87,7 +90,7 @@ const CAD_NOTES: Record<string, string> = {
   B08: [
     'CAD miss this pass until a non-JS hinge page is opened. Southco timed out. McMaster JS.',
     'EE candidates none selected remain: McMaster 1588A714 / 1588A724 / 1588A733.',
-    '11565A11 is not a 3 mm acrylic fit claim. Design still REF. Do not file McMaster 9218T23 / 11195A11 / 7381K31 from CAD miss passes.',
+    '11565A11 is not a 3 mm acrylic fit claim. Design still REF. Do not file McMaster PNs from this CAD pass, including 9218T23 / 11195A11 / 7381K31.',
   ].join(' '),
   B09: 'LOCK count / REF design. CAD miss this pass. No catalog MPN. No metal mesh.',
   B10: 'CAD miss this pass. No catalog MPN. No metal mesh.',
@@ -99,8 +102,8 @@ const CAD_NOTES: Record<string, string> = {
   B12: 'CAD miss this pass. No catalog MPN.',
   B13: 'CAD miss this pass. No catalog MPN.',
   B14: 'CAD miss this pass. No catalog MPN.',
-  B15: 'CAD miss. UNVERIFIED. No catalog MPN this pass.',
-  B16: 'CAD miss. UNVERIFIED. No catalog MPN this pass. Do not file Exo Terra PT2683 as the combo.',
+  B15: 'CAD miss this pass. UNVERIFIED. No catalog MPN.',
+  B16: 'CAD miss this pass. UNVERIFIED. No catalog MPN. Do not file Exo Terra PT2683 as the combo.',
   B17: 'CAD miss this pass. No catalog MPN.',
   B18: FDM_MISS,
   B19: [
@@ -113,12 +116,12 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B25: [
     'UNVERIFIED rate/PN.',
-    'CAD miss this pass (no spring catalog page in this CAD pass). EE candidate remains: Lee Spring LC032C08M, dry/external carriage, not animal-side. B20 holds.',
-    'Later CAD catalog page printed: Standard Compression Series (inch); Music Wire ASTM A228; OD 0.24 in / 6.10 mm; free 0.750 in / 19.05 mm; solid 0.329 in / 8.36 mm; rate 22.00 lb/in / 3.85 N/mm; load at solid 10.00 lb / 44.48 N; squared and ground; zinc plate ASTM B633.',
-    'Arithmetic vs 15-25 N / 5 mm TARGET is ours, not a vendor claim. Pocket / normally-locked path UNVERIFIED. Not a buy. No price landed from any spring page.',
+    'CAD catalog candidate this pass, matches EE: Lee Spring LC032C08M, dry/external carriage, not animal-side. B20 holds.',
+    'Printed: Standard Compression Series (inch); Music Wire ASTM A228; OD 0.24 in / 6.10 mm; free 0.750 in / 19.05 mm; solid 0.329 in / 8.36 mm; rate 22.00 lb/in / 3.85 N/mm; load at solid 10.00 lb / 44.48 N; squared and ground; zinc plate ASTM B633.',
+    'Arithmetic vs 15-25 N / 5 mm TARGET is ours, not a vendor claim. Pocket / normally-locked path UNVERIFIED. Not a buy. No price landed from the Lee Spring page.',
     `Source: ${LEE_LC032}`,
   ].join(' '),
-  B26: 'UNVERIFIED PN. CAD miss. No matching roller+axle set printed. Stop.',
+  B26: 'UNVERIFIED PN. CAD miss this pass. No matching roller+axle set printed. Stop.',
   B27: [
     'power pins and HSD cell UNVERIFIED.',
     'Candidate Mill-Max 816-22-012-10-000101 CONN SPRING PISTON 12POS PCB, 0.100 in (2.54 mm), 12 contacts, 1 row, through hole, series 816.',
@@ -150,17 +153,18 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B38: [
     'UNVERIFIED selected PN/pocket. Not a release selection. None selected.',
-    'CAD this pass: SPIROL 151284 (brass, M3 x 0.5, overknurl 4.75 mm, L 5.74 mm, headed); Adafruit 4256 M3-threaded inserts 3 mm long, 50-pack, brass heat-set.',
-    'EE candidates remain: Adafruit 4255 M3 x 4 mm brass heat-set 50 pack OD 4.2 mm, hole dia not printed; McMaster 94180A331 and 94180A333 (M3 x 0.5 tapered); McMaster 94459A769 / 94459A130 / 94459A140 (straight).',
-    'Screw 91292A113 not confirmed on a McMaster URL. Do not file Adafruit 4685. No price landed from these pages.',
+    'CAD this pass confirms Adafruit 4255 as extra next to Adafruit 4256 and SPIROL 151284. Pocket UNVERIFIED. Not selected.',
+    'SPIROL 151284 (brass, M3 x 0.5, overknurl 4.75 mm, L 5.74 mm, headed); Adafruit 4256 M3-threaded inserts 3 mm long, 50-pack, brass heat-set; Adafruit 4255 M3 x 4 mm brass heat-set 50 pack OD 4.2 mm, hole dia not printed.',
+    'EE McMaster insert candidates remain, not from this CAD pass: 94180A331 and 94180A333 (M3 x 0.5 tapered); 94459A769 / 94459A130 / 94459A140 (straight).',
+    'Screw 91292A113 not confirmed on a McMaster URL. Do not file Adafruit 4685. Do not file McMaster PNs from this CAD pass. No price landed from these pages.',
     `SPIROL: ${SPIROL_151284} Adafruit 4256: ${ADAFRUIT_4256}`,
   ].join(' '),
   B39: [
     'UNVERIFIED; never primary latch.',
-    'CAD miss this pass. Do not file McMaster PNs from the CAD miss pass.',
+    'CAD miss this pass. Do not file McMaster PNs from this CAD pass.',
     'EE candidates none selected remain: McMaster 3506K21 / 3506K36 / 3506K35 / 5679K88 / 5679K89 / 5679K91.',
   ].join(' '),
-  B40: 'UNVERIFIED material/compression. CAD miss. No SKU+compression printed. Stop.',
+  B40: 'UNVERIFIED material/compression. CAD miss this pass. No SKU+compression printed. Stop.',
   B41: [
     'verified M1 feature; no moving CSI tether.',
     'M1ENCLEA kit includes 2x M20 cable glands with TE RJ45 feed-through and 2x M20 hole plugs as printed on the M1 enclosure datasheet.',
@@ -185,12 +189,12 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B44: [
     '2 A TARGET, final budget UNVERIFIED.',
-    'CAD miss this pass on the custom rail tap.',
+    'Custom rail tap remains UNVERIFIED. CAD this pass is a fuse+holder catalog family (154/154T OMNI-BLOK), not the custom rail tap. No price landed from the CAD PDF.',
     'EE miss stands: rejected as a selection from the tscircuit DigiKey fuse dump. First page prints 1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 Bel Fuse 1206 parts, not a 2 A rail fuse. Do not pick a neighbor. Cached prices on that page are snapshots, not a quote.',
     `Dump: ${FUSE_DUMP}`,
-    'EE-sourced candidate remains: Littelfuse 0154002.DR from Octopart: SMD fuse 9.73 x 5.03 mm, 2 A, FF, 125 V DC / 125 V AC, 50 A. Covers 12 V TARGET. Final budget UNVERIFIED. $1.411 snapshot is NOT a quote. Related DRT/DRTL/DRL not selected. DigiKey 39512000440 was AC-only, not used.',
-    'Do not claim CAD printed 0154002.DR. Later CAD 154/154T OMNI-BLOK datasheet prints catalog number 154002.0, ampere rating 2, amp code 2.0, fuse furnished 453002.0, time-lag twin 154002.0 T / 454002.0. Example on that PDF is 1.5 A to 015401.5DR. Do not derive 0154002.DR from that PDF. That CAD row is a fuse+holder catalog family, not the custom rail tap. No price landed from the CAD PDF.',
-    `Octopart: ${OCTOPART_0154002} CAD datasheet: https://www.littelfuse.com/assetdocs/littelfuse-fuse-154-series-data-sheet?assetguid=a8a8a462-7295-481b-a91b-d770dabf005b`,
+    'EE-sourced candidate remains: Littelfuse 0154002.DR from Octopart: SMD fuse 9.73 x 5.03 mm, 2 A, FF, 125 V DC / 125 V AC, 50 A. Covers 12 V TARGET. Final budget UNVERIFIED. $1.411 snapshot is NOT a quote. Related DRT/DRTL/DRL not selected. DigiKey 39512000440 was AC-only, not used. Do not claim CAD printed 0154002.DR.',
+    'CAD datasheet printed: catalog number 154002.0; ampere rating 2; amp code 2.0; fuse furnished 453002.0. Time-lag twin 154002.0 T / 454002.0. Example on the PDF is 1.5 A to 015401.5DR. Do not derive 0154002.DR from that. Do not file 154002.0 / 453002.0 / 454002.0 / 015401.5DR as the rail tap.',
+    `Octopart: ${OCTOPART_0154002} CAD datasheet: ${LITTELFUSE_154}`,
   ].join(' '),
   B45: [
     'device verified; carrier design UNVERIFIED.',
@@ -233,10 +237,10 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B50: [
     '`C01`-`C12` mirror required nets; series, pin geometry, controlled-impedance launch, mate order, current, hot-unplug behavior, and durability `UNVERIFIED`.',
-    'CAD miss this pass on the keyed 12-net.',
-    'EE rejected: opened Molex 1053081212 Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. Pinout not invented. UNVERIFIED stop on that Nano-Fit.',
-    'Later series/housing candidate only, not selected as the keyed 12-net: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. No C01-C12 pinout. SI launch, mate order, hot-unplug UNVERIFIED. No price landed.',
-    'Do not file Harwin M80-5101242. Source: https://www.heilind.eu/mol39-01-2120.html',
+    'CAD this pass: series/housing candidate only, not selected as the keyed 12-net: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. No C01-C12 pinout. SI launch, mate order, hot-unplug UNVERIFIED. No price landed.',
+    'EE Nano-Fit 1053081212 remains rejected: latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. Pinout not invented.',
+    'Do not file Harwin M80-5101242. Do not file McMaster PNs from this CAD pass.',
+    `Source: ${MOLEX_39_01_2120}`,
   ].join(' '),
   B51: 'CAD miss. geometry, fastener retention, drop/handling protocol, and proof load `UNVERIFIED`. No catalog MPN this pass.',
   B52: 'CAD miss. leaves ENIG lands contactable only inside captive external carriage envelope; environmental ingress rating `UNVERIFIED`, not hermetic. No catalog MPN this pass.',

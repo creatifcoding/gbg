@@ -81,6 +81,9 @@ const FORBIDDEN_MPNS = [
   '91292A113',
   '11565A11',
   '154002.0',
+  '453002.0',
+  '454002.0',
+  '015401.5DR',
 ];
 
 const load = async () => {
@@ -197,26 +200,35 @@ describe('seed from BOM.md', () => {
     expect(byId.B46?.notes).toContain('LCSC prints stock');
     expect(byId.B44?.class).toBeNull();
     expect(byId.B44?.notes).toContain('rejected as a selection');
-    expect(byId.B44?.notes).toContain('CAD miss this pass on the custom rail tap');
+    expect(byId.B44?.notes).toContain('154/154T OMNI-BLOK');
     expect(byId.B44?.notes).toContain('Do not claim CAD printed 0154002.DR');
+    expect(byId.B44?.notes).toContain('Do not derive 0154002.DR');
     expect(byId.B44?.notes).toContain('$1.411 snapshot is NOT a quote');
     expect(byId.B27?.notes).toContain('do not treat this as accepted against a wet/animal balloon');
     expect(byId.B48?.notes).toContain('Not a 12 V interrupt');
     expect(byId.B48?.notes).toContain('CAD miss this pass on supervisor');
     expect(byId.B50?.notes).toContain('Pinout not invented');
-    expect(byId.B50?.notes).toContain('CAD miss this pass on the keyed 12-net');
+    expect(byId.B50?.notes).toContain('series/housing candidate only');
+    expect(byId.B50?.notes).toContain('39-01-2120');
     expect(byId.B08?.notes).toContain('CAD miss this pass until a non-JS hinge page is opened');
-    expect(byId.B25?.notes).toContain('CAD miss this pass');
-    expect(byId.B25?.notes).toContain('EE candidate remains: Lee Spring LC032C08M');
+    expect(byId.B08?.notes).toContain('Southco timed out');
+    expect(byId.B25?.notes).toContain('CAD catalog candidate this pass, matches EE');
+    expect(byId.B25?.notes).toContain('Lee Spring LC032C08M');
+    expect(byId.B25?.notes).toContain('3.85 N/mm');
     expect(byId.B38?.notes).toContain('SPIROL 151284');
     expect(byId.B38?.notes).toContain('Adafruit 4256');
-    expect(byId.B38?.notes).toContain('EE candidates remain');
+    expect(byId.B38?.notes).toContain('confirms Adafruit 4255 as extra');
+    expect(byId.B38?.notes).toContain('Do not file McMaster PNs from this CAD pass');
     expect(byId.B41?.notes).toContain('CD20MA-BK');
     expect(byId.B41?.notes).toContain('1.209.2001.50');
     expect(byId.B41?.notes).toContain('not selected over the kit');
     expect(byId.B11?.notes).toContain('UNVERIFIED stop');
     expect(byId.B09?.notes).toContain('CAD miss');
+    expect(byId.B09?.notes).toContain('No metal mesh');
     expect(byId.B16?.notes).toContain('PT2683');
+    expect(byId.B26?.notes).toContain('CAD miss this pass');
+    expect(byId.B39?.notes).toContain('CAD miss this pass');
+    expect(byId.B40?.notes).toContain('CAD miss this pass');
     expect(byId.B37?.notes).toContain('Adafruit 6034');
     expect(byId.B47?.notes).toContain('C28S-11.00-SPS8-SPS8');
     expect(byId.B49?.class).toBeNull();
