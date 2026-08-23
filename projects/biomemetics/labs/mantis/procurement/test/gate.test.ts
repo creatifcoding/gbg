@@ -25,9 +25,15 @@ const CAD_NOTE_BALLOONS = new Set([
   'B06',
   'B07',
   'B08',
+  'B09',
+  'B10',
   'B11',
+  'B12',
+  'B13',
+  'B14',
   'B15',
   'B16',
+  'B17',
   'B18',
   'B19',
   'B25',
@@ -51,6 +57,7 @@ const CAD_NOTE_BALLOONS = new Set([
   'B44',
   'B45',
   'B46',
+  'B47',
   'B48',
   'B49',
   'B50',
@@ -92,7 +99,7 @@ describe('seed from BOM.md', () => {
     expect(wells.every((row) => row.sku_id === null && row.mpn === null)).toBe(
       true,
     );
-    expect(await countTable(db, 'manufacturer_sku')).toBe(43);
+    expect(await countTable(db, 'manufacturer_sku')).toBe(50);
     expect(await countTable(db, 'supplier_party')).toBe(3);
     expect(await countTable(db, 'quote')).toBe(4);
     expect(await countTable(db, 'purchase_order')).toBe(0);
@@ -176,12 +183,18 @@ describe('seed from BOM.md', () => {
     expect(byId.B46?.notes).toContain('Future product');
     expect(byId.B46?.notes).toContain('LCSC prints stock');
     expect(byId.B44?.class).toBeNull();
-    expect(byId.B44?.notes).toContain('$1.411 snapshot is NOT a quote');
+    expect(byId.B44?.notes).toContain('Do not claim CAD printed 0154002.DR');
+    expect(byId.B09?.notes).toContain('CAD miss');
+    expect(byId.B16?.notes).toContain('PT2683');
+    expect(byId.B37?.notes).toContain('Adafruit 6034');
+    expect(byId.B47?.notes).toContain('C28S-11.00-SPS8-SPS8');
     expect(byId.B49?.class).toBeNull();
 
     const alternates = await listAlternates(db);
     expect(alternates.map((row) => row.id).sort()).toEqual([
+      'alt-B19-319-10-112',
       'alt-B36-B0371',
+      'alt-B37-pi-22-15',
       'alt-B44-fuse-dump',
       'alt-B48-supervisor',
       'alt-B50-molex-1053081212',
@@ -226,10 +239,10 @@ describe('seed from BOM.md', () => {
       'TCA9548APWR',
       'TCA9548ARGER',
     ]);
-    expect(byPart('B05')).toEqual([
-      'A000AN03.0L0GPCTE',
-      'ACRYCLR0.118CCM48X96',
-    ]);
+    expect(byPart('B37')).toEqual(['0150200231', '6034', '6035', '6036']);
+    expect(byPart('B47')).toEqual(['C28S-11.00-SPS8-SPS8']);
+    expect(byPart('B50')).toEqual(['39-01-2120']);
+    expect(byPart('B19')).toEqual(['319-10-108-00-001000']);
 
     const mpns = new Set(skus.map((row) => row.mpn));
     for (const forbidden of FORBIDDEN_MPNS) {
@@ -238,6 +251,8 @@ describe('seed from BOM.md', () => {
     expect(mpns.has('MAX96717')).toBe(false);
     expect(mpns.has('TCA9548A')).toBe(false);
     expect(mpns.has('1053081212')).toBe(false);
+    expect(mpns.has('319-10-112-00-001000')).toBe(false);
+    expect(mpns.has('PT2683')).toBe(false);
 
     expect(suppliers).toEqual([
       { id: 'lcsc', name: 'LCSC' },

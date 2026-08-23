@@ -85,24 +85,37 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B07: FDM_MISS,
   B08: [
-    'CAD miss until a non-JS hinge page is opened.',
+    'CAD miss until a non-JS hinge page is opened. Southco timed out. McMaster JS.',
     'EE candidates none selected: McMaster 1588A714 / 1588A724 / 1588A733.',
-    '11565A11 is not a 3 mm acrylic fit claim. Design still REF.',
+    '11565A11 is not a 3 mm acrylic fit claim. Design still REF. Do not file McMaster PNs from the later CAD miss pass.',
   ].join(' '),
+  B09: 'LOCK count / REF design. CAD miss this pass. No catalog MPN. No metal mesh.',
+  B10: 'CAD miss this pass. No catalog MPN. No metal mesh.',
   B11: [
     'constraint.',
     'CAD miss: common 18x16 insect mesh is cited around 1.2 mm hole (PVC-coated fiberglass listing); that misses LOCK <=0.80 mm nonmetal aperture.',
-    'McMaster insect screens printed no aperture in mm. No selected PN. Stop until a finer nonmetal mesh page is opened.',
+    'McMaster insect screens printed no aperture in mm. No selected PN. Stop until a finer nonmetal mesh page is opened. No metal mesh.',
   ].join(' '),
+  B12: 'CAD miss this pass. No catalog MPN.',
+  B13: 'CAD miss this pass. No catalog MPN.',
+  B14: 'CAD miss this pass. No catalog MPN.',
   B15: 'CAD miss. UNVERIFIED. No catalog MPN this pass.',
-  B16: 'CAD miss. UNVERIFIED. No catalog MPN this pass.',
+  B16: 'CAD miss. UNVERIFIED. No catalog MPN this pass. Do not file Exo Terra PT2683 as the combo.',
+  B17: 'CAD miss this pass. No catalog MPN.',
   B18: FDM_MISS,
-  B19: 'UNVERIFIED stack-up. CAD miss this pass. No catalog MPN.',
+  B19: [
+    'UNVERIFIED stack-up. CAD miss this pass. Assembly+stack UNVERIFIED STOP. Do not invent pads or a stack.',
+    'Pad-array candidate only: Mill-Max 319-10-108-00-001000, 8-pos gold mating target, THT, 2.54 mm. Snapshot $16.19 qty-1 / In-Stock 65 / 4 weeks is NOT a quote.',
+    'Not a flex electrode strip. Pyralux AP grades AP8515R through AP9161R on https://www.dupont.com/electronics-industrial/pyralux-ap.html are materials only; no stack selected.',
+    '319-10-112-00-001000 rejected (contacts print 10 vs header 12).',
+    'CAD B27 wet/animal hold still stands if this is a pogo mate. B20 holds.',
+    'Source: https://www.digikey.com/en/products/detail/mill-max-manufacturing-corp/319-10-108-00-001000/7743231',
+  ].join(' '),
   B25: [
     'UNVERIFIED rate/PN.',
-    'CAD miss remains. EE candidate Lee Spring LC032C08M music wire compression spring.',
-    'Printed rate 3.85 N/mm, free 19.05 mm, solid 8.36 mm, solid load 44.48 N.',
-    'Arithmetic vs 15-25 N / 5 mm TARGET is ours, not a vendor claim. Pocket UNVERIFIED. Not a buy.',
+    'CAD miss remains. Candidate Lee Spring LC032C08M, dry/external carriage, not animal-side. B20 holds.',
+    'Printed: Standard Compression Series (inch); Music Wire ASTM A228; OD 0.24 in / 6.10 mm; free 0.750 in / 19.05 mm; solid 0.329 in / 8.36 mm; rate 22.00 lb/in / 3.85 N/mm; load at solid 10.00 lb / 44.48 N; squared and ground; zinc plate ASTM B633.',
+    'Arithmetic vs 15-25 N / 5 mm TARGET is ours, not a vendor claim. Pocket / normally-locked path UNVERIFIED. Not a buy.',
     `Source: ${LEE_LC032}`,
   ].join(' '),
   B26: 'UNVERIFIED PN. CAD miss. No matching roller+axle set printed. Stop.',
@@ -129,7 +142,12 @@ const CAD_NOTES: Record<string, string> = {
     'Connector printed 22-pin 0.5 mm pitch FPC, 4-lane CSI. No vendor/price/lead. Not a buy.',
     `Source: ${TACHYON_CAMERAS}`,
   ].join(' '),
-  B37: 'UNVERIFIED length/orientation. CAD miss. No catalog FPC MPN this pass.',
+  B37: [
+    'UNVERIFIED length/orientation. Exact assembly length/orientation UNVERIFIED.',
+    'Candidates 22-pin 0.5 mm, A-B, none selected: Adafruit 6034 50 mm, Adafruit 6035 100 mm, Adafruit 6036 200 mm, generic Molex 0150200231 76.20 mm not labeled CSI; Type A.',
+    'Rejected: official Pi 22-to-15 Standard-Mini. CSI pin map UNVERIFIED. Snapshot prices are not quotes. Not a buy.',
+    'Sources: https://www.adafruit.com/product/6034 https://www.adafruit.com/product/6035 https://www.adafruit.com/product/6036 https://www.digikey.com/en/products/detail/molex/0150200231/2972340',
+  ].join(' '),
   B38: [
     'UNVERIFIED selected PN/pocket.',
     'Candidates none selected, pocket UNVERIFIED: SPIROL 151284 (brass, M3 x 0.5, overknurl 4.75 mm, L 5.74 mm, headed);',
@@ -141,7 +159,8 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B39: [
     'UNVERIFIED; never primary latch.',
-    'Candidates none selected: McMaster 3506K21 / 3506K36 / 3506K35 / 5679K88 / 5679K89 / 5679K91.',
+    'CAD miss this pass. Do not file McMaster PNs from the CAD miss pass.',
+    'EE candidates none selected remain: McMaster 3506K21 / 3506K36 / 3506K35 / 5679K88 / 5679K89 / 5679K91.',
   ].join(' '),
   B40: 'UNVERIFIED material/compression. CAD miss. No SKU+compression printed. Stop.',
   B41: [
@@ -170,9 +189,10 @@ const CAD_NOTES: Record<string, string> = {
     '2 A TARGET, final budget UNVERIFIED.',
     'Rejected as a selection from the tscircuit DigiKey fuse dump. First page prints 1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 Bel Fuse 1206 parts, not a 2 A rail fuse. Do not pick a neighbor. Cached prices on that page are snapshots, not a quote.',
     `Dump: ${FUSE_DUMP}`,
-    'Separate candidate Littelfuse 0154002.DR SMD fuse 9.73 x 5.03 mm, 2 A, FF, 125 V DC / 125 V AC, 50 A. Covers 12 V TARGET. Final budget UNVERIFIED.',
+    'EE-sourced candidate Littelfuse 0154002.DR from Octopart: SMD fuse 9.73 x 5.03 mm, 2 A, FF, 125 V DC / 125 V AC, 50 A. Covers 12 V TARGET. Final budget UNVERIFIED.',
+    'Do not claim CAD printed 0154002.DR. The Littelfuse 154 series datasheet prints catalog number 154002.0, ampere rating 2, amp code 2.0, fuse furnished 453002.0, time-lag twin 154002.0 T / 454002.0. Example on that PDF is 1.5 A to 015401.5DR. Do not derive 0154002.DR from that PDF. CAD row is a fuse+holder catalog family (154/154T OMNI-BLOK), not the custom rail tap.',
     '$1.411 snapshot is NOT a quote. Related DRT/DRTL/DRL not selected. DigiKey 39512000440 was AC-only, not used.',
-    `Octopart: ${OCTOPART_0154002}`,
+    `Octopart: ${OCTOPART_0154002} CAD datasheet: https://www.littelfuse.com/assetdocs/littelfuse-fuse-154-series-data-sheet?assetguid=a8a8a462-7295-481b-a91b-d770dabf005b`,
   ].join(' '),
   B45: [
     'device verified; carrier design UNVERIFIED.',
@@ -189,6 +209,12 @@ const CAD_NOTES: Record<string, string> = {
     'LCSC C27243025 prints MAX96724GTN/VY+T, 1+ $15.1147, 10+ $14.4884, 30+ $13.4064, 100+ $12.4604, in-stock 1466, ships now. Same page alternative MAX96724GTN/VY+ at $18.0866 / 25 avail. Package TQFN-56-EP(8x8), quad GMSL2/1 to CSI-2, 6Gbps. Pinout not in the fetched HTML.',
     'Honesty tension: CAD datasheet marked MAX96724GTN/VY+ as **Future product. LCSC prints stock on the +T reel. Both facts stand. Do not pick a buy.',
     `Sources: ${MAX96724_PAGE} ${LCSC_B46}`,
+  ].join(' '),
+  B47: [
+    'SI stack and routing UNVERIFIED. Four-channel V-dock SI UNVERIFIED STOP.',
+    'One printed 100 ohm pair only: Samtec C28S-11.00-SPS8-SPS8, 100 Ohms, one twinax pair, 11.000 in. Snapshot $70.93 qty-1 / In-Stock 184 / 6 weeks is NOT a quote.',
+    'Not a four-channel flex. Molex 0150210215 and 3M SL8801/12-111A5-00 not claimed (those pages did not print 100 ohm).',
+    'Sources: https://www.digikey.com/en/products/detail/samtec-inc/C28S-11-00-SPS8-SPS8/10507305 https://www.samtec.com/products/c28s',
   ].join(' '),
   B48: [
     'exact parts, mate order, timeout, polarity, and timing `UNVERIFIED`; P08 is not safety authority.',
@@ -207,7 +233,9 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B50: [
     '`C01`-`C12` mirror required nets; series, pin geometry, controlled-impedance launch, mate order, current, hot-unplug behavior, and durability `UNVERIFIED`.',
-    'Rejected: opened Molex 1053081212 Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. No MPN selected. Pinout not invented. UNVERIFIED stop.',
+    'Rejected: opened Molex 1053081212 Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12.',
+    'Series/housing candidate only, not selected as the keyed 12-net: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. No C01-C12 pinout. SI launch, mate order, hot-unplug UNVERIFIED.',
+    'Do not file Harwin M80-5101242. Source: https://www.heilind.eu/mol39-01-2120.html',
   ].join(' '),
   B51: 'CAD miss. geometry, fastener retention, drop/handling protocol, and proof load `UNVERIFIED`. No catalog MPN this pass.',
   B52: 'CAD miss. leaves ENIG lands contactable only inside captive external carriage envelope; environmental ingress rating `UNVERIFIED`, not hermetic. No catalog MPN this pass.',
@@ -230,6 +258,11 @@ const SKUS: SkuDraft[] = [
   { id: '1588A733', partId: 'B08', manufacturer: 'McMaster-Carr', mpn: '1588A733' },
   { id: 'LC032C08M', partId: 'B25', manufacturer: 'Lee Spring', mpn: 'LC032C08M' },
   { id: '816-22-012-10-000101', partId: 'B27', manufacturer: 'Mill-Max', mpn: '816-22-012-10-000101' },
+  { id: '319-10-108-00-001000', partId: 'B19', manufacturer: 'Mill-Max', mpn: '319-10-108-00-001000' },
+  { id: '6034', partId: 'B37', manufacturer: 'Adafruit', mpn: '6034' },
+  { id: '6035', partId: 'B37', manufacturer: 'Adafruit', mpn: '6035' },
+  { id: '6036', partId: 'B37', manufacturer: 'Adafruit', mpn: '6036' },
+  { id: '0150200231', partId: 'B37', manufacturer: 'Molex', mpn: '0150200231' },
   { id: '151284', partId: 'B38', manufacturer: 'SPIROL', mpn: '151284' },
   { id: '4255', partId: 'B38', manufacturer: 'Adafruit', mpn: '4255' },
   { id: '4256', partId: 'B38', manufacturer: 'Adafruit', mpn: '4256' },
@@ -258,12 +291,14 @@ const SKUS: SkuDraft[] = [
   { id: 'MAX96724FGTN/VY+', partId: 'B46', manufacturer: 'Analog Devices', mpn: 'MAX96724FGTN/VY+' },
   { id: 'MAX96724RGTN/V+', partId: 'B46', manufacturer: 'Analog Devices', mpn: 'MAX96724RGTN/V+' },
   { id: 'MAX96724GTN/VY+T', partId: 'B46', manufacturer: 'Analog Devices', mpn: 'MAX96724GTN/VY+T' },
+  { id: 'C28S-11.00-SPS8-SPS8', partId: 'B47', manufacturer: 'Samtec', mpn: 'C28S-11.00-SPS8-SPS8' },
   { id: 'D2FS-F-N', partId: 'B48', manufacturer: 'Aratas', mpn: 'D2FS-F-N' },
   { id: 'TPS259830LNRGER', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS259830LNRGER' },
   { id: 'TCA9548ADGSR', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548ADGSR' },
   { id: 'TCA9548AMRGER', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548AMRGER' },
   { id: 'TCA9548APWR', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548APWR' },
   { id: 'TCA9548ARGER', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548ARGER' },
+  { id: '39-01-2120', partId: 'B50', manufacturer: 'Molex', mpn: '39-01-2120' },
 ];
 
 const SUPPLIERS: { id: string; name: string }[] = [
@@ -456,6 +491,30 @@ VALUES (
   ${dollar('Molex')},
   ${dollar('1053081212')},
   ${dollar('Nano-Fit 12-pos, latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. No MPN selected.')}
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO alternate (id, part_id, name, status, manufacturer, mpn, notes)
+VALUES (
+  ${dollar('alt-B19-319-10-112')},
+  ${dollar('B19')},
+  ${dollar('Mill-Max 319-10-112-00-001000')},
+  ${dollar('rejected')},
+  ${dollar('Mill-Max')},
+  ${dollar('319-10-112-00-001000')},
+  ${dollar('Contacts print 10 vs header 12. Not a flex electrode strip.')}
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO alternate (id, part_id, name, status, manufacturer, mpn, notes)
+VALUES (
+  ${dollar('alt-B37-pi-22-15')},
+  ${dollar('B37')},
+  ${dollar('official Pi 22-to-15 Standard-Mini')},
+  ${dollar('rejected')},
+  NULL,
+  NULL,
+  ${dollar('CSI pin map UNVERIFIED. Not a selected camera FPC.')}
 )
 ON CONFLICT (id) DO NOTHING;
 
