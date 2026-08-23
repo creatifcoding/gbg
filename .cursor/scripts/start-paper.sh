@@ -1,39 +1,28 @@
 #!/usr/bin/env bash
-# Cursor Cloud: start Xvfb if DISPLAY is unset, then start Paper so MCP can listen.
-# Paper MCP is http://127.0.0.1:29979/mcp. A missing session is logged; this does not fail the agent.
-# Sign-in is a one-time environment/snapshot step; this script does not fake a session.
+# Cursor Cloud: start paper-mcp (headless MCP). No board window. No open file.
+# MCP is http://127.0.0.1:29979/mcp. It has no cookie session and 401s without a bearer.
+# Agents need a Paper bearer (env/secret), not Desktop Google cookies. This does not invent a token.
+# If Paper exits, the failure is logged and the agent continues.
 set -u
 
-LOG="${PAPER_LOG:-/tmp/paper-desktop.log}"
+LOG="${PAPER_LOG:-/tmp/paper-mcp.log}"
 MCP_URL="http://127.0.0.1:29979/mcp"
 export PATH="/usr/local/bin:${HOME}/.local/bin:${PATH}"
 
 mcp_listening() {
-  # GET is often 404. Any HTTP status means the port is bound.
+  # GET may be 401 (no bearer) or 404. Any HTTP status means the port is bound.
   local code
   code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 2 "${MCP_URL}" 2>/dev/null || true)"
   [[ "${code}" =~ ^[1-5][0-9][0-9]$ ]]
 }
 
 if mcp_listening; then
-  echo "start-paper: MCP already listening at ${MCP_URL}"
+  echo "start-paper: headless MCP already listening at ${MCP_URL}"
   exit 0
 fi
 
-if [[ -z "${DISPLAY:-}" ]]; then
-  export DISPLAY=:99
-  if ! pgrep -x Xvfb >/dev/null 2>&1; then
-    if ! command -v Xvfb >/dev/null 2>&1; then
-      echo "start-paper: Xvfb is not installed; Paper not started" | tee -a "${LOG}"
-      exit 0
-    fi
-    Xvfb :99 -screen 0 1920x1080x24 >/tmp/xvfb-paper.log 2>&1 &
-    sleep 0.5
-  fi
-fi
-
-if ! command -v paper >/dev/null 2>&1; then
-  echo "start-paper: paper is not on PATH; skip" | tee -a "${LOG}"
+if ! command -v paper-mcp >/dev/null 2>&1; then
+  echo "start-paper: paper-mcp is not on PATH; skip" | tee -a "${LOG}"
   exit 0
 fi
 
@@ -42,24 +31,24 @@ if pgrep -x Paper.AppImage >/dev/null 2>&1; then
   exit 0
 fi
 
-nohup paper >>"${LOG}" 2>&1 &
+nohup paper-mcp >>"${LOG}" 2>&1 &
 paper_pid=$!
 disown "${paper_pid}" 2>/dev/null || true
-echo "start-paper: launched paper pid ${paper_pid} (DISPLAY=${DISPLAY}) log ${LOG}"
+echo "start-paper: launched paper-mcp pid ${paper_pid} log ${LOG}"
 
 i=0
-while [[ "${i}" -lt 30 ]]; do
+while [[ "${i}" -lt 60 ]]; do
   if mcp_listening; then
-    echo "start-paper: MCP listening at ${MCP_URL} (sign-in and a file open are still required for a usable session)"
+    echo "start-paper: headless MCP listening at ${MCP_URL} (401 without a Paper bearer is expected; not Desktop cookies)"
     exit 0
   fi
   if ! kill -0 "${paper_pid}" 2>/dev/null; then
-    echo "start-paper: Paper exited before MCP listened; see ${LOG}" | tee -a "${LOG}"
+    echo "start-paper: paper-mcp exited before MCP listened; see ${LOG}" | tee -a "${LOG}"
     exit 0
   fi
   i=$((i + 1))
   sleep 1
 done
 
-echo "start-paper: Paper is up but MCP is not listening yet at ${MCP_URL} (needs a signed-in Desktop with a file open); see ${LOG}"
+echo "start-paper: paper-mcp is up but MCP is not listening yet at ${MCP_URL}; see ${LOG}"
 exit 0
