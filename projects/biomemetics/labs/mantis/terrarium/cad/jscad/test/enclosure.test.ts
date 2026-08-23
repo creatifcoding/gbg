@@ -23,7 +23,10 @@ type ParamsFile = {
     readonly 'frame.exterior.depth': QuantityRecord;
     readonly 'frame.exterior.height': QuantityRecord;
     readonly 'frame.band': QuantityRecord;
+    readonly 'frame.module_pitch': QuantityRecord;
+    readonly 'frame.first_span': QuantityRecord;
     readonly 'panel.stock_thickness': QuantityRecord;
+    readonly 'husbandry.screen.aperture_max': QuantityRecord;
     readonly 'animal.clear.width': QuantityRecord;
     readonly 'animal.clear.depth': QuantityRecord;
     readonly 'animal.clear.height': QuantityRecord;
@@ -71,7 +74,10 @@ const parseParamsFile = (value: unknown): ParamsFile => {
       'frame.exterior.depth': readQuantity(parameters, 'frame.exterior.depth'),
       'frame.exterior.height': readQuantity(parameters, 'frame.exterior.height'),
       'frame.band': readQuantity(parameters, 'frame.band'),
+      'frame.module_pitch': readQuantity(parameters, 'frame.module_pitch'),
+      'frame.first_span': readQuantity(parameters, 'frame.first_span'),
       'panel.stock_thickness': readQuantity(parameters, 'panel.stock_thickness'),
+      'husbandry.screen.aperture_max': readQuantity(parameters, 'husbandry.screen.aperture_max'),
       'animal.clear.width': readQuantity(parameters, 'animal.clear.width'),
       'animal.clear.depth': readQuantity(parameters, 'animal.clear.depth'),
       'animal.clear.height': readQuantity(parameters, 'animal.clear.height'),
@@ -93,6 +99,11 @@ test('typed enclosure table matches terrarium/params.json', () => {
   assert.equal(ENCLOSURE_PARAMS.exterior.height.status, parameters['frame.exterior.height'].status);
   assert.equal(ENCLOSURE_PARAMS.band.value, parameters['frame.band'].value);
   assert.equal(ENCLOSURE_PARAMS.band.status, parameters['frame.band'].status);
+  assert.equal(ENCLOSURE_PARAMS.pitch.value, parameters['frame.module_pitch'].value);
+  assert.equal(ENCLOSURE_PARAMS.firstSpan.value, parameters['frame.first_span'].value);
+  assert.equal(ENCLOSURE_PARAMS.screenApertureMax.value, parameters['husbandry.screen.aperture_max'].value);
+  assert.equal(ENCLOSURE_PARAMS.cassetteSeat.value, 3.2);
+  assert.equal(ENCLOSURE_PARAMS.cassetteSeat.status, 'target');
   assert.equal(ENCLOSURE_PARAMS.stock.value, parameters['panel.stock_thickness'].value);
   assert.equal(ENCLOSURE_PARAMS.stock.status, parameters['panel.stock_thickness'].status);
   assert.equal(ENCLOSURE_PARAMS.clear.width.value, parameters['animal.clear.width'].value);

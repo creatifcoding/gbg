@@ -1,10 +1,23 @@
 # @tmnl/mantis-terrarium-jscad
 
-TypeScript is the CAD authoring source. Leftover FreeCAD under `cad/src/**/export_freecad.py` is emit only.
+TypeScript is the CAD authoring source. Leftover FreeCAD/OCCT under `cad/src/**` is emit only. PR 34 and PR 36 stay emit. Do not copy leftover OCCT as authority.
 
-The model is one axis-aligned 250 x 250 x 500 mm cuboid, origin at front-left-bottom. X right, Y back, Z up. The 202 x 202 x 427 mm animal-clear box is a keep-out record, not a subtracted void. PARAMS does not lock that void's Z origin.
+The tree still has one envelope cuboid: 250 x 250 x 500 mm, origin front-left-bottom. X right, Y back, Z up. The 202 x 202 x 427 mm animal-clear box is a keep-out record, not a subtracted void. PARAMS does not lock that void's Z origin.
 
-`npm run generate` projects that solid with `@jscad/modeling` `extrusions.project({axis, origin}, solid)` and writes front, side, and top SVG under `generated/` with `@jscad/svg-serializer` `serialize({unit: 'mm'}, geom2)`. Those files are class generated, not shop-release. Leftover S01 stays the extract view.
+B20 is the continuous animal/wet barrier. These solids are nonmetal. No animal-side copper, pogo, or metal mesh is authored here.
+
+## Named solids
+
+| solid | balloon | PARAMS rows | what is modeled | omitted |
+| --- | --- | --- | --- | --- |
+| enclosure envelope | — | `frame.exterior.width/depth/height` LOCK | one cuboid `[0,0,0]→[250,250,500]` | animal-clear void Z |
+| `B01-corner-block` | B01 | `frame.band` REF; instances also use exterior 250/250/500 and pitch/span 250/500 | unique 24 mm cube; eight instances at the envelope corners | leftover pocket/inset cuts |
+| `B05-view-cassette` | B05 | `panel.stock_thickness` 3.00 mm LOCK; `animal.clear.width/height` 202 x 427 CALCULATED | local plate 202 x 3 x 427 mm | world face and gasket Z; seat pocket |
+| `B06-front-door` | B06 | `panel.stock_thickness` 3.00 mm LOCK; `animal.clear.width/height` 202 x 427 CALCULATED | local plate 202 x 3 x 427 mm | world face, swing, nymph-gap cut |
+
+Cassette seat is `stock + 0.20 mm` TARGET (3.20 mm). It is recorded, not a pocket. Screen aperture `<=0.80 mm` nonmetal is LOCK on B11, not a cut in these plates. In-plane plate size is CALCULATED before gasket closure.
+
+`npm run generate` projects the envelope with `@jscad/modeling` `extrusions.project({axis, origin}, solid)` and writes front, side, and top SVG under `generated/` with `@jscad/svg-serializer` `serialize({unit: 'mm'}, geom2)`. Those files are class generated, not shop-release. Leftover S01 stays the extract view.
 
 | file | view | axis | origin | plane |
 | --- | --- | --- | --- | --- |

@@ -1,3 +1,15 @@
+export { B05_PARAM_ROWS, buildViewCassette, measureCassetteBox } from './cassette.ts';
+export type { ViewCassette } from './cassette.ts';
+export {
+  B01_PARAM_ROWS,
+  buildCornerBlock,
+  buildCornerInstances,
+  CORNER_ORIGINS,
+  measureCornerBox,
+} from './corner.ts';
+export type { CornerBlock, CornerInstance } from './corner.ts';
+export { B06_PARAM_ROWS, buildFrontDoor, measureDoorBox } from './door.ts';
+export type { FrontDoor } from './door.ts';
 export { emitStl, emitStep } from './emit.ts';
 export {
   ANIMAL_CLEAR_KEEP_OUT,
