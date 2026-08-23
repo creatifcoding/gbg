@@ -1,3 +1,4 @@
+Using entrypoint from tscircuit config: 'index.circuit.tsx'
 <SchematicBoxPositions>
 <SchematicBoxPlacement componentName="B27" positionAnchor="center" schX="-1.06" schY="-7.482" width="1.4" height="2.6" />
 <SchematicBoxPlacement componentName="B50" positionAnchor="center" schX="-3.065" schY="-2.883" width="1.4" height="2.6" />

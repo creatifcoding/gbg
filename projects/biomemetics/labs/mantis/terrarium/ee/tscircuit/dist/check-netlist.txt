@@ -1,3 +1,4 @@
+Using entrypoint from tscircuit config: 'index.circuit.tsx'
 Errors: 0
 Warnings: 0
 
