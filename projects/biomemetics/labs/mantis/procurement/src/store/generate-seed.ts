@@ -36,6 +36,23 @@ const LEE_LC032 = 'https://www.leespring.com/product/compression-spring-lc032c08
 const LITTELFUSE_154 =
   'https://www.littelfuse.com/assetdocs/littelfuse-fuse-154-series-data-sheet?assetguid=a8a8a462-7295-481b-a91b-d770dabf005b';
 const MOLEX_39_01_2120 = 'https://www.heilind.eu/mol39-01-2120.html';
+const LCSC_B44 = 'https://www.lcsc.com/product-detail/C206910.html';
+const TI_TPS37A = 'https://www.ti.com/product/TPS37/part-details/TPS37A010122DSKR';
+const LCSC_LTC2966 = 'https://www.lcsc.com/product-detail/C683885.html';
+const TI_TPS22810 = 'https://www.ti.com/product/TPS22810';
+const TI_LM74700 = 'https://www.ti.com/product/LM74700-Q1';
+const TI_SN74LVC1G08 = 'https://www.ti.com/product/SN74LVC1G08';
+const SDS_PDF =
+  'https://www.tme.eu/Document/4ff5aea093e89b0a18f91c75e538e08c/SDS.pdf';
+const TI_TPS2595 = 'https://www.ti.com/product/TPS2595';
+const TE_1_1827876_6 = 'https://www.te.com/en/product-1-1827876-6.html';
+const TE_1_1827876_6_PDF =
+  'https://www.part-elec.com/datasheet/te-connectivity/1-1827876-6.pdf';
+const DTM13_12PB = 'https://www.govolition.com/product/V51-DTM13-12PB-R008';
+const RUTHEX_RX_M3 =
+  'https://www.ruthex.de/en/products/ruthex-gewindeeinsatz-m3-100-stuck-rx-m3x5-7-messing-gewindebuchsen';
+const RUTHEX_3DJAKE = 'https://www.3djake.com/ruthex/threaded-insert-m3-100-pieces';
+const KJ_D42 = 'https://www.kjmagnetics.com/proddetail.asp?prod=D42';
 const LAPP_M20 =
   'https://e.lapp.com/in/p/plastic-cable-glands/skintop-st-m-20x1-5-ral-7035-lgy-53111420';
 const SEALCON_M20 = 'https://www.sealconusa.com/product/cd20ma-bk/';
@@ -153,17 +170,20 @@ const CAD_NOTES: Record<string, string> = {
     'Sources: https://www.adafruit.com/product/6034 https://www.digikey.com/en/products/detail/adafruit-industries-llc/6034/25589367 https://www.adafruit.com/product/6035 https://www.adafruit.com/product/6036 https://www.digikey.com/en/products/detail/molex/0150200231/2972340',
   ].join(' '),
   B38: [
-    'UNVERIFIED selected PN/pocket. Not a release selection. None selected.',
-    'CAD this pass confirms Adafruit 4255 as extra next to Adafruit 4256 and SPIROL 151284. Pocket UNVERIFIED. Not selected.',
+    'UNVERIFIED selected PN/pocket. Not a release selection. None selected. Pocket UNVERIFIED.',
+    'CAD this pass confirms Adafruit 4255 as extra next to Adafruit 4256 and SPIROL 151284. Not selected.',
     'SPIROL 151284 (brass, M3 x 0.5, overknurl 4.75 mm, L 5.74 mm, headed); Adafruit 4256 M3-threaded inserts 3 mm long, 50-pack, brass heat-set; Adafruit 4255 M3 x 4 mm brass heat-set 50 pack OD 4.2 mm, hole dia not printed.',
-    'EE McMaster insert candidates remain, not from this CAD pass: 94180A331 and 94180A333 (M3 x 0.5 tapered); 94459A769 / 94459A130 / 94459A140 (straight).',
-    'Screw 91292A113 not confirmed on a McMaster URL. Do not file Adafruit 4685. Do not file McMaster PNs from this CAD pass. No price landed from these pages.',
-    `SPIROL: ${SPIROL_151284} Adafruit 4256: ${ADAFRUIT_4256}`,
+    'EE McMaster insert candidates remain: 94180A331 and 94180A333 (M3 x 0.5 tapered); 94459A769 / 94459A130 / 94459A140 (straight). Do not drop already-queued McMaster/Adafruit inserts.',
+    'Leftover EE catalog candidates, not buys: ruthex RX-M3x5.7 / GE-M3x57-001. 3DJake prints D1 4.6 / L 5.7 mm. Snapshot €8,99/100 and $8.76 are NOT quotes.',
+    'Screw 91292A113 not confirmed on a McMaster URL. Do not file Adafruit 4685. Do not file McMaster PNs from the CAD miss pass.',
+    `SPIROL: ${SPIROL_151284} Adafruit 4256: ${ADAFRUIT_4256} ruthex: ${RUTHEX_RX_M3} 3DJake: ${RUTHEX_3DJAKE}`,
   ].join(' '),
   B39: [
-    'UNVERIFIED; never primary latch.',
+    'UNVERIFIED; never primary latch. Size still unselected.',
     'CAD miss this pass. Do not file McMaster PNs from this CAD pass.',
     'EE candidates none selected remain: McMaster 3506K21 / 3506K36 / 3506K35 / 5679K88 / 5679K89 / 5679K91.',
+    'Leftover EE catalog candidate, not a buy: K&J D42 N42 6.35 x 3.17 mm. Snapshot $0.41 is NOT a quote.',
+    `K&J: ${KJ_D42}`,
   ].join(' '),
   B40: 'UNVERIFIED material/compression. CAD miss this pass. No SKU+compression printed. Stop.',
   B41: [
@@ -193,9 +213,10 @@ const CAD_NOTES: Record<string, string> = {
     'Custom rail tap remains UNVERIFIED. CAD this pass is a fuse+holder catalog family (154/154T OMNI-BLOK), not the custom rail tap. No price landed from the CAD PDF.',
     'EE miss stands: rejected as a selection from the tscircuit DigiKey fuse dump. First page prints 1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 Bel Fuse 1206 parts, not a 2 A rail fuse. Do not pick a neighbor. Cached prices on that page are snapshots, not a quote.',
     `Dump: ${FUSE_DUMP}`,
-    'EE-sourced candidate remains: Littelfuse 0154002.DR from Octopart: SMD fuse 9.73 x 5.03 mm, 2 A, FF, 125 V DC / 125 V AC, 50 A. Covers 12 V TARGET. Final budget UNVERIFIED. $1.411 snapshot is NOT a quote. Related DRT/DRTL/DRL not selected. DigiKey 39512000440 was AC-only, not used. Do not claim CAD printed 0154002.DR.',
-    'CAD datasheet printed: catalog number 154002.0; ampere rating 2; amp code 2.0; fuse furnished 453002.0. Time-lag twin 154002.0 T / 454002.0. Example on the PDF is 1.5 A to 015401.5DR. Do not derive 0154002.DR from that. Do not file 154002.0 / 453002.0 / 454002.0 / 015401.5DR as the rail tap.',
-    `Octopart: ${OCTOPART_0154002} CAD datasheet: ${LITTELFUSE_154}`,
+    'EE-sourced candidate remains: Littelfuse 0154002.DR. Octopart $1.411 snapshot is NOT a quote. Related DRT/DRTL/DRL not selected. DigiKey 39512000440 was AC-only, not used. Do not claim CAD printed 0154002.DR. Do not land 0452002.MRL. Not 2.5 A. Not 0154010.DR.',
+    'Leftover EE LCSC detail now opened, candidate not a buy: FUSE BRD MNT 2A 125VAC/VDC SMD, 2A, 125V DC, 50A IR, SMD 9.73 x 5.03 x 3.81 mm. Page prices 1+ $1.5396 and 1500+ $0.8542 and In-Stock 1420 are snapshots, NOT a quote. DigiKey/Mouser/LF HTML detail not opened. Holders 01550900M/DR named on LCSC, not the 2 A pick.',
+    'CAD datasheet printed: catalog number 154002.0; ampere rating 2; amp code 2.0; fuse furnished 453002.0. Time-lag twin 154002.0 T / 454002.0. Example on the PDF is 1.5 A to 015401.5DR. That PDF does not print the string 0154002.DR next to DC. Do not derive 0154002.DR from that. Do not file 154002.0 / 453002.0 / 454002.0 / 015401.5DR as the rail tap.',
+    `Octopart: ${OCTOPART_0154002} LCSC: ${LCSC_B44} CAD datasheet: ${LITTELFUSE_154}`,
   ].join(' '),
   B45: [
     'device verified; carrier design UNVERIFIED.',
@@ -221,13 +242,27 @@ const CAD_NOTES: Record<string, string> = {
     'Sources: https://www.digikey.com/en/products/detail/samtec-inc/C28S-11-00-SPS8-SPS8/10507305 https://www.samtec.com/products/c28s',
   ].join(' '),
   B48: [
-    'exact parts, mate order, timeout, polarity, and timing `UNVERIFIED`; P08 is not safety authority.',
-    'CAD miss this pass on supervisor / discharge / bus isolation / AND timing: rejected stop. No MPN. 3.3 V monitors opened were not used. Do not file TPS25221.',
-    'EE candidates remain. S1/S2 logic detect only, one MPN not assigned S1 vs S2: D2FS-F-N Aratas (formerly Omron), SPST-NO, 100 mA DC, 6 V DC, Off-Mom. Not a 12 V interrupt. Fit UNVERIFIED.',
+    'exact parts, mate order, timeout, polarity, and timing `UNVERIFIED`; P08 is not safety authority. Class stays UNVERIFIED. Not a buy.',
+    'Do not replace S1/S2 D2FS-F-N or Q1 TPS259830LNRGER.',
+    'S1/S2 logic detect only, one MPN not assigned S1 vs S2: D2FS-F-N Aratas (formerly Omron), SPST-NO, 100 mA DC, 6 V DC, Off-Mom. Not a 12 V interrupt. Fit UNVERIFIED.',
     `D2FS: ${D2FS}`,
-    'EE candidate Q1 remains: TPS259830LNRGER TI, 2.7-26 V, programmable current limit, 18 A max, Auto Retry, OVP, 24-VQFN. Page does not print a 2 A factory limit. Enable from S1 AND S2 / discharge / isolation UNVERIFIED.',
+    'Q1 remains: TPS259830LNRGER TI, 2.7-26 V, programmable current limit, 18 A max, Auto Retry, OVP, 24-VQFN. Page does not print a 2 A factory limit. Enable from S1 AND S2 / discharge / isolation UNVERIFIED.',
     `TPS259830: ${TPS259830}`,
-    'Not a buy.',
+    'CAD miss remains on 3.3 V monitors (not used). Do not file TPS25221. TPS3840 opened (1.5-10 V) not used.',
+    'Leftover EE supervisor candidate, not a buy: TPS37A010122DSKR, 2.7-65 V; page says can monitor 12 V / 24 V rails. Dash UV/OV setpoint UNVERIFIED.',
+    `TPS37: ${TI_TPS37A}`,
+    'Supervisor alt opened, not selected: LTC2966IUD#TRPBF 3.5-100 V / 1.75-98 V. Snapshot 1+ $5.183 ref / Out of Stock is NOT a quote.',
+    `LTC2966: ${LCSC_LTC2966}`,
+    'Leftover EE discharge, separate device not a Q1 replacement: TPS22810 family, no tape/reel suffix printed. QOD printed. 2.7-18 V. RON 79 mOhm typ @ 12 V. 2 A DBV / 3 A DRV. No bleeder ohm invented.',
+    `TPS22810: ${TI_TPS22810}`,
+    'Leftover EE isolation: LM74700-Q1 ideal-diode controller 3.2-65 V, printed 12-V bus. External N-MOSFET UNVERIFIED. LM7480-Q1 sibling page not opened.',
+    `LM74700: ${TI_LM74700}`,
+    'Leftover EE AND: SN74LVC1G08 Y=A·B, VCC 1.65-5.5 V. Not a 12 V AND. If S1/S2 must switch 12 V, this page is not that job.',
+    `AND: ${TI_SN74LVC1G08}`,
+    'Extra S1/S2 family not selected: C&K SDS001 / SDS004 N.O., 100 mA @ 12 VDC printed.',
+    `SDS: ${SDS_PDF}`,
+    'Extra Q1 family not selected, do not replace TPS259830LNRGER: TPS2595 2.7-18 V, ILIM 0.5-4 A. Rev.C addendum Active TPS259540DSGR / 541 / 570 / 571 / 573 / 535. Full dash codes not invented beyond TPS259540DSGR. QOD 19 ohm on x5.',
+    `TPS2595: ${TI_TPS2595}`,
   ].join(' '),
   B49: [
     'device documented; address, reset, hot-insertion behavior, carrier, and need remain `UNVERIFIED`.',
@@ -237,11 +272,14 @@ const CAD_NOTES: Record<string, string> = {
     `Sources: ${TCA9548A_PAGE} ${TCA9548A_DATASHEET}`,
   ].join(' '),
   B50: [
-    '`C01`-`C12` mirror required nets; series, pin geometry, controlled-impedance launch, mate order, current, hot-unplug behavior, and durability `UNVERIFIED`.',
-    'CAD this pass: series/housing candidate only, not selected as the keyed 12-net: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. No C01-C12 pinout. SI launch, mate order, hot-unplug UNVERIFIED. No price landed.',
-    'EE Nano-Fit 1053081212 remains rejected: latch lock, contacts sold separately, no keying word. Not a keyed 12-net C01-C12. Pinout not invented.',
-    'Do not file Harwin M80-5101242. Do not file McMaster PNs from this CAD pass.',
-    `Source: ${MOLEX_39_01_2120}`,
+    '`C01`-`C12` mirror required nets; series, pin geometry, controlled-impedance launch, mate order, current, hot-unplug behavior, and durability `UNVERIFIED`. Class stays UNVERIFIED. Not a buy.',
+    'Leftover EE keyed 12-pos header candidate: TE 1-1827876-6. 12 positions; Keying X; Mating Alignment Type Keyed; 5 A; 250 VAC/VDC; 2.5 mm. Mate housing UNVERIFIED. C01-C12 / impedance / hot-unplug UNVERIFIED.',
+    `TE: ${TE_1_1827876_6} datasheet reprint: ${TE_1_1827876_6_PDF}`,
+    'Alt opened, not selected: DTM13-12PB-R008 Keyed code B, 12 pos, 7.5 A, 12|24 V architecture, interface DTM04-12P.',
+    `DTM: ${DTM13_12PB}`,
+    'CAD housing candidate remains, rejected as keyed: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. Polarized only, not keyed.',
+    'Rejected as keyed: DF11-12DP-2DSA(08) Key field empty (Hirose); 1053081212 latch-only (prior). Pinout not invented. Do not file Harwin M80-5101242.',
+    `Housing source: ${MOLEX_39_01_2120}`,
   ].join(' '),
   B51: 'CAD miss. geometry, fastener retention, drop/handling protocol, and proof load `UNVERIFIED`. No catalog MPN this pass.',
   B52: 'CAD miss. leaves ENIG lands contactable only inside captive external carriage envelope; environmental ingress rating `UNVERIFIED`, not hermetic. No catalog MPN this pass.',
@@ -277,12 +315,15 @@ const SKUS: SkuDraft[] = [
   { id: '94459A769', partId: 'B38', manufacturer: 'McMaster-Carr', mpn: '94459A769' },
   { id: '94459A130', partId: 'B38', manufacturer: 'McMaster-Carr', mpn: '94459A130' },
   { id: '94459A140', partId: 'B38', manufacturer: 'McMaster-Carr', mpn: '94459A140' },
+  { id: 'RX-M3x5.7', partId: 'B38', manufacturer: 'ruthex', mpn: 'RX-M3x5.7' },
+  { id: 'GE-M3x57-001', partId: 'B38', manufacturer: 'ruthex', mpn: 'GE-M3x57-001' },
   { id: '3506K21', partId: 'B39', manufacturer: 'McMaster-Carr', mpn: '3506K21' },
   { id: '3506K36', partId: 'B39', manufacturer: 'McMaster-Carr', mpn: '3506K36' },
   { id: '3506K35', partId: 'B39', manufacturer: 'McMaster-Carr', mpn: '3506K35' },
   { id: '5679K88', partId: 'B39', manufacturer: 'McMaster-Carr', mpn: '5679K88' },
   { id: '5679K89', partId: 'B39', manufacturer: 'McMaster-Carr', mpn: '5679K89' },
   { id: '5679K91', partId: 'B39', manufacturer: 'McMaster-Carr', mpn: '5679K91' },
+  { id: 'D42', partId: 'B39', manufacturer: 'K&J Magnetics', mpn: 'D42' },
   { id: '53111420', partId: 'B41', manufacturer: 'LAPP', mpn: '53111420' },
   { id: 'CD20MA-BK', partId: 'B41', manufacturer: 'Sealcon', mpn: 'CD20MA-BK' },
   { id: 'TACH4NA', partId: 'B42', manufacturer: 'Particle', mpn: 'TACH4NA' },
@@ -300,11 +341,22 @@ const SKUS: SkuDraft[] = [
   { id: 'C28S-11.00-SPS8-SPS8', partId: 'B47', manufacturer: 'Samtec', mpn: 'C28S-11.00-SPS8-SPS8' },
   { id: 'D2FS-F-N', partId: 'B48', manufacturer: 'Aratas', mpn: 'D2FS-F-N' },
   { id: 'TPS259830LNRGER', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS259830LNRGER' },
+  { id: 'TPS37A010122DSKR', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS37A010122DSKR' },
+  { id: 'LTC2966IUD#TRPBF', partId: 'B48', manufacturer: 'Analog Devices', mpn: 'LTC2966IUD#TRPBF' },
+  { id: 'TPS22810', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS22810' },
+  { id: 'LM74700-Q1', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'LM74700-Q1' },
+  { id: 'SN74LVC1G08', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'SN74LVC1G08' },
+  { id: 'SDS001', partId: 'B48', manufacturer: 'C&K', mpn: 'SDS001' },
+  { id: 'SDS004', partId: 'B48', manufacturer: 'C&K', mpn: 'SDS004' },
+  { id: 'TPS2595', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS2595' },
+  { id: 'TPS259540DSGR', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS259540DSGR' },
   { id: 'TCA9548ADGSR', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548ADGSR' },
   { id: 'TCA9548AMRGER', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548AMRGER' },
   { id: 'TCA9548APWR', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548APWR' },
   { id: 'TCA9548ARGER', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548ARGER' },
   { id: '39-01-2120', partId: 'B50', manufacturer: 'Molex', mpn: '39-01-2120' },
+  { id: '1-1827876-6', partId: 'B50', manufacturer: 'TE Connectivity', mpn: '1-1827876-6' },
+  { id: 'DTM13-12PB-R008', partId: 'B50', manufacturer: 'DTM', mpn: 'DTM13-12PB-R008' },
 ];
 
 const SUPPLIERS: { id: string; name: string }[] = [
@@ -484,7 +536,7 @@ VALUES (
   ${dollar('rejected')},
   NULL,
   NULL,
-  ${dollar('Rejected stop. No MPN. 3.3 V monitors opened were not used.')}
+  ${dollar('3.3 V monitors opened were not used. TPS3840 opened (1.5-10 V) not used. Leftover EE supervisor candidate TPS37A010122DSKR is not a buy. Dash UV/OV setpoint UNVERIFIED.')}
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -521,6 +573,42 @@ VALUES (
   NULL,
   NULL,
   ${dollar('CSI pin map UNVERIFIED. Not a selected camera FPC.')}
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO alternate (id, part_id, name, status, manufacturer, mpn, notes)
+VALUES (
+  ${dollar('alt-B48-tps3840')},
+  ${dollar('B48')},
+  ${dollar('TPS3840')},
+  ${dollar('rejected')},
+  ${dollar('Texas Instruments')},
+  ${dollar('TPS3840')},
+  ${dollar('Opened 1.5-10 V. Not used. Not a 12 V supervisor.')}
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO alternate (id, part_id, name, status, manufacturer, mpn, notes)
+VALUES (
+  ${dollar('alt-B50-39-01-2120-keyed')},
+  ${dollar('B50')},
+  ${dollar('Molex 39-01-2120 keyed')},
+  ${dollar('rejected')},
+  ${dollar('Molex')},
+  ${dollar('39-01-2120')},
+  ${dollar('Polarized only (Heilind). Rejected as keyed. Housing candidate remains, not a keyed 12-net C01-C12.')}
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO alternate (id, part_id, name, status, manufacturer, mpn, notes)
+VALUES (
+  ${dollar('alt-B50-df11-12dp')},
+  ${dollar('B50')},
+  ${dollar('Hirose DF11-12DP-2DSA(08)')},
+  ${dollar('rejected')},
+  ${dollar('Hirose')},
+  ${dollar('DF11-12DP-2DSA(08)')},
+  ${dollar('Key field empty. Rejected as keyed.')}
 )
 ON CONFLICT (id) DO NOTHING;
 

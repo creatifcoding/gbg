@@ -86,6 +86,9 @@ const FORBIDDEN_MPNS = [
   '015401.5DR',
   '0150210215',
   'SL8801/12-111A5-00',
+  '0452002.MRL',
+  '0154010.DR',
+  'LM7480-Q1',
 ];
 
 const load = async () => {
@@ -108,7 +111,7 @@ describe('seed from BOM.md', () => {
     expect(wells.every((row) => row.sku_id === null && row.mpn === null)).toBe(
       true,
     );
-    expect(await countTable(db, 'manufacturer_sku')).toBe(50);
+    expect(await countTable(db, 'manufacturer_sku')).toBe(64);
     expect(await countTable(db, 'supplier_party')).toBe(3);
     expect(await countTable(db, 'quote')).toBe(4);
     expect(await countTable(db, 'purchase_order')).toBe(0);
@@ -206,12 +209,21 @@ describe('seed from BOM.md', () => {
     expect(byId.B44?.notes).toContain('Do not claim CAD printed 0154002.DR');
     expect(byId.B44?.notes).toContain('Do not derive 0154002.DR');
     expect(byId.B44?.notes).toContain('$1.411 snapshot is NOT a quote');
+    expect(byId.B44?.notes).toContain('1+ $1.5396');
+    expect(byId.B44?.notes).toContain('snapshots, NOT a quote');
+    expect(byId.B44?.notes).toContain('does not print the string 0154002.DR next to DC');
     expect(byId.B27?.notes).toContain('do not treat this as accepted against a wet/animal balloon');
     expect(byId.B48?.notes).toContain('Not a 12 V interrupt');
-    expect(byId.B48?.notes).toContain('CAD miss this pass on supervisor');
+    expect(byId.B48?.notes).toContain('Do not replace S1/S2 D2FS-F-N or Q1 TPS259830LNRGER');
+    expect(byId.B48?.notes).toContain('TPS37A010122DSKR');
+    expect(byId.B48?.notes).toContain('TPS22810 family');
+    expect(byId.B48?.notes).toContain('LM74700-Q1');
+    expect(byId.B48?.notes).toContain('SN74LVC1G08');
     expect(byId.B50?.notes).toContain('Pinout not invented');
-    expect(byId.B50?.notes).toContain('series/housing candidate only');
+    expect(byId.B50?.notes).toContain('1-1827876-6');
+    expect(byId.B50?.notes).toContain('Keying X');
     expect(byId.B50?.notes).toContain('39-01-2120');
+    expect(byId.B50?.notes).toContain('rejected as keyed');
     expect(byId.B08?.notes).toContain('CAD miss this pass until a non-JS hinge page is opened');
     expect(byId.B08?.notes).toContain('Southco timed out');
     expect(byId.B25?.notes).toContain('CAD catalog candidate this pass, matches EE');
@@ -220,7 +232,9 @@ describe('seed from BOM.md', () => {
     expect(byId.B38?.notes).toContain('SPIROL 151284');
     expect(byId.B38?.notes).toContain('Adafruit 4256');
     expect(byId.B38?.notes).toContain('confirms Adafruit 4255 as extra');
-    expect(byId.B38?.notes).toContain('Do not file McMaster PNs from this CAD pass');
+    expect(byId.B38?.notes).toContain('RX-M3x5.7');
+    expect(byId.B38?.notes).toContain('Do not drop already-queued McMaster/Adafruit inserts');
+    expect(byId.B38?.notes).toContain('NOT quotes');
     expect(byId.B41?.notes).toContain('CD20MA-BK');
     expect(byId.B41?.notes).toContain('1.209.2001.50');
     expect(byId.B41?.notes).toContain('not selected over the kit');
@@ -230,6 +244,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B16?.notes).toContain('PT2683');
     expect(byId.B26?.notes).toContain('CAD miss this pass');
     expect(byId.B39?.notes).toContain('CAD miss this pass');
+    expect(byId.B39?.notes).toContain('K&J D42');
+    expect(byId.B39?.notes).toContain('never primary latch');
     expect(byId.B40?.notes).toContain('CAD miss this pass');
     expect(byId.B37?.notes).toContain('Adafruit 6034');
     expect(byId.B37?.notes).toContain('EE this pass');
@@ -258,6 +274,9 @@ describe('seed from BOM.md', () => {
       'alt-B37-pi-22-15',
       'alt-B44-fuse-dump',
       'alt-B48-supervisor',
+      'alt-B48-tps3840',
+      'alt-B50-39-01-2120-keyed',
+      'alt-B50-df11-12dp',
       'alt-B50-molex-1053081212',
     ]);
     const b0371 = alternates.find((row) => row.id === 'alt-B36-B0371');
@@ -302,11 +321,27 @@ describe('seed from BOM.md', () => {
     ]);
     expect(byPart('B37')).toEqual(['0150200231', '6034', '6035', '6036']);
     expect(byPart('B47')).toEqual(['C28S-11.00-SPS8-SPS8']);
-    expect(byPart('B50')).toEqual(['39-01-2120']);
+    expect(byPart('B50')).toEqual([
+      '1-1827876-6',
+      '39-01-2120',
+      'DTM13-12PB-R008',
+    ]);
     expect(byPart('B19')).toEqual(['319-10-108-00-001000']);
     expect(byPart('B27')).toEqual(['816-22-012-10-000101']);
     expect(byPart('B44')).toEqual(['0154002.DR']);
-    expect(byPart('B48')).toEqual(['D2FS-F-N', 'TPS259830LNRGER']);
+    expect(byPart('B48')).toEqual([
+      'D2FS-F-N',
+      'LM74700-Q1',
+      'LTC2966IUD#TRPBF',
+      'SDS001',
+      'SDS004',
+      'SN74LVC1G08',
+      'TPS22810',
+      'TPS2595',
+      'TPS259540DSGR',
+      'TPS259830LNRGER',
+      'TPS37A010122DSKR',
+    ]);
     expect(byPart('B25')).toEqual(['LC032C08M']);
     expect(byPart('B05')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
     expect(byPart('B06')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
@@ -321,6 +356,17 @@ describe('seed from BOM.md', () => {
       '94459A130',
       '94459A140',
       '94459A769',
+      'GE-M3x57-001',
+      'RX-M3x5.7',
+    ]);
+    expect(byPart('B39')).toEqual([
+      '3506K21',
+      '3506K35',
+      '3506K36',
+      '5679K88',
+      '5679K89',
+      '5679K91',
+      'D42',
     ]);
 
     const mpns = new Set(skus.map((row) => row.mpn));
@@ -334,6 +380,8 @@ describe('seed from BOM.md', () => {
     expect(mpns.has('PT2683')).toBe(false);
     expect(mpns.has('B0371')).toBe(false);
     expect(mpns.has('1.209.2001.50')).toBe(false);
+    expect(mpns.has('TPS259541DSGR')).toBe(false);
+    expect(mpns.has('DF11-12DP-2DSA(08)')).toBe(false);
 
     expect(suppliers).toEqual([
       { id: 'lcsc', name: 'LCSC' },
@@ -355,6 +403,8 @@ describe('seed from BOM.md', () => {
     expect(JSON.stringify(quoteAttrs.rows)).not.toContain('39512000440');
     expect(JSON.stringify(quoteAttrs.rows)).not.toContain('16.19');
     expect(JSON.stringify(quoteAttrs.rows)).not.toContain('70.93');
+    expect(JSON.stringify(quoteAttrs.rows)).not.toContain('1.5396');
+    expect(JSON.stringify(quoteAttrs.rows)).not.toContain('5.183');
 
     await db.close();
   });
@@ -432,6 +482,17 @@ describe('purchase order class gate', () => {
       });
       expect(result).toEqual({ ok: false, reason: 'class_null' });
     }
+
+    const b48 = await issuePurchaseOrder(db, {
+      poId: 'po-b48',
+      lineId: 'po-b48-1',
+      partId: 'B48',
+      qty: 1,
+      skuId: 'TPS37A010122DSKR',
+      vendorId: 'ti',
+      quoteId: 'quote-lcsc-b45',
+    });
+    expect(b48).toEqual({ ok: false, reason: 'class_null' });
 
     const b05 = await issuePurchaseOrder(db, {
       poId: 'po-b05',
