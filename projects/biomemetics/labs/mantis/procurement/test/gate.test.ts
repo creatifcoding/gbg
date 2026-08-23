@@ -175,6 +175,10 @@ describe('seed from BOM.md', () => {
     expect(byId.B05?.notes).toContain('TAP Chemcast');
     expect(byId.B05?.notes).toContain('2.24 to 3.50 mm');
     expect(byId.B05?.notes).toContain('ACRYCLR0.118CCM48X96');
+    expect(byId.B05?.notes).toContain('Paper Masked Sheet');
+    expect(byId.B05?.notes).toContain(
+      'TAP Chemcast family and Sheet Haus stay as other family/sheet candidates',
+    );
     expect(byId.B08?.class).toBe('REF');
     expect(byId.B11?.class).toBe('LOCK');
     expect(byId.B11?.notes).toContain('1.2 mm hole');
@@ -186,16 +190,30 @@ describe('seed from BOM.md', () => {
     expect(byId.B46?.class).toBeNull();
     expect(byId.B46?.notes).toContain('Future product');
     expect(byId.B46?.notes).toContain('6 Gbps MAX96724 rows marked future-product');
+    expect(byId.B46?.notes).toContain('analog.com HTML timed out');
+    expect(byId.B46?.notes).toContain('not a suffix pick');
+    expect(byId.B46?.notes).toContain('https://www.farnell.com/datasheets/4416323.pdf');
     expect(byId.B37?.notes).toContain('CAD miss: no invented FPC PN');
     expect(byId.B46?.notes).toContain('LCSC prints stock');
     expect(byId.B44?.class).toBeNull();
-    expect(byId.B44?.notes).toContain('Rejected as a selection');
-    expect(byId.B44?.notes).toContain('Stop until a page prints a 2 A fuse');
+    expect(byId.B44?.notes).toContain('rejected as a selection');
+    expect(byId.B44?.notes).toContain('CAD miss this pass on the custom rail tap');
     expect(byId.B44?.notes).toContain('Do not claim CAD printed 0154002.DR');
     expect(byId.B44?.notes).toContain('$1.411 snapshot is NOT a quote');
     expect(byId.B27?.notes).toContain('do not treat this as accepted against a wet/animal balloon');
     expect(byId.B48?.notes).toContain('Not a 12 V interrupt');
+    expect(byId.B48?.notes).toContain('CAD miss this pass on supervisor');
     expect(byId.B50?.notes).toContain('Pinout not invented');
+    expect(byId.B50?.notes).toContain('CAD miss this pass on the keyed 12-net');
+    expect(byId.B08?.notes).toContain('CAD miss this pass until a non-JS hinge page is opened');
+    expect(byId.B25?.notes).toContain('CAD miss this pass');
+    expect(byId.B25?.notes).toContain('EE candidate remains: Lee Spring LC032C08M');
+    expect(byId.B38?.notes).toContain('SPIROL 151284');
+    expect(byId.B38?.notes).toContain('Adafruit 4256');
+    expect(byId.B38?.notes).toContain('EE candidates remain');
+    expect(byId.B41?.notes).toContain('CD20MA-BK');
+    expect(byId.B41?.notes).toContain('1.209.2001.50');
+    expect(byId.B41?.notes).toContain('not selected over the kit');
     expect(byId.B11?.notes).toContain('UNVERIFIED stop');
     expect(byId.B09?.notes).toContain('CAD miss');
     expect(byId.B16?.notes).toContain('PT2683');
@@ -266,6 +284,16 @@ describe('seed from BOM.md', () => {
     expect(byPart('B06')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
     expect(byPart('B08')).toEqual(['1588A714', '1588A724', '1588A733']);
     expect(byPart('B41')).toEqual(['53111420', 'CD20MA-BK']);
+    expect(byPart('B38')).toEqual([
+      '151284',
+      '4255',
+      '4256',
+      '94180A331',
+      '94180A333',
+      '94459A130',
+      '94459A140',
+      '94459A769',
+    ]);
 
     const mpns = new Set(skus.map((row) => row.mpn));
     for (const forbidden of FORBIDDEN_MPNS) {
@@ -276,6 +304,8 @@ describe('seed from BOM.md', () => {
     expect(mpns.has('1053081212')).toBe(false);
     expect(mpns.has('319-10-112-00-001000')).toBe(false);
     expect(mpns.has('PT2683')).toBe(false);
+    expect(mpns.has('B0371')).toBe(false);
+    expect(mpns.has('1.209.2001.50')).toBe(false);
 
     expect(suppliers).toEqual([
       { id: 'lcsc', name: 'LCSC' },
