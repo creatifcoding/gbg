@@ -15,3 +15,15 @@ The model is one axis-aligned 250 x 250 x 500 mm cuboid, origin at front-left-bo
 `axis` is the official `project()` plane normal. Front is the Y-normal plane. Side is the X-normal plane. Top is the Z-normal plane, the library default.
 
 STL and STEP emit throw. PNG/iso stay blank. `gl` created a context on this coupon. Official `@jscad/regl-renderer` `demo-cli.js` then failed with `Cannot find module '@jscad/img-utils'`. No PNG was written. Maturity is DRAFT.
+
+## Draft in-house print
+
+A local person has Bambu printers. Path is FDM on Bambu. Printer model is UNVERIFIED. Nozzle and bed size stay unnamed until that person names them.
+
+Printed candidates are REF printed solids. Acrylic B05 and B06, screen B11, and bought Particle/ADI parts are not printed.
+
+Filament (PETG/ASA on B01) stays REF until the local person names it.
+
+Shop outreach is Tuesday 2026-08-25. This packet is DRAFT, not shop-release.
+
+Leftover FreeCAD/OCCT stay emit. The SVG generate path above stays. No STL just to have a file. No cuboid shop drawing.
