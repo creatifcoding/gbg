@@ -20,8 +20,8 @@ function VendorsPage() {
   return (
     <Board>
       <BoardKicker>
-        Supplier parties only. A name in a BOM sentence is not a row. An empty
-        list is correct.
+        Supplier parties only. Particle is a CAD discovery row, not a buy. No
+        quote.
       </BoardKicker>
       {suppliers.length === 0 ? (
         <Inspector>

@@ -5,6 +5,7 @@ import {
   issuePurchaseOrder,
   listAlternates,
   listLots,
+  listManufacturerSkus,
   listNeed,
   listParts,
   listPurchaseOrders,
@@ -28,6 +29,7 @@ export const getStore = () => {
 export type RegisterPayload = {
   parts: Awaited<ReturnType<typeof listParts>>;
   skus: Awaited<ReturnType<typeof listSkuWells>>;
+  candidates: Awaited<ReturnType<typeof listManufacturerSkus>>;
   alternates: Awaited<ReturnType<typeof listAlternates>>;
   whereUsed: Awaited<ReturnType<typeof listWhereUsed>>;
 };
@@ -60,13 +62,14 @@ export type FooterPayload = {
 
 export const loadRegister = async (): Promise<RegisterPayload> => {
   const db = await getStore();
-  const [parts, skus, alternates, whereUsed] = await Promise.all([
+  const [parts, skus, candidates, alternates, whereUsed] = await Promise.all([
     listParts(db),
     listSkuWells(db),
+    listManufacturerSkus(db),
     listAlternates(db),
     listWhereUsed(db),
   ]);
-  return { parts, skus, alternates, whereUsed };
+  return { parts, skus, candidates, alternates, whereUsed };
 };
 
 export const loadBuy = async (): Promise<BuyPayload> => {
@@ -78,18 +81,15 @@ export const loadBuy = async (): Promise<BuyPayload> => {
     listQuotes(db),
     listPurchaseOrders(db),
   ]);
-  const gates = parts.map((part) => {
-    const sku = skus.find((row) => row.balloon_id === part.balloon_id);
-    return {
-      balloon_id: part.balloon_id,
-      gate: canIssuePurchaseOrder({
-        class: parsePartClass(part.class),
-        skuId: sku?.sku_id ?? null,
-        vendorId: suppliers[0]?.id ?? null,
-        quoteId: quotes[0]?.quote_id ?? null,
-      }),
-    };
-  });
+  const gates = parts.map((part) => ({
+    balloon_id: part.balloon_id,
+    gate: canIssuePurchaseOrder({
+      class: parsePartClass(part.class),
+      skuId: null,
+      vendorId: null,
+      quoteId: quotes[0]?.quote_id ?? null,
+    }),
+  }));
   return { parts, skus, suppliers, quotes, orders, gates };
 };
 

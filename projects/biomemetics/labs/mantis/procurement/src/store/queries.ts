@@ -71,6 +71,14 @@ export type WhereUsedRow = {
   relation: string;
 };
 
+export type ManufacturerSkuRow = {
+  id: string;
+  part_id: string;
+  manufacturer: string;
+  mpn: string;
+  revision: string | null;
+};
+
 const rowsOf = <T>(result: { rows: T[] }): T[] => result.rows;
 
 export const listParts = async (db: PGlite): Promise<PartRow[]> =>
@@ -85,13 +93,23 @@ export const listSkuWells = async (db: PGlite): Promise<SkuWell[]> =>
     await db.query<SkuWell>(`
       SELECT
         p.balloon_id,
-        s.id AS sku_id,
-        s.manufacturer,
-        s.mpn,
-        s.revision
+        NULL::text AS sku_id,
+        NULL::text AS manufacturer,
+        NULL::text AS mpn,
+        NULL::text AS revision
       FROM part p
-      LEFT JOIN manufacturer_sku s ON s.part_id = p.balloon_id
       ORDER BY p.balloon_id
+    `),
+  );
+
+export const listManufacturerSkus = async (
+  db: PGlite,
+): Promise<ManufacturerSkuRow[]> =>
+  rowsOf(
+    await db.query<ManufacturerSkuRow>(`
+      SELECT id, part_id, manufacturer, mpn, revision
+      FROM manufacturer_sku
+      ORDER BY part_id, mpn
     `),
   );
 

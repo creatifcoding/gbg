@@ -114,7 +114,7 @@ const buyColumns = [
 ];
 
 function BuyPage() {
-  const { parts, skus, suppliers, quotes, orders, gates }: BuyPayload =
+  const { parts, suppliers, quotes, orders, gates }: BuyPayload =
     Route.useLoaderData();
   const router = useRouter();
   const partId = useFocus(buyAttempt, at(buyAttempt.lens.partId));
@@ -131,12 +131,11 @@ function BuyPage() {
   };
 
   const rows: BuyRow[] = parts.map((part) => {
-    const sku = skus.find((row) => row.balloon_id === part.balloon_id);
     const gate = gates.find((row) => row.balloon_id === part.balloon_id)?.gate;
     return {
       balloon_id: part.balloon_id,
       class: part.class ?? '',
-      sku: sku?.mpn ?? '',
+      sku: '',
       vendor: '',
       quote: '',
       gate: gate && !gate.ok ? gate.reason : '',
@@ -146,7 +145,7 @@ function BuyPage() {
   return (
     <Board>
       <BoardKicker>
-        {`SKU, vendor, quote, and purchase order. The class gate refuses UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors: ${String(suppliers.length)}. Quotes: ${String(quotes.length)}. Purchase orders: ${String(orders.length)}.`}
+        {`SKU, vendor, quote, and purchase order. Candidate manufacturer SKUs are not a selected SKU. Particle is a discovery vendor, not a buy. The class gate refuses UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors: ${String(suppliers.length)}. Quotes: ${String(quotes.length)}. Purchase orders: ${String(orders.length)}.`}
       </BoardKicker>
       {partId !== null && copy !== null ? (
         <BoardKicker>{`${partId}: ${copy}`}</BoardKicker>

@@ -79,23 +79,26 @@ const whereColumns = [
   { accessorKey: 'child_id', header: 'Child' },
 ];
 
+const candidateColumns = [
+  { accessorKey: 'part_id', header: 'ID' },
+  { accessorKey: 'manufacturer', header: 'Manufacturer' },
+  { accessorKey: 'mpn', header: 'MPN' },
+];
+
 function RegisterPage() {
-  const { parts, skus, alternates, whereUsed }: RegisterPayload =
+  const { parts, candidates, alternates, whereUsed }: RegisterPayload =
     Route.useLoaderData();
   const selectedId = useFocus(selectedRow, at(selectedRow.lens.id));
   const { setAt, lens } = useStxSet(selectedRow);
 
-  const rows = parts.map((part) => {
-    const sku = skus.find((row) => row.balloon_id === part.balloon_id);
-    return {
-      balloon_id: part.balloon_id,
-      name: part.name,
-      qty_text: part.qty_text,
-      class: part.class ?? '',
-      sku: sku?.mpn ?? '',
-      notes: part.notes,
-    };
-  });
+  const rows = parts.map((part) => ({
+    balloon_id: part.balloon_id,
+    name: part.name,
+    qty_text: part.qty_text,
+    class: part.class ?? '',
+    sku: '',
+    notes: part.notes,
+  }));
 
   const alternateRows = alternates.map((alt) => ({
     part_id: alt.part_id,
@@ -115,7 +118,8 @@ function RegisterPage() {
     <Board>
       <BoardKicker>
         Balloon register B01–B52. Qty stays text. Class is a slot, not a buy.
-        Manufacturer SKU sockets stay blank until a real MPN exists.
+        Register SKU sockets stay blank. Candidate MPNs below are not a selected
+        SKU and are not an order.
       </BoardKicker>
       <div
         data-region="register-table"
@@ -145,6 +149,18 @@ function RegisterPage() {
           style={gridFill}
         />
       </div>
+      <BoardKicker>
+        CAD candidate manufacturer SKUs. None selected. B42 needs exact revision
+        CAD. B45 package suffix UNVERIFIED. B46 has no SKU.
+      </BoardKicker>
+      <Table
+        columns={candidateColumns}
+        data={candidates.map((row) => ({
+          part_id: row.part_id,
+          manufacturer: row.manufacturer,
+          mpn: row.mpn,
+        }))}
+      />
       <BoardKicker>Rejected alternate</BoardKicker>
       <Table columns={alternateColumns} data={alternateRows} />
       <BoardKicker>Where used. Design relationships only.</BoardKicker>
