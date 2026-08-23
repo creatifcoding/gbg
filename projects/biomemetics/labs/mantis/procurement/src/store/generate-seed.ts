@@ -59,6 +59,17 @@ const SEALCON_M20 = 'https://www.sealconusa.com/product/cd20ma-bk/';
 const SPIROL_151284 =
   'https://shop.spirol.com/viewitems/series-29-30-long-heat-ultrasonic-insert-metric/series-30-l-headed-heat-ultrasonic-insert-metric';
 const ADAFRUIT_4256 = 'https://www.adafruit.com/product/4256';
+const TI_TPS3700 = 'https://www.ti.com/product/TPS3700';
+const TI_CD4081B = 'https://www.ti.com/product/CD4081B';
+const TI_TPS22810DBVR =
+  'https://www.ti.com/product/TPS22810/part-details/TPS22810DBVR';
+const TI_CD4066B = 'https://www.ti.com/product/CD4066B';
+const TE_776437_1 = 'https://www.te.com/en/product-776437-1.html';
+const TE_AMPSEAL16_PDF =
+  'https://www.te.com/content/dam/te-com/documents/industrial-and-commercial-transportation/global/ict-ampseal-16-cat-a4-7-1773982-8-en-2010.pdf';
+const SOUTHCO_C2_32_15 = 'https://southco.com/en_us_int/c2-32-15';
+const WELECTRON_CB023 =
+  'https://www.welectron.com/Arducam-CB023-150mm-22pin-to-22pin-camera-cable-05mm-Pitch-interface';
 
 const dollar = (value: string): string => {
   let tag = 'bom';
@@ -109,7 +120,12 @@ const CAD_NOTES: Record<string, string> = {
     'EE candidates none selected remain: McMaster 1588A714 / 1588A724 / 1588A733.',
     '11565A11 is not a 3 mm acrylic fit claim. Design still REF. Do not file McMaster PNs from this CAD pass, including 9218T23 / 11195A11 / 7381K31.',
   ].join(' '),
-  B09: 'LOCK count / REF design. CAD miss this pass. No catalog MPN. No metal mesh.',
+  B09: [
+    'LOCK count / REF design. Design still REF. Not a buy. No metal mesh.',
+    'Extra latch candidate this hunt, not selected: Southco C2-32-15 lever compression, 1-5 mm panel (3.00 mm acrylic inside), 1-24 mm grip, zinc alloy black.',
+    'Sits beside 1794A63 / V2-0025-52 / SCC-xx/SS. SCC-xx/SS remains a family placeholder; no SCC dash invented. 1794A63 and V2-0025-52 named as siblings, not newly filed this hunt.',
+    `Southco: ${SOUTHCO_C2_32_15}`,
+  ].join(' '),
   B10: 'CAD miss this pass. No catalog MPN. No metal mesh.',
   B11: [
     'constraint.',
@@ -165,7 +181,9 @@ const CAD_NOTES: Record<string, string> = {
   B37: [
     'UNVERIFIED length/orientation. CAD miss remains: no invented FPC PN from CAD. Exact assembly length/orientation UNVERIFIED.',
     'EE this pass, candidates 22-pin 0.5 mm, A-B, none selected: Adafruit 6034 50 mm; Adafruit 6035 100 mm; Adafruit 6036 200 mm; generic Molex 0150200231 76.20 mm not labeled CSI; Type A.',
-    'Adafruit 6034 DigiKey snapshot $0.95 is NOT a quote.',
+    'Adafruit 6034 DigiKey snapshot $0.95 is NOT a quote. Adafruit 6034/6035/6036 stay the queued candidates.',
+    'Extra this hunt, record only, not selected: welectron Arducam CB023 150 mm 22-to-22 0.5 mm.',
+    `CB023: ${WELECTRON_CB023}`,
     'Rejected: official Pi 22-to-15 Standard-Mini. CSI pin map UNVERIFIED. Class stays UNVERIFIED. Not a buy.',
     'Sources: https://www.adafruit.com/product/6034 https://www.digikey.com/en/products/detail/adafruit-industries-llc/6034/25589367 https://www.adafruit.com/product/6035 https://www.adafruit.com/product/6036 https://www.digikey.com/en/products/detail/molex/0150200231/2972340',
   ].join(' '),
@@ -215,7 +233,8 @@ const CAD_NOTES: Record<string, string> = {
     `Dump: ${FUSE_DUMP}`,
     'EE-sourced candidate remains: Littelfuse 0154002.DR. Octopart $1.411 snapshot is NOT a quote. Related DRT/DRTL/DRL not selected. DigiKey 39512000440 was AC-only, not used. Do not claim CAD printed 0154002.DR. Do not land 0452002.MRL. Not 2.5 A. Not 0154010.DR.',
     'Leftover EE LCSC detail now opened, candidate not a buy: FUSE BRD MNT 2A 125VAC/VDC SMD, 2A, 125V DC, 50A IR, SMD 9.73 x 5.03 x 3.81 mm. Page prices 1+ $1.5396 and 1500+ $0.8542 and In-Stock 1420 are snapshots, NOT a quote. DigiKey/Mouser/LF HTML detail not opened. Holders 01550900M/DR named on LCSC, not the 2 A pick.',
-    'CAD datasheet printed: catalog number 154002.0; ampere rating 2; amp code 2.0; fuse furnished 453002.0. Time-lag twin 154002.0 T / 454002.0. Example on the PDF is 1.5 A to 015401.5DR. That PDF does not print the string 0154002.DR next to DC. Do not derive 0154002.DR from that. Do not file 154002.0 / 453002.0 / 454002.0 / 015401.5DR as the rail tap.',
+    'CAD datasheet printed: catalog number 154002.0; ampere rating 2; amp code 2.0; fuse furnished 453002.0. Time-lag twin 154002.0 T / 454002.0. Example on the PDF is 1.5 A to 015401.5DR. Do not derive 0154002.DR from that. Do not file 154002.0 / 453002.0 / 454002.0 / 015401.5DR as the rail tap.',
+    'This hunt: official 154 PDF still does not print the string 0154002.DR next to DC. LCSC C206910 DETAIL remains the queued 2 A page. No 2.5 A neighbor. Do not re-land the SKU.',
     `Octopart: ${OCTOPART_0154002} LCSC: ${LCSC_B44} CAD datasheet: ${LITTELFUSE_154}`,
   ].join(' '),
   B45: [
@@ -255,10 +274,18 @@ const CAD_NOTES: Record<string, string> = {
     `LTC2966: ${LCSC_LTC2966}`,
     'Leftover EE discharge, separate device not a Q1 replacement: TPS22810 family, no tape/reel suffix printed. QOD printed. 2.7-18 V. RON 79 mOhm typ @ 12 V. 2 A DBV / 3 A DRV. No bleeder ohm invented.',
     `TPS22810: ${TI_TPS22810}`,
-    'Leftover EE isolation: LM74700-Q1 ideal-diode controller 3.2-65 V, printed 12-V bus. External N-MOSFET UNVERIFIED. LM7480-Q1 sibling page not opened.',
+    'Discharge suffix extra this hunt, not a Q1 replacement: TPS22810DBVR SOT-23-6 T&R. Same QOD as queued TPS22810 family. QOD R unselected.',
+    `TPS22810DBVR: ${TI_TPS22810DBVR}`,
+    'Leftover EE isolation: LM74700-Q1 ideal-diode controller 3.2-65 V, printed 12-V bus. Reverse-current block, not galvanic isolation. External FET unselected. LM7480-Q1 sibling page not opened. Do not re-land the SKU.',
     `LM74700: ${TI_LM74700}`,
     'Leftover EE AND: SN74LVC1G08 Y=A·B, VCC 1.65-5.5 V. Not a 12 V AND. If S1/S2 must switch 12 V, this page is not that job.',
     `AND: ${TI_SN74LVC1G08}`,
+    'AND extra this hunt: CD4081B 4-ch 2-input AND, 3-18 V. Timing UNVERIFIED. Better Vin cover than SN74LVC1G08 (5.5 V).',
+    `CD4081B: ${TI_CD4081B}`,
+    'Supervisor extra this hunt: TPS3700 1.8-18 V window detector. Thresholds via external resistors, values not invented. Suffix UNVERIFIED (TPS3700DDCR 404). Do not file TPS3700DDCR.',
+    `TPS3700: ${TI_TPS3700}`,
+    'Signal switch extra this hunt: CD4066B 3-18 V analog switch, 12 V listed. Not galvanic VIN-A/VIN-B isolation. Power-bus isolation still open.',
+    `CD4066B: ${TI_CD4066B}`,
     'Extra S1/S2 family not selected: C&K SDS001 / SDS004 N.O., 100 mA @ 12 VDC printed.',
     `SDS: ${SDS_PDF}`,
     'Extra Q1 family not selected, do not replace TPS259830LNRGER: TPS2595 2.7-18 V, ILIM 0.5-4 A. Rev.C addendum Active TPS259540DSGR / 541 / 570 / 571 / 573 / 535. Full dash codes not invented beyond TPS259540DSGR. QOD 19 ohm on x5.',
@@ -275,9 +302,11 @@ const CAD_NOTES: Record<string, string> = {
     '`C01`-`C12` mirror required nets; series, pin geometry, controlled-impedance launch, mate order, current, hot-unplug behavior, and durability `UNVERIFIED`. Class stays UNVERIFIED. Not a buy.',
     'Leftover EE keyed 12-pos header candidate: TE 1-1827876-6. 12 positions; Keying X; Mating Alignment Type Keyed; 5 A; 250 VAC/VDC; 2.5 mm. Mate housing UNVERIFIED. C01-C12 / impedance / hot-unplug UNVERIFIED.',
     `TE: ${TE_1_1827876_6} datasheet reprint: ${TE_1_1827876_6_PDF}`,
+    'Housing extra this hunt: TE 776437-1 AMPSEAL 16 plug, 12 Position, CODE A. Catalog PDF prints 4 keys for 8 and 12 pos, -1 = A key, keyed to mate identical colors. C01-C12 / mate cap UNVERIFIED.',
+    `AMPSEAL: ${TE_776437_1} catalog: ${TE_AMPSEAL16_PDF}`,
     'Alt opened, not selected: DTM13-12PB-R008 Keyed code B, 12 pos, 7.5 A, 12|24 V architecture, interface DTM04-12P.',
     `DTM: ${DTM13_12PB}`,
-    'CAD housing candidate remains, rejected as keyed: Molex 39-01-2120, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. Polarized only, not keyed.',
+    'CAD housing candidate remains, rejected as keyed: Molex 39-01-2120 stays polarized-only, series 5557 Mini-Fit Jr., aliases 0039012120 / 5557-12R. Receptacle housing, dual row, 12 circuits, nylon, 4.2 mm pitch, polarized to mate, 13 A, UL 94V-2, natural. Polarized only, not keyed. Do not re-admit 1053081212.',
     'Rejected as keyed: DF11-12DP-2DSA(08) Key field empty (Hirose); 1053081212 latch-only (prior). Pinout not invented. Do not file Harwin M80-5101242.',
     `Housing source: ${MOLEX_39_01_2120}`,
   ].join(' '),
@@ -297,6 +326,7 @@ const SKUS: SkuDraft[] = [
   { id: 'B05:A000AN03.0L0GPCTE', partId: 'B05', manufacturer: 'Sheet Haus', mpn: 'A000AN03.0L0GPCTE' },
   { id: 'B06:ACRYCLR0.118CCM48X96', partId: 'B06', manufacturer: 'ePlastics', mpn: 'ACRYCLR0.118CCM48X96' },
   { id: 'B06:A000AN03.0L0GPCTE', partId: 'B06', manufacturer: 'Sheet Haus', mpn: 'A000AN03.0L0GPCTE' },
+  { id: 'C2-32-15', partId: 'B09', manufacturer: 'Southco', mpn: 'C2-32-15' },
   { id: '1588A714', partId: 'B08', manufacturer: 'McMaster-Carr', mpn: '1588A714' },
   { id: '1588A724', partId: 'B08', manufacturer: 'McMaster-Carr', mpn: '1588A724' },
   { id: '1588A733', partId: 'B08', manufacturer: 'McMaster-Carr', mpn: '1588A733' },
@@ -307,6 +337,7 @@ const SKUS: SkuDraft[] = [
   { id: '6035', partId: 'B37', manufacturer: 'Adafruit', mpn: '6035' },
   { id: '6036', partId: 'B37', manufacturer: 'Adafruit', mpn: '6036' },
   { id: '0150200231', partId: 'B37', manufacturer: 'Molex', mpn: '0150200231' },
+  { id: 'CB023', partId: 'B37', manufacturer: 'Arducam', mpn: 'CB023' },
   { id: '151284', partId: 'B38', manufacturer: 'SPIROL', mpn: '151284' },
   { id: '4255', partId: 'B38', manufacturer: 'Adafruit', mpn: '4255' },
   { id: '4256', partId: 'B38', manufacturer: 'Adafruit', mpn: '4256' },
@@ -344,8 +375,12 @@ const SKUS: SkuDraft[] = [
   { id: 'TPS37A010122DSKR', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS37A010122DSKR' },
   { id: 'LTC2966IUD#TRPBF', partId: 'B48', manufacturer: 'Analog Devices', mpn: 'LTC2966IUD#TRPBF' },
   { id: 'TPS22810', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS22810' },
+  { id: 'TPS22810DBVR', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS22810DBVR' },
   { id: 'LM74700-Q1', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'LM74700-Q1' },
   { id: 'SN74LVC1G08', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'SN74LVC1G08' },
+  { id: 'CD4081B', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'CD4081B' },
+  { id: 'TPS3700', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS3700' },
+  { id: 'CD4066B', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'CD4066B' },
   { id: 'SDS001', partId: 'B48', manufacturer: 'C&K', mpn: 'SDS001' },
   { id: 'SDS004', partId: 'B48', manufacturer: 'C&K', mpn: 'SDS004' },
   { id: 'TPS2595', partId: 'B48', manufacturer: 'Texas Instruments', mpn: 'TPS2595' },
@@ -356,6 +391,7 @@ const SKUS: SkuDraft[] = [
   { id: 'TCA9548ARGER', partId: 'B49', manufacturer: 'Texas Instruments', mpn: 'TCA9548ARGER' },
   { id: '39-01-2120', partId: 'B50', manufacturer: 'Molex', mpn: '39-01-2120' },
   { id: '1-1827876-6', partId: 'B50', manufacturer: 'TE Connectivity', mpn: '1-1827876-6' },
+  { id: '776437-1', partId: 'B50', manufacturer: 'TE Connectivity', mpn: '776437-1' },
   { id: 'DTM13-12PB-R008', partId: 'B50', manufacturer: 'DTM', mpn: 'DTM13-12PB-R008' },
 ];
 

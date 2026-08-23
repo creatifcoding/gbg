@@ -89,6 +89,7 @@ const FORBIDDEN_MPNS = [
   '0452002.MRL',
   '0154010.DR',
   'LM7480-Q1',
+  'TPS3700DDCR',
 ];
 
 const load = async () => {
@@ -111,7 +112,7 @@ describe('seed from BOM.md', () => {
     expect(wells.every((row) => row.sku_id === null && row.mpn === null)).toBe(
       true,
     );
-    expect(await countTable(db, 'manufacturer_sku')).toBe(64);
+    expect(await countTable(db, 'manufacturer_sku')).toBe(71);
     expect(await countTable(db, 'supplier_party')).toBe(3);
     expect(await countTable(db, 'quote')).toBe(4);
     expect(await countTable(db, 'purchase_order')).toBe(0);
@@ -212,6 +213,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B44?.notes).toContain('1+ $1.5396');
     expect(byId.B44?.notes).toContain('snapshots, NOT a quote');
     expect(byId.B44?.notes).toContain('does not print the string 0154002.DR next to DC');
+    expect(byId.B44?.notes).toContain('LCSC C206910 DETAIL');
+    expect(byId.B44?.notes).toContain('No 2.5 A neighbor');
     expect(byId.B27?.notes).toContain('do not treat this as accepted against a wet/animal balloon');
     expect(byId.B48?.notes).toContain('Not a 12 V interrupt');
     expect(byId.B48?.notes).toContain('Do not replace S1/S2 D2FS-F-N or Q1 TPS259830LNRGER');
@@ -219,10 +222,18 @@ describe('seed from BOM.md', () => {
     expect(byId.B48?.notes).toContain('TPS22810 family');
     expect(byId.B48?.notes).toContain('LM74700-Q1');
     expect(byId.B48?.notes).toContain('SN74LVC1G08');
+    expect(byId.B48?.notes).toContain('TPS3700');
+    expect(byId.B48?.notes).toContain('CD4081B');
+    expect(byId.B48?.notes).toContain('TPS22810DBVR');
+    expect(byId.B48?.notes).toContain('CD4066B');
+    expect(byId.B48?.notes).toContain('not galvanic isolation');
     expect(byId.B50?.notes).toContain('Pinout not invented');
     expect(byId.B50?.notes).toContain('1-1827876-6');
     expect(byId.B50?.notes).toContain('Keying X');
     expect(byId.B50?.notes).toContain('39-01-2120');
+    expect(byId.B50?.notes).toContain('polarized-only');
+    expect(byId.B50?.notes).toContain('776437-1');
+    expect(byId.B50?.notes).toContain('Do not re-admit 1053081212');
     expect(byId.B50?.notes).toContain('rejected as keyed');
     expect(byId.B08?.notes).toContain('CAD miss this pass until a non-JS hinge page is opened');
     expect(byId.B08?.notes).toContain('Southco timed out');
@@ -239,7 +250,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B41?.notes).toContain('1.209.2001.50');
     expect(byId.B41?.notes).toContain('not selected over the kit');
     expect(byId.B11?.notes).toContain('UNVERIFIED stop');
-    expect(byId.B09?.notes).toContain('CAD miss');
+    expect(byId.B09?.notes).toContain('Southco C2-32-15');
+    expect(byId.B09?.notes).toContain('Design still REF');
     expect(byId.B09?.notes).toContain('No metal mesh');
     expect(byId.B16?.notes).toContain('PT2683');
     expect(byId.B26?.notes).toContain('CAD miss this pass');
@@ -248,6 +260,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B39?.notes).toContain('never primary latch');
     expect(byId.B40?.notes).toContain('CAD miss this pass');
     expect(byId.B37?.notes).toContain('Adafruit 6034');
+    expect(byId.B37?.notes).toContain('CB023');
+    expect(byId.B37?.notes).toContain('record only, not selected');
     expect(byId.B37?.notes).toContain('EE this pass');
     expect(byId.B37?.notes).toContain('$0.95 is NOT a quote');
     expect(byId.B37?.notes).toContain(
@@ -319,17 +333,20 @@ describe('seed from BOM.md', () => {
       'TCA9548APWR',
       'TCA9548ARGER',
     ]);
-    expect(byPart('B37')).toEqual(['0150200231', '6034', '6035', '6036']);
+    expect(byPart('B37')).toEqual(['0150200231', '6034', '6035', '6036', 'CB023']);
     expect(byPart('B47')).toEqual(['C28S-11.00-SPS8-SPS8']);
     expect(byPart('B50')).toEqual([
       '1-1827876-6',
       '39-01-2120',
+      '776437-1',
       'DTM13-12PB-R008',
     ]);
     expect(byPart('B19')).toEqual(['319-10-108-00-001000']);
     expect(byPart('B27')).toEqual(['816-22-012-10-000101']);
     expect(byPart('B44')).toEqual(['0154002.DR']);
     expect(byPart('B48')).toEqual([
+      'CD4066B',
+      'CD4081B',
       'D2FS-F-N',
       'LM74700-Q1',
       'LTC2966IUD#TRPBF',
@@ -337,11 +354,14 @@ describe('seed from BOM.md', () => {
       'SDS004',
       'SN74LVC1G08',
       'TPS22810',
+      'TPS22810DBVR',
       'TPS2595',
       'TPS259540DSGR',
       'TPS259830LNRGER',
+      'TPS3700',
       'TPS37A010122DSKR',
     ]);
+    expect(byPart('B09')).toEqual(['C2-32-15']);
     expect(byPart('B25')).toEqual(['LC032C08M']);
     expect(byPart('B05')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
     expect(byPart('B06')).toEqual(['A000AN03.0L0GPCTE', 'ACRYCLR0.118CCM48X96']);
