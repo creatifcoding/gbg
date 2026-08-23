@@ -84,6 +84,8 @@ const FORBIDDEN_MPNS = [
   '453002.0',
   '454002.0',
   '015401.5DR',
+  '0150210215',
+  'SL8801/12-111A5-00',
 ];
 
 const load = async () => {
@@ -196,7 +198,7 @@ describe('seed from BOM.md', () => {
     expect(byId.B46?.notes).toContain('analog.com HTML timed out');
     expect(byId.B46?.notes).toContain('not a suffix pick');
     expect(byId.B46?.notes).toContain('https://www.farnell.com/datasheets/4416323.pdf');
-    expect(byId.B37?.notes).toContain('CAD miss: no invented FPC PN');
+    expect(byId.B37?.notes).toContain('CAD miss remains: no invented FPC PN from CAD');
     expect(byId.B46?.notes).toContain('LCSC prints stock');
     expect(byId.B44?.class).toBeNull();
     expect(byId.B44?.notes).toContain('rejected as a selection');
@@ -230,7 +232,21 @@ describe('seed from BOM.md', () => {
     expect(byId.B39?.notes).toContain('CAD miss this pass');
     expect(byId.B40?.notes).toContain('CAD miss this pass');
     expect(byId.B37?.notes).toContain('Adafruit 6034');
+    expect(byId.B37?.notes).toContain('EE this pass');
+    expect(byId.B37?.notes).toContain('$0.95 is NOT a quote');
+    expect(byId.B37?.notes).toContain(
+      'https://www.digikey.com/en/products/detail/adafruit-industries-llc/6034/25589367',
+    );
+    expect(byId.B19?.class).toBe('UNVERIFIED');
+    expect(byId.B19?.notes).toContain('EE this pass, pad-array candidate only');
+    expect(byId.B19?.notes).toContain('$16.19');
+    expect(byId.B19?.notes).toContain('NOT a quote');
+    expect(byId.B19?.notes).toContain('Do not invent pads or a stack');
+    expect(byId.B37?.class).toBe('UNVERIFIED');
     expect(byId.B47?.notes).toContain('C28S-11.00-SPS8-SPS8');
+    expect(byId.B47?.notes).toContain('$70.93');
+    expect(byId.B47?.notes).toContain('NOT a quote');
+    expect(byId.B47?.notes).toContain('Not a four-channel flex');
     expect(byId.B49?.class).toBeNull();
     expect(byId.B49?.notes).toContain('A2A1A0 strap');
     expect(byId.B49?.notes).toContain('8-Nov-2025');
@@ -337,6 +353,8 @@ describe('seed from BOM.md', () => {
     );
     expect(JSON.stringify(quoteAttrs.rows)).not.toContain('1.411');
     expect(JSON.stringify(quoteAttrs.rows)).not.toContain('39512000440');
+    expect(JSON.stringify(quoteAttrs.rows)).not.toContain('16.19');
+    expect(JSON.stringify(quoteAttrs.rows)).not.toContain('70.93');
 
     await db.close();
   });

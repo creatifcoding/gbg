@@ -107,11 +107,11 @@ const CAD_NOTES: Record<string, string> = {
   B17: 'CAD miss this pass. No catalog MPN.',
   B18: FDM_MISS,
   B19: [
-    'UNVERIFIED stack-up. CAD miss this pass. Assembly+stack UNVERIFIED STOP. Do not invent pads or a stack.',
-    'Pad-array candidate only: Mill-Max 319-10-108-00-001000, 8-pos gold mating target, THT, 2.54 mm. Snapshot $16.19 qty-1 / In-Stock 65 / 4 weeks is NOT a quote.',
+    'UNVERIFIED stack-up. CAD miss remains. Assembly+stack UNVERIFIED STOP. Do not invent pads or a stack.',
+    'EE this pass, pad-array candidate only: Mill-Max 319-10-108-00-001000, 8-pos gold mating target, THT, 2.54 mm. Snapshot $16.19 qty-1 / In-Stock 65 / 4 weeks is NOT a quote.',
     'Not a flex electrode strip. Pyralux AP grades AP8515R through AP9161R on https://www.dupont.com/electronics-industrial/pyralux-ap.html are materials only; no stack selected.',
     '319-10-112-00-001000 rejected (contacts print 10 vs header 12).',
-    'CAD B27 wet/animal hold still stands if this is a pogo mate. B20 holds.',
+    'CAD B27 wet/animal hold still stands if this is a pogo mate. B20 holds. Class stays UNVERIFIED. Not a buy.',
     'Source: https://www.digikey.com/en/products/detail/mill-max-manufacturing-corp/319-10-108-00-001000/7743231',
   ].join(' '),
   B25: [
@@ -146,10 +146,11 @@ const CAD_NOTES: Record<string, string> = {
     `Source: ${TACHYON_CAMERAS}`,
   ].join(' '),
   B37: [
-    'UNVERIFIED length/orientation. CAD miss: no invented FPC PN this pass.',
-    'Later EE candidates 22-pin 0.5 mm, A-B, none selected: Adafruit 6034 50 mm, Adafruit 6035 100 mm, Adafruit 6036 200 mm, generic Molex 0150200231 76.20 mm not labeled CSI; Type A.',
-    'Rejected: official Pi 22-to-15 Standard-Mini. CSI pin map UNVERIFIED. Snapshot prices are not quotes. Not a buy.',
-    'Sources: https://www.adafruit.com/product/6034 https://www.adafruit.com/product/6035 https://www.adafruit.com/product/6036 https://www.digikey.com/en/products/detail/molex/0150200231/2972340',
+    'UNVERIFIED length/orientation. CAD miss remains: no invented FPC PN from CAD. Exact assembly length/orientation UNVERIFIED.',
+    'EE this pass, candidates 22-pin 0.5 mm, A-B, none selected: Adafruit 6034 50 mm; Adafruit 6035 100 mm; Adafruit 6036 200 mm; generic Molex 0150200231 76.20 mm not labeled CSI; Type A.',
+    'Adafruit 6034 DigiKey snapshot $0.95 is NOT a quote.',
+    'Rejected: official Pi 22-to-15 Standard-Mini. CSI pin map UNVERIFIED. Class stays UNVERIFIED. Not a buy.',
+    'Sources: https://www.adafruit.com/product/6034 https://www.digikey.com/en/products/detail/adafruit-industries-llc/6034/25589367 https://www.adafruit.com/product/6035 https://www.adafruit.com/product/6036 https://www.digikey.com/en/products/detail/molex/0150200231/2972340',
   ].join(' '),
   B38: [
     'UNVERIFIED selected PN/pocket. Not a release selection. None selected.',
@@ -214,8 +215,8 @@ const CAD_NOTES: Record<string, string> = {
     `Sources: ${MAX96724_PAGE} ${LCSC_B46}`,
   ].join(' '),
   B47: [
-    'SI stack and routing UNVERIFIED. Four-channel V-dock SI UNVERIFIED STOP.',
-    'One printed 100 ohm pair only: Samtec C28S-11.00-SPS8-SPS8, 100 Ohms, one twinax pair, 11.000 in. Snapshot $70.93 qty-1 / In-Stock 184 / 6 weeks is NOT a quote.',
+    'SI stack and routing UNVERIFIED. Four-channel V-dock SI UNVERIFIED STOP. Class stays UNVERIFIED. Not a buy.',
+    'EE this pass, one printed 100 ohm pair only: Samtec C28S-11.00-SPS8-SPS8, 100 Ohms, one twinax pair, 11.000 in. Snapshot $70.93 qty-1 / In-Stock 184 / 6 weeks is NOT a quote.',
     'Not a four-channel flex. Molex 0150210215 and 3M SL8801/12-111A5-00 not claimed (those pages did not print 100 ohm).',
     'Sources: https://www.digikey.com/en/products/detail/samtec-inc/C28S-11-00-SPS8-SPS8/10507305 https://www.samtec.com/products/c28s',
   ].join(' '),
