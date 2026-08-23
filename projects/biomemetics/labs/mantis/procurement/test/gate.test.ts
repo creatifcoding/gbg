@@ -181,6 +181,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B45?.notes).toContain('MAX96717GTJ/VY+');
     expect(byId.B46?.class).toBeNull();
     expect(byId.B46?.notes).toContain('Future product');
+    expect(byId.B46?.notes).toContain('6 Gbps MAX96724 rows marked future-product');
+    expect(byId.B37?.notes).toContain('CAD miss: no invented FPC PN');
     expect(byId.B46?.notes).toContain('LCSC prints stock');
     expect(byId.B44?.class).toBeNull();
     expect(byId.B44?.notes).toContain('Rejected as a selection');
