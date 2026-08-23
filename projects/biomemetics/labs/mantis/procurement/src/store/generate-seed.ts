@@ -187,7 +187,7 @@ const CAD_NOTES: Record<string, string> = {
   ].join(' '),
   B44: [
     '2 A TARGET, final budget UNVERIFIED.',
-    'Rejected as a selection from the tscircuit DigiKey fuse dump. First page prints 1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 Bel Fuse 1206 parts, not a 2 A rail fuse. Do not pick a neighbor. Cached prices on that page are snapshots, not a quote.',
+    'Rejected as a selection from the tscircuit DigiKey fuse dump. First page prints 1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 Bel Fuse 1206 parts, not a 2 A rail fuse. Do not pick a neighbor. Cached prices on that page are snapshots, not a quote. Stop until a page prints a 2 A fuse.',
     `Dump: ${FUSE_DUMP}`,
     'EE-sourced candidate Littelfuse 0154002.DR from Octopart: SMD fuse 9.73 x 5.03 mm, 2 A, FF, 125 V DC / 125 V AC, 50 A. Covers 12 V TARGET. Final budget UNVERIFIED.',
     'Do not claim CAD printed 0154002.DR. The Littelfuse 154 series datasheet prints catalog number 154002.0, ampere rating 2, amp code 2.0, fuse furnished 453002.0, time-lag twin 154002.0 T / 454002.0. Example on that PDF is 1.5 A to 015401.5DR. Do not derive 0154002.DR from that PDF. CAD row is a fuse+holder catalog family (154/154T OMNI-BLOK), not the custom rail tap.',
@@ -466,7 +466,7 @@ VALUES (
   ${dollar('rejected')},
   ${dollar('Bel Fuse')},
   NULL,
-  ${dollar('1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 are not a 2 A rail fuse. Do not pick a neighbor. Cached prices are not a quote.')}
+  ${dollar('1 A 0685T1000-01, 2.5 A 0685T2500-01, 3 A 0685T3000-01 are not a 2 A rail fuse. Do not pick a neighbor. Cached prices are not a quote. Stop until a page prints a 2 A fuse.')}
 )
 ON CONFLICT (id) DO NOTHING;
 

@@ -183,6 +183,8 @@ describe('seed from BOM.md', () => {
     expect(byId.B46?.notes).toContain('Future product');
     expect(byId.B46?.notes).toContain('LCSC prints stock');
     expect(byId.B44?.class).toBeNull();
+    expect(byId.B44?.notes).toContain('Rejected as a selection');
+    expect(byId.B44?.notes).toContain('Stop until a page prints a 2 A fuse');
     expect(byId.B44?.notes).toContain('Do not claim CAD printed 0154002.DR');
     expect(byId.B09?.notes).toContain('CAD miss');
     expect(byId.B16?.notes).toContain('PT2683');
