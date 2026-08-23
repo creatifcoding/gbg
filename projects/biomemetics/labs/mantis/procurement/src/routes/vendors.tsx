@@ -20,8 +20,8 @@ function VendorsPage() {
   return (
     <Board>
       <BoardKicker>
-        Supplier parties only. Particle is a CAD discovery row, not a buy. No
-        quote.
+        Supplier parties. Particle, LCSC, and TI are discovery rows from CAD/EE
+        search hits, not a buy. No purchase order.
       </BoardKicker>
       {suppliers.length === 0 ? (
         <Inspector>

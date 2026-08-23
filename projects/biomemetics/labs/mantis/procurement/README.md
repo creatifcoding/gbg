@@ -12,7 +12,7 @@ instance or schema. No purchase order has been issued.
 | `/buy` | SKU, vendor, quote, PO on lab-ui `Grid`. The class gate blocks issue. |
 | `/receive` | Receipt and lot. Inspector sockets until something arrives. |
 | `/need` | First-tower kit vs on-hand on lab-ui `Grid`. Demand qty stays text. |
-| `/vendors` | Supplier parties. Particle is a discovery row, not a buy. |
+| `/vendors` | Supplier parties. Particle, LCSC, and TI are discovery rows, not a buy. |
 
 One shell owns the five tabs. Tabular chrome is `@gbg/lab-ui` `Grid` (AG-Grid)
 or `Table` (TanStack, small inspectors). `/` redirects to `/register`.
@@ -48,32 +48,31 @@ Shop pack `terrarium/shop/` is DRAFT. Do not order from it. Camera SKU is unset.
 ## Blank sockets
 
 Register SKU sockets stay blank. Candidate MPNs in `manufacturer_sku` are not a
-selected SKU. `quote`, `purchase_order`, `receipt`, `lot`, `cost_history`, and
-`lead_time` stay empty. The one seeded alternate is B36's rejected B0371, with
-no PN.
+selected SKU. `purchase_order`, `receipt`, `lot`, `cost_history`, and
+`lead_time` stay empty. Discovery `quote` rows are printed store/LCSC pages
+marked UNVERIFIED in `attrs`. They are not a buy.
 
 `manufacturer_sku` has no source_url, description, or lifecycle columns.
-`supplier_party` has no URL column. Source URLs, GA, and kit copy live in
-`part.notes`.
+`supplier_party` has no URL column. Source URLs, GA, kit copy, and printed
+prices live in `part.notes` and `quote.attrs`.
 
-Particle is a discovery `supplier_party` row from CAD search hits, not a buy.
-Analog Devices is the manufacturer name on the MAX96717 device row. There is no
-Analog Devices vendor row.
+Particle, LCSC, and Texas Instruments are discovery `supplier_party` rows, not
+a buy. Analog Devices is a manufacturer name on SerDes rows. There is no Analog
+Devices vendor row.
 
 B42 has no class token. Three Tachyon ordering-table SKUs are candidates. None
-is selected. Exact revision CAD still required. The 85 x 56 x 18.5 mm envelope
-stays in the note.
+is selected. TACH4ROW is not landed. Exact revision CAD still required. The
+85 x 56 x 18.5 mm envelope stays in the note.
 
 B43 class stays NULL. M1ENCLEA is a manufacturer_sku row with lifecycle GA in
 the note. Not an order.
 
-B45 is device discovery only (MAX96717). Package/tape suffix UNVERIFIED.
+B45/B46 are candidate IC families. Package suffix is not a selected buy.
+Carrier / Tachyon integration stay UNVERIFIED. Datasheet future-product vs LCSC
+stock both stay in the B46 note.
 
-B46 has no SKU. CAD did not open the product page.
-
-B05 and B06 are a TAP Chemcast 3.0 mm family hit with no selected cut-size SKU.
-B11 is a mesh miss against LOCK <=0.80 mm. B01–B04, B07, and B18 miss a catalog
-MPN (in-house FDM/Bambu; printer model UNVERIFIED).
+B05 and B06 stay REF. TAP Chemcast is a family hit with no TAP SKU. Sheet SKUs
+are candidates, not finished cassette/door parts.
 
 ## Rebuild
 

@@ -11,6 +11,7 @@ import {
   listManufacturerSkus,
   listNeed,
   listParts,
+  listQuotes,
   listSkuWells,
   listSuppliers,
 } from '../src/store/queries';
@@ -23,12 +24,53 @@ const CAD_NOTE_BALLOONS = new Set([
   'B05',
   'B06',
   'B07',
+  'B08',
   'B11',
+  'B15',
+  'B16',
   'B18',
+  'B19',
+  'B25',
+  'B26',
+  'B27',
+  'B29',
+  'B30',
+  'B31',
+  'B32',
+  'B33',
+  'B34',
+  'B35',
+  'B36',
+  'B37',
+  'B38',
+  'B39',
+  'B40',
+  'B41',
   'B42',
   'B43',
+  'B44',
   'B45',
+  'B46',
+  'B48',
+  'B49',
+  'B50',
+  'B51',
+  'B52',
 ]);
+
+const FORBIDDEN_MPNS = [
+  'TACH4ROW',
+  '0685T1000-01',
+  '0685T2500-01',
+  '0685T3000-01',
+  '812-22-012-30-000101',
+  '9218T23',
+  '11195A11',
+  '7381K31',
+  '4685',
+  'TPS25221',
+  'M80-5101242',
+];
 
 const load = async () => {
   const db = await openStore({ memory: true });
@@ -50,9 +92,9 @@ describe('seed from BOM.md', () => {
     expect(wells.every((row) => row.sku_id === null && row.mpn === null)).toBe(
       true,
     );
-    expect(await countTable(db, 'manufacturer_sku')).toBe(5);
-    expect(await countTable(db, 'supplier_party')).toBe(1);
-    expect(await countTable(db, 'quote')).toBe(0);
+    expect(await countTable(db, 'manufacturer_sku')).toBe(43);
+    expect(await countTable(db, 'supplier_party')).toBe(3);
+    expect(await countTable(db, 'quote')).toBe(4);
     expect(await countTable(db, 'purchase_order')).toBe(0);
     expect(await countTable(db, 'purchase_order_line')).toBe(0);
     expect(await countTable(db, 'receipt')).toBe(0);
@@ -95,25 +137,22 @@ describe('seed from BOM.md', () => {
     expect(byId.B36?.class).toBe('UNVERIFIED');
     expect(byId.B36?.name).toContain('IMX519');
     expect(byId.B36?.name).toContain('Particle-supported');
+    expect(byId.B36?.notes).toContain('S5K3P9SX');
+    expect(byId.B36?.notes).toContain('22-pin 0.5 mm');
 
     expect(byId.B42?.class).toBeNull();
     expect(byId.B42?.name).toBe('Particle Tachyon');
     expect(byId.B42?.notes).toMatch(/85\s*x\s*56\s*x\s*18\.5/i);
     expect(byId.B42?.notes).toContain('none selected');
+    expect(byId.B42?.notes).toContain('Do not promote TACH4ROW');
     expect(byId.B42?.notes).toContain(
       'https://docs.particle.io/reference/datasheets/tachyon/tachyon-datasheet/',
-    );
-    expect(byId.B42?.notes).toContain(
-      'https://store.particle.io/products/tachyon-5g-single-board-computer',
     );
 
     expect(byId.B43?.class).toBeNull();
     expect(byId.B43?.notes).toContain('M1ENCLEA');
     expect(byId.B43?.notes).toContain('lifecycle GA');
     expect(byId.B43?.notes).toContain('2x M20 glands');
-    expect(byId.B43?.notes).toContain(
-      'https://docs.particle.io/reference/datasheets/m-series/m1-enclosure-datasheet/',
-    );
 
     expect(byId.B04?.qty_text).toBe('set');
     expect(byId.B22?.qty_text).toBe('1+');
@@ -124,24 +163,32 @@ describe('seed from BOM.md', () => {
     expect(byId.B06?.class).toBe('REF');
     expect(byId.B05?.notes).toContain('TAP Chemcast');
     expect(byId.B05?.notes).toContain('2.24 to 3.50 mm');
-    expect(byId.B05?.notes).toContain('No selected cut-size SKU');
+    expect(byId.B05?.notes).toContain('ACRYCLR0.118CCM48X96');
+    expect(byId.B08?.class).toBe('REF');
     expect(byId.B11?.class).toBe('LOCK');
     expect(byId.B11?.notes).toContain('1.2 mm hole');
     expect(byId.B11?.notes).toContain('<=0.80 mm');
+    expect(byId.B20?.class).toBe('REF');
 
     expect(byId.B45?.class).toBeNull();
-    expect(byId.B45?.notes).toContain('MAX96717');
-    expect(byId.B45?.notes).toContain('Package/tape suffix');
+    expect(byId.B45?.notes).toContain('MAX96717GTJ/VY+');
     expect(byId.B46?.class).toBeNull();
-    expect(byId.B46?.notes).toContain('UNVERIFIED');
+    expect(byId.B46?.notes).toContain('Future product');
+    expect(byId.B46?.notes).toContain('LCSC prints stock');
+    expect(byId.B44?.class).toBeNull();
+    expect(byId.B44?.notes).toContain('$1.411 snapshot is NOT a quote');
+    expect(byId.B49?.class).toBeNull();
 
     const alternates = await listAlternates(db);
-    expect(alternates).toHaveLength(1);
-    expect(alternates[0]?.name).toBe('B0371');
-    expect(alternates[0]?.part_id).toBe('B36');
-    expect(alternates[0]?.status).toBe('rejected');
-    expect(alternates[0]?.mpn).toBeNull();
-    expect(alternates[0]?.manufacturer).toBeNull();
+    expect(alternates.map((row) => row.id).sort()).toEqual([
+      'alt-B36-B0371',
+      'alt-B44-fuse-dump',
+      'alt-B48-supervisor',
+      'alt-B50-molex-1053081212',
+    ]);
+    const b0371 = alternates.find((row) => row.id === 'alt-B36-B0371');
+    expect(b0371?.status).toBe('rejected');
+    expect(b0371?.mpn).toBeNull();
 
     const need = await listNeed(db);
     const setLine = need.find((row) => row.balloon_id === 'B04');
@@ -154,54 +201,55 @@ describe('seed from BOM.md', () => {
     await db.close();
   });
 
-  it('lands CAD candidate SKUs without selecting one or inventing a quote', async () => {
+  it('lands CAD/EE candidate SKUs without selecting one or issuing a PO', async () => {
     const db = await load();
     const skus = await listManufacturerSkus(db);
     const suppliers = await listSuppliers(db);
+    const quotes = await listQuotes(db);
 
-    expect(skus).toEqual([
-      {
-        id: 'TACH4NA',
-        part_id: 'B42',
-        manufacturer: 'Particle',
-        mpn: 'TACH4NA',
-        revision: null,
-      },
-      {
-        id: 'TACH8NA',
-        part_id: 'B42',
-        manufacturer: 'Particle',
-        mpn: 'TACH8NA',
-        revision: null,
-      },
-      {
-        id: 'TACH8ROW',
-        part_id: 'B42',
-        manufacturer: 'Particle',
-        mpn: 'TACH8ROW',
-        revision: null,
-      },
-      {
-        id: 'M1ENCLEA',
-        part_id: 'B43',
-        manufacturer: 'Particle',
-        mpn: 'M1ENCLEA',
-        revision: null,
-      },
-      {
-        id: 'MAX96717',
-        part_id: 'B45',
-        manufacturer: 'Analog Devices',
-        mpn: 'MAX96717',
-        revision: null,
-      },
+    const byPart = (id: string) =>
+      skus.filter((row) => row.part_id === id).map((row) => row.mpn);
+
+    expect(byPart('B42')).toEqual(['TACH4NA', 'TACH8NA', 'TACH8ROW']);
+    expect(byPart('B43')).toEqual(['M1ENCLEA']);
+    expect(byPart('B45')).toEqual(['MAX96717GTJ/VY+', 'MAX96717GTJ/VY+T']);
+    expect(byPart('B46')).toEqual([
+      'MAX96724FGTN/V+',
+      'MAX96724FGTN/VY+',
+      'MAX96724GTN/VY+',
+      'MAX96724GTN/VY+T',
+      'MAX96724RGTN/V+',
+    ]);
+    expect(byPart('B49')).toEqual([
+      'TCA9548ADGSR',
+      'TCA9548AMRGER',
+      'TCA9548APWR',
+      'TCA9548ARGER',
+    ]);
+    expect(byPart('B05')).toEqual([
+      'A000AN03.0L0GPCTE',
+      'ACRYCLR0.118CCM48X96',
     ]);
 
-    expect(skus.filter((row) => row.part_id === 'B46')).toEqual([]);
-    expect(skus.filter((row) => row.part_id === 'B05')).toEqual([]);
-    expect(skus.some((row) => row.mpn === 'TACH4ROW')).toBe(false);
+    const mpns = new Set(skus.map((row) => row.mpn));
+    for (const forbidden of FORBIDDEN_MPNS) {
+      expect(mpns.has(forbidden)).toBe(false);
+    }
+    expect(mpns.has('MAX96717')).toBe(false);
+    expect(mpns.has('TCA9548A')).toBe(false);
+    expect(mpns.has('1053081212')).toBe(false);
 
-    expect(suppliers).toEqual([{ id: 'particle', name: 'Particle' }]);
+    expect(suppliers).toEqual([
+      { id: 'lcsc', name: 'LCSC' },
+      { id: 'particle', name: 'Particle' },
+      { id: 'ti', name: 'Texas Instruments' },
+    ]);
+    expect(quotes.map((row) => row.quote_id).sort()).toEqual([
+      'quote-lcsc-b45',
+      'quote-lcsc-b46',
+      'quote-particle-b42',
+      'quote-particle-b43',
+    ]);
 
     await db.close();
   });
@@ -257,14 +305,14 @@ describe('purchase order class gate', () => {
     await db.close();
   });
 
-  it('still refuses B42/B43/B45/B46 when a candidate SKU id is attached', async () => {
+  it('still refuses B42/B43/B45/B46 when a candidate SKU and discovery quote are attached', async () => {
     const db = await load();
 
     const withSku = [
-      { partId: 'B42', skuId: 'TACH4NA' },
-      { partId: 'B43', skuId: 'M1ENCLEA' },
-      { partId: 'B45', skuId: 'MAX96717' },
-      { partId: 'B46', skuId: null },
+      { partId: 'B42', skuId: 'TACH4NA', quoteId: 'quote-particle-b42' },
+      { partId: 'B43', skuId: 'M1ENCLEA', quoteId: 'quote-particle-b43' },
+      { partId: 'B45', skuId: 'MAX96717GTJ/VY+T', quoteId: 'quote-lcsc-b45' },
+      { partId: 'B46', skuId: 'MAX96724GTN/VY+T', quoteId: 'quote-lcsc-b46' },
     ] as const;
 
     for (const row of withSku) {
@@ -275,12 +323,22 @@ describe('purchase order class gate', () => {
         qty: 1,
         skuId: row.skuId,
         vendorId: 'particle',
-        quoteId: null,
+        quoteId: row.quoteId,
       });
       expect(result).toEqual({ ok: false, reason: 'class_null' });
     }
 
-    expect(await countTable(db, 'quote')).toBe(0);
+    const b05 = await issuePurchaseOrder(db, {
+      poId: 'po-b05',
+      lineId: 'po-b05-1',
+      partId: 'B05',
+      qty: 1,
+      skuId: 'B05:ACRYCLR0.118CCM48X96',
+      vendorId: 'particle',
+      quoteId: 'quote-particle-b42',
+    });
+    expect(b05).toEqual({ ok: false, reason: 'class_not_orderable' });
+
     expect(await countTable(db, 'purchase_order')).toBe(0);
     expect(await countTable(db, 'purchase_order_line')).toBe(0);
 
@@ -311,8 +369,8 @@ describe('purchase order class gate', () => {
     ).rejects.toThrow(/class_null/);
 
     await db.query(
-      `INSERT INTO purchase_order (po_id, supplier_party_id, status)
-       VALUES ('forced-b43', 'particle', 'draft')`,
+      `INSERT INTO purchase_order (po_id, supplier_party_id, quote_id, status)
+       VALUES ('forced-b43', 'particle', 'quote-particle-b43', 'draft')`,
     );
     await expect(
       db.query(
@@ -322,22 +380,24 @@ describe('purchase order class gate', () => {
     ).rejects.toThrow(/class_null/);
 
     await db.query(
-      `INSERT INTO purchase_order (po_id, status) VALUES ('forced-b45', 'draft')`,
+      `INSERT INTO purchase_order (po_id, supplier_party_id, quote_id, status)
+       VALUES ('forced-b45', 'lcsc', 'quote-lcsc-b45', 'draft')`,
     );
     await expect(
       db.query(
         `INSERT INTO purchase_order_line (line_id, po_id, part_id, sku_id, qty)
-         VALUES ('forced-b45-1', 'forced-b45', 'B45', 'MAX96717', 1)`,
+         VALUES ('forced-b45-1', 'forced-b45', 'B45', 'MAX96717GTJ/VY+T', 1)`,
       ),
     ).rejects.toThrow(/class_null/);
 
     await db.query(
-      `INSERT INTO purchase_order (po_id, status) VALUES ('forced-b46', 'draft')`,
+      `INSERT INTO purchase_order (po_id, supplier_party_id, quote_id, status)
+       VALUES ('forced-b46', 'lcsc', 'quote-lcsc-b46', 'draft')`,
     );
     await expect(
       db.query(
-        `INSERT INTO purchase_order_line (line_id, po_id, part_id, qty)
-         VALUES ('forced-b46-1', 'forced-b46', 'B46', 1)`,
+        `INSERT INTO purchase_order_line (line_id, po_id, part_id, sku_id, qty)
+         VALUES ('forced-b46-1', 'forced-b46', 'B46', 'MAX96724GTN/VY+T', 1)`,
       ),
     ).rejects.toThrow(/class_null/);
 

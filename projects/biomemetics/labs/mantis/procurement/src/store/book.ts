@@ -87,7 +87,7 @@ export const loadBuy = async (): Promise<BuyPayload> => {
       class: parsePartClass(part.class),
       skuId: null,
       vendorId: null,
-      quoteId: quotes[0]?.quote_id ?? null,
+      quoteId: null,
     }),
   }));
   return { parts, skus, suppliers, quotes, orders, gates };

@@ -145,7 +145,7 @@ function BuyPage() {
   return (
     <Board>
       <BoardKicker>
-        {`SKU, vendor, quote, and purchase order. Candidate manufacturer SKUs are not a selected SKU. Particle is a discovery vendor, not a buy. The class gate refuses UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors: ${String(suppliers.length)}. Quotes: ${String(quotes.length)}. Purchase orders: ${String(orders.length)}.`}
+        {`SKU, vendor, quote, and purchase order. Candidate manufacturer SKUs are not a selected SKU. Particle, LCSC, and TI are discovery vendors, not a buy. Discovery quotes are UNVERIFIED printed pages, not a PO. The class gate refuses UNVERIFIED, DRAFT, NULL class, missing SKU, missing vendor, and missing quote. REF and LOCK are not a buy. No purchase order is seeded. Vendors: ${String(suppliers.length)}. Quotes: ${String(quotes.length)}. Purchase orders: ${String(orders.length)}.`}
       </BoardKicker>
       {partId !== null && copy !== null ? (
         <BoardKicker>{`${partId}: ${copy}`}</BoardKicker>
