@@ -1,0 +1,60 @@
+name: mantis-terrarium-ci
+
+on:
+  pull_request:
+    paths:
+      - "projects/biomemetics/labs/mantis/terrarium/cad/jscad/**"
+      - "projects/biomemetics/labs/mantis/terrarium/ee/tscircuit/**"
+      - ".github/workflows/mantis-terrarium-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: mantis-terrarium-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jscad:
+    name: jscad
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install, typecheck, and test
+        run: |
+          set -euo pipefail
+          dir="projects/biomemetics/labs/mantis/terrarium/cad/jscad"
+          if [ ! -f "$dir/package.json" ]; then
+            echo "$dir/package.json is not on this ref; skip"
+            exit 0
+          fi
+          cd "$dir"
+          npm install
+          npm run typecheck
+          npm test
+
+  tscircuit:
+    name: tscircuit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install, typecheck, and test
+        run: |
+          set -euo pipefail
+          dir="projects/biomemetics/labs/mantis/terrarium/ee/tscircuit"
+          if [ ! -f "$dir/package.json" ]; then
+            echo "$dir/package.json is not on this ref; skip"
+            exit 0
+          fi
+          cd "$dir"
+          npm install
+          npm run typecheck
+          npm test
