@@ -48,4 +48,4 @@ npm run typecheck
 npm test
 ```
 
-Write-set is this directory only.
+`.github/workflows/mantis-assistant-hierarchy-ci.yml` runs those same commands. Package files stay under this directory.

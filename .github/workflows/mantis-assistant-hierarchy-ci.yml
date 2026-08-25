@@ -1,0 +1,45 @@
+name: Mantis Assistant Hierarchy
+
+on:
+  push:
+    paths:
+      - "projects/biomemetics/labs/mantis/assistant/hierarchy/**"
+      - ".github/workflows/mantis-assistant-hierarchy-ci.yml"
+  pull_request:
+    paths:
+      - "projects/biomemetics/labs/mantis/assistant/hierarchy/**"
+      - ".github/workflows/mantis-assistant-hierarchy-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hierarchy:
+    name: typecheck and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: projects/biomemetics/labs/mantis/assistant/hierarchy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: projects/biomemetics/labs/mantis/assistant/hierarchy/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
