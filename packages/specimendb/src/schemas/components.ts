@@ -9,7 +9,7 @@
 
 import * as Schema from 'effect/Schema';
 import { EntityRef } from './identifiers.js';
-import { EntityKind, EntityType, HonestyClass } from './provenance.js';
+import { AgentType, EntityKind, EntityType, HonestyClass } from './provenance.js';
 
 export const SpecimenStatus = Schema.Literals(['raw', 'filed', 'working', 'dead'] as const);
 export type SpecimenStatus = typeof SpecimenStatus.Type;
@@ -143,6 +143,31 @@ export class ObservationComponent extends Schema.TaggedClass<ObservationComponen
   text: Schema.String,
 }) {}
 
+export class WhoComponent extends Schema.TaggedClass<WhoComponent>()('Who', {
+  agentType: AgentType,
+  label: Schema.String.check(Schema.isMinLength(1)),
+  ref: Schema.optional(Schema.String),
+}) {}
+
+export class WhenComponent extends Schema.TaggedClass<WhenComponent>()('When', {
+  startedAt: Schema.String.check(Schema.isMinLength(1)),
+  completedAt: Schema.optional(Schema.String),
+  gitSha: Schema.optional(Schema.String),
+}) {}
+
+/** The string `unknown` is a value. Do not omit. Do not invent GPS. */
+export class WhereComponent extends Schema.TaggedClass<WhereComponent>()('Where', {
+  value: Schema.String.check(Schema.isMinLength(1)),
+}) {}
+
+export class WhyComponent extends Schema.TaggedClass<WhyComponent>()('Why', {
+  value: Schema.String.check(Schema.isMinLength(1)),
+}) {}
+
+export class HowComponent extends Schema.TaggedClass<HowComponent>()('How', {
+  value: Schema.String.check(Schema.isMinLength(1)),
+}) {}
+
 /**
  * Relationships are components a system walks (`Used` / `Generated` / …).
  * Each holds a target EntityRef. There is no third table.
@@ -209,6 +234,11 @@ export const Component = Schema.Union([
   TagComponent,
   QuestionComponent,
   ObservationComponent,
+  WhoComponent,
+  WhenComponent,
+  WhereComponent,
+  WhyComponent,
+  HowComponent,
   UsedComponent,
   GeneratedComponent,
   ExhibitsComponent,
@@ -241,6 +271,11 @@ export const COMPONENT_KIND_VALUES = [
   'Tag',
   'Question',
   'Observation',
+  'Who',
+  'When',
+  'Where',
+  'Why',
+  'How',
   'Used',
   'Generated',
   'Exhibits',
@@ -278,6 +313,25 @@ export const sameComponent = (left: Component, right: Component): boolean => {
   }
   if (left._tag === 'Bytes' && right._tag === 'Bytes') {
     return left.gitSha === right.gitSha && left.digest === right.digest && left.path === right.path;
+  }
+  if (left._tag === 'Who' && right._tag === 'Who') {
+    return left.agentType === right.agentType && left.label === right.label && left.ref === right.ref;
+  }
+  if (left._tag === 'When' && right._tag === 'When') {
+    return (
+      left.startedAt === right.startedAt &&
+      left.completedAt === right.completedAt &&
+      left.gitSha === right.gitSha
+    );
+  }
+  if (left._tag === 'Where' && right._tag === 'Where') {
+    return left.value === right.value;
+  }
+  if (left._tag === 'Why' && right._tag === 'Why') {
+    return left.value === right.value;
+  }
+  if (left._tag === 'How' && right._tag === 'How') {
+    return left.value === right.value;
   }
   return true;
 };

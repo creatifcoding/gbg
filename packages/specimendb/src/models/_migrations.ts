@@ -17,6 +17,7 @@ export const catalogMigrations = {
   '0005_entity_kinds': syncEntityKindCheck,
   '0006_entity_type': addEntityTypeColumn,
   '0007_component_kinds': syncComponentKindCheck,
+  '0008_component_kinds': syncComponentKindCheck,
 } as const;
 
 export type CatalogMigrationKey = keyof typeof catalogMigrations;

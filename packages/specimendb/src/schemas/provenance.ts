@@ -226,8 +226,13 @@ export const LabEntityRecord = LabEntity.pipe(Schema.check(activityHasW7));
 export const decodeLabEntity = Schema.decodeUnknownSync(LabEntityRecord);
 export const decodeDoctorReportPayload = Schema.decodeUnknownSync(DoctorReportPayload);
 
-/** Get-by-ref: the activity itself, Used target, Generated target, or Supersedes. */
-export const GetByRefPayload = Schema.Struct({
-  ref: EntityRef,
-});
+const queryString = Schema.String.check(Schema.isMinLength(1));
+
+export const GetByRefPayload = Schema.Union([
+  Schema.Struct({ ref: EntityRef }),
+  Schema.Struct({ who: queryString }),
+  Schema.Struct({ why: queryString }),
+  Schema.Struct({ gitSha: queryString }),
+  Schema.Struct({ startedAt: queryString }),
+]);
 export type GetByRefPayload = typeof GetByRefPayload.Type;

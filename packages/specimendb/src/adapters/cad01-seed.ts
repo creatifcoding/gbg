@@ -30,7 +30,7 @@ import { seedGeneratingNote } from './generating-note.js';
 /** Commit that added the terrarium / analog / contract trees on this ref. */
 export const CAD01_TREE_SHA = '60abe9434a4236baf17de2e9e6569b1b8a734298';
 const CAD01_REV = CAD01_TREE_SHA.slice(0, 8);
-const CAD01_COMMITTED_AT = '2026-08-21T01:58:40Z';
+export const CAD01_COMMITTED_AT = '2026-08-21T01:58:40Z';
 
 const TERRARIUM = 'projects/biomemetics/labs/mantis/terrarium';
 const MANTIS = 'projects/biomemetics/labs/mantis';
@@ -40,6 +40,7 @@ const MANIFEST_PATH = `${TERRARIUM}/MANIFEST.sha256`;
 const SCHEMATICS = `${TERRARIUM}/schematics`;
 
 export const CAD01_SOLID_REF = trustEntityRef(`gbg:step:CAD01@${CAD01_REV}`);
+export const CAD01_EXPORT_REF = trustEntityRef(`gbg:activity:export-cad01@${CAD01_REV}`);
 export const CAD01_PROJECT_REF = trustEntityRef('gbg:activity:project-cad01@pr58');
 export const CAD01_PDF_REF = trustEntityRef('gbg:sheet:schematics-pdf@pr58');
 
@@ -69,6 +70,12 @@ const SHEETS: ReadonlyArray<{
 export const CAD01_SHEET_REFS: ReadonlyArray<EntityRef> = SHEETS.map((sheet) =>
   trustEntityRef(`gbg:sheet:${sheet.local}@pr58`),
 );
+
+const HLR_SHEET_LOCALS = new Set(['S00', 'S01', 'S02', 'S03', 'S04', 'S05', 'S06']);
+
+export const CAD01_HLR_SHEET_REFS: ReadonlyArray<EntityRef> = SHEETS.filter((sheet) =>
+  HLR_SHEET_LOCALS.has(sheet.local),
+).map((sheet) => trustEntityRef(`gbg:sheet:${sheet.local}@pr58`));
 
 const PART_STEPS: ReadonlyArray<{ readonly local: string; readonly path: string }> = [
   { local: 'B01', path: `${TERRARIUM}/cad/src/frame/exports/B01-corner-block.step` },
@@ -418,6 +425,7 @@ export type Cad01Pack = {
   readonly solid: DeclaredEntity;
   readonly sheets: ReadonlyArray<DeclaredEntity>;
   readonly pdf: DeclaredEntity;
+  readonly exportActivity: LabEntity;
   readonly activity: LabEntity;
   readonly declared: ReadonlyArray<DeclaredEntity>;
 };
@@ -438,7 +446,47 @@ export const loadCad01Pack = (repoRoot: string = repoRootFromHere()): Cad01Pack 
     throw new Error('schematics.pdf missing from declared set');
   }
 
-  const generated = [...CAD01_SHEET_REFS];
+  const exportActivity = decodeLabEntity({
+    _tag: 'LabEntity',
+    ref: CAD01_EXPORT_REF,
+    kind: 'activity',
+    type: 'export',
+    label: 'CAD-01 STEP export',
+    class: 'theoretical',
+    bytes: {
+      gitSha: CAD01_TREE_SHA,
+      path: `${TERRARIUM}/cad/src/frame/exports/occt-export-report.json`,
+    },
+    who: [
+      {
+        _tag: 'Agent',
+        agentType: 'software',
+        label: 'freecad-part-occt',
+      },
+    ],
+    what: {
+      used: [],
+      generated: [CAD01_SOLID_REF],
+    },
+    when: {
+      startedAt: CAD01_COMMITTED_AT,
+      gitSha: CAD01_TREE_SHA,
+    },
+    where: 'unknown',
+    why: '#20',
+    how: 'freecad-part-occt',
+    used: [],
+    generated: [CAD01_SOLID_REF],
+    wasAssociatedWith: [
+      {
+        _tag: 'Agent',
+        agentType: 'software',
+        label: 'freecad-part-occt',
+      },
+    ],
+  });
+
+  const generated = [...CAD01_HLR_SHEET_REFS];
   const activity = decodeLabEntity({
     _tag: 'LabEntity',
     ref: CAD01_PROJECT_REF,
@@ -479,7 +527,7 @@ export const loadCad01Pack = (repoRoot: string = repoRootFromHere()): Cad01Pack 
     ],
   });
 
-  return { solid, sheets, pdf, activity, declared };
+  return { solid, sheets, pdf, exportActivity, activity, declared };
 };
 
 const seedDeclared = (
@@ -504,6 +552,7 @@ export const seedCad01Hlr = (): Effect.Effect<
   {
     readonly pack: Cad01Pack;
     readonly records: ReadonlyArray<CatalogRecord>;
+    readonly exportActivity: CatalogRecord;
     readonly activity: CatalogRecord;
     readonly note: CatalogRecord;
   },
@@ -522,7 +571,8 @@ export const seedCad01Hlr = (): Effect.Effect<
     });
     const records = yield* seedDeclared(pack.declared);
     const state = yield* EntityState;
+    const exportActivity = yield* appendActivity(state, pack.exportActivity);
     const activity = yield* appendActivity(state, pack.activity);
     const generating = yield* seedGeneratingNote();
-    return { pack, records, activity, note: generating.note };
+    return { pack, records, exportActivity, activity, note: generating.note };
   });
