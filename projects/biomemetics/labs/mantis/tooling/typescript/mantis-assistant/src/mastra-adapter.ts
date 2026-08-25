@@ -1029,7 +1029,11 @@ export const authenticatedAguiRoundTrip = async (
         ?.map((message) => String(message.content ?? ''))
         .join('\n') ?? '';
     eventTypes = ['HttpAgent.runAgent'];
-  } catch (error) {
+  } catch {
+    authenticatedText = '';
+  }
+
+  if (!authenticatedText.includes('CareAdvice')) {
     const streamed = await firstValueFrom(
       mastraAgent
         .run({
@@ -1049,17 +1053,9 @@ export const authenticatedAguiRoundTrip = async (
         .pipe(toArray()),
     );
     eventTypes = streamed.map((event) => event.type);
-    authenticatedText = streamed
-      .filter((event) => event.type === EventType.TEXT_MESSAGE_CONTENT)
-      .map((event) => ('delta' in event ? String(event.delta) : ''))
-      .join('');
-    if (authenticatedText.length === 0) {
-      authenticatedText = await collectAgentText(
-        harness.agent,
-        'What do I do now for the cup subject?',
-      );
-    }
-    void error;
+    authenticatedText = collectAssistantTextFromEvents(
+      streamed as Array<Record<string, unknown>>,
+    );
   }
 
   await new Promise<void>((resolve, reject) =>
@@ -1134,22 +1130,43 @@ const asNodeResponse = (response: Response): Response => {
   });
 };
 
-const sseEventTypes = (text: string): string[] => {
-  const types: string[] = [];
+const TEXT_DELTA_TYPES = new Set(['TEXT_MESSAGE_CONTENT', 'TEXT_MESSAGE_CHUNK']);
+
+const parseSseEvents = (text: string): Array<Record<string, unknown>> => {
+  const events: Array<Record<string, unknown>> = [];
   for (const line of text.split('\n')) {
     const payload = line.startsWith('data:') ? line.slice(5).trim() : '';
     if (payload.length === 0 || payload === '[DONE]') continue;
     try {
       const parsed: unknown = JSON.parse(payload);
-      if (parsed && typeof parsed === 'object' && 'type' in parsed) {
-        types.push(String((parsed as { type: unknown }).type));
+      if (parsed && typeof parsed === 'object') {
+        events.push(parsed as Record<string, unknown>);
       }
     } catch {
       continue;
     }
   }
-  return types;
+  return events;
 };
+
+const sseEventTypes = (text: string): string[] =>
+  parseSseEvents(text)
+    .map((event) => event.type)
+    .filter((type): type is string => typeof type === 'string');
+
+const eventTextDelta = (event: Record<string, unknown>): string =>
+  typeof event.delta === 'string' ? event.delta : '';
+
+const collectAssistantTextFromEvents = (
+  events: ReadonlyArray<Record<string, unknown>>,
+): string =>
+  events
+    .filter((event) => TEXT_DELTA_TYPES.has(String(event.type)))
+    .map(eventTextDelta)
+    .join('');
+
+const collectAssistantTextFromSse = (text: string): string =>
+  collectAssistantTextFromEvents(parseSseEvents(text));
 
 const infoAgentIds = (text: string): string[] => {
   const parsed: unknown = JSON.parse(text);
@@ -1178,6 +1195,10 @@ export const createInProcessAguiBind = (
     const runtime = new CopilotRuntime({
       // CopilotKit 1.68.3 types AbstractAgent from a nested 0.0.57 copy; getLocalAgents returns the 0.0.58 pin.
       agents: admittedAgents as unknown as CopilotRuntimeOptions['agents'],
+      // CopilotKit copies inbound Authorization onto agent.stream modelSettings.headers.
+      // That overwrites the OpenRouter Bearer key. Session auth stays on the request
+      // for onRequest and must not reach the model.
+      forwardHeaders: { deny: ['authorization'] },
     });
     const copilotHandler = createCopilotRuntimeHandler({
       runtime,
@@ -1276,12 +1297,13 @@ export const authenticatedInProcessAguiRoundTrip = async (
       }),
     );
     runStatus = authenticated.status;
-    authenticatedText = await withTimeout(
+    const sse = await withTimeout(
       authenticated.text(),
       LIVE_CALL_TIMEOUT_MS,
       'in-process run',
     );
-    eventTypes = sseEventTypes(authenticatedText);
+    eventTypes = sseEventTypes(sse);
+    authenticatedText = collectAssistantTextFromSse(sse);
   } catch (error) {
     recordCapability(
       harness,
