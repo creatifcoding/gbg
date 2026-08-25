@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../kernel/log';
 import { App } from '../ui/App';
+import { expectBlankFields, expectNoBannedCopy, TELEMETRY_FIELDS } from './chrome';
 
 describe('accessibility smoke', () => {
   it('exposes named surfaces, hides Service, and never calls terrarium safe', async () => {
@@ -16,15 +17,16 @@ describe('accessibility smoke', () => {
     expect(screen.getByRole('heading', { name: 'Keeper notebook' })).toBeInTheDocument();
   });
 
-  it('renders the terrarium as an empty well, never as safe', async () => {
+  it('draws terrarium telemetry chrome with blank values', async () => {
     render(<App store={new MemoryStore()} />);
     await act(async () => {
       screen.getByRole('button', { name: 'Terrarium' }).click();
     });
-    expect(await screen.findByRole('heading', { name: 'Telemetry well' })).toBeInTheDocument();
-    expect(screen.getByText(/this well is empty/i)).toBeInTheDocument();
+    const box = await screen.findByRole('article', { name: 'Terrarium telemetry' });
+    expect(box).toBeInTheDocument();
+    expectBlankFields(box, TELEMETRY_FIELDS);
     expect(screen.getByRole('status').textContent?.toLowerCase()).toContain('unavailable');
-    expect(document.body.textContent?.toLowerCase()).not.toMatch(/\bsafe\b/);
+    expectNoBannedCopy();
   });
 
   it('keeps feeding controls named for a screen reader', async () => {

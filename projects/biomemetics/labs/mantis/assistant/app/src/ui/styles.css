@@ -126,6 +126,39 @@ main.surface {
 }
 .well .well-kicker { color: #8ea38c; }
 
+.telemetry {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.telemetry div {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 1.35em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--well-rim);
+}
+.telemetry dt {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8ea38c;
+}
+.telemetry dd {
+  margin: 0;
+  min-height: 1.2em;
+}
+
+[data-field="stream"] {
+  min-height: 2.5em;
+  border: 1px solid var(--well-rim);
+  border-radius: 10px;
+  margin: 10px 0 0;
+}
+
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .chip {
   font-size: 12px;

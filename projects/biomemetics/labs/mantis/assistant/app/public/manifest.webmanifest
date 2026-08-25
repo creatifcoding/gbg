@@ -2,7 +2,7 @@
   "id": "/mantis-keeper",
   "name": "Mantis Keeper",
   "short_name": "Keeper",
-  "description": "Offline-first CopilotKit PWA for a local CareSubject. Observation is not taxon. Photo does not write locality. Terrarium is an empty well.",
+  "description": "Offline-first CopilotKit PWA for a local CareSubject. Observation is not taxon. Photo does not write locality. Terrarium telemetry is drawn blank.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

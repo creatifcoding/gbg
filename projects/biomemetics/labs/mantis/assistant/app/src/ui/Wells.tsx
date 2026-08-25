@@ -1,16 +1,24 @@
+const TELEMETRY_FIELDS = ['temperature', 'humidity', 'camera', 'rail'] as const;
+
 export function TerrariumSurface() {
   return (
     <section aria-labelledby="terra-heading">
       <p className="kicker">Terrarium · terrarium-read</p>
-      <h1 id="terra-heading">Telemetry well</h1>
-      <article className="well" aria-label="Terrarium empty well">
-        <p className="well-kicker">No live gateway</p>
-        <h2>This well is empty</h2>
-        <p>
+      <h1 id="terra-heading">Terrarium</h1>
+      <article className="well" aria-label="Terrarium telemetry">
+        <p className="well-kicker">Telemetry</p>
+        <dl className="telemetry">
+          {TELEMETRY_FIELDS.map((field) => (
+            <div key={field}>
+              <dt>{field}</dt>
+              <dd data-field={field}></dd>
+            </div>
+          ))}
+        </dl>
+        <p className="muted">
           A1 has no terrarium telemetry, camera, or rail read. Unavailable is not a husbandry
-          status. This surface will never render a false all-clear.
+          status.
         </p>
-        <p className="muted">Gateway: unbound. Freshness: none. Simulator: A4. Telemetry well: empty.</p>
         <p role="status">Status: unavailable</p>
       </article>
     </section>

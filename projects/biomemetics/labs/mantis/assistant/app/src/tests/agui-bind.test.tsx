@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyAssistantRun, resolveAguiBind } from '../contracts/a0';
 import { MemoryStore } from '../kernel/log';
 import { App } from '../ui/App';
+import { expectBlankFields, expectNoBannedCopy, TELEMETRY_FIELDS } from './chrome';
 
 describe('resolveAguiBind', () => {
   it('returns local when runtimeUrl is empty and CopilotKit is present', () => {
@@ -40,20 +41,23 @@ describe('resolveAguiBind', () => {
   });
 });
 
-describe('Ask Mastra well', () => {
-  it('shows local-bind copy, not empty-well, and keeps Terrarium empty', async () => {
+describe('Ask CopilotKit chrome', () => {
+  it('draws a blank local stream and blank terrarium telemetry', async () => {
     render(<App store={new MemoryStore()} />);
     await act(async () => {
       screen.getByRole('button', { name: 'Ask' }).click();
     });
-    expect(await screen.findByRole('heading', { name: 'Bound locally' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Empty well' })).not.toBeInTheDocument();
+    const streamBox = await screen.findByRole('region', { name: 'CopilotKit stream' });
+    expect(streamBox).toBeInTheDocument();
+    expectBlankFields(streamBox, ['stream']);
+    expectNoBannedCopy();
 
     await act(async () => {
       screen.getByRole('button', { name: 'Terrarium' }).click();
     });
-    expect(await screen.findByRole('heading', { name: 'Telemetry well' })).toBeInTheDocument();
-    expect(screen.getByText(/this well is empty/i)).toBeInTheDocument();
-    expect(document.body.textContent?.toLowerCase()).not.toMatch(/\bsafe\b/);
+    const telemetry = await screen.findByRole('article', { name: 'Terrarium telemetry' });
+    expect(telemetry).toBeInTheDocument();
+    expectBlankFields(telemetry, TELEMETRY_FIELDS);
+    expectNoBannedCopy();
   });
 });
