@@ -20,3 +20,6 @@ npm run catalog
 
 `npm run catalog` walks `assistant/workflows/fixture-catalog/catalog.json` and
 exits 0 only when every case matches `admit`, `reject`, or `reject-identity`.
+
+`.github/workflows/mantis-workflow-lab-ci.yml` runs those three commands on the
+A3 write-set. JSON fixtures only. No live Mastra.
