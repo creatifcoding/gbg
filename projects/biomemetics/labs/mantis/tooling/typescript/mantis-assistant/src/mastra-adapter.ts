@@ -131,10 +131,17 @@ export class OpenRouterGateError extends Error {
   }
 }
 
-export type ModelLane = {
+export type LiveOpenRouterLane = {
   readonly kind: 'live-openrouter';
   readonly model: typeof PINS.liveModel;
 };
+
+export type FixtureLane = {
+  readonly kind: 'fixture';
+  readonly model: ReturnType<typeof createFakeModel>;
+};
+
+export type ModelLane = LiveOpenRouterLane | FixtureLane;
 
 const parseOpenRouterApiKey = (value: unknown): string => {
   if (typeof value !== 'string') {
@@ -147,13 +154,18 @@ const parseOpenRouterApiKey = (value: unknown): string => {
   return key;
 };
 
-export const createLiveOpenRouterLane = (): ModelLane => {
+export const createLiveOpenRouterLane = (): LiveOpenRouterLane => {
   parseOpenRouterApiKey(process.env.OPENROUTER_API_KEY);
   return {
     kind: 'live-openrouter',
     model: PINS.liveModel,
   };
 };
+
+export const createFixtureLane = (): FixtureLane => ({
+  kind: 'fixture',
+  model: createFakeModel(),
+});
 
 export interface SideEffectCounter {
   externalEffectCount: number;
@@ -931,10 +943,15 @@ const collectAgentText = async (agent: Agent, prompt: string): Promise<string> =
 export const collectOpenRouterProof = async (agent: Agent): Promise<string> =>
   collectAgentText(agent, 'What do I do now for the cup subject?');
 
-export const liveOpenRouterLaneIdentity = (lane: ModelLane) => ({
-  kind: lane.kind,
-  model: lane.model,
-});
+export const liveOpenRouterLaneIdentity = (lane: ModelLane) => {
+  if (lane.kind !== 'live-openrouter') {
+    throw new Error('live OpenRouter lane is required');
+  }
+  return {
+    kind: lane.kind,
+    model: lane.model,
+  };
+};
 
 export const authenticatedAguiRoundTrip = async (
   harness: AdapterHarness,

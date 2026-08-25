@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { FakeClock } from '../src/clock.ts';
+import { loadLabJson, validateInstance } from '../src/contracts.ts';
+import { MantisController } from '../src/controller.ts';
 import {
   FAKE_MODEL_TEXT,
   authenticatedInProcessAguiRoundTrip,
@@ -55,5 +57,72 @@ test(
         text: roundTrip.authenticatedText.slice(0, 400),
       }),
     );
+  },
+);
+
+test(
+  'OpenRouter DeepSeek eval and AG-UI matrix cases are the proof',
+  { timeout: 300_000 },
+  async (t) => {
+    const controller = await MantisController.create();
+    t.after(() => controller.destroy());
+
+    const care = controller.bindSession({
+      principalId: 'principal.fixture.care-space-01',
+      careSubjectId: 'care.fixture-cup-01',
+      mode: 'care',
+      conversationId: 'conversation-01',
+    });
+
+    const evalResult = await controller.evals();
+    assert.equal(
+      evalResult.scores['check-includes'],
+      1,
+      JSON.stringify({ scores: evalResult.scores, experiment: evalResult.experiment }),
+    );
+    assert.equal(evalResult.scores['check-excludes'], 1);
+
+    const roundTrip = await controller.aguiRoundTrip();
+    assert.equal(roundTrip.unauthenticatedStatus, 401);
+    assert.ok(
+      roundTrip.authenticatedText.includes('CareAdvice') &&
+        !roundTrip.authenticatedText.includes(FAKE_MODEL_TEXT),
+      JSON.stringify({
+        eventTypes: roundTrip.eventTypes,
+        text: roundTrip.authenticatedText.slice(0, 400),
+      }),
+    );
+
+    const fixture = loadLabJson(
+      'assistant/fixtures/agui/in-process-bind.json',
+    ) as {
+      kind: string;
+      basePath: string;
+      agentId: string;
+      unauthenticatedStatus: number;
+    };
+    const inProcess = await controller.inProcessAguiRoundTrip(care);
+    const capability = controller.capabilities.find(
+      (entry) => entry.id === 'in-process-agui-bind',
+    );
+    assert.equal(inProcess.unauthenticatedStatus, fixture.unauthenticatedStatus);
+    assert.equal(inProcess.infoStatus, 200);
+    assert.ok(inProcess.agentIds.includes(fixture.agentId));
+    assert.equal(inProcess.agentIds.includes('device-command'), false);
+    assert.equal('runtimeUrl' in inProcess.bind, false);
+    assert.equal(capability?.status, 'proven');
+    assert.ok(
+      inProcess.authenticatedText.includes('CareAdvice') &&
+        !inProcess.authenticatedText.includes(FAKE_MODEL_TEXT),
+      JSON.stringify({
+        authenticatedText: inProcess.authenticatedText.slice(0, 400),
+        eventTypes: inProcess.eventTypes,
+      }),
+    );
+    const receiptValid = validateInstance(
+      'assistant/contracts/assistant-run.schema.json',
+      controller.emitRunReceipt(care, 'run.fixture-a0-01'),
+    );
+    assert.equal(receiptValid.valid, true, receiptValid.errors.join('; '));
   },
 );

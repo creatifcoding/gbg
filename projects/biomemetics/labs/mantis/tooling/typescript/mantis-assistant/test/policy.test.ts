@@ -67,7 +67,7 @@ test('privacy processor strips address, EXIF, and tokens', () => {
 });
 
 test('MantisController fail-closed guards', async () => {
-  const controller = await MantisController.create();
+  const controller = await MantisController.createFixture();
   try {
     const binding = controller.bindSession({
       principalId: 'principal.fixture.care-space-01',

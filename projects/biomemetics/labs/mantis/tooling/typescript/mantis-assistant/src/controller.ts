@@ -6,6 +6,7 @@ import {
   authenticatedInProcessAguiRoundTrip,
   createAdapterHarness,
   createControllerSession,
+  createFixtureLane,
   createInProcessAguiBind,
   durableReconnectReadOnly,
   prohibitForkedSpecialist,
@@ -98,6 +99,13 @@ export class MantisController {
 
   static async create(clock = new FakeClock()): Promise<MantisController> {
     return new MantisController(await createAdapterHarness(clock), clock);
+  }
+
+  static async createFixture(clock = new FakeClock()): Promise<MantisController> {
+    return new MantisController(
+      await createAdapterHarness(clock, createFixtureLane()),
+      clock,
+    );
   }
 
   get capabilities(): readonly CapabilityEntry[] {

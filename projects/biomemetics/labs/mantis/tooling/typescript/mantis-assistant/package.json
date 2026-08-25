@@ -9,6 +9,8 @@
   },
   "scripts": {
     "test": "node --test --experimental-strip-types test/*.test.ts",
+    "test:unit": "node --test --experimental-strip-types test/contracts.test.ts test/isolation.test.ts test/policy.test.ts test/openrouter-gate.test.ts test/compatibility.test.ts",
+    "test:live": "node --test --experimental-strip-types test/live-openrouter.test.ts",
     "typecheck": "tsc --noEmit",
     "compat": "node --experimental-strip-types src/compat-cli.ts"
   },

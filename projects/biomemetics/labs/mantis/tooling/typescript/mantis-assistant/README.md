@@ -41,11 +41,12 @@ Cursor plan tokens.
 
 Do not commit, log, or print the key.
 
-`.github/workflows/mantis-assistant-ci.yml` runs `npm ci`, `npm run typecheck`,
-and `npm test` on `feat/mantis-biomemetics-lab`. It passes
-`secrets.OPENROUTER_API_KEY` into the prove job. A missing secret leaves the
-env empty, so the job fails closed. The job does not skip and does not use
-`createFakeModel` as the passing path.
+`.github/workflows/mantis-assistant-ci.yml` runs unit tests without a key, then
+runs the live prove on `feat/mantis-biomemetics-lab`. The prove job passes
+`secrets.OPENROUTER_API_KEY` into `npm run test:live`. A missing secret leaves
+the env empty, so the live job fails closed. The job does not skip and does not
+use `createFakeModel` as the passing path. `MantisController.create()` still
+defaults to the live OpenRouter lane.
 
 The in-process AG-UI bind remains `MastraAgent.getLocalAgents` into
 `CopilotRuntime`. It has no `runtimeUrl`.
