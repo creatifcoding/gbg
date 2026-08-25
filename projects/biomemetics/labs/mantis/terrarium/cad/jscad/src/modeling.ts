@@ -1,10 +1,14 @@
 import { createRequire } from 'node:module';
 
-import type { Geom2, Geom3 } from '@jscad/modeling/src/geometries/types.js';
+import type { Geom2, Geom3, Path2 } from '@jscad/modeling/src/geometries/types.js';
+
+export type Vec2 = readonly [number, number];
 
 export type Vec3 = readonly [number, number, number];
 
 export type BoundingBox = readonly [Vec3, Vec3];
+
+export type { Path2 };
 
 type Modeling = {
   readonly primitives: {
@@ -22,6 +26,18 @@ type Modeling = {
       geometry: Geom3,
     ) => Geom2;
   };
+  readonly geometries: {
+    readonly geom2: {
+      readonly isA: (value: unknown) => value is Geom2;
+      readonly toOutlines: (geometry: Geom2) => Array<Array<[number, number]>>;
+    };
+    readonly path2: {
+      readonly fromPoints: (options: { readonly closed: boolean }, points: ReadonlyArray<Vec2>) => Path2;
+    };
+  };
+  readonly colors: {
+    readonly colorize: (color: readonly [number, number, number, number], object: Path2) => Path2;
+  };
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -33,7 +49,11 @@ const isModeling = (value: unknown): value is Modeling => {
     !isRecord(value.primitives) ||
     !isRecord(value.measurements) ||
     !isRecord(value.transforms) ||
-    !isRecord(value.extrusions)
+    !isRecord(value.extrusions) ||
+    !isRecord(value.geometries) ||
+    !isRecord(value.colors) ||
+    !isRecord(value.geometries.geom2) ||
+    !isRecord(value.geometries.path2)
   ) {
     return false;
   }
@@ -41,7 +61,11 @@ const isModeling = (value: unknown): value is Modeling => {
     typeof value.primitives.cuboid === 'function' &&
     typeof value.measurements.measureBoundingBox === 'function' &&
     typeof value.transforms.translate === 'function' &&
-    typeof value.extrusions.project === 'function'
+    typeof value.extrusions.project === 'function' &&
+    typeof value.geometries.geom2.isA === 'function' &&
+    typeof value.geometries.geom2.toOutlines === 'function' &&
+    typeof value.geometries.path2.fromPoints === 'function' &&
+    typeof value.colors.colorize === 'function'
   );
 };
 
@@ -49,7 +73,9 @@ const modeling = ((): Modeling => {
   // @jscad/modeling is CJS; NodeNext named imports fail at runtime.
   const loaded: unknown = createRequire(import.meta.url)('@jscad/modeling');
   if (!isModeling(loaded)) {
-    throw new Error('@jscad/modeling missing cuboid, measureBoundingBox, translate, or project');
+    throw new Error(
+      '@jscad/modeling missing cuboid, measureBoundingBox, translate, project, toOutlines, fromPoints, or colorize',
+    );
   }
   return loaded;
 })();
@@ -68,3 +94,13 @@ export const translateSolid = (offset: Vec3, solid: Geom3): Geom3 =>
 
 export const projectSolid = (options: { readonly axis: Vec3; readonly origin: Vec3 }, solid: Geom3): Geom2 =>
   modeling.extrusions.project(options, solid);
+
+export const isGeom2 = (value: unknown): value is Geom2 => modeling.geometries.geom2.isA(value);
+
+export const outlinesFromGeom2 = (geometry: Geom2): Array<Array<[number, number]>> =>
+  modeling.geometries.geom2.toOutlines(geometry);
+
+export const closedPathFromPoints = (points: ReadonlyArray<Vec2>): Path2 =>
+  modeling.geometries.path2.fromPoints({ closed: true }, points);
+
+export const strokePath = (path: Path2): Path2 => modeling.colors.colorize([0, 0, 0, 1], path);

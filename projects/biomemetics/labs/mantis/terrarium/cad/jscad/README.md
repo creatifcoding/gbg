@@ -17,15 +17,31 @@ B20 is the continuous animal/wet barrier. These solids are nonmetal. No animal-s
 
 Cassette seat is `stock + 0.20 mm` TARGET (3.20 mm). It is recorded, not a pocket. Screen aperture `<=0.80 mm` nonmetal is LOCK on B11, not a cut in these plates. In-plane plate size is CALCULATED before gasket closure.
 
-`npm run generate` projects the envelope with `@jscad/modeling` `extrusions.project({axis, origin}, solid)` and writes front, side, and top SVG under `generated/` with `@jscad/svg-serializer` `serialize({unit: 'mm'}, geom2)`. Those files are class generated, not shop-release. Leftover S01 stays the extract view.
+`npm run generate` projects each authored solid with `@jscad/modeling` `extrusions.project({axis, origin}, solid)`, converts the geom2 outlines to closed `path2` via `geom2.toOutlines` and `path2.fromPoints({closed: true})`, sets stroke with `colors.colorize([0, 0, 0, 1], path)`, then writes SVG with `@jscad/svg-serializer` `serialize({unit: 'mm'}, ...paths)`. Official serializer fills geom2 black and strokes path2. Generate never passes geom2 to serialize.
 
-| file | view | axis | origin | plane |
-| --- | --- | --- | --- | --- |
-| `generated/front.svg` | front | `[0, 1, 0]` | `[0, 0, 0]` | XZ |
-| `generated/side.svg` | side | `[1, 0, 0]` | `[0, 0, 0]` | YZ |
-| `generated/top.svg` | top | `[0, 0, 1]` | `[0, 0, 0]` | XY |
+Those files are class generated, not shop-release. Leftover S01 stays the extract view. `generated/VIEWS.md` lists every file generate wrote.
 
-`axis` is the official `project()` plane normal. Front is the Y-normal plane. Side is the X-normal plane. Top is the Z-normal plane, the library default.
+Envelope still uses the short names `front.svg`, `side.svg`, and `top.svg`. Every solid also writes `{solid}-{view}.svg`.
+
+| file | solid | view | axis | origin | plane |
+| --- | --- | --- | --- | --- | --- |
+| `generated/front.svg` | envelope | front | `[0, 1, 0]` | `[0, 0, 0]` | XZ |
+| `generated/side.svg` | envelope | side | `[1, 0, 0]` | `[0, 0, 0]` | YZ |
+| `generated/top.svg` | envelope | top | `[0, 0, 1]` | `[0, 0, 0]` | XY |
+| `generated/envelope-front.svg` | envelope | front | `[0, 1, 0]` | `[0, 0, 0]` | XZ |
+| `generated/envelope-side.svg` | envelope | side | `[1, 0, 0]` | `[0, 0, 0]` | YZ |
+| `generated/envelope-top.svg` | envelope | top | `[0, 0, 1]` | `[0, 0, 0]` | XY |
+| `generated/B01-corner-block-front.svg` | B01 | front | `[0, 1, 0]` | `[0, 0, 0]` | XZ |
+| `generated/B01-corner-block-side.svg` | B01 | side | `[1, 0, 0]` | `[0, 0, 0]` | YZ |
+| `generated/B01-corner-block-top.svg` | B01 | top | `[0, 0, 1]` | `[0, 0, 0]` | XY |
+| `generated/B05-view-cassette-front.svg` | B05 | front | `[0, 1, 0]` | `[0, 0, 0]` | XZ |
+| `generated/B05-view-cassette-side.svg` | B05 | side | `[1, 0, 0]` | `[0, 0, 0]` | YZ |
+| `generated/B05-view-cassette-top.svg` | B05 | top | `[0, 0, 1]` | `[0, 0, 0]` | XY |
+| `generated/B06-front-door-front.svg` | B06 | front | `[0, 1, 0]` | `[0, 0, 0]` | XZ |
+| `generated/B06-front-door-side.svg` | B06 | side | `[1, 0, 0]` | `[0, 0, 0]` | YZ |
+| `generated/B06-front-door-top.svg` | B06 | top | `[0, 0, 1]` | `[0, 0, 0]` | XY |
+
+`axis` is the official `project()` plane normal. Front is the Y-normal plane. Side is the X-normal plane. Top is the Z-normal plane, the library default. B05 front is the 202 x 427 mm plate. B01 is the unique 24 mm cube. The eight instance origins live in `generated/VIEWS.md`.
 
 STL and STEP emit throw. PNG/iso stay blank. `gl` created a context on this coupon. Official `@jscad/regl-renderer` `demo-cli.js` then failed with `Cannot find module '@jscad/img-utils'`. No PNG was written. Maturity is DRAFT.
 

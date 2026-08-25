@@ -1,9 +1,11 @@
 import { createRequire } from 'node:module';
 
-import type { Geom2 } from '@jscad/modeling/src/geometries/types.js';
+import type { Geom2, Path2 } from '@jscad/modeling/src/geometries/types.js';
+
+import { closedPathFromPoints, isGeom2, outlinesFromGeom2, strokePath } from './modeling.ts';
 
 type SvgSerializer = {
-  readonly serialize: (options: { readonly unit: 'mm' }, geometry: Geom2) => unknown;
+  readonly serialize: (options: { readonly unit: 'mm' }, ...objects: Path2[]) => unknown;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -23,8 +25,22 @@ const svgSerializer = ((): SvgSerializer => {
 const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((chunk) => typeof chunk === 'string');
 
-export const serializeSvg = (geometry: Geom2): string => {
-  const chunks = svgSerializer.serialize({ unit: 'mm' }, geometry);
+export const strokedPathsFromGeom2 = (geometry: Geom2): Path2[] => {
+  const outlines = outlinesFromGeom2(geometry);
+  if (outlines.length === 0) {
+    throw new Error('project() returned a geom2 with no outlines');
+  }
+  return outlines.map((points) => strokePath(closedPathFromPoints(points)));
+};
+
+const asPathList = (objects: Geom2 | Path2 | ReadonlyArray<Geom2 | Path2>): Path2[] => {
+  const list = Array.isArray(objects) ? objects : [objects];
+  return list.flatMap((object) => (isGeom2(object) ? strokedPathsFromGeom2(object) : [object]));
+};
+
+export const serializeSvg = (objects: Geom2 | Path2 | ReadonlyArray<Geom2 | Path2>): string => {
+  const paths = asPathList(objects);
+  const chunks = svgSerializer.serialize({ unit: 'mm' }, ...paths);
   if (!isStringArray(chunks) || chunks.length === 0) {
     throw new Error('@jscad/svg-serializer.serialize did not return SVG strings');
   }
