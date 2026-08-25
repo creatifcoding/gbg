@@ -1,14 +1,14 @@
-name: Mantis Assistant Hierarchy
+name: Mantis Assistant A2
 
 on:
   push:
     paths:
       - "projects/biomemetics/labs/mantis/assistant/hierarchy/**"
-      - ".github/workflows/mantis-assistant-hierarchy-ci.yml"
+      - ".github/workflows/mantis-assistant-a2.yml"
   pull_request:
     paths:
       - "projects/biomemetics/labs/mantis/assistant/hierarchy/**"
-      - ".github/workflows/mantis-assistant-hierarchy-ci.yml"
+      - ".github/workflows/mantis-assistant-a2.yml"
   workflow_dispatch:
 
 concurrency:
@@ -19,8 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  hierarchy:
-    name: typecheck and test
+  agent-tree-limits:
+    name: agent-tree-limits
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:

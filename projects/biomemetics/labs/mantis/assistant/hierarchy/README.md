@@ -48,4 +48,4 @@ npm run typecheck
 npm test
 ```
 
-`.github/workflows/mantis-assistant-hierarchy-ci.yml` runs those same commands. Package files stay under this directory.
+`.github/workflows/mantis-assistant-a2.yml` runs those same commands.
