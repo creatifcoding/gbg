@@ -32,6 +32,7 @@ export const IntakeAdapterTag = '@tmnl/specimendb/IntakeAdapter' as const;
 export const EntityRepoTag = '@tmnl/specimendb/EntityRepo' as const;
 export const ComponentRepoTag = '@tmnl/specimendb/ComponentRepo' as const;
 export const CatalogConfigTagName = '@tmnl/specimendb/Config' as const;
+export const EvaSourceTag = '@tmnl/specimendb/eva/PostgresSqlSource' as const;
 
 export type CatalogEntityTag = typeof CatalogEntityTag;
 export type IntakeTag = typeof IntakeTag;
