@@ -53,6 +53,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@tmnl/stx': path.resolve(__dirname, '../../stx/src/index.ts'),
+      '@gbg/lab-ui': path.resolve(__dirname, '../../lab-ui/src/index.ts'),
     },
   },
   server: {

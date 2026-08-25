@@ -1,0 +1,1170 @@
+/* Mechanical copy of docs/variant/9263d787-0811-440f-8822-f31ee93b56a8.html <style> blocks.
+   theme() substituted from the compiled Tailwind in that file.
+   Selectors scoped to .imported-workbench so Terminal tests keep their own chrome. */
+
+
+        .imported-workbench {
+            background-color: #000000;
+            color: rgb(212 212 212);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        
+        .imported-workbench ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .imported-workbench ::-webkit-scrollbar-track {
+            background: #000;
+            border-left: 1px solid #1a1a1a;
+        }
+        .imported-workbench ::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+        .imported-workbench ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .imported-workbench .grid-bg {
+            background-image: 
+                linear-gradient(rgb(26 26 26) 1px, transparent 1px),
+                linear-gradient(90deg, rgb(26 26 26) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .imported-workbench .corner-brackets {
+            position: relative;
+        }
+        .imported-workbench .corner-brackets::before,
+        .imported-workbench .corner-brackets::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-color: rgb(42 42 42);
+            border-style: solid;
+        }
+        .imported-workbench .corner-brackets::before {
+            top: 0; left: 0;
+            border-width: 1px 0 0 1px;
+        }
+        .imported-workbench .corner-brackets::after {
+            bottom: 0; right: 0;
+            border-width: 0 1px 1px 0;
+        }
+        .imported-workbench .corner-brackets-top-right {
+            position: absolute; top: 0; right: 0; width: 8px; height: 8px;
+            border-width: 1px 1px 0 0; border-color: rgb(42 42 42); border-style: solid;
+        }
+        .imported-workbench .corner-brackets-bottom-left {
+            position: absolute; bottom: 0; left: 0; width: 8px; height: 8px;
+            border-width: 0 0 1px 1px; border-color: rgb(42 42 42); border-style: solid;
+        }
+    
+
+
+.imported-workbench *, .imported-workbench ::before, .imported-workbench ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+.imported-workbench ::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+.imported-workbench *,
+.imported-workbench ::before,
+.imported-workbench ::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+.imported-workbench ::before,
+.imported-workbench ::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+.imported-workbench,
+.imported-workbench :host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  tab-size: 4; /* 3 */
+  font-family: Inter, sans-serif; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+.imported-workbench {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+.imported-workbench hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+.imported-workbench abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+.imported-workbench h1,
+.imported-workbench h2,
+.imported-workbench h3,
+.imported-workbench h4,
+.imported-workbench h5,
+.imported-workbench h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+.imported-workbench a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+.imported-workbench b,
+.imported-workbench strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+.imported-workbench code,
+.imported-workbench kbd,
+.imported-workbench samp,
+.imported-workbench pre {
+  font-family: IBM Plex Mono, monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+.imported-workbench small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+.imported-workbench sub,
+.imported-workbench sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.imported-workbench sub {
+  bottom: -0.25em;
+}
+
+.imported-workbench sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+.imported-workbench table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+.imported-workbench button,
+.imported-workbench input,
+.imported-workbench optgroup,
+.imported-workbench select,
+.imported-workbench textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+.imported-workbench button,
+.imported-workbench select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+.imported-workbench button,
+.imported-workbench input:where([type='button']),
+.imported-workbench input:where([type='reset']),
+.imported-workbench input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+.imported-workbench :-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+.imported-workbench :-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+.imported-workbench progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+.imported-workbench ::-webkit-inner-spin-button,
+.imported-workbench ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+.imported-workbench [type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+.imported-workbench ::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+.imported-workbench ::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+.imported-workbench summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+.imported-workbench blockquote,
+.imported-workbench dl,
+.imported-workbench dd,
+.imported-workbench h1,
+.imported-workbench h2,
+.imported-workbench h3,
+.imported-workbench h4,
+.imported-workbench h5,
+.imported-workbench h6,
+.imported-workbench hr,
+.imported-workbench figure,
+.imported-workbench p,
+.imported-workbench pre {
+  margin: 0;
+}
+
+.imported-workbench fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+.imported-workbench legend {
+  padding: 0;
+}
+
+.imported-workbench ol,
+.imported-workbench ul,
+.imported-workbench menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+.imported-workbench dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+.imported-workbench textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+.imported-workbench input::placeholder,
+.imported-workbench textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+.imported-workbench button,
+.imported-workbench [role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+.imported-workbench :disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+.imported-workbench img,
+.imported-workbench svg,
+.imported-workbench video,
+.imported-workbench canvas,
+.imported-workbench audio,
+.imported-workbench iframe,
+.imported-workbench embed,
+.imported-workbench object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+.imported-workbench img,
+.imported-workbench video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+.imported-workbench [hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.imported-workbench .pointer-events-none {
+  pointer-events: none;
+}
+.imported-workbench .absolute {
+  position: absolute;
+}
+.imported-workbench .relative {
+  position: relative;
+}
+.imported-workbench .inset-0 {
+  inset: 0px;
+}
+.imported-workbench .inset-8 {
+  inset: 2rem;
+}
+.imported-workbench .bottom-2 {
+  bottom: 0.5rem;
+}
+.imported-workbench .bottom-3 {
+  bottom: 0.75rem;
+}
+.imported-workbench .left-2 {
+  left: 0.5rem;
+}
+.imported-workbench .left-3 {
+  left: 0.75rem;
+}
+.imported-workbench .right-3 {
+  right: 0.75rem;
+}
+.imported-workbench .top-3 {
+  top: 0.75rem;
+}
+.imported-workbench .z-10 {
+  z-index: 10;
+}
+.imported-workbench .z-20 {
+  z-index: 20;
+}
+.imported-workbench .mb-6 {
+  margin-bottom: 1.5rem;
+}
+.imported-workbench .mt-0\.5 {
+  margin-top: 0.125rem;
+}
+.imported-workbench .mt-1 {
+  margin-top: 0.25rem;
+}
+.imported-workbench .mt-2 {
+  margin-top: 0.5rem;
+}
+.imported-workbench .flex {
+  display: flex;
+}
+.imported-workbench .h-1 {
+  height: 0.25rem;
+}
+.imported-workbench .h-1\.5 {
+  height: 0.375rem;
+}
+.imported-workbench .h-10 {
+  height: 2.5rem;
+}
+.imported-workbench .h-12 {
+  height: 3rem;
+}
+.imported-workbench .h-2 {
+  height: 0.5rem;
+}
+.imported-workbench .h-32 {
+  height: 8rem;
+}
+.imported-workbench .h-40 {
+  height: 10rem;
+}
+.imported-workbench .h-\[400px\] {
+  height: 400px;
+}
+.imported-workbench .h-full {
+  height: 100%;
+}
+.imported-workbench .h-screen {
+  height: 100vh;
+}
+.imported-workbench .min-h-0 {
+  min-height: 0px;
+}
+.imported-workbench .w-1 {
+  width: 0.25rem;
+}
+.imported-workbench .w-1\.5 {
+  width: 0.375rem;
+}
+.imported-workbench .w-2 {
+  width: 0.5rem;
+}
+.imported-workbench .w-\[340px\] {
+  width: 340px;
+}
+.imported-workbench .w-\[400px\] {
+  width: 400px;
+}
+.imported-workbench .w-\[420px\] {
+  width: 420px;
+}
+.imported-workbench .w-full {
+  width: 100%;
+}
+.imported-workbench .w-screen {
+  width: 100vw;
+}
+.imported-workbench .min-w-0 {
+  min-width: 0px;
+}
+.imported-workbench .flex-1 {
+  flex: 1 1 0%;
+}
+.imported-workbench .flex-shrink-0 {
+  flex-shrink: 0;
+}
+.imported-workbench .shrink-0 {
+  flex-shrink: 0;
+}
+.imported-workbench .origin-center {
+  transform-origin: center;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.imported-workbench .animate-\[spin_40s_linear_infinite_reverse\] {
+  animation: spin 40s linear infinite reverse;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.imported-workbench .animate-\[spin_60s_linear_infinite\] {
+  animation: spin 60s linear infinite;
+}
+@keyframes pulse {
+
+  50% {
+    opacity: .5;
+  }
+}
+.imported-workbench .animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.imported-workbench .cursor-crosshair {
+  cursor: crosshair;
+}
+.imported-workbench .cursor-pointer {
+  cursor: pointer;
+}
+.imported-workbench .flex-col {
+  flex-direction: column;
+}
+.imported-workbench .items-start {
+  align-items: flex-start;
+}
+.imported-workbench .items-center {
+  align-items: center;
+}
+.imported-workbench .justify-center {
+  justify-content: center;
+}
+.imported-workbench .justify-between {
+  justify-content: space-between;
+}
+.imported-workbench .gap-1\.5 {
+  gap: 0.375rem;
+}
+.imported-workbench .gap-2 {
+  gap: 0.5rem;
+}
+.imported-workbench .gap-3 {
+  gap: 0.75rem;
+}
+.imported-workbench .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.375rem * var(--tw-space-y-reverse));
+}
+.imported-workbench .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+.imported-workbench .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(2rem * var(--tw-space-y-reverse));
+}
+.imported-workbench .overflow-hidden {
+  overflow: hidden;
+}
+.imported-workbench .overflow-y-auto {
+  overflow-y: auto;
+}
+.imported-workbench .rounded-full {
+  border-radius: 9999px;
+}
+.imported-workbench .border {
+  border-width: 1px;
+}
+.imported-workbench .border-b {
+  border-bottom-width: 1px;
+}
+.imported-workbench .border-r {
+  border-right-width: 1px;
+}
+.imported-workbench .border-t {
+  border-top-width: 1px;
+}
+.imported-workbench .border-dashed {
+  border-style: dashed;
+}
+.imported-workbench .border-amber-900\/50 {
+  border-color: rgb(120 53 15 / 0.5);
+}
+.imported-workbench .border-charcoal-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(34 34 34 / var(--tw-border-opacity, 1));
+}
+.imported-workbench .border-charcoal-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(26 26 26 / var(--tw-border-opacity, 1));
+}
+.imported-workbench .border-cyan-900\/50 {
+  border-color: rgb(22 78 99 / 0.5);
+}
+.imported-workbench .border-emerald-900\/50 {
+  border-color: rgb(6 78 59 / 0.5);
+}
+.imported-workbench .border-rose-900\/50 {
+  border-color: rgb(136 19 55 / 0.5);
+}
+.imported-workbench .bg-amber-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-amber-950\/30 {
+  background-color: rgb(69 26 3 / 0.3);
+}
+.imported-workbench .bg-charcoal-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-charcoal-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 5 5 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-cyan-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(6 182 212 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-cyan-950\/30 {
+  background-color: rgb(8 51 68 / 0.3);
+}
+.imported-workbench .bg-emerald-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-emerald-950\/30 {
+  background-color: rgb(2 44 34 / 0.3);
+}
+.imported-workbench .bg-rose-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(244 63 94 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-rose-950\/30 {
+  background-color: rgb(76 5 25 / 0.3);
+}
+.imported-workbench .bg-void {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+}
+.imported-workbench .from-charcoal-500 {
+  --tw-gradient-from: #0a0a0a var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(10 10 10 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.imported-workbench .to-void {
+  --tw-gradient-to: #000000 var(--tw-gradient-to-position);
+}
+.imported-workbench .fill-none {
+  fill: none;
+}
+.imported-workbench .stroke-current {
+  stroke: currentColor;
+}
+.imported-workbench .stroke-emerald-900 {
+  stroke: #064e3b;
+}
+.imported-workbench .p-2 {
+  padding: 0.5rem;
+}
+.imported-workbench .p-3 {
+  padding: 0.75rem;
+}
+.imported-workbench .p-4 {
+  padding: 1rem;
+}
+.imported-workbench .p-5 {
+  padding: 1.25rem;
+}
+.imported-workbench .p-6 {
+  padding: 1.5rem;
+}
+.imported-workbench .px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+.imported-workbench .px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.imported-workbench .py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+.imported-workbench .py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.imported-workbench .pb-1\.5 {
+  padding-bottom: 0.375rem;
+}
+.imported-workbench .pt-2 {
+  padding-top: 0.5rem;
+}
+.imported-workbench .font-mono {
+  font-family: IBM Plex Mono, monospace;
+}
+.imported-workbench .font-sans {
+  font-family: Inter, sans-serif;
+}
+.imported-workbench .text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+.imported-workbench .text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+.imported-workbench .text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+.imported-workbench .text-\[10px\] {
+  font-size: 10px;
+}
+.imported-workbench .text-\[11px\] {
+  font-size: 11px;
+}
+.imported-workbench .text-\[9px\] {
+  font-size: 9px;
+}
+.imported-workbench .text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+.imported-workbench .text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.imported-workbench .text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.imported-workbench .font-medium {
+  font-weight: 500;
+}
+.imported-workbench .uppercase {
+  text-transform: uppercase;
+}
+.imported-workbench .leading-relaxed {
+  line-height: 1.625;
+}
+.imported-workbench .leading-snug {
+  line-height: 1.375;
+}
+.imported-workbench .tracking-\[0\.2em\] {
+  letter-spacing: 0.2em;
+}
+.imported-workbench .tracking-tight {
+  letter-spacing: -0.025em;
+}
+.imported-workbench .tracking-wider {
+  letter-spacing: 0.05em;
+}
+.imported-workbench .tracking-widest {
+  letter-spacing: 0.1em;
+}
+.imported-workbench .text-amber-400 {
+  --tw-text-opacity: 1;
+  color: rgb(251 191 36 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-charcoal-200 {
+  --tw-text-opacity: 1;
+  color: rgb(34 34 34 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-cyan-400 {
+  --tw-text-opacity: 1;
+  color: rgb(34 211 238 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-emerald-400 {
+  --tw-text-opacity: 1;
+  color: rgb(52 211 153 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-emerald-500 {
+  --tw-text-opacity: 1;
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-rose-400 {
+  --tw-text-opacity: 1;
+  color: rgb(251 113 133 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-textdim {
+  --tw-text-opacity: 1;
+  color: rgb(85 85 85 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-textmain {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 212 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .text-textmuted {
+  --tw-text-opacity: 1;
+  color: rgb(138 138 138 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.imported-workbench .opacity-30 {
+  opacity: 0.3;
+}
+.imported-workbench .opacity-50 {
+  opacity: 0.5;
+}
+.imported-workbench .opacity-80 {
+  opacity: 0.8;
+}
+.imported-workbench .shadow-\[0_0_8px_rgba\(16\2c 185\2c 129\2c 0\.8\)\] {
+  --tw-shadow: 0 0 8px rgba(16,185,129,0.8);
+  --tw-shadow-colored: 0 0 8px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.imported-workbench .grayscale {
+  --tw-grayscale: grayscale(100%);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.imported-workbench .transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.imported-workbench .transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.imported-workbench .selection\:bg-charcoal-200 *::selection {
+  --tw-bg-opacity: 1;
+  background-color: rgb(34 34 34 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .selection\:text-gray-200 *::selection {
+  --tw-text-opacity: 1;
+  color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .selection\:bg-charcoal-200::selection {
+  --tw-bg-opacity: 1;
+  background-color: rgb(34 34 34 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .selection\:text-gray-200::selection {
+  --tw-text-opacity: 1;
+  color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .hover\:border-charcoal-100:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(42 42 42 / var(--tw-border-opacity, 1));
+}
+.imported-workbench .hover\:border-emerald-700:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(4 120 87 / var(--tw-border-opacity, 1));
+}
+.imported-workbench .hover\:border-textdim:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(85 85 85 / var(--tw-border-opacity, 1));
+}
+.imported-workbench .hover\:bg-charcoal-500:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+}
+.imported-workbench .hover\:bg-emerald-950\/20:hover {
+  background-color: rgb(2 44 34 / 0.2);
+}
+.imported-workbench .hover\:text-textmain:hover {
+  --tw-text-opacity: 1;
+  color: rgb(212 212 212 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .group:hover .group-hover\:text-cyan-400 {
+  --tw-text-opacity: 1;
+  color: rgb(34 211 238 / var(--tw-text-opacity, 1));
+}
+.imported-workbench .group:hover .group-hover\:text-cyan-500 {
+  --tw-text-opacity: 1;
+  color: rgb(6 182 212 / var(--tw-text-opacity, 1));
+}.imported-workbench * {
+  -ms-overflow-style: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #333 #000;
+}
+
+.imported-workbench *::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.imported-workbench *::-webkit-scrollbar-track {
+  background: #000;
+  border-left: 1px solid #1a1a1a;
+}
+
+.imported-workbench *::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+.imported-workbench *::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Blank slots keep the 9263d787 card and inspector line boxes. No fake fill. */
+
+.imported-workbench .workbench-empty-status {
+  min-height: 20px;
+  min-width: 4.75rem;
+}
+
+.imported-workbench .workbench-empty-title {
+  min-height: 1.25rem;
+  min-width: 9ch;
+}
+
+.imported-workbench .workbench-empty-claim {
+  min-height: calc(0.75rem * 1.375);
+}
+
+.imported-workbench .workbench-empty-caption {
+  display: inline-block;
+  min-height: 9px;
+  min-width: 12ch;
+}
+
+.imported-workbench .workbench-empty-locality {
+  display: inline-block;
+  min-height: 10px;
+  min-width: 7ch;
+}
+
+.imported-workbench .workbench-empty-tags {
+  min-height: 12px;
+}
+
+.imported-workbench .workbench-empty-tag {
+  display: inline-block;
+  min-height: 12px;
+  min-width: 12ch;
+}
+
+.imported-workbench .workbench-empty-stage-copy {
+  min-height: 3.75rem;
+}
+
+.imported-workbench .workbench-empty-stage-id {
+  min-height: 2.25rem;
+  min-width: 9ch;
+}
+
+.imported-workbench .workbench-empty-stage-claim {
+  min-height: 1.25rem;
+}
+
+.imported-workbench .workbench-empty-value {
+  display: inline-block;
+  min-width: 9ch;
+  min-height: 1rem;
+}
+
+.imported-workbench .workbench-empty-timestamp {
+  display: inline-block;
+  min-width: 16ch;
+  min-height: 10px;
+}
+
+.imported-workbench .workbench-empty-metrics-note {
+  min-height: 52px;
+}
+
+.imported-workbench .workbench-empty-observation-body {
+  min-height: 168px;
+}

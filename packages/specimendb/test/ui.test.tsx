@@ -2,20 +2,60 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import React, { useMemo } from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from '@testing-library/react';
 import * as Effect from 'effect/Effect';
 import * as RpcTest from 'effect/unstable/rpc/RpcTest';
-import { StatusComponent, LocalityComponent, ExifComponent } from '../src/schemas/components.js';
-import { trustSpecimenId } from '../src/schemas/identifiers.js';
+import {
+  BytesComponent,
+  ClaimComponent,
+  ExifComponent,
+  GeneratedComponent,
+  LocalityComponent,
+  MediaComponent,
+  ObservationComponent,
+  StatusComponent,
+  TagComponent,
+  TaxonComponent,
+  UsedComponent,
+} from '../src/schemas/components.js';
+import { trustEntityRef, trustSpecimenId } from '../src/schemas/identifiers.js';
+import { decodeLabEntity } from '../src/schemas/provenance.js';
+import {
+  ACCEPTED_BOUNDARIES,
+  EMPTY_RAIL_CARD_VIDS,
+  REFUSED_BOUNDARIES,
+  W7_BOUNDARY,
+  WORKBENCH_COMPOSITION,
+} from '../src/ui/WorkbenchComposition.js';
+import type { WorkbenchProvenance } from '../src/ui/WorkbenchRecord.js';
 import { localityOf, nextStatus, statusOf } from '../src/schemas/specimen.js';
 import type { Specimen } from '../src/schemas/specimen.js';
-import { createCatalog, type SpecimenRpcClient } from '../src/ui/catalog-stx.js';
+import {
+  createCatalog,
+  type SpecimenRpcClient,
+} from '../src/ui/catalog-stx.js';
 import { AnalogCard } from '../src/ui/AnalogCard.js';
 import { AppShell } from '../src/ui/AppShell.js';
 import { DossierView } from '../src/ui/DossierView.js';
 import { IntakeDrop } from '../src/ui/IntakeDrop.js';
 import { SpecimenRail } from '../src/ui/SpecimenRail.js';
 import { WorkingPanel } from '../src/ui/WorkingPanel.js';
+import {
+  VANTA_COLORS,
+  VANTA_TYPOGRAPHY,
+  labBoxPaint,
+  labTextPaint,
+} from '../src/ui/WorkbenchLabUi.js';
+import {
+  WORKBENCH_CHROME,
+  createWorkbenchSockets,
+} from '../src/ui/WorkbenchSockets.js';
 import { jpegWithGps, jpegWithoutGps } from './fixtures.js';
 import { MemoryCatalogLive } from '../testbed/memory-rpc.js';
 import { SpecimenRpcs } from '../src/rpc/SpecimenRpcs.js';
@@ -53,10 +93,53 @@ function TerminalPage({ client }: { readonly client: SpecimenRpcClient }) {
   return React.createElement(IntakeDrop, { catalog });
 }
 
-function WorkbenchPage({ client }: { readonly client: SpecimenRpcClient }) {
+function WorkbenchPage({
+  client,
+  provenance,
+}: {
+  readonly client: SpecimenRpcClient;
+  readonly provenance?: WorkbenchProvenance;
+}) {
   const catalog = useMemo(() => createCatalog(client), [client]);
-  return React.createElement(SpecimenRail, { catalog });
+  return React.createElement(SpecimenRail, { catalog, provenance });
 }
+
+const emptyWorkbenchCards = (view: {
+  getAllByTestId: (id: string) => HTMLElement[];
+  queryByTestId: (id: string) => HTMLElement | null;
+}) => {
+  const cards = view.getAllByTestId('card-chrome');
+  expect(cards).toHaveLength(EMPTY_RAIL_CARD_VIDS.length);
+  expect(cards.map((card) => card.getAttribute('vid'))).toEqual([
+    ...EMPTY_RAIL_CARD_VIDS,
+  ]);
+  expect(view.queryByTestId('specimen-card')).toBeNull();
+  for (const card of cards) {
+    expect(card.querySelector('.workbench-empty-title')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-status')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-claim')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-caption')).toBeTruthy();
+    expect(card.querySelector('.workbench-empty-locality')).toBeTruthy();
+    expect(card.querySelectorAll('.workbench-empty-tag')).toHaveLength(3);
+    expect(card.querySelector('[data-socket="title"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="status"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="claim"]')?.textContent).toBe('');
+    expect(card.querySelector('[data-socket="scan-type"]')?.textContent).toBe(
+      ''
+    );
+    expect(card.querySelector('[data-socket="locality"]')?.textContent).toBe(
+      ''
+    );
+    expect(
+      [...card.querySelectorAll('[data-socket="tag"]')].map(
+        (node) => node.textContent
+      )
+    ).toEqual(['', '', '']);
+    expect(card.querySelector('[data-socket="media"]')).toBeTruthy();
+    expect(card.textContent).not.toMatch(/WORKING|RAW|FILED/i);
+  }
+  return cards;
+};
 
 function CatalogPage({ client }: { readonly client: SpecimenRpcClient }) {
   const catalog = useMemo(() => createCatalog(client), [client]);
@@ -92,7 +175,9 @@ const promotingClient = (initial: Specimen) => {
       specimen = {
         ...specimen,
         components: specimen.components.map((component) =>
-          component._tag === 'Status' ? new StatusComponent({ value: next }) : component,
+          component._tag === 'Status'
+            ? new StatusComponent({ value: next })
+            : component
         ),
       };
       return Effect.succeed(specimen);
@@ -115,7 +200,10 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     const specimen: Specimen = {
       id,
       createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+      components: [
+        new StatusComponent({ value: 'raw' }),
+        new LocalityComponent({ state: 'unknown' }),
+      ],
     };
     let items: Specimen[] = [];
 
@@ -157,11 +245,17 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     await waitFor(() => {
       expect(calls.list).toBeGreaterThan(0);
     });
-    expect(view.getByTestId('intake-zone').textContent).toContain('Initiate_Intake_Protocol');
+    expect(view.getByTestId('intake-zone').textContent).toContain(
+      'Initiate_Intake_Protocol'
+    );
     expect(view.container.textContent).toContain('SPECIMEN_DB');
     expect(view.container.textContent).toContain('SYS_ONLINE');
     expect(view.container.textContent).toContain('Local Catalog');
-    expect(view.getAllByTestId('kicker').map((node) => node.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+    expect(
+      view
+        .getAllByTestId('kicker')
+        .map((node) => node.textContent?.replace(/\s+/g, ' ').trim())
+    ).toEqual([
       'CLASS / ORDER',
       'EXTRACTION VECTOR',
       'THERMAL BASE',
@@ -173,7 +267,9 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.container.textContent).not.toContain('DRAG_AND_DROP_ASSETS');
     expect(view.container.className).not.toContain('sdb-shell');
 
-    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
+    const file = new File([jpegWithoutGps()], 'field.jpg', {
+      type: 'image/jpeg',
+    });
     const input = view.getByTestId('intake-file') as HTMLInputElement;
     await act(async () => {
       fireEvent.change(input, { target: { files: [file] } });
@@ -186,7 +282,9 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
       expect(view.getByTestId('specimen-id').textContent).toBe(id);
     });
     expect(view.queryByTestId('card-chrome')).toBeNull();
-    expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+    expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(
+      'raw'
+    );
     expect(view.getByTestId('locality').textContent).toBe('unknown');
     expect(view.getByTestId('claim').textContent).toBe('');
     expect(view.getByTestId('media-bytes')).toBeTruthy();
@@ -206,7 +304,9 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(view.getByTestId('detail-id').textContent).toContain(id);
     expect(view.getByTestId('protocol-id').textContent).toBe(id);
     expect(view.getByTestId('detail-locality').textContent).toBe('unknown');
-    expect(view.getByTestId('detail-status').getAttribute('data-status')).toBe('raw');
+    expect(view.getByTestId('detail-status').getAttribute('data-status')).toBe(
+      'raw'
+    );
     expect(view.queryByTestId('detail-exif')).toBeNull();
 
     const html = view.container.textContent ?? '';
@@ -215,7 +315,7 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     }
   });
 
-  it('Workbench page is its own layout with empty card chrome and List on mount', async () => {
+  it('Workbench page is the Variant HTML as one component', async () => {
     const calls = { list: 0 };
     const client: SpecimenRpcClient = {
       List: () => {
@@ -228,32 +328,38 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     };
 
     const view = render(React.createElement(WorkbenchPage, { client }));
+    expect(view.getByTestId('specimen-rail')).toBeTruthy();
+    expect(view.container.textContent).toContain('SpecimenDB // Core');
+    expect(view.container.textContent).toContain(
+      'Initiate Intake Sequence // Drop Telemetry Data'
+    );
+    expect(view.container.textContent).toContain('Properties Log');
+    expect(view.container.textContent).toContain('VIEWPORT_XZ');
+    expect(view.container.textContent).toContain('Classification');
+    expect(view.container.textContent).toContain('Structural Metrics');
+    expect(view.container.textContent).toContain('Observation Log');
+    expect(view.container.textContent).toContain('ACTIVE_RENDER');
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('rail-filters')).toBeNull();
+    emptyWorkbenchCards(view);
     await waitFor(() => {
       expect(calls.list).toBeGreaterThan(0);
     });
-    expect(view.container.textContent).toContain('SpecimenDB // Core');
-    expect(view.container.textContent).toContain('Initiate Intake Sequence // Drop Telemetry Data');
-    expect(view.container.textContent).toContain('PROPERTIES LOG');
-    expect(view.container.textContent).toContain('VIEWPORT_XZ');
-    expect(view.getByTestId('card-chrome')).toBeTruthy();
-    expect(view.getByTestId('intake-zone')).toBeTruthy();
-    expect(view.getByTestId('rail-query')).toBeTruthy();
-    expect(view.getByTestId('rail-filters').textContent).toContain('RAW');
-    expect(view.getByTestId('rail-filters').textContent).toContain('FILED');
-    expect(view.getByTestId('rail-filters').textContent).toContain('WORKING');
-    expect(view.getAllByTestId('kicker').map((node) => node.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'CLASSIFICATION',
-      'STRUCTURAL METRICS',
-      'OBSERVATION LOG',
-    ]);
+    emptyWorkbenchCards(view);
     const html = view.container.textContent ?? '';
-    for (const banned of BANISHED) {
-      expect(html).not.toContain(banned);
-    }
+    expect(html).not.toContain('SP-9942-X');
+    expect(html).not.toContain('OPTICAL_SCAN');
+    expect(html).not.toContain('R: 0.992');
+    expect(html).not.toContain('Chordata');
+    expect(html).not.toContain('Q QUERY ACCESSION ID');
+    expect(html).not.toContain('DRAG_AND_DROP_ASSETS');
+    view.unmount();
   });
 
   it('empty catalog keeps card chrome on both pages', async () => {
-    const terminal = render(React.createElement(TerminalPage, { client: emptyClient() }));
+    const terminal = render(
+      React.createElement(TerminalPage, { client: emptyClient() })
+    );
     await waitFor(() => {
       expect(terminal.getByTestId('card-chrome')).toBeTruthy();
     });
@@ -262,69 +368,58 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     expect(terminal.container.textContent).not.toContain('NO SELECTION');
     terminal.unmount();
 
-    const workbench = render(React.createElement(WorkbenchPage, { client: emptyClient() }));
+    const workbench = render(
+      React.createElement(WorkbenchPage, { client: emptyClient() })
+    );
     await waitFor(() => {
-      expect(workbench.getByTestId('card-chrome')).toBeTruthy();
+      expect(workbench.getByTestId('specimen-rail')).toBeTruthy();
+      emptyWorkbenchCards(workbench);
     });
-    expect(workbench.getByTestId('last-updated').textContent).toBe('LAST_UPDATED');
+    expect(workbench.getByTestId('last-updated').textContent).toBe(
+      'LAST_UPDATED'
+    );
     expect(workbench.container.textContent).not.toContain('NO RECORDS');
     expect(workbench.container.textContent).not.toContain('NO SELECTION');
+    workbench.unmount();
   });
 
-  it('status filter and accession query are live List on the Workbench rail', async () => {
-    const rawId = trustSpecimenId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-    const filedId = trustSpecimenId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-    const raw: Specimen = {
-      id: rawId,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    const filed: Specimen = {
-      id: filedId,
-      createdAt: '2026-08-20T00:00:01.000Z',
-      components: [new StatusComponent({ value: 'filed' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    const client: SpecimenRpcClient = {
-      List: () => Effect.succeed([raw, filed]),
-      Get: (payload) =>
-        Effect.succeed(payload.specimenId === filedId ? filed : raw),
-      Intake: () => Effect.die('Intake should not run'),
-      Promote: () => Effect.die('Promote should not run'),
-    };
-
-    const view = render(React.createElement(WorkbenchPage, { client }));
+  it('Workbench does not bind query, filters, or intake-file', async () => {
+    const view = render(
+      React.createElement(WorkbenchPage, { client: emptyClient() })
+    );
     await waitFor(() => {
-      expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
+      emptyWorkbenchCards(view);
     });
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('rail-filters')).toBeNull();
+    expect(view.queryByTestId('intake-file')).toBeNull();
+    expect(view.queryByTestId('specimen-card')).toBeNull();
+    view.unmount();
+  });
 
-    await act(async () => {
-      fireEvent.click(view.getByTestId('rail-filters').querySelector('[data-filter="filed"]')!);
-    });
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-id').map((node) => node.textContent)).toEqual([filedId]);
-    });
-
-    await act(async () => {
-      fireEvent.click(view.getByTestId('rail-filters').querySelector('[data-filter="all"]')!);
-    });
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-card')).toHaveLength(2);
-    });
-
-    await act(async () => {
-      fireEvent.change(view.getByTestId('rail-query'), { target: { value: 'aaaa' } });
-    });
-    await waitFor(() => {
-      expect(view.getAllByTestId('specimen-id').map((node) => node.textContent)).toEqual([rawId]);
-    });
-
-    await act(async () => {
-      fireEvent.change(view.getByTestId('rail-query'), { target: { value: 'field.jpg' } });
-    });
-    await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
-      expect(view.queryByTestId('specimen-card')).toBeNull();
-    });
+  it('keeps Workbench source scrollbar treatment', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/ui/ImportedWorkbench.css'),
+      'utf8'
+    );
+    expect(css).toContain('width: 4px');
+    expect(css).toContain('height: 4px');
+    expect(css).toContain('border-left: 1px solid #1a1a1a');
+    expect(css).toContain('background: #333');
+    expect(css).toContain('background: #555');
+    expect(css).toContain('scrollbar-width: thin');
+    expect(css).toContain('min-width: 9ch');
+    expect(css).toContain('min-width: 4.75rem');
+    expect(css).toContain('min-width: 7ch');
+    expect(css).toContain('min-width: 12ch');
+    expect(css).toContain('workbench-empty-caption');
+    expect(css).toContain('workbench-empty-value');
+    expect(css).not.toContain('scrollbar-width: none');
+    expect(css).not.toMatch(
+      /\.imported-workbench \*::-webkit-scrollbar\s*\{[^}]*display:\s*none/s
+    );
   });
 
   it('rejects non JPEG/HEIC at Intake and leaves the card template', async () => {
@@ -344,83 +439,20 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     });
     const csv = new File(['a,b\n1,2'], 'packet.csv', { type: 'text/csv' });
     await act(async () => {
-      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [csv] } });
+      fireEvent.change(view.getByTestId('intake-file'), {
+        target: { files: [csv] },
+      });
     });
     await waitFor(() => {
-      expect(view.getByTestId('intake-error').textContent).toBe('JPEG/HEIC first');
+      expect(view.getByTestId('intake-error').textContent).toBe(
+        'JPEG/HEIC first'
+      );
     });
     expect(intake).toBe(0);
     expect(view.getByTestId('card-chrome')).toBeTruthy();
   });
 
-  it('Workbench Intake fills Status and Claim slots and leaves the photo well empty', async () => {
-    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
-    const specimen: Specimen = {
-      id,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    let items: Specimen[] = [];
-    const client: SpecimenRpcClient = {
-      List: () => Effect.succeed(items),
-      Get: (payload) => {
-        const hit = items.find((row) => row.id === payload.specimenId);
-        if (hit === undefined) return Effect.succeed(specimen);
-        return Effect.succeed(hit);
-      },
-      Intake: ({ filename }) => {
-        const next: Specimen = {
-          ...specimen,
-          components: [
-            ...specimen.components,
-            {
-              _tag: 'Media' as const,
-              kind: 'jpeg' as const,
-              filename,
-              assetPath: `memory://${id}/${filename}`,
-              mediaType: 'image/jpeg',
-              byteLength: 1,
-            },
-          ],
-        };
-        items = [next];
-        return Effect.succeed({ specimenId: id, components: next.components });
-      },
-      Promote: () => Effect.die('Promote should not run'),
-    };
-    const view = render(React.createElement(WorkbenchPage, { client }));
-    await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
-    });
-    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
-    await act(async () => {
-      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
-    });
-    await waitFor(() => {
-      expect(view.getByTestId('specimen-id').textContent).toBe(id);
-    });
-    expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
-    expect(view.getByTestId('claim').textContent).toBe('');
-    expect(view.queryByTestId('media-bytes')).toBeNull();
-    expect(view.getByTestId('locality').textContent).toBe('unknown');
-    expect(view.getByTestId('last-updated').textContent).toBe(`LAST_UPDATED ${specimen.createdAt}`);
-    expect(view.getByTestId('last-updated').textContent).not.toContain('14m AGO');
-  });
-
-  it('Workbench EXPORT DB dumps List JSON and RUN SIM stays inert', async () => {
-    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
-    const specimen: Specimen = {
-      id,
-      createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
-    };
-    const client: SpecimenRpcClient = {
-      List: () => Effect.succeed([specimen]),
-      Get: () => Effect.succeed(specimen),
-      Intake: () => Effect.die('Intake should not run'),
-      Promote: () => Effect.die('Promote should not run'),
-    };
-
+  it('Workbench drop zone and Export DB / Run Sim are look-only chrome', async () => {
     const blobs: Blob[] = [];
     const realCreate = URL.createObjectURL.bind(URL);
     URL.createObjectURL = (obj) => {
@@ -429,34 +461,32 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     };
     const downloads: string[] = [];
     const realClick = HTMLAnchorElement.prototype.click;
-    HTMLAnchorElement.prototype.click = function clickStub(this: HTMLAnchorElement) {
+    HTMLAnchorElement.prototype.click = function clickStub(
+      this: HTMLAnchorElement
+    ) {
       downloads.push(this.download);
     };
 
     try {
-      const view = render(React.createElement(WorkbenchPage, { client }));
-      await waitFor(() => {
-        expect(view.getByTestId('specimen-id').textContent).toBe(id);
-      });
+      const view = render(
+        React.createElement(WorkbenchPage, { client: emptyClient() })
+      );
+      expect(view.container.textContent).toContain(
+        'Initiate Intake Sequence // Drop Telemetry Data'
+      );
+      expect(view.container.textContent).toContain('Export DB');
+      expect(view.container.textContent).toContain('Run Sim');
+      expect(view.queryByTestId('intake-file')).toBeNull();
 
-      await act(async () => {
-        fireEvent.click(view.getByTestId('run-sim'));
-      });
+      const buttons = [...view.container.querySelectorAll('button')];
+      for (const button of buttons) {
+        await act(async () => {
+          fireEvent.click(button);
+        });
+      }
       expect(blobs).toHaveLength(0);
       expect(downloads).toHaveLength(0);
-
-      await act(async () => {
-        fireEvent.click(view.getByTestId('export-db'));
-      });
-      expect(blobs).toHaveLength(1);
-      expect(downloads).toEqual(['specimendb-catalog.json']);
-      const text = await blobs[0]!.text();
-      const dumped = JSON.parse(text) as ReadonlyArray<{ readonly id: string; readonly createdAt: string }>;
-      expect(dumped).toHaveLength(1);
-      expect(dumped[0]?.id).toBe(id);
-      expect(dumped[0]?.createdAt).toBe(specimen.createdAt);
-      expect(text).not.toContain('SP-2023-084');
-      expect(text).not.toContain('14m AGO');
+      view.unmount();
     } finally {
       URL.createObjectURL = realCreate;
       HTMLAnchorElement.prototype.click = realClick;
@@ -472,7 +502,11 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
         new StatusComponent({ value: 'raw' }),
         new LocalityComponent({ state: 'unknown' }),
         new ExifComponent({
-          tags: { DateTimeOriginal: '2026:08:20 12:00:00', Make: 'FieldCam', GPSLatitude: 37 },
+          tags: {
+            DateTimeOriginal: '2026:08:20 12:00:00',
+            Make: 'FieldCam',
+            GPSLatitude: 37,
+          },
         }),
       ],
     };
@@ -492,78 +526,513 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
     await waitFor(() => {
       expect(view.getByTestId('protocol-id').textContent).toBe(id);
     });
-    const lines = view.getAllByTestId('detail-exif').map((node) => node.textContent);
+    const lines = view
+      .getAllByTestId('detail-exif')
+      .map((node) => node.textContent);
     expect(lines).toContain('DateTimeOriginal 2026:08:20 12:00:00');
     expect(lines).toContain('Make FieldCam');
     expect(view.container.textContent).not.toContain('GPSLatitude');
     expect(view.container.textContent).not.toContain('SP-2023-084');
   });
 
-  it('Workbench no-GPS JPEG files raw + unknown and rail status chrome Promotes to filed', async () => {
+  it('Workbench /rail consumes lab-ui primitives and keeps paint off the charcoal dump', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const view = render(
+      React.createElement(WorkbenchPage, { client: emptyClient() })
+    );
+    await waitFor(() => {
+      emptyWorkbenchCards(view);
+    });
+    const cards = view.getAllByTestId('card-chrome');
+    expect(cards.map((card) => card.getAttribute('vid'))).toEqual(['22', '41', '60']);
+    const statusSlots = view.container.querySelectorAll(
+      '.workbench-empty-status[data-tone="empty"][data-socket="status"]'
+    );
+    expect(statusSlots).toHaveLength(3);
+    for (const slot of statusSlots) {
+      expect(slot.textContent).toBe('');
+    }
+    expect(
+      view.container.querySelector('[data-chrome="header"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.header);
+    expect(
+      view.container.querySelector('[data-chrome="classification"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.classification);
+    expect(
+      view.container.querySelector('[data-chrome="structural-metrics"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.structuralMetrics);
+    expect(
+      view.container.querySelector('[data-chrome="observation-log"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.observationLog);
+    expect(
+      view.container.querySelector('[data-chrome="last-updated"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.lastUpdated);
+    expect(
+      view.container.querySelector('[data-socket="scan-type"]')?.textContent
+    ).toBe('');
+    const html = view.container.textContent ?? '';
+    for (const banned of BANISHED) {
+      expect(html).not.toContain(banned);
+    }
+    expect(html).not.toContain('OPTICAL_SCAN');
+    expect(html).not.toMatch(/WORKING|RAW|FILED/i);
+
+    const uiDir = resolve(process.cwd(), 'src/ui');
+    const consume = readFileSync(resolve(uiDir, 'WorkbenchLabUi.ts'), 'utf8');
+    expect(consume).toContain("from '@gbg/lab-ui'");
+    expect(consume).toContain('VANTA_COLORS');
+    expect(consume).toContain('VANTA_TYPOGRAPHY');
+    expect(consume).toContain('VANTA_');
+    expect(consume).not.toMatch(
+      /import \{[\s\S]*\bcolor\b[\s\S]*\} from '@gbg\/lab-ui'/
+    );
+    expect(consume).not.toMatch(
+      /import \{[\s\S]*\bchrome\b[\s\S]*\} from '@gbg\/lab-ui'/
+    );
+    expect(consume).not.toContain('charcoal500');
+    expect(consume).not.toContain('textmain');
+    expect(consume).not.toContain('packages/tmnl/src/components/portal/tokens');
+    expect(consume).not.toContain('@/components/portal/tokens');
+    expect(labTextPaint.color).toBe(VANTA_COLORS.text.muted);
+    expect(labBoxPaint.color).toBe(VANTA_COLORS.text.primary);
+    expect(labBoxPaint.background).toBe(VANTA_COLORS.surface.void);
+    expect(labBoxPaint.borderColor).toBe(VANTA_COLORS.surface.border);
+    const header = view.container.querySelector('[data-chrome="header"]');
+    expect(header).toBeInstanceOf(HTMLElement);
+    if (header instanceof HTMLElement) {
+      expect(header.style.color).toBe(VANTA_COLORS.text.muted);
+    }
+    const box = view.container.querySelector('.workbench-empty-value');
+    expect(box).toBeInstanceOf(HTMLElement);
+    if (box instanceof HTMLElement) {
+      expect(box.style.color).toBe(VANTA_COLORS.text.primary);
+      expect(box.style.background).toBe(VANTA_COLORS.surface.void);
+      expect(box.style.borderColor).toBe(VANTA_COLORS.surface.border);
+    }
+    expect(typeof VANTA_TYPOGRAPHY.family.mono).toBe('string');
+    expect(VANTA_TYPOGRAPHY.family.mono.length).toBeGreaterThan(0);
+    for (const name of readdirSync(uiDir)) {
+      if (name === 'WorkbenchLabUi.ts' || !/\.(ts|tsx)$/.test(name)) continue;
+      const src = readFileSync(resolve(uiDir, name), 'utf8');
+      expect(src).not.toContain("from '@gbg/lab-ui'");
+      expect(src).not.toContain("from \"@gbg/lab-ui\"");
+    }
+    view.unmount();
+  });
+
+  it('Workbench Phase 0 keeps blank slots and does not Promote', async () => {
+    let promote = 0;
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([]),
+      Get: () => Effect.die('Get should not run'),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => {
+        promote += 1;
+        return Effect.die('Promote should not run');
+      },
+    };
+    const view = render(React.createElement(WorkbenchPage, { client }));
+    const html = view.container.textContent ?? '';
+    emptyWorkbenchCards(view);
+    expect(html).toContain('Phylum');
+    expect(html).toContain('Class');
+    expect(html).toContain('Order');
+    expect(html).toContain('Family');
+    expect(html).not.toContain('SP-9942-X');
+    expect(html).not.toContain('Chordata');
+    expect(html).not.toContain('Mammalia');
+    expect(html).not.toContain('14.5995');
+    expect(html).not.toContain('120.4 MPa');
+    expect(view.queryByTestId('status-pill')).toBeNull();
+    expect(view.queryByTestId('intake-file')).toBeNull();
+    expect(promote).toBe(0);
+    view.unmount();
+  });
+
+  it('Workbench sockets start empty and chrome labels still render', async () => {
+    const first = createWorkbenchSockets();
+    const second = createWorkbenchSockets();
+    expect(first.status).not.toBe(second.status);
+    expect(first.intake.get().mode).toBe('chrome');
+    expect(first.selectedId.get().well._tag).toBe('IdEmpty');
+    expect(first.railQuery.get().query).toBe('');
+    expect(first.title.get().well._tag).toBe('IdEmpty');
+    expect(first.status.get().phase).toBe('empty');
+    expect(first.locality.get().well._tag).toBe('LocalityEmpty');
+    expect(first.claim.get().well._tag).toBe('TextEmpty');
+    expect(first.tags.get().first._tag).toBe('TagEmpty');
+    expect(first.tags.get().second._tag).toBe('TagEmpty');
+    expect(first.tags.get().third._tag).toBe('TagEmpty');
+    expect(first.media.get().well._tag).toBe('MediaEmpty');
+    expect(first.media.get().caption._tag).toBe('TextEmpty');
+    expect(first.taxon.get().phylum._tag).toBe('TextEmpty');
+    expect(first.taxon.get().class._tag).toBe('TextEmpty');
+    expect(first.taxon.get().order._tag).toBe('TextEmpty');
+    expect(first.taxon.get().family._tag).toBe('TextEmpty');
+    expect(first.metrics.get().tensile._tag).toBe('TextEmpty');
+    expect(first.metrics.get().density._tag).toBe('TextEmpty');
+    expect(first.metrics.get().hardness._tag).toBe('TextEmpty');
+    expect(first.metrics.get().overlap._tag).toBe('TextEmpty');
+    expect(first.metrics.get().note._tag).toBe('TextEmpty');
+    expect(first.observation.get().first._tag).toBe('TextEmpty');
+    expect(first.observation.get().second._tag).toBe('TextEmpty');
+    expect(first.lastUpdated.get().well._tag).toBe('InstantEmpty');
+    expect(first.viewport.get().mag._tag).toBe('TextEmpty');
+    expect(first.viewport.get().readout._tag).toBe('TextEmpty');
+
+    const view = render(
+      React.createElement(WorkbenchPage, { client: emptyClient() })
+    );
+    await waitFor(() => {
+      emptyWorkbenchCards(view);
+    });
+    expect(
+      view.container.querySelector('[data-chrome="header"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.header);
+    expect(
+      view.container.querySelector('[data-chrome="intake"]')?.textContent
+    ).toContain(WORKBENCH_CHROME.intake);
+    expect(
+      view.container.querySelector('[data-chrome="viewport-xz"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.viewport);
+    expect(
+      view.container.querySelector('[data-chrome="mag"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.mag);
+    expect(
+      view.container.querySelector('[data-chrome="active-render"]')?.textContent
+    ).toContain(WORKBENCH_CHROME.activeRender);
+    expect(
+      view.container.querySelector('[data-chrome="export-db"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.exportDb);
+    expect(
+      view.container.querySelector('[data-chrome="run-sim"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.runSim);
+    expect(
+      view.container.querySelector('[data-chrome="classification"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.classification);
+    expect(
+      view.container.querySelector('[data-chrome="structural-metrics"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.structuralMetrics);
+    expect(
+      view.container.querySelector('[data-chrome="observation-log"]')
+        ?.textContent
+    ).toBe(WORKBENCH_CHROME.observationLog);
+    expect(
+      view.container.querySelector('[data-chrome="last-updated"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.lastUpdated);
+    expect(
+      view.container.querySelector('[data-socket="viewport-mag"]')?.textContent
+    ).toBe(WORKBENCH_CHROME.mag);
+    expect(
+      view.container.querySelector('[data-socket="viewport-readout"]')
+        ?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-phylum"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-class"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-order"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="taxon-family"]')?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="metrics-tensile"]')
+        ?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="observation-first"]')
+        ?.textContent
+    ).toBe('');
+    expect(
+      view.container.querySelector('[data-socket="last-updated"]')?.textContent
+    ).toBe('');
+    expect(view.container.querySelector('.workbench-empty-stage-id')).toBeTruthy();
+    expect(
+      view.container.querySelector('.workbench-empty-stage-claim')
+    ).toBeTruthy();
+    expect(view.container.querySelectorAll('.workbench-empty-value').length).toBe(
+      8
+    );
+    expect(
+      view.container.querySelector('.workbench-empty-timestamp')
+    ).toBeTruthy();
+    expect(view.queryByTestId('rail-query')).toBeNull();
+    expect(view.queryByTestId('status-pill')).toBeNull();
+    const html = view.container.textContent ?? '';
+    expect(html).not.toContain('400x');
+    expect(html).not.toContain('SP-9942-X');
+    expect(html).not.toContain('OPTICAL_SCAN');
+    expect(html).not.toContain('R: 0.992');
+    expect(html).not.toContain('Chordata');
+    expect(html).not.toContain('WORKING');
+    view.unmount();
+  });
+
+  it('Workbench composition IR accepts named regions and refuses shell splits', () => {
+    const accepted = ACCEPTED_BOUNDARIES.map((boundary) => boundary.name);
+    expect(accepted).toEqual([
+      'WorkbenchHeader',
+      'WorkbenchCardList',
+      'WorkbenchCard',
+      'WorkbenchIntakeChrome',
+      'WorkbenchStage',
+      'WorkbenchViewport',
+      'WorkbenchPropertiesLog',
+      'WorkbenchClassification',
+      'WorkbenchStructuralMetrics',
+      'WorkbenchObservationLog',
+      'WorkbenchPropertyRow',
+    ]);
+    expect(REFUSED_BOUNDARIES.map((boundary) => boundary.name)).toEqual([
+      'DocumentShell',
+      'FlexSplit',
+      'SpacingWrapper',
+      'LabelControlSplit',
+      'W7Pane',
+    ]);
+    expect(W7_BOUNDARY.status).toBe('no-separate-pane');
+    expect(WORKBENCH_COMPOSITION.stylingOnly).toBe(true);
+    expect(WORKBENCH_COMPOSITION.vid).toBe('12');
+    expect([...EMPTY_RAIL_CARD_VIDS]).toEqual(['22', '41', '60']);
+  });
+
+  it('Workbench lists real specimens and binds Status, Locality, Media, Claim, tags, Taxon, Used, Generated, Bytes, Observation, createdAt', async () => {
     const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
-    let specimen: Specimen = {
+    const used = trustEntityRef('gbg:step:B01@fe8f875a');
+    const generated = trustEntityRef('gbg:sheet:S01@pr58');
+    const bytesSha = 'fe8f875a80b37a1003f05f3a0190fbe2f0417842';
+    const specimen: Specimen = {
       id,
       createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+      components: [
+        new StatusComponent({ value: 'filed' }),
+        new LocalityComponent({ state: 'unknown' }),
+        new MediaComponent({
+          kind: 'jpeg',
+          filename: 'field.jpg',
+          assetPath: `memory://${id}/field.jpg`,
+          mediaType: 'image/jpeg',
+          byteLength: 22,
+        }),
+        new ClaimComponent({ text: 'attached-claim' }),
+        new TagComponent({ value: 'attached-tag' }),
+        new TaxonComponent({
+          rank: 'phylum',
+          scientificName: 'attached-phylum',
+        }),
+        new TaxonComponent({ rank: 'class', scientificName: 'attached-class' }),
+        new ObservationComponent({ text: 'attached-observation' }),
+        new UsedComponent({ target: used }),
+        new GeneratedComponent({ target: generated }),
+        new BytesComponent({ gitSha: bytesSha }),
+      ],
     };
-    let items: Specimen[] = [];
     const client: SpecimenRpcClient = {
-      List: () => Effect.succeed(items),
-      Get: () => Effect.succeed(items[0] ?? specimen),
-      Intake: ({ filename }) => {
-        const next: Specimen = {
-          ...specimen,
-          components: [
-            ...specimen.components,
-            {
-              _tag: 'Media' as const,
-              kind: 'jpeg' as const,
-              filename,
-              assetPath: `memory://${id}/${filename}`,
-              mediaType: 'image/jpeg',
-              byteLength: 1,
-            },
-          ],
-        };
-        specimen = next;
-        items = [next];
-        return Effect.succeed({ specimenId: id, components: next.components });
-      },
-      Promote: () => {
-        const next = nextStatus(statusOf(specimen) ?? 'raw');
-        specimen = {
-          ...specimen,
-          components: specimen.components.map((component) =>
-            component._tag === 'Status' ? new StatusComponent({ value: next }) : component,
-          ),
-        };
-        items = [specimen];
-        return Effect.succeed(specimen);
-      },
+      List: () => Effect.succeed([specimen]),
+      Get: () => Effect.succeed(specimen),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
     };
-
     const view = render(React.createElement(WorkbenchPage, { client }));
     await waitFor(() => {
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      expect(view.getByTestId('specimen-id').textContent).toBe(id);
     });
-    const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
+    expect(view.queryByTestId('card-chrome')).toBeNull();
+    expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(
+      'filed'
+    );
+    expect(view.getByTestId('locality').textContent).toBe('unknown');
+    expect(view.getByTestId('claim').textContent).toBe('attached-claim');
+    expect(view.getByTestId('tag').textContent).toBe('attached-tag');
+    expect(view.getByTestId('media-caption').textContent).toContain(
+      'field.jpg'
+    );
+    expect(view.getByTestId('media-caption').textContent).toContain('22 B');
+    expect(view.getByTestId('media-caption').textContent).toContain(bytesSha);
+    expect(view.queryByTestId('media-bytes')).toBeNull();
+    expect(view.queryByTestId('intake-file')).toBeNull();
+
     await act(async () => {
-      fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
+      fireEvent.click(view.getByTestId('specimen-card'));
     });
     await waitFor(() => {
-      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+      expect(view.getByTestId('detail-id').textContent).toBe(id);
     });
-    expect(view.getByTestId('locality').textContent).toBe('unknown');
-    expect(view.container.textContent).not.toContain('SP-2023-084');
-    expect(view.queryByTestId('media-bytes')).toBeNull();
+    expect(view.getByTestId('detail-claim').textContent).toBe('attached-claim');
+    expect(view.getByTestId('taxon-phylum').textContent).toBe(
+      'attached-phylum'
+    );
+    expect(view.getByTestId('taxon-class').textContent).toBe('attached-class');
+    expect(view.getByTestId('taxon-order').textContent).toBe('');
+    expect(view.getByTestId('taxon-family').textContent).toBe('');
+    expect(view.getByTestId('observation').textContent).toContain(
+      'attached-observation'
+    );
+    expect(view.getByTestId('last-updated').textContent).toContain(
+      'LAST_UPDATED'
+    );
+    expect(view.getByTestId('last-updated').textContent).toContain(
+      '2026-08-20T00:00:00.000Z'
+    );
+    expect(view.getByTestId('provenance-note').textContent).toContain(used);
+    expect(view.getByTestId('provenance-note').textContent).toContain(
+      generated
+    );
+    expect(view.container.textContent).not.toContain('Chordata');
+    expect(view.container.textContent).not.toContain('120.4 MPa');
+    expect(view.container.textContent).not.toContain('SP-9942-X');
+    expect(view.container.textContent).not.toContain('R: 0.992');
+    view.unmount();
+  });
 
+  it('Workbench does not default missing Status to raw or missing Locality to unknown', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new ClaimComponent({ text: 'claim-only' })],
+    };
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([specimen]),
+      Get: () => Effect.succeed(specimen),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
+    };
+    const view = render(React.createElement(WorkbenchPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('specimen-id').textContent).toBe(id);
+    });
+    expect(view.queryByTestId('status-pill')).toBeNull();
+    expect(view.queryByTestId('locality')).toBeNull();
+    expect(view.getByTestId('claim').textContent).toBe('claim-only');
+    const card = view.getByTestId('specimen-card');
+    expect(card.textContent).not.toContain('raw');
+    expect(card.querySelector('[vid="36"]')?.textContent).toBe('');
+    view.unmount();
+  });
+
+  it('Workbench paints a real preview URL and fixed Locality without inventing GPS', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const specimen: Specimen = {
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [
+        new StatusComponent({ value: 'raw' }),
+        new LocalityComponent({
+          state: 'fixed',
+          latitude: 37,
+          longitude: -122,
+          source: 'exif',
+        }),
+        new MediaComponent({
+          kind: 'jpeg',
+          filename: 'located.jpg',
+          assetPath: `memory://${id}/located.jpg`,
+          mediaType: 'image/jpeg',
+          byteLength: 8,
+        }),
+      ],
+    };
+    const client: SpecimenRpcClient = {
+      List: () => Effect.succeed([specimen]),
+      Get: () => Effect.succeed(specimen),
+      Intake: () => Effect.die('Intake should not run'),
+      Promote: () => Effect.die('Promote should not run'),
+    };
+    const catalog = createCatalog(client);
+    catalog.store.set({
+      ...catalog.store.get(),
+      previews: { [id]: 'blob:http://localhost/preview' },
+    });
+    const view = render(React.createElement(SpecimenRail, { catalog }));
+    await waitFor(() => {
+      expect(view.getByTestId('media-bytes')).toBeTruthy();
+    });
+    expect(view.getByTestId('media-bytes').getAttribute('src')).toBe(
+      'blob:http://localhost/preview'
+    );
+    expect(view.getByTestId('locality').textContent).toContain('37.0000° N');
+    expect(view.getByTestId('locality').textContent).toContain('122.0000° W');
+    expect(view.container.textContent).not.toContain('14.5995');
+    view.unmount();
+  });
+
+  it('Workbench optional LabEntity fills Used, Generated, and W7; empty rail cards stay empty', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { dirname, join } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const fixturesDir = join(
+      dirname(fileURLToPath(import.meta.url)),
+      'fixtures',
+      'provenance'
+    );
+    const entity = decodeLabEntity(
+      JSON.parse(
+        readFileSync(
+          join(fixturesDir, 'activity-freecad-part-occt.json'),
+          'utf8'
+        )
+      ) as unknown
+    );
+    const view = render(
+      React.createElement(WorkbenchPage, {
+        client: emptyClient(),
+        provenance: { kind: 'lab-entity', entity },
+      })
+    );
+    await waitFor(() => {
+      emptyWorkbenchCards(view);
+    });
+    expect(view.getByTestId('provenance-note').textContent).toContain(
+      'gbg:step:B01@fe8f875a'
+    );
+    expect(view.queryByTestId('media-caption')).toBeNull();
+    expect(view.queryByTestId('media-metadata')).toBeNull();
+    expect(view.getAllByTestId('w7').map((node) => node.textContent)).toEqual(
+      expect.arrayContaining([
+        'W7 WHO freecad-part-occt',
+        'W7 WHERE unknown',
+        'W7 WHY #28',
+        'W7 HOW freecad-part-occt',
+      ])
+    );
+    expect(view.queryByTestId('intake-file')).toBeNull();
+    expect(W7_BOUNDARY.status).toBe('no-separate-pane');
+    view.unmount();
+  });
+
+  it('Workbench promotes a real Status pill and leaves empty chrome inert', async () => {
+    const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
+    const { client, calls } = promotingClient({
+      id,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      components: [new StatusComponent({ value: 'raw' })],
+    });
+    const view = render(React.createElement(WorkbenchPage, { client }));
+    await waitFor(() => {
+      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(
+        'raw'
+      );
+    });
     await act(async () => {
       fireEvent.click(view.getByTestId('status-pill'));
     });
     await waitFor(() => {
-      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('filed');
+      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(
+        'filed'
+      );
     });
-    expect(view.getByTestId('locality').textContent).toBe('unknown');
+    expect(calls.promote).toBe(1);
+    view.unmount();
   });
 
   it('shows unknown locality for a real JPEG without EXIF GPS, and real coords when GPS exists', async () => {
@@ -577,22 +1046,32 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
 
           yield* Effect.promise(() =>
             waitFor(() => {
-              expect(view.getByTestId('rail-online').textContent).toContain('ONLINE');
-            }),
+              expect(view.getByTestId('rail-online').textContent).toContain(
+                'ONLINE'
+              );
+            })
           );
 
-          const bare = new File([jpegWithoutGps()], 'leaf.jpg', { type: 'image/jpeg' });
+          const bare = new File([jpegWithoutGps()], 'leaf.jpg', {
+            type: 'image/jpeg',
+          });
           yield* Effect.promise(() =>
             act(async () => {
-              fireEvent.change(view.getByTestId('intake-file'), { target: { files: [bare] } });
-            }),
+              fireEvent.change(view.getByTestId('intake-file'), {
+                target: { files: [bare] },
+              });
+            })
           );
           yield* Effect.promise(() =>
             waitFor(() => {
-              expect(view.getAllByTestId('locality')[0]?.textContent).toBe('unknown');
-              expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+              expect(view.getAllByTestId('locality')[0]?.textContent).toBe(
+                'unknown'
+              );
+              expect(
+                view.getByTestId('status-pill').getAttribute('data-status')
+              ).toBe('raw');
               expect(view.getByTestId('claim').textContent).toBe('');
-            }),
+            })
           );
 
           const located = yield* client.Intake({
@@ -607,10 +1086,14 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
           yield* Effect.promise(() => catalog.list());
           yield* Effect.promise(() =>
             waitFor(() => {
-              const localities = view.getAllByTestId('locality').map((n) => n.textContent);
+              const localities = view
+                .getAllByTestId('locality')
+                .map((n) => n.textContent);
               expect(localities).toContain('unknown');
-              expect(localities.some((text) => text?.includes('37.0000° N'))).toBe(true);
-            }),
+              expect(
+                localities.some((text) => text?.includes('37.0000° N'))
+              ).toBe(true);
+            })
           );
 
           const html = view.container.textContent ?? '';
@@ -619,15 +1102,18 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
           expect(html).not.toContain('SPC-88.94X');
           expect(html).not.toContain('99.8%');
           view.unmount();
-        }),
-      ).pipe(Effect.provide(MemoryCatalogLive)) as Effect.Effect<void>,
+        })
+      ).pipe(Effect.provide(MemoryCatalogLive)) as Effect.Effect<void>
     );
   });
 
   it('keeps the Terminal 4px scrollbar chrome visible on both pages', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const css = readFileSync(resolve(process.cwd(), 'src/ui/catalog.css'), 'utf8');
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/ui/catalog.css'),
+      'utf8'
+    );
     expect(css).toContain('width: 4px');
     expect(css).toContain('height: 4px');
     expect(css).toContain('scrollbar-width: thin');
@@ -644,7 +1130,10 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
   it('does not restyle both pages into one Inter / IBM Plex / charcoal token sheet', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const css = readFileSync(resolve(process.cwd(), 'src/ui/catalog.css'), 'utf8');
+    const css = readFileSync(
+      resolve(process.cwd(), 'src/ui/catalog.css'),
+      'utf8'
+    );
     expect(css).not.toContain('--charcoal-100');
     expect(css).not.toContain('--font-sans');
     expect(css).not.toContain('--font-mono');
@@ -669,61 +1158,103 @@ describe('IntakeDrop Terminal + SpecimenRail Workbench', () => {
 describe('six full pages', () => {
   const pages: ReadonlyArray<{
     readonly name: string;
-    readonly Page: (props: { readonly client: SpecimenRpcClient }) => React.ReactElement;
+    readonly Page: (props: {
+      readonly client: SpecimenRpcClient;
+    }) => React.ReactElement;
     readonly testId: string;
     readonly copy: ReadonlyArray<string>;
+    readonly emptyChrome: boolean;
+    readonly stripTheater: boolean;
   }> = [
     {
       name: 'Terminal',
       Page: TerminalPage,
       testId: 'intake-drop',
       copy: ['Initiate_Intake_Protocol', 'Local Catalog', 'SYS_ONLINE'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Workbench',
       Page: WorkbenchPage,
       testId: 'specimen-rail',
-      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'PROPERTIES LOG'],
+      copy: ['SpecimenDB // Core', 'VIEWPORT_XZ', 'Properties Log'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Assay',
       Page: AssayPage,
       testId: 'working-panel',
-      copy: ['INITIATE_INTAKE_PROTOCOL', 'CURRENT_FOCUS_RECORD', 'VIEWPORT_01', 'INSTRUMENT_READOUT', 'ENV_CONTEXT', 'OBSERVATION_LOG', 'CH_01_VIS'],
+      copy: [
+        'INITIATE_INTAKE_PROTOCOL',
+        'CURRENT_FOCUS_RECORD',
+        'VIEWPORT_01',
+        'INSTRUMENT_READOUT',
+        'ENV_CONTEXT',
+        'OBSERVATION_LOG',
+        'CH_01_VIS',
+      ],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Dactyl',
       Page: DactylPage,
       testId: 'dactyl-grid',
       copy: ['INITIATE INTAKE', 'Active Queue', 'SYSTEM.CORE'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Catalog',
       Page: CatalogPage,
       testId: 'app-shell',
       copy: ['SPECIMEN_DB / CATALOG', 'Intake Drop Zone', 'SPECIMEN_DB'],
+      emptyChrome: true,
+      stripTheater: true,
     },
     {
       name: 'Accession',
       Page: AccessionPage,
       testId: 'dossier-view',
-      copy: ['PHOTO RAIL', 'TAXONOMY_DATA', 'FIELD_METRICS', 'SPECTRAL_ANALYSIS', 'OBSERVER_LOG'],
+      copy: [
+        'PHOTO RAIL',
+        'TAXONOMY_DATA',
+        'FIELD_METRICS',
+        'SPECTRAL_ANALYSIS',
+        'OBSERVER_LOG',
+      ],
+      emptyChrome: true,
+      stripTheater: true,
     },
   ];
 
   for (const page of pages) {
-    it(`${page.name} is a full page with empty card chrome and no fake ids`, async () => {
-      const view = render(React.createElement(page.Page, { client: emptyClient() }));
+    it(`${page.name} is a full page${
+      page.emptyChrome ? ' with empty card chrome' : ''
+    }`, async () => {
+      const view = render(
+        React.createElement(page.Page, { client: emptyClient() })
+      );
       await waitFor(() => {
         expect(view.getByTestId(page.testId)).toBeTruthy();
       });
-      expect(view.getByTestId('card-chrome')).toBeTruthy();
+      if (page.emptyChrome) {
+        if (page.name === 'Workbench') {
+          emptyWorkbenchCards(view);
+        } else {
+          expect(view.getByTestId('card-chrome')).toBeTruthy();
+        }
+      }
       const html = view.container.textContent ?? '';
       for (const snippet of page.copy) {
         expect(html).toContain(snippet);
       }
-      for (const banned of BANISHED) {
-        expect(html).not.toContain(banned);
+      if (page.stripTheater) {
+        for (const banned of BANISHED) {
+          expect(html).not.toContain(banned);
+        }
       }
       view.unmount();
     });
@@ -734,7 +1265,10 @@ describe('six full pages', () => {
     const specimen: Specimen = {
       id,
       createdAt: '2026-08-20T00:00:00.000Z',
-      components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+      components: [
+        new StatusComponent({ value: 'raw' }),
+        new LocalityComponent({ state: 'unknown' }),
+      ],
     };
     const makeClient = (): SpecimenRpcClient => {
       let items: Specimen[] = [];
@@ -761,7 +1295,10 @@ describe('six full pages', () => {
             ],
           };
           items = [next];
-          return Effect.succeed({ specimenId: id, components: next.components });
+          return Effect.succeed({
+            specimenId: id,
+            components: next.components,
+          });
         },
         Promote: () => Effect.die('Promote should not run'),
       };
@@ -773,14 +1310,20 @@ describe('six full pages', () => {
       await waitFor(() => {
         expect(view.getByTestId('card-chrome')).toBeTruthy();
       });
-      const file = new File([jpegWithoutGps()], 'field.jpg', { type: 'image/jpeg' });
+      const file = new File([jpegWithoutGps()], 'field.jpg', {
+        type: 'image/jpeg',
+      });
       await act(async () => {
-        fireEvent.change(view.getByTestId('intake-file'), { target: { files: [file] } });
+        fireEvent.change(view.getByTestId('intake-file'), {
+          target: { files: [file] },
+        });
       });
       await waitFor(() => {
         expect(view.getByTestId('specimen-id').textContent).toBe(id);
       });
-      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+      expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(
+        'raw'
+      );
       expect(view.getByTestId('locality').textContent).toBe('unknown');
       expect(view.getByTestId('claim').textContent).toBe('');
       view.unmount();
@@ -790,7 +1333,10 @@ describe('six full pages', () => {
   it('keeps Assay 4px rail scrollbars and Dactyl 6px scrollbars', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const assay = readFileSync(resolve(process.cwd(), 'src/ui/assay.css'), 'utf8');
+    const assay = readFileSync(
+      resolve(process.cwd(), 'src/ui/assay.css'),
+      'utf8'
+    );
     expect(assay).toContain('--bg-void: #000');
     expect(assay).toContain('--bg-charcoal: #0a0a0a');
     expect(assay).toContain('--bg-charcoal-elevated: #111');
@@ -803,7 +1349,10 @@ describe('six full pages', () => {
     expect(assay).toContain('width: 440px');
     expect(assay).toContain('height: 112px');
     expect(assay).toContain('width: 4px');
-    const dactyl = readFileSync(resolve(process.cwd(), 'src/ui/dactyl.css'), 'utf8');
+    const dactyl = readFileSync(
+      resolve(process.cwd(), 'src/ui/dactyl.css'),
+      'utf8'
+    );
     expect(dactyl).toContain('background: #020202');
     expect(dactyl).toContain('width: 6px');
     expect(dactyl).toContain('background: #1a1a1a');
@@ -813,31 +1362,46 @@ describe('six full pages', () => {
   });
 
   it('status chrome promotes raw → filed → working → dead on every page and stops', async () => {
-    const pages = [TerminalPage, WorkbenchPage, AssayPage, DactylPage, CatalogPage, AccessionPage];
+    const pages = [
+      TerminalPage,
+      AssayPage,
+      DactylPage,
+      CatalogPage,
+      AccessionPage,
+    ];
     for (const Page of pages) {
       const id = trustSpecimenId('11111111-1111-4111-8111-111111111111');
       const { client, calls } = promotingClient({
         id,
         createdAt: '2026-08-20T00:00:00.000Z',
-        components: [new StatusComponent({ value: 'raw' }), new LocalityComponent({ state: 'unknown' })],
+        components: [
+          new StatusComponent({ value: 'raw' }),
+          new LocalityComponent({ state: 'unknown' }),
+        ],
       });
       const view = render(React.createElement(Page, { client }));
       await waitFor(() => {
-        expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('raw');
+        expect(
+          view.getByTestId('status-pill').getAttribute('data-status')
+        ).toBe('raw');
       });
       for (const status of ['filed', 'working', 'dead'] as const) {
         await act(async () => {
           fireEvent.click(view.getByTestId('status-pill'));
         });
         await waitFor(() => {
-          expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe(status);
+          expect(
+            view.getByTestId('status-pill').getAttribute('data-status')
+          ).toBe(status);
         });
       }
       await act(async () => {
         fireEvent.click(view.getByTestId('status-pill'));
       });
       await waitFor(() => {
-        expect(view.getByTestId('status-pill').getAttribute('data-status')).toBe('dead');
+        expect(
+          view.getByTestId('status-pill').getAttribute('data-status')
+        ).toBe('dead');
       });
       expect(calls.promote).toBe(4);
       view.unmount();
@@ -859,16 +1423,20 @@ describe('six full pages', () => {
     await waitFor(() => {
       expect(view.getByTestId('card-chrome')).toBeTruthy();
     });
-    const chromeStatus = view.getByTestId('card-chrome').querySelector('[data-status="raw"]');
+    const chromeStatus = view
+      .getByTestId('card-chrome')
+      .querySelector('[data-status="raw"]');
     expect(chromeStatus).toBeTruthy();
     await act(async () => {
       fireEvent.click(chromeStatus!);
     });
     expect(promote).toBe(0);
-    expect(view.getByTestId('card-chrome').querySelector('[data-promote]')).toBeNull();
-    const analysis = [...view.container.querySelectorAll('[data-status="working"]')].find((node) =>
-      node.textContent?.includes('ANALYSIS_ACTIVE'),
-    );
+    expect(
+      view.getByTestId('card-chrome').querySelector('[data-promote]')
+    ).toBeNull();
+    const analysis = [
+      ...view.container.querySelectorAll('[data-status="working"]'),
+    ].find((node) => node.textContent?.includes('ANALYSIS_ACTIVE'));
     expect(analysis).toBeTruthy();
     await act(async () => {
       fireEvent.click(analysis!);
@@ -879,7 +1447,10 @@ describe('six full pages', () => {
   it('commits the functionalization journal as SoT with the now-rows', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const journal = readFileSync(resolve(process.cwd(), 'docs/functionalization-journal.md'), 'utf8');
+    const journal = readFileSync(
+      resolve(process.cwd(), 'docs/functionalization-journal.md'),
+      'utf8'
+    );
     for (const id of [
       'F-001',
       'F-002',
@@ -925,7 +1496,10 @@ describe('six full pages', () => {
     expect(journal).toContain('F-108');
     expect(journal).toContain('F-109');
     expect(journal).toContain('Promote');
-    const synth = readFileSync(resolve(process.cwd(), 'docs/page-function-synth.md'), 'utf8');
+    const synth = readFileSync(
+      resolve(process.cwd(), 'docs/page-function-synth.md'),
+      'utf8'
+    );
     expect(synth).toContain('Page-function synth');
     expect(synth).toContain('GetMedia');
     expect(synth).toContain('EXECUTE ASSAY');
