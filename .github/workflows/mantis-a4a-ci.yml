@@ -1,0 +1,81 @@
+name: Mantis A4a
+
+on:
+  pull_request:
+    paths:
+      - 'projects/biomemetics/labs/mantis/assistant/simulator/**'
+      - 'projects/biomemetics/labs/mantis/assistant/fixtures/telemetry/**'
+      - 'projects/biomemetics/labs/mantis/assistant/ui/terrarium/**'
+      - '.github/workflows/mantis-a4a-ci.yml'
+  push:
+    paths:
+      - 'projects/biomemetics/labs/mantis/assistant/simulator/**'
+      - 'projects/biomemetics/labs/mantis/assistant/fixtures/telemetry/**'
+      - 'projects/biomemetics/labs/mantis/assistant/ui/terrarium/**'
+      - '.github/workflows/mantis-a4a-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mantis-a4a-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  NODE_VERSION: '22.14.0'
+  COPILOTKIT_TELEMETRY_DISABLED: 'true'
+
+jobs:
+  simulator:
+    name: simulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: projects/biomemetics/labs/mantis/assistant/simulator
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: projects/biomemetics/labs/mantis/assistant/simulator/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: inject stale
+        run: |
+          npm run sim -- inject stale --fixture known-fresh --channel air.dry-bulb | tee "${RUNNER_TEMP}/stale.out"
+          grep -F 'paint:stale air.dry-bulb' "${RUNNER_TEMP}/stale.out"
+
+      - name: inject pinch
+        run: |
+          npm run sim -- inject fault --fixture known-fresh --id pinch | tee "${RUNNER_TEMP}/pinch.out"
+          grep -F 'paint:faulted rail.local-branch-voltage' "${RUNNER_TEMP}/pinch.out"
+          grep -F 'phase=pinch-safe' "${RUNNER_TEMP}/pinch.out"
+          grep -F 'reason=pinch' "${RUNNER_TEMP}/pinch.out"
+
+  terrarium:
+    name: terrarium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: projects/biomemetics/labs/mantis/assistant/ui/terrarium
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: projects/biomemetics/labs/mantis/assistant/ui/terrarium/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
