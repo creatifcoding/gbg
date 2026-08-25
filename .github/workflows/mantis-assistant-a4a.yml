@@ -1,0 +1,64 @@
+name: mantis-assistant-a4a
+
+on:
+  pull_request:
+    branches:
+      - feat/mantis-biomemetics-lab
+      - master
+      - main
+    paths:
+      - '.github/workflows/mantis-assistant-a4a.yml'
+      - 'projects/biomemetics/labs/mantis/assistant/simulator/**'
+      - 'projects/biomemetics/labs/mantis/assistant/fixtures/telemetry/**'
+      - 'projects/biomemetics/labs/mantis/assistant/ui/terrarium/**'
+  push:
+    branches:
+      - feat/mantis-biomemetics-lab
+      - master
+      - main
+    paths:
+      - '.github/workflows/mantis-assistant-a4a.yml'
+      - 'projects/biomemetics/labs/mantis/assistant/simulator/**'
+      - 'projects/biomemetics/labs/mantis/assistant/fixtures/telemetry/**'
+      - 'projects/biomemetics/labs/mantis/assistant/ui/terrarium/**'
+  workflow_dispatch:
+
+concurrency:
+  group: mantis-assistant-a4a-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  NODE_VERSION: '22.14.0'
+  COPILOTKIT_TELEMETRY_DISABLED: 'true'
+
+jobs:
+  terrarium-sim-read:
+    name: terrarium-sim-read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            projects/biomemetics/labs/mantis/assistant/simulator/package-lock.json
+            projects/biomemetics/labs/mantis/assistant/ui/terrarium/package-lock.json
+
+      - name: simulator tests
+        working-directory: projects/biomemetics/labs/mantis/assistant/simulator
+        run: |
+          npm ci
+          npm test
+
+      - name: terrarium UI tests
+        working-directory: projects/biomemetics/labs/mantis/assistant/ui/terrarium
+        run: |
+          npm ci
+          npm test
