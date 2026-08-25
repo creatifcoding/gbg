@@ -9,6 +9,11 @@ on:
     paths:
       - "projects/biomemetics/labs/mantis/procurement/**"
       - ".github/workflows/mantis-procurement-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: mantis-procurement-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -26,6 +31,10 @@ jobs:
       - name: Install dependencies
         working-directory: projects/biomemetics/labs/mantis/procurement
         run: npm ci
+
+      - name: Typecheck
+        working-directory: projects/biomemetics/labs/mantis/procurement
+        run: npm run typecheck
 
       - name: Run tests
         working-directory: projects/biomemetics/labs/mantis/procurement
