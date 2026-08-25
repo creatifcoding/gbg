@@ -1,0 +1,51 @@
+name: mantis-assistant CI
+
+on:
+  push:
+    branches: [feat/mantis-biomemetics-lab]
+    paths:
+      - 'projects/biomemetics/labs/mantis/tooling/typescript/mantis-assistant/**'
+      - 'projects/biomemetics/labs/mantis/assistant/evals/**'
+      - 'projects/biomemetics/labs/mantis/assistant/fixtures/**'
+      - '.github/workflows/mantis-assistant-ci.yml'
+  pull_request:
+    branches: [feat/mantis-biomemetics-lab]
+    paths:
+      - 'projects/biomemetics/labs/mantis/tooling/typescript/mantis-assistant/**'
+      - 'projects/biomemetics/labs/mantis/assistant/evals/**'
+      - 'projects/biomemetics/labs/mantis/assistant/fixtures/**'
+      - '.github/workflows/mantis-assistant-ci.yml'
+
+permissions:
+  contents: read
+
+env:
+  WORKING_DIR: projects/biomemetics/labs/mantis/tooling/typescript/mantis-assistant
+
+jobs:
+  prove:
+    name: OpenRouter DeepSeek prove
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: npm
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Prove
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: npm test
