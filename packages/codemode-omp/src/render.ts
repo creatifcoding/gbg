@@ -45,7 +45,7 @@ export function renderCall(
   const lines = code.split('\n')
 
   const piCtx = createPiRenderContext(theme)
-  let text = piCtx.theme.fg('toolTitle', piCtx.theme.bold?.('ms') ?? 'ms')
+  let text = piCtx.theme.fg('toolTitle', piCtx.theme.bold?.('as') ?? 'as')
 
   if (!code) {
     text += ' ' + piCtx.theme.fg('muted', '(empty)')
@@ -121,7 +121,7 @@ export function renderResult(
         // ── Error boundary: NEVER crash pi ──
         const msg = err instanceof Error ? err.message : String(err)
         cachedLines = [
-          theme.fg('toolTitle', piCtx.theme.bold?.('ms') ?? 'ms') + ' ' + theme.fg('error', '✗ render error'),
+          theme.fg('toolTitle', piCtx.theme.bold?.('as') ?? 'as') + ' ' + theme.fg('error', '✗ render error'),
           theme.fg('error', truncateToWidth(msg, width)),
           '',
           theme.fg('muted', 'Raw output:'),
@@ -231,7 +231,7 @@ export function renderResult(
 
 function renderPartial(code: string, theme: Theme): string[] {
   const piCtx = createPiRenderContext(theme)
-  const lines = [piCtx.theme.fg('toolTitle', piCtx.theme.bold?.('ms') ?? 'ms') + ' ' + piCtx.theme.fg('warning', 'evaluating...')]
+  const lines = [piCtx.theme.fg('toolTitle', piCtx.theme.bold?.('as') ?? 'as') + ' ' + piCtx.theme.fg('warning', 'evaluating...')]
   if (code) {
     const firstLine = code.split('\n')[0]
     const preview = firstLine.length > 60 ? firstLine.slice(0, 57) + '...' : firstLine
@@ -250,7 +250,7 @@ function renderHeader(parsed: unknown, isStructured: boolean, theme: Theme, prim
   const modeHint = expanded
     ? ' ' + theme.fg('accent', '⟨eval⟩')
     : ''
-  return theme.fg('toolTitle', theme.bold?.('ms') ?? 'ms') + ' ' + theme.fg('success', '✓')
+  return theme.fg('toolTitle', theme.bold?.('as') ?? 'as') + ' ' + theme.fg('success', '✓')
     + (typeInfo ? ' ' + typeInfo : '')
     + modeHint
 }
@@ -263,7 +263,7 @@ function renderError(
   ctx: RenderContext,
   theme: Theme,
 ): string[] {
-  const lines = [ctx.theme.fg('toolTitle', ctx.theme.bold?.('ms') ?? 'ms') + ' ' + ctx.theme.fg('error', '✗ error')]
+  const lines = [ctx.theme.fg('toolTitle', ctx.theme.bold?.('as') ?? 'as') + ' ' + ctx.theme.fg('error', '✗ error')]
   if (expanded && code) lines.push(...codeBlockLines(code, width, ctx))
   lines.push('')
   lines.push(...rawOutput.split('\n').map(l => theme.fg('error', l)))

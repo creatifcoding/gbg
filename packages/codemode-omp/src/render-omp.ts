@@ -55,7 +55,7 @@ const DEFAULT_RESULT_PREVIEW_LINES = 15
 const OMP_EXPAND_HINT = 'ctrl+o to expand'
 
 /** Consumer-facing knobs: the frame/header title (the eval namespace the
- * framed code was written in, e.g. "ms", "digishell") and the running-state
+ * framed code was written in, e.g. "as", "digishell") and the running-state
  * description shown before any code arrives. */
 export interface OmpToolRendererOptions {
   readonly title?: string
@@ -329,7 +329,7 @@ function appendWarningSections(
  * steer surface across every codemode host tool. */
 export function createOmpToolRenderer(options: OmpToolRendererOptions = {}) {
   const cfg: RendererCfg = {
-    title: options.title ?? 'ms',
+    title: options.title ?? 'as',
     runningDescription: options.runningDescription ?? 'evaluating in isolated worker...',
   }
   return {

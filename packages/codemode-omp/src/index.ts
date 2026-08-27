@@ -6,7 +6,7 @@
  * annotations, and the Pi-compat wrapper. Consumers bind a title via
  * createOmpToolRenderer and spread the result onto their tool definition.
  *
- * Consumers: agentstore ("ms"), digishell_codemode ("digishell").
+ * Consumers: agentstore ("as"), digishell_codemode ("digishell").
  */
 
 export {
