@@ -1,0 +1,34 @@
+{
+  "name": "@tmnl/codemode-omp",
+  "version": "0.1.0",
+  "description": "OMP host renderer for codemode tools — framed blocks, result grid, primitives, steer. Lifted from the agentstore extension; agentstore and digishell_codemode consume it.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pi": "./src/render.ts",
+    "./render-omp": "./src/render-omp.ts",
+    "./render-core": "./src/render-core.ts",
+    "./grid": "./src/grid.ts",
+    "./steer": "./src/steer.ts",
+    "./layout": "./src/layout.ts",
+    "./theme-compat": "./src/theme-compat.ts",
+    "./primitives": "./src/primitives/index.ts",
+    "./primitives/types": "./src/primitives/types.ts",
+    "./primitives/render-host": "./src/primitives/render-host.ts"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "0.73.1",
+    "@mariozechner/pi-tui": "0.73.1",
+    "@oh-my-pi/pi-coding-agent": "16.3.2",
+    "@oh-my-pi/pi-tui": "16.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.10"
+  }
+}

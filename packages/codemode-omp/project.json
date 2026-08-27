@@ -1,0 +1,17 @@
+{
+  "name": "@tmnl/codemode-omp",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/codemode-omp/src",
+  "projectType": "library",
+  "tags": ["scope:tmnl", "type:lib", "domain:ui", "host:omp"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/codemode-omp"
+      },
+      "cache": true
+    }
+  }
+}
