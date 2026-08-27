@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Lab Alchemy host for kube context k3d-tmnl and Pepr lab CRDs on tmnl.gbg.dev/v1alpha1.",
+  "description": "Lab Alchemy host. k3d hosts applets on kube context k3d-tmnl.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {

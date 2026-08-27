@@ -16,6 +16,7 @@ import { mantisClusterManifests } from '../src/manifests';
 const root = dirname(fileURLToPath(import.meta.url));
 const indexSrc = readFileSync(join(root, '../src/index.ts'), 'utf8');
 const manifestsSrc = readFileSync(join(root, '../src/manifests.ts'), 'utf8');
+const readme = readFileSync(join(root, '../README.md'), 'utf8');
 
 describe('mantis cluster roseleaf', () => {
   test('consumes @gbg/cluster k3d-tmnl kubeconfig', () => {
@@ -34,6 +35,11 @@ describe('mantis cluster roseleaf', () => {
     expect(indexSrc).toContain("from '@gbg/cluster'");
     expect(indexSrc).not.toContain('Alchemy.Stack');
     expect(manifestsSrc).not.toContain('Alchemy.Stack');
+    expect(readme).toContain('k3d hosts applets');
+    expect(readme).toContain('@gbg/nexus');
+    expect(readme).not.toContain('existing TMNL k3d default');
+    expect(readme).not.toContain('the TMNL cluster');
+    expect(readme).not.toContain('the one stack');
   });
 
   test('extends with a procurement Namespace Manifest', () => {
