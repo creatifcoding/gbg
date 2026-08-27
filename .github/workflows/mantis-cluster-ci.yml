@@ -1,0 +1,63 @@
+name: mantis-cluster CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/cluster/**'
+      - 'projects/biomemetics/labs/mantis/cluster/**'
+      - '.github/workflows/mantis-cluster-ci.yml'
+
+jobs:
+  gbg-cluster:
+    name: '@gbg/cluster'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/cluster
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: packages/cluster/package-lock.json
+
+      - name: Install
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  mantis-cluster:
+    name: '@mantis/cluster'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            packages/cluster/package-lock.json
+            projects/biomemetics/labs/mantis/cluster/package-lock.json
+
+      - name: Install @gbg/cluster
+        working-directory: packages/cluster
+        run: npm install
+
+      - name: Install @mantis/cluster
+        working-directory: projects/biomemetics/labs/mantis/cluster
+        run: npm install
+
+      - name: Typecheck
+        working-directory: projects/biomemetics/labs/mantis/cluster
+        run: npm run typecheck
+
+      - name: Test
+        working-directory: projects/biomemetics/labs/mantis/cluster
+        run: npm test

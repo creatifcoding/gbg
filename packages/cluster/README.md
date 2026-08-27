@@ -44,10 +44,14 @@ does not hoist over the repo `effect@4.0.0-beta.93` pin.
 | LabWorkload | labworkloads | Generic workload (CosmoRouter minus GraphQL) |
 | LabApplet | labapplets | TanStack Start specialization of LabWorkload |
 
-CosmoRouter and CosmoSubgraph stay GraphQL specializations in `packages/tmnl`.
-Their apply path remains `nix develop ./packages/tmnl#tmnl-k8s` then
-`k8s-pepr-deploy`. This package is types + CRD Manifests, not a second Pepr
-module and not a reconcile controller.
+Cosmo/WunderGraph home is `@gbg/nexus` (`packages/nexus`), outside tmnl.
+Cosmo stays the engine. `k3d-tmnl` is the kube context name, not
+Cosmo's home. This package does not invent `packages/nexus` and does not
+copy Cosmo files out of tmnl. Catalog stays Postgres off-cluster; there is
+no catalog pod.
+
+This package is types + CRD Manifests, not a second Pepr module and not a
+reconcile controller.
 
 When a bus is needed later, `@tmnl/msh` is the house NATS Effect client.
 Cosmo router EDFS talks to that same NATS. Do not stand up a second NATS.

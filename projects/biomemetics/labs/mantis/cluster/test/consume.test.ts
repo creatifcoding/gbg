@@ -2,7 +2,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
-import { cluster, KUBE_CONTEXT, LAB_GROUP, procurementNamespace } from '../src/index';
+import {
+  cluster,
+  KUBE_CONTEXT,
+  LAB_GROUP,
+  procurementApplet,
+  procurementNamespace,
+} from '../src/index';
 import { mantisClusterManifests } from '../src/manifests';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -34,13 +40,35 @@ describe('mantis cluster roseleaf', () => {
       kind: 'Namespace',
       metadata: { name: 'procurement' },
     });
-    expect(mantisClusterManifests).toEqual([
-      { id: 'ProcurementNamespace', manifest: procurementNamespace },
-    ]);
+    expect(mantisClusterManifests).toContainEqual({
+      id: 'ProcurementNamespace',
+      manifest: procurementNamespace,
+    });
     expect(manifestsSrc).not.toContain('AWS.providers');
     expect(manifestsSrc).not.toContain('kind-dev');
     expect(manifestsSrc).not.toContain('/home/');
     expect(manifestsSrc).not.toContain('/nix/');
     expect(manifestsSrc).not.toContain('Cloudflare');
+  });
+
+  test('extends with a procurement LabApplet object that is not applied', () => {
+    expect(procurementApplet.kind).toBe('LabApplet');
+    expect(procurementApplet.apiVersion).toBe('tmnl.gbg.dev/v1alpha1');
+    expect(procurementApplet.metadata).toEqual({
+      name: 'procurement',
+      namespace: 'procurement',
+    });
+    expect(procurementApplet.spec).toEqual({});
+    expect('image' in procurementApplet.spec).toBe(false);
+    expect(JSON.stringify(procurementApplet)).not.toMatch(
+      /dkr\.ecr|gcr\.io|azurecr\.io|repository/,
+    );
+    expect(mantisClusterManifests).toContainEqual({
+      id: 'ProcurementApplet',
+      manifest: procurementApplet,
+    });
+    expect(manifestsSrc).not.toContain('Alchemy.Stack');
+    expect(manifestsSrc).not.toContain('alchemy deploy');
+    expect(indexSrc).not.toContain('Kubernetes.Manifest');
   });
 });

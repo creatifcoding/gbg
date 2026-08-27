@@ -12,7 +12,8 @@ Workloads target kube context `k3d-tmnl` on whatever host currently has
 that context. This directory does not create the cluster and does not
 deploy. It does not edit `procurement/`. procurementbot owns that book.
 The `procurement` Namespace Manifest is reserved so the Start applet can
-be hosted later as a `LabApplet`.
+be hosted later. Procurement is the first `LabApplet` object; it is not
+started.
 
 ## Cluster
 
@@ -31,7 +32,7 @@ copy it here. Alchemy resolves kubeconfig from `$KUBECONFIG` or
 ## Extensions
 
 - `procurement` Namespace Manifest (`src/manifests.ts`)
-- later: a `LabApplet` for the Start app
+- `procurement` LabApplet object in namespace `procurement` (image blank; not applied)
 
 ## Hold deploy
 

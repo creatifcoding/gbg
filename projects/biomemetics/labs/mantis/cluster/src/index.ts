@@ -13,4 +13,8 @@ export {
   LabWorkload,
 } from '@gbg/cluster'
 
-export { mantisClusterManifests, procurementNamespace } from './manifests'
+export {
+  mantisClusterManifests,
+  procurementApplet,
+  procurementNamespace,
+} from './manifests'
