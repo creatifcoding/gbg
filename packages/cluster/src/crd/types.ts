@@ -53,6 +53,7 @@ export interface Condition {
 export interface PersistenceSpec {
   size?: string
   storageClassName?: string
+  mountPath?: string
 }
 
 // =============================================================================
@@ -155,6 +156,7 @@ export interface LabAppletSpec extends LabWorkloadSpec {
   main?: string
   port?: number
   routes?: string[]
+  persistence?: PersistenceSpec
 }
 
 export type LabAppletStatus = LabWorkloadStatus

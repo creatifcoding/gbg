@@ -155,10 +155,12 @@ describe('LabApplet Types', () => {
       imageRef: { name: 'start-app' },
       main: 'src/server.ts',
       port: 3000,
-      routes: ['/', '/shop'],
+      routes: ['/register', '/buy', '/receive', '/need', '/vendors'],
+      persistence: { size: '1Gi', mountPath: '/data/pglite' },
     }
     expect(spec.main).toBe('src/server.ts')
-    expect(spec.routes?.length).toBe(2)
+    expect(spec.routes?.length).toBe(5)
+    expect(spec.persistence?.mountPath).toBe('/data/pglite')
   })
 
   it('accepts a full resource', () => {

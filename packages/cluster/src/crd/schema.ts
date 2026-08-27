@@ -61,6 +61,15 @@ export const configSourceSchema = {
   },
 }
 
+export const persistenceSpecSchema = {
+  type: 'object',
+  properties: {
+    size: { type: 'string' },
+    storageClassName: { type: 'string' },
+    mountPath: { type: 'string' },
+  },
+}
+
 export const objectRefSchema = {
   type: 'object',
   properties: {

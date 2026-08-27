@@ -11,6 +11,7 @@ import {
   imageSpecSchema,
   LAB_REGISTRY_DEFAULT_IMAGE,
   LAB_REGISTRY_DEFAULT_PORT,
+  persistenceSpecSchema,
   resourcesSpecSchema,
   serviceSpecSchema,
   statusSchema,
@@ -48,13 +49,7 @@ export const LabRegistryCRD = defineLabCrd({
           port: { type: 'integer', default: LAB_REGISTRY_DEFAULT_PORT },
         },
       },
-      persistence: {
-        type: 'object',
-        properties: {
-          size: { type: 'string' },
-          storageClassName: { type: 'string' },
-        },
-      },
+      persistence: persistenceSpecSchema,
     },
   },
   status: statusSchema(['Pending', 'Running', 'Failed'], {

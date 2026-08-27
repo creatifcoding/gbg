@@ -6,6 +6,8 @@ import {
   cluster,
   KUBE_CONTEXT,
   LAB_GROUP,
+  PROCUREMENT_APPLET_ROUTES,
+  PROCUREMENT_PGLITE_MOUNT,
   procurementApplet,
   procurementNamespace,
 } from '../src/index';
@@ -58,11 +60,18 @@ describe('mantis cluster roseleaf', () => {
       name: 'procurement',
       namespace: 'procurement',
     });
-    expect(procurementApplet.spec).toEqual({});
+    expect(procurementApplet.spec.routes).toEqual(PROCUREMENT_APPLET_ROUTES);
+    expect(procurementApplet.spec.routes).toHaveLength(5);
+    expect(procurementApplet.spec.persistence).toEqual({
+      size: '1Gi',
+      mountPath: PROCUREMENT_PGLITE_MOUNT,
+    });
+    expect(PROCUREMENT_PGLITE_MOUNT).toBe('/data/pglite');
     expect('image' in procurementApplet.spec).toBe(false);
     expect(JSON.stringify(procurementApplet)).not.toMatch(
       /dkr\.ecr|gcr\.io|azurecr\.io|repository/,
     );
+    expect(JSON.stringify(procurementApplet)).not.toMatch(/sqlite|postgres|catalog/i);
     expect(mantisClusterManifests).toContainEqual({
       id: 'ProcurementApplet',
       manifest: procurementApplet,

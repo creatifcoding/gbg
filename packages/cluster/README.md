@@ -1,23 +1,25 @@
 # @gbg/cluster
 
-Alchemy v2 stack for kube context `k3d-tmnl`, plus the generalized Pepr lab
-CRD kit (`LabImage`, `LabRegistry`, `LabWorkload`, `LabApplet`) on
-`tmnl.gbg.dev/v1alpha1`. This is the one stack. Labs consume it; they do not
-own a second Alchemy composition root.
+Lab Alchemy host: kube context `k3d-tmnl` plus the generalized Pepr lab CRD
+kit (`LabImage`, `LabRegistry`, `LabWorkload`, `LabApplet`) on
+`tmnl.gbg.dev/v1alpha1`. This is the gbg / lab cluster. k3d is the local kube
+runtime. It is not TMNL as a product identity. Labs consume this stack; they
+do not own a second Alchemy composition root.
 
 ## Cluster
 
-The cluster is the existing TMNL k3d default: name `tmnl`, kubectl context
-`k3d-tmnl`. Create it from the tmnl-k8s shell:
+k3d is the local kube runtime. The kube context string is `k3d-tmnl` (existing
+coordinate; this package does not rename it). Create the cluster with the
+existing helper:
 
 ```text
 nix develop ./packages/tmnl#tmnl-k8s
 k8s-cluster-create
 ```
 
-`k8s-cluster-create` lives in `packages/tmnl/nix/modules/k8s.nix`. Do not
-copy it here. Alchemy resolves kubeconfig from `$KUBECONFIG` or
-`~/.kube/config`. There is no host path in this stack.
+`k8s-cluster-create` lives in `packages/tmnl/nix/modules/k8s.nix`. That is the
+helper path, not Cosmo's home. Do not copy it here. Alchemy resolves kubeconfig
+from `$KUBECONFIG` or `~/.kube/config`. There is no host path in this stack.
 
 ## Stack
 
@@ -44,17 +46,17 @@ does not hoist over the repo `effect@4.0.0-beta.93` pin.
 | LabWorkload | labworkloads | Generic workload (CosmoRouter minus GraphQL) |
 | LabApplet | labapplets | TanStack Start specialization of LabWorkload |
 
-Cosmo/WunderGraph home is `@gbg/nexus` (`packages/nexus`), outside tmnl.
-Cosmo stays the engine. `k3d-tmnl` is the kube context name, not
-Cosmo's home. This package does not invent `packages/nexus` and does not
-copy Cosmo files out of tmnl. Catalog stays Postgres off-cluster; there is
-no catalog pod.
+## Cosmo
+
+Cosmo/WunderGraph engine home is `@gbg/nexus` (`packages/nexus`), outside
+tmnl. tmnl consumes nexus. This package does not copy Cosmo Pepr/CRD sources
+out of tmnl. Catalog stays Postgres off-cluster; there is no catalog pod.
+
+One NATS: Cosmo router EDFS and `@tmnl/msh` share the existing helm NATS at
+`packages/tmnl/nix/modules/nats/values.yaml`. Do not stand up a second NATS.
 
 This package is types + CRD Manifests, not a second Pepr module and not a
 reconcile controller.
-
-When a bus is needed later, `@tmnl/msh` is the house NATS Effect client.
-Cosmo router EDFS talks to that same NATS. Do not stand up a second NATS.
 
 ## Hold deploy
 

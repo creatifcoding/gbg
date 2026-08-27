@@ -15,6 +15,8 @@ export {
 
 export {
   mantisClusterManifests,
+  PROCUREMENT_APPLET_ROUTES,
+  PROCUREMENT_PGLITE_MOUNT,
   procurementApplet,
   procurementNamespace,
 } from './manifests'
