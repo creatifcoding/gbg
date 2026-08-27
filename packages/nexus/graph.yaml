@@ -1,0 +1,13 @@
+# Cosmo local compose input.
+# Official: https://cosmo-docs.wundergraph.com/cli/router/compose
+# `wgc router compose -i graph.yaml -o router.json`
+#
+# File SDL takes precedence over introspection. The subgraph below is a
+# fixture/demo so compose is real. It is not a catalog, specimen, procurement,
+# GPS, or taxon well.
+version: 1
+subgraphs:
+  - name: fixture-demo
+    routing_url: http://localhost:4001/graphql
+    schema:
+      file: ./fixtures/fixture-demo.graphql

@@ -20,6 +20,8 @@
       "@gbg/cluster": ["packages/cluster/src/index.ts"],
       "@gbg/cluster/crd": ["packages/cluster/src/crd/index.ts"],
       "@gbg/cluster/*": ["packages/cluster/src/*"],
+      "@gbg/nexus": ["packages/nexus/src/index.ts"],
+      "@gbg/nexus/*": ["packages/nexus/src/*"],
       "@gbg/specs-core": ["packages/specs-core/src/index.ts"],
       "@gbg/cms": ["packages/cms/src/index.ts"],
       "@gbg/graph": ["packages/getbygraph/src/index.ts"],

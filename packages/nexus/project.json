@@ -1,0 +1,30 @@
+{
+  "name": "@gbg/nexus",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/nexus/src",
+  "projectType": "library",
+  "tags": ["scope:gbg", "type:lib", "domain:nexus"],
+  "targets": {
+    "compose": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run compose",
+        "cwd": "packages/nexus"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm test",
+        "cwd": "packages/nexus"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run typecheck",
+        "cwd": "packages/nexus"
+      }
+    }
+  }
+}

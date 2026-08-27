@@ -1,0 +1,35 @@
+name: nexus CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/nexus/**"
+      - ".github/workflows/nexus-ci.yml"
+
+jobs:
+  gbg-nexus:
+    name: "@gbg/nexus"
+    runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_WORKSPACES: "false"
+      NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+    defaults:
+      run:
+        working-directory: packages/nexus
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/nexus/package-lock.json
+
+      - name: Install
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
