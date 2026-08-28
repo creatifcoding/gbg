@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import type { EChartsOption } from 'echarts';
 import { Link } from '@tanstack/react-router';
-import { Activity, ArrowLeft, Database, Gauge, ShieldAlert } from 'lucide-react';
+import { Activity, ArrowLeft, Database, Gauge, ShieldCheck } from 'lucide-react';
 import { VANTA_COLORS, VANTA_TYPOGRAPHY } from '@/components/portal';
 import { EChartPanel } from './EChartPanel';
 import {
   AGENTSTORE_CHECKPOINT,
   LATENCY_BUDGET_MS,
   OPTIMIZATION_RUN_ID,
-  interactiveLatencyRuns,
+  interactiveLatencyPhases,
   interactiveLatencySummary,
 } from './baseline.snapshot';
 
@@ -56,24 +56,28 @@ function metric(value: string, label: string, tone: string) {
 export function InteractiveLatencyPage() {
   const samples = useMemo(
     () =>
-      interactiveLatencyRuns.flatMap((run) =>
-        run.actionSamplesMs.map((latencyMs, index) => ({
-          label: `R${run.run}.${index + 1}`,
-          latencyMs,
-          run: run.run,
-          action: index + 1,
-          p95Ms: run.p95Ms,
-        }))
+      interactiveLatencyPhases.flatMap((phase) =>
+        phase.runs.flatMap((run) =>
+          run.actionSamplesMs.map((latencyMs, index) => ({
+            label: `${phase.id[0].toUpperCase()}${run.run}.${index + 1}`,
+            latencyMs,
+            phase: phase.label,
+            run: run.run,
+            action: index + 1,
+            p95Ms: run.p95Ms,
+          }))
+        )
       ),
     []
   );
 
   const latencyOption = useMemo<EChartsOption>(() => {
     const source = [
-      ['label', 'latencyMs', 'run', 'action', 'p95Ms'],
+      ['label', 'latencyMs', 'phase', 'run', 'action', 'p95Ms'],
       ...samples.map((sample) => [
         sample.label,
         sample.latencyMs,
+        sample.phase,
         sample.run,
         sample.action,
         sample.p95Ms,
@@ -96,7 +100,7 @@ export function InteractiveLatencyPage() {
           const datum = asTooltipRows(input)[0]?.data;
           if (!datum) return '';
           return [
-            `<strong>RUN ${datum[2]} / ACTION ${datum[3]}</strong>`,
+            `<strong>${datum[2]} / RUN ${datum[3]} / ACTION ${datum[4]}</strong>`,
             `${Number(datum[1]).toFixed(3)} ms`,
             Number(datum[1]) > LATENCY_BUDGET_MS ? 'OVER 16.7 ms BUDGET' : 'WITHIN BUDGET',
           ].join('<br/>');
@@ -165,7 +169,7 @@ export function InteractiveLatencyPage() {
             symbol: ['none', 'none'],
             lineStyle: { color: budgetColor, width: 1, type: 'dashed' },
             label: {
-              formatter: '16.7 MS FRAME',
+              formatter: '16.7 MS BUDGET',
               color: budgetColor,
               fontFamily: 'monospace',
               fontSize: 9,
@@ -189,15 +193,18 @@ export function InteractiveLatencyPage() {
 
   const pressureOption = useMemo<EChartsOption>(() => {
     const source = [
-      ['run', 'p95Ms', 'reclaimPages', 'memoryFullPsiPct', 'majorFaults', 'swapInPages'],
-      ...interactiveLatencyRuns.map((run) => [
-        `RUN ${run.run}`,
-        run.p95Ms,
-        run.directReclaimPages,
-        run.memoryFullPsiPct,
-        run.majorFaults,
-        run.swapInPages,
-      ]),
+      ['run', 'p95Ms', 'reclaimPages', 'memoryFullPsiPct', 'majorFaults', 'swapInPages', 'phase'],
+      ...interactiveLatencyPhases.flatMap((phase) =>
+        phase.runs.map((run) => [
+          `${phase.id[0].toUpperCase()}${run.run}`,
+          run.p95Ms,
+          run.directReclaimPages,
+          run.memoryFullPsiPct,
+          run.majorFaults,
+          run.swapInPages,
+          phase.label,
+        ])
+      ),
     ];
 
     return {
@@ -350,13 +357,13 @@ export function InteractiveLatencyPage() {
           <div
             className="flex items-center gap-2 border px-3 py-2"
             style={{
-              borderColor: 'rgba(255,91,84,0.42)',
-              color: tailColor,
+              borderColor: 'rgba(99,217,198,0.42)',
+              color: budgetColor,
               ...VANTA_TYPOGRAPHY.preset.label,
             }}
           >
-            <ShieldAlert size={14} />
-            RECLAIM GATE FAILED
+            <ShieldCheck size={14} />
+            TARGET REACHED
           </div>
         </div>
       </header>
@@ -367,23 +374,23 @@ export function InteractiveLatencyPage() {
             <div className="flex items-center gap-2" style={{ color: budgetColor }}>
               <Activity size={15} />
               <span style={{ ...VANTA_TYPOGRAPHY.preset.label, letterSpacing: '0.12em' }}>
-                FIVE-RUN BASELINE
+                THREE-PHASE RESULT
               </span>
             </div>
             <p
               className="mt-4 max-w-3xl text-3xl font-medium leading-tight lg:text-4xl"
               style={{ color: VANTA_COLORS.text.primary, letterSpacing: '-0.045em' }}
             >
-              Median interaction clears one frame. Reclaim noise still creates a 30.7 ms tail.
+              Workload contraction removed the reclaim tail. Cgroup weighting stayed below noise.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-3">
-            {metric(`${interactiveLatencySummary.p95Ms.toFixed(3)} ms`, 'median p95', budgetColor)}
-            {metric(`${interactiveLatencySummary.maxMs.toFixed(3)} ms`, 'worst action', tailColor)}
+            {metric(`${interactiveLatencySummary.currentP95Ms.toFixed(3)} ms`, 'matched p95', budgetColor)}
+            {metric(`${interactiveLatencySummary.currentMaxMs.toFixed(3)} ms`, 'matched worst', budgetColor)}
             {metric(
-              interactiveLatencySummary.directReclaimPages.toLocaleString(),
+              interactiveLatencySummary.currentDirectReclaimPages.toLocaleString(),
               'reclaim pages',
-              pressureColor
+              budgetColor
             )}
             {metric(String(interactiveLatencySummary.userProcesses), 'processes', VANTA_COLORS.text.primary)}
             {metric(interactiveLatencySummary.userThreads.toLocaleString(), 'threads', VANTA_COLORS.text.primary)}
@@ -394,17 +401,17 @@ export function InteractiveLatencyPage() {
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <EChartPanel
             title="TAIL / ACTION DISTRIBUTION"
-            subtitle="50 idle→overview actions • per-run p95 step • 16.7 ms frame budget"
+            subtitle="150 idle→overview actions • baseline / weighted / matched control • 16.7 ms budget"
             signal={<Gauge size={17} style={{ color: budgetColor }} />}
             option={latencyOption}
-            ariaLabel="Latency distribution across fifty idle interaction samples"
+            ariaLabel="Latency distribution across three five-run phases"
           />
           <EChartPanel
             title="PRESSURE / CORRELATION"
-            subtitle="p95 latency against direct-reclaim pages across five repeated runs"
+            subtitle="p95 latency against direct-reclaim pages across fifteen runs"
             signal={<Database size={17} style={{ color: pressureColor }} />}
             option={pressureOption}
-            ariaLabel="Latency and direct reclaim correlation across baseline runs"
+            ariaLabel="Latency and direct reclaim correlation across three phases"
           />
         </section>
 
