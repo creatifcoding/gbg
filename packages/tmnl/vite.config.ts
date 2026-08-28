@@ -249,6 +249,8 @@ export default defineConfig(() => ({
         '**/src/lib/maidens/**/elixir/_build/**',
         '**/src/lib/maidens/**/elixir/deps/**',
         '**/src/lib/maidens/**/elixir/doc/**',
+        '**/ava-elixir/_build/**',
+        '**/ava-elixir/deps/**',
       ],
     },
     // Proxy requests to avoid CORS issues in development
