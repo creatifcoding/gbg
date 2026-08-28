@@ -22,7 +22,7 @@ export interface InteractiveLatencyPhase {
 
 export const OPTIMIZATION_RUN_ID = 'niri-interactive-latency-20260828';
 export const AGENTSTORE_CHECKPOINT =
-  'performance.optimization.checkpoints/niri-interactive-latency-20260828-cp-4';
+  'performance.optimization.checkpoints/niri-interactive-latency-20260828-cp-5';
 export const LATENCY_BUDGET_MS = 16.7;
 
 export const interactiveLatencyPhases = [
