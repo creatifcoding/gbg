@@ -87,6 +87,14 @@ const CARDS: readonly CardDef[] = [
     label: 'v1',
     glow: 'cyan',
   },
+  {
+    title: 'INTERACTIVE LATENCY',
+    body: 'Five-run niri idle/wake instrument. ECharts tail distribution and reclaim-pressure correlation.',
+    route: '/testbed/interactive-latency',
+    status: 'active',
+    label: 'LIVE',
+    glow: 'rose',
+  },
   // Infrastructure
   {
     title: 'EFFECT-ATOM',

@@ -204,6 +204,15 @@ const chartingTestbedRoute = createRoute({
   component: lazyRouteComponent(() => import('./components/testbed/ChartingTestbed'), 'ChartingTestbed'),
 });
 
+const interactiveLatencyTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/interactive-latency',
+  component: lazyRouteComponent(
+    () => import('./components/testbed/InteractiveLatencyTestbed'),
+    'InteractiveLatencyTestbed'
+  ),
+});
+
 const overlayTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/overlays',
@@ -585,6 +594,7 @@ const routeTree = rootRoute.addChildren([
   dataManagerV2TestbedRoute,
   vantaCardTestbedRoute,
   chartingTestbedRoute,
+  interactiveLatencyTestbedRoute,
   overlayTestbedRoute,
   indicesTestbedRoute,
   dataGridVariantTestbedRoute,
