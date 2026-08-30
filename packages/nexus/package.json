@@ -1,0 +1,31 @@
+{
+  "name": "@gbg/nexus",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Cosmo/WunderGraph federated GraphQL router home. tmnl consumes.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "compose": "wgc router compose -i graph.yaml -o router.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "wgc": "0.130.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.0",
+    "typescript": "5.8.3",
+    "vitest": "^4.1.11"
+  }
+}

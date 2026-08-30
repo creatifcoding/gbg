@@ -1,0 +1,23 @@
+# Cosmo router runtime config (local compose path).
+# Official: https://cosmo-docs.wundergraph.com/tutorial/mastering-local-development-for-graphql-federation
+# Router image: ghcr.io/wundergraph/cosmo/router
+# Default listen: 3002. Leftover tmnl CRDs mount execution config at /config/router.json.
+#
+# One NATS: Cosmo router EDFS and @tmnl/msh share the existing helm NATS at
+# packages/tmnl/nix/modules/nats/values.yaml (release `nats`, namespace `nats`).
+# No second broker. No Synadia Cloud.
+version: "1"
+
+dev_mode: true
+listen_addr: "0.0.0.0:3002"
+
+execution_config:
+  file:
+    path: router.json
+    watch: true
+
+events:
+  providers:
+    nats:
+      - id: default
+        url: "nats://nats.nats.svc.cluster.local:4222"

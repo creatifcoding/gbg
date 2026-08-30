@@ -12,6 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@gbg/nexus": ["../nexus/src/index.ts"],
       "@selfcharters/sparkplug-client": ["../sparkplug-client/src/index.ts"]
     },
     "esModuleInterop": true, // Added

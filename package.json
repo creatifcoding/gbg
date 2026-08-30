@@ -96,6 +96,7 @@
     "packages/*",
     "!packages/codemode-pi",
     "!packages/pi-workflows",
-    "!packages/cluster"
+    "!packages/cluster",
+    "!packages/nexus"
   ]
 }

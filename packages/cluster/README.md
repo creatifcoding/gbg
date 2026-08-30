@@ -59,9 +59,13 @@ One NATS: Cosmo router EDFS and `@tmnl/msh` share the existing helm NATS at
 This package is types + CRD Manifests, not a second Pepr module and not a
 reconcile controller.
 
-## Hold deploy
+## Ship
 
-Do not run `alchemy deploy` from this land.
+Ship when CI is green on the lab branch. User corrects after the fact.
+
+Stop is only: paid cloud, deploy that leaves this machine, a second NATS, a
+second catalog source of truth, a second API group. Wallet still stops paid
+cloud and alchemy deploy that leaves this machine.
 
 ```text
 npm install

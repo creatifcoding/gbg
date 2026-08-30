@@ -1,0 +1,18 @@
+# Federation v2 fixture / demo subgraph for local Cosmo compose.
+# Not a catalog, specimen, procurement, GPS, or taxon well.
+# Empty lab wells stay empty; this SDL exists so `wgc router compose` is real.
+
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.5"
+    import: ["@key", "@shareable"]
+  )
+
+type Query {
+  fixtureHealth: String!
+}
+
+type FixtureDemo @key(fields: "id") {
+  id: ID!
+  label: String!
+}
