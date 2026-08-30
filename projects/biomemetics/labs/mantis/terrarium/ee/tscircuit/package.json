@@ -1,0 +1,43 @@
+{
+  "name": "@tmnl/mantis-terrarium-tscircuit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript tscircuit authoring for the mantis terrarium indexed coupon",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsci build",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tscircuit/circuit-json-util": "^0.0.111",
+    "@tscircuit/copper-pour-solver": "^0.0.49",
+    "@tscircuit/core": "^0.0.1737",
+    "@tscircuit/footprinter": "^0.0.425",
+    "@tscircuit/image-utils": "^0.0.10",
+    "@tscircuit/infer-cable-insertion-point": "^0.0.4",
+    "@tscircuit/math-utils": "^0.0.38",
+    "@tscircuit/miniflex": "^0.0.4",
+    "@tscircuit/props": "^0.0.631",
+    "@tscircuit/schematic-trace-solver": "^0.0.141",
+    "@tscircuit/soup-util": "^0.0.41",
+    "calculate-elbow": "^0.0.13",
+    "circuit-json": "^0.0.474",
+    "connectivity-map": "^1.0.0",
+    "debug": "^4.4.3",
+    "flatbush": "^4.6.2",
+    "minicssgrid": "^0.0.9",
+    "react": "^19.2.8",
+    "schematic-symbols": "^0.0.241",
+    "spicey": "^0.0.14"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "tscircuit": "^0.0.2387",
+    "typescript": "^5.9.3"
+  }
+}

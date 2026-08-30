@@ -1,0 +1,3 @@
+# tsci export writes <source>.circuit.json next to the entry by default.
+# Committed Circuit JSON is dist/index/circuit.json from tsci build.
+/*.circuit.json

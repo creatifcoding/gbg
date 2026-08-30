@@ -1,0 +1,13 @@
+Using entrypoint from tscircuit config: 'index.circuit.tsx'
+<SchematicBoxPositions>
+<SchematicBoxPlacement componentName="B27" positionAnchor="center" schX="-1.06" schY="-7.482" width="1.4" height="2.6" />
+<SchematicBoxPlacement componentName="B50" positionAnchor="center" schX="-3.065" schY="-2.883" width="1.4" height="2.6" />
+<SchematicBoxPlacement componentName="B44" positionAnchor="center" schX="0" schY="-4.018" width="0.47" height="1.13" />
+<SchematicBoxPlacement componentName="S1" positionAnchor="center" schX="0.175" schY="-0.302" width="0.76" height="0.5" />
+<SchematicBoxPlacement componentName="S2" positionAnchor="center" schX="0.175" schY="-2.002" width="0.76" height="0.5" />
+<SchematicBoxPlacement componentName="Q1" positionAnchor="center" schX="-0.135" schY="1.703" width="0.84" height="1.1" />
+</SchematicBoxPositions>
+<SchematicPlacementIssues>
+<PinHeaderSchematicBoxTooWide message="Shrink schematic box width" componentName="B27" currentSchWidth="1.4" measuredInnerLabelHorizontalEmptySpace="1.015" maxAllowedInnerLabelHorizontalEmptySpace="0.1" suggestedSchWidth="0.485" />
+<PinHeaderSchematicBoxTooWide message="Shrink schematic box width" componentName="B50" currentSchWidth="1.4" measuredInnerLabelHorizontalEmptySpace="1.015" maxAllowedInnerLabelHorizontalEmptySpace="0.1" suggestedSchWidth="0.485" />
+</SchematicPlacementIssues>
