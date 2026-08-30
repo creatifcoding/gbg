@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareEvent",
+  "careEventId": "event.fixture-offered-01",
+  "careSubjectId": "care.fixture-cup-01",
+  "recordedAt": "2026-08-21T00:15:00Z",
+  "eventType": "offered",
+  "humanConfirmed": true,
+  "idempotencyKey": "offer-2026-08-21-001",
+  "adviceRef": "advice.fixture-feeding-01"
+}

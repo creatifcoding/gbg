@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "WorkflowAdmission",
+  "admissionId": "admit-wf.research-summary.v1",
+  "definitionId": "wf.research-summary",
+  "definitionVersion": "1.0.0",
+  "digest": "3f589793bd40ed991b3608f1416319bee2b2622a8d9c9344e9b738227262ae09",
+  "state": "active",
+  "reviewer": "independent-reviewer-fixture",
+  "admittedAt": "2026-08-21T00:20:00Z",
+  "notes": "Fixture admission for the read-only research-summary graph. Immutable version 1.0.0."
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:actuation-command:v1",
+  "title": "Mantis actuation command",
+  "description": "Executable local-edge command. Distinct from ActuationIntent. Never produced by an LLM, CopilotKit action, replay, or recovered durable run. v1 live actuation remains disabled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "commandId",
+    "intentId",
+    "issuedAt",
+    "expiresAt",
+    "action",
+    "executable",
+    "issuer",
+    "liveActuation"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ActuationCommand" },
+    "commandId": {
+      "type": "string",
+      "pattern": "^cmd\\.[a-z][a-z0-9.-]*$"
+    },
+    "intentId": {
+      "type": "string",
+      "pattern": "^intent\\.[a-z][a-z0-9.-]*$"
+    },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "action": { "type": "string", "minLength": 1 },
+    "executable": { "const": true },
+    "liveActuation": { "const": false },
+    "issuer": {
+      "enum": ["edge-supervisor", "human-local-service"],
+      "description": "Commands may be issued only by the local edge or a human/local service. The assistant is excluded."
+    },
+    "nonce": { "type": "string", "minLength": 1 }
+  },
+  "unevaluatedProperties": false
+}

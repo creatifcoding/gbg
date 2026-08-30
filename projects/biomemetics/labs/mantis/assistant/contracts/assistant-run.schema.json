@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:assistant-run:v1",
+  "title": "Mantis assistant run receipt",
+  "description": "Pinned package, model, config, tool, memory, and workflow versions for one assistant run. Observational memory on this receipt is assistant-memory, never observation or evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "runId",
+    "startedAt",
+    "mode",
+    "resourceId",
+    "threadId",
+    "versions",
+    "memoryRecordClass"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "AssistantRun" },
+    "runId": {
+      "type": "string",
+      "pattern": "^run\\.[a-z][a-z0-9.-]*$"
+    },
+    "traceId": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "mode": {
+      "enum": [
+        "care",
+        "observe",
+        "research",
+        "terrarium-read",
+        "review",
+        "service-sim"
+      ]
+    },
+    "resourceId": { "type": "string", "minLength": 1 },
+    "threadId": {
+      "type": "string",
+      "pattern": "^care:[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*$"
+    },
+    "careSubjectId": {
+      "type": "string",
+      "pattern": "^care\\.[a-z][a-z0-9.-]*$"
+    },
+    "agentId": { "type": "string", "minLength": 1 },
+    "workflowId": { "type": "string", "minLength": 1 },
+    "memoryRecordClass": { "const": "assistant-memory" },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mastraCore",
+        "copilotkitRuntime",
+        "aguiMastra",
+        "effect",
+        "typescript",
+        "model",
+        "controllerConfig",
+        "tools",
+        "memory",
+        "workflow"
+      ],
+      "properties": {
+        "mastraCore": { "type": "string", "minLength": 1 },
+        "copilotkitRuntime": { "type": "string", "minLength": 1 },
+        "aguiMastra": { "type": "string", "minLength": 1 },
+        "effect": { "type": "string", "minLength": 1 },
+        "typescript": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "controllerConfig": { "type": "string", "minLength": 1 },
+        "tools": { "type": "string", "minLength": 1 },
+        "memory": { "type": "string", "minLength": 1 },
+        "workflow": { "type": "string", "minLength": 1 }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

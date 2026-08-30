@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareSourceReadFixture",
+  "sourceId": "source.fixture-husbandry-general",
+  "retrievedAt": "2026-08-21T00:00:00Z",
+  "text": "Keep temporary housing ventilated and avoid unsourced millimetre feeding prescriptions when scale is absent.",
+  "applicability": "partial"
+}

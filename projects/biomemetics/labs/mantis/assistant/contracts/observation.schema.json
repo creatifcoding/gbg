@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:observation:v1",
+  "title": "Mantis assistant observation",
+  "description": "A visible-fact record. It is not an interpretation, taxon claim, measurement without method, or evidence admission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "observationId",
+    "careSubjectId",
+    "recordedAt",
+    "sourceClass",
+    "statements",
+    "recordClass"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "Observation" },
+    "observationId": {
+      "type": "string",
+      "pattern": "^obs\\.[a-z][a-z0-9.-]*$"
+    },
+    "careSubjectId": {
+      "type": "string",
+      "pattern": "^care\\.[a-z][a-z0-9.-]*$"
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "sourceClass": { "const": "observed" },
+    "recordClass": { "const": "observation" },
+    "mediaDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "statements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "status"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["observed", "unverified"] },
+          "region": { "type": "string" }
+        }
+      }
+    },
+    "scalePresent": { "type": "boolean" }
+  },
+  "unevaluatedProperties": false
+}

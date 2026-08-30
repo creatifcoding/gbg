@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.bad-rail-move",
+  "version": "1.0.0",
+  "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "capabilityClass": "P5",
+  "author": "a0-fixture",
+  "inputSchema": { "type": "object" },
+  "outputSchema": { "type": "object" },
+  "graph": [{ "type": "tool", "id": "move", "toolId": "device-command" }],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "device-command",
+      "version": "0.0.0",
+      "assayId": "assay.missing"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  }
+}

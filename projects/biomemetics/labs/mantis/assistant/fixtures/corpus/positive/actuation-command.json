@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ActuationCommand",
+  "commandId": "cmd.fixture-never-issued-01",
+  "intentId": "intent.fixture-hold-01",
+  "issuedAt": "2026-08-21T00:40:00Z",
+  "expiresAt": "2026-08-21T00:41:00Z",
+  "action": "no-op-schema-fixture",
+  "executable": true,
+  "liveActuation": false,
+  "issuer": "human-local-service",
+  "nonce": "fixture-nonce-01"
+}

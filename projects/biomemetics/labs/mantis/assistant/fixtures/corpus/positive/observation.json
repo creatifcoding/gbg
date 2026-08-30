@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "Observation",
+  "observationId": "obs.fixture-cup-01",
+  "careSubjectId": "care.fixture-cup-01",
+  "recordedAt": "2026-08-21T00:01:00Z",
+  "sourceClass": "observed",
+  "recordClass": "observation",
+  "mediaDigest": "0ae71fd0b68e22b367ec2c28e1242cceb094977f8d70e0ec8f121e4c78489cdb",
+  "scalePresent": false,
+  "statements": [
+    { "text": "Small green insect in a clear cup.", "status": "observed" },
+    { "text": "No scale object is visible in the frame.", "status": "observed" }
+  ]
+}

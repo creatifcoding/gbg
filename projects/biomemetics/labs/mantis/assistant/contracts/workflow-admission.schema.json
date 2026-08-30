@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:workflow-admission:v1",
+  "title": "Mantis dynamic workflow admission",
+  "description": "Admission of a signed immutable dynamic-workflow version. Running jobs retain the graph version they started with.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "admissionId",
+    "definitionId",
+    "definitionVersion",
+    "digest",
+    "state",
+    "reviewer",
+    "admittedAt"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "WorkflowAdmission" },
+    "admissionId": {
+      "type": "string",
+      "pattern": "^admit-wf\\.[a-z][a-z0-9.-]*$"
+    },
+    "definitionId": {
+      "type": "string",
+      "pattern": "^wf\\.[a-z][a-z0-9.-]*$"
+    },
+    "definitionVersion": { "type": "string", "minLength": 1 },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "state": {
+      "enum": [
+        "draft",
+        "schema-validated",
+        "primitives-resolved",
+        "assay-closed",
+        "policy-linted",
+        "simulated",
+        "adversarially-evaluated",
+        "human-approved",
+        "signed-immutable",
+        "active",
+        "revoked"
+      ]
+    },
+    "reviewer": { "type": "string", "minLength": 1 },
+    "admittedAt": { "type": "string", "format": "date-time" },
+    "signature": { "type": "string" },
+    "notes": { "type": "string" }
+  },
+  "unevaluatedProperties": false
+}

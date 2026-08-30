@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "Interpretation",
+  "interpretationId": "interp.fixture-bad-confirmed",
+  "careSubjectId": "care.fixture-cup-01",
+  "recordedAt": "2026-08-21T00:02:00Z",
+  "recordClass": "interpretation",
+  "status": "hypothetical",
+  "claims": [
+    {
+      "kind": "taxon-rank",
+      "text": "Confirmed species",
+      "confidence": 1,
+      "confirmed": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SupplyTransitReadFixture",
+  "retrievedAt": "2026-08-21T00:00:00Z",
+  "freshness": "fixture",
+  "coarseLocationToken": "ephemeral.purpose.supply-transit",
+  "supplies": ["flightless fruit flies"],
+  "transit": ["walk"],
+  "exactAddress": null
+}

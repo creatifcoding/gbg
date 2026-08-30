@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:workflow-run-receipt:v1",
+  "title": "Mantis workflow run receipt",
+  "description": "Receipt for a workflow execution bound to the immutable graph version it started with. Durable recovery must not duplicate external side effects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "runId",
+    "definitionId",
+    "definitionVersion",
+    "digest",
+    "startedAt",
+    "status",
+    "sideEffectClass",
+    "replaySafe"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "WorkflowRunReceipt" },
+    "runId": {
+      "type": "string",
+      "pattern": "^wfrun\\.[a-z][a-z0-9.-]*$"
+    },
+    "definitionId": {
+      "type": "string",
+      "pattern": "^wf\\.[a-z][a-z0-9.-]*$"
+    },
+    "definitionVersion": { "type": "string", "minLength": 1 },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "status": {
+      "enum": ["running", "suspended", "success", "failed", "cancelled"]
+    },
+    "sideEffectClass": {
+      "enum": ["read-only", "proven-idempotent", "external-mutation"]
+    },
+    "replaySafe": { "type": "boolean" },
+    "externalEffectCount": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "sideEffectClass": { "const": "external-mutation" }
+        },
+        "required": ["sideEffectClass"]
+      },
+      "then": {
+        "properties": {
+          "replaySafe": { "const": false }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sideEffectClass": { "enum": ["read-only", "proven-idempotent"] }
+        },
+        "required": ["sideEffectClass"]
+      },
+      "then": {
+        "properties": {
+          "replaySafe": { "const": true }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

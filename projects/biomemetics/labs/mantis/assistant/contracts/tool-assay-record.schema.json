@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:tool-assay-record:v1",
+  "title": "Mantis tool assay record",
+  "description": "Versioned inspection of a candidate tool or MCP primitive. Discovery does not grant visibility. device-command and admin tools are never assayed for LLM exposure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "assayId",
+    "recordedAt",
+    "identity",
+    "contract",
+    "effects",
+    "authority",
+    "data",
+    "behavior",
+    "evidence",
+    "safety",
+    "verification",
+    "review"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ToolAssayRecord" },
+    "assayId": {
+      "type": "string",
+      "pattern": "^assay\\.[a-z][a-z0-9.-]*$"
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "provider", "digest", "license"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "provider": { "type": "string", "minLength": 1 },
+        "sourceUrl": { "type": "string" },
+        "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "license": { "type": "string", "minLength": 1 }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputSchemaRef", "outputSchemaRef", "errors", "timeoutMs", "streaming", "determinism"],
+      "properties": {
+        "inputSchemaRef": { "type": "string", "minLength": 1 },
+        "outputSchemaRef": { "type": "string", "minLength": 1 },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "streaming": { "type": "boolean" },
+        "determinism": { "enum": ["deterministic", "idempotent", "non-deterministic"] }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "write", "execute", "externalMutation", "deviceImpact", "rollback"],
+      "properties": {
+        "read": { "type": "boolean" },
+        "write": { "type": "boolean" },
+        "execute": { "type": "boolean" },
+        "externalMutation": { "type": "boolean" },
+        "deviceImpact": { "type": "boolean" },
+        "rollback": { "enum": ["none", "compensating", "native"] }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "category", "allowedModes", "allowedAgents", "llmExposed"],
+      "properties": {
+        "actor": { "enum": ["assistant", "keeper", "edge", "service"] },
+        "category": {
+          "enum": [
+            "read-public",
+            "read-private",
+            "draft-local",
+            "external-write",
+            "device-intent",
+            "device-command",
+            "admin"
+          ]
+        },
+        "credential": { "type": "string" },
+        "allowedModes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "care",
+              "observe",
+              "research",
+              "terrarium-read",
+              "review",
+              "service-sim"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "allowedAgents": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "llmExposed": { "type": "boolean" }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacyClass", "networkEgress", "secrets", "location", "media"],
+      "properties": {
+        "privacyClass": { "enum": ["public", "private", "secret", "ephemeral-location"] },
+        "retention": { "type": "string" },
+        "networkEgress": { "type": "boolean" },
+        "secrets": { "type": "boolean" },
+        "location": { "enum": ["none", "ephemeral-coarse", "forbidden-exact"] },
+        "media": { "enum": ["none", "digest-only", "selected-annotation"] }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idempotent", "retrySafe", "cancellation", "concurrency"],
+      "properties": {
+        "idempotent": { "type": "boolean" },
+        "retrySafe": { "type": "boolean" },
+        "cancellation": { "enum": ["safe", "unsafe", "unknown"] },
+        "concurrency": { "enum": ["safe", "exclusive", "unknown"] },
+        "rateLimit": { "type": "string" },
+        "costLimit": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceClassProduced", "simulator", "fixtures"],
+      "properties": {
+        "sourceClassProduced": {
+          "enum": ["none", "observed", "calculated", "external-source", "unverified"]
+        },
+        "provenanceFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "simulator": { "type": "boolean" },
+        "fixtures": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["staleStatePolicy", "approvalTier", "physicalInterlocks"],
+      "properties": {
+        "staleStatePolicy": { "enum": ["fail-closed", "refresh", "not-applicable"] },
+        "preconditions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "approvalTier": { "enum": ["none", "ask", "human-local", "never"] },
+        "physicalInterlocks": { "type": "boolean" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["staticLint", "sandboxSmoke", "negativeTests", "adversarialTests"],
+      "properties": {
+        "staticLint": { "type": "boolean" },
+        "sandboxSmoke": { "type": "boolean" },
+        "negativeTests": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "adversarialTests": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assessor", "disposition"],
+      "properties": {
+        "assessor": { "type": "string", "minLength": 1 },
+        "independentReviewer": { "type": "string" },
+        "disposition": {
+          "enum": [
+            "discovered",
+            "quarantined",
+            "assayed",
+            "simulated",
+            "admitted-read",
+            "admitted-write",
+            "revoked"
+          ]
+        },
+        "expiry": { "type": "string", "format": "date-time" },
+        "reAssayTriggers": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "authority": {
+            "properties": {
+              "category": { "enum": ["device-command", "admin"] }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authority": {
+            "properties": {
+              "llmExposed": { "const": false }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

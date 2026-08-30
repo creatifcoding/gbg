@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "CareAdvice",
+  "adviceId": "advice.fixture-feeding-01",
+  "careSubjectId": "care.fixture-cup-01",
+  "runId": "run.fixture-a0-01",
+  "issuedAt": "2026-08-21T00:10:00Z",
+  "expiresAt": "2026-08-22T00:10:00Z",
+  "capabilityClass": "P2",
+  "executable": false,
+  "confidence": 0.55,
+  "statements": [
+    {
+      "text": "Offer a small appropriately sized feeder if the subject is a mantis; withhold a millimetre prescription without scale.",
+      "kind": "do-now",
+      "numerical": false,
+      "withheld": false
+    },
+    {
+      "text": "Exact prey length in millimetres is withheld.",
+      "kind": "offer-amount",
+      "numerical": true,
+      "withheld": true
+    }
+  ]
+}

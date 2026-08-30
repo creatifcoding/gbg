@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "AssistantRun",
+  "runId": "run.fixture-a0-01",
+  "traceId": "trace-fixture-a0-01",
+  "startedAt": "2026-08-21T00:10:00Z",
+  "endedAt": "2026-08-21T00:10:02Z",
+  "mode": "care",
+  "resourceId": "principal.fixture.care-space-01",
+  "threadId": "care:fixture-cup-01:conversation-01",
+  "careSubjectId": "care.fixture-cup-01",
+  "agentId": "mantis-coordinator",
+  "memoryRecordClass": "assistant-memory",
+  "versions": {
+    "mastraCore": "1.61.0",
+    "copilotkitRuntime": "1.68.3",
+    "aguiMastra": "1.1.2",
+    "effect": "4.0.0-beta.93",
+    "typescript": "5.9.3",
+    "model": "openrouter/deepseek/deepseek-v4-flash-0731",
+    "controllerConfig": "mantis-controller@0.1.0",
+    "tools": "care-source-read@1.0.0",
+    "memory": "thread-om@fixture",
+    "workflow": "none"
+  },
+  "cost": { "inputTokens": 10, "outputTokens": 20 }
+}

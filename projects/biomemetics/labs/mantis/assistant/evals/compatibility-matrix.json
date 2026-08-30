@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "EvalProgram",
+  "description": "A0 compatibility matrix. Proof is live Mastra Agent calls through the OpenRouter gateway string openrouter/deepseek/deepseek-v4-flash-0731. The fake model is not the proof.",
+  "network": true,
+  "credentials": true,
+  "lanes": {
+    "prove": {
+      "model": "openrouter/deepseek/deepseek-v4-flash-0731",
+      "provider": "mastra openrouter gateway",
+      "credential": "OPENROUTER_API_KEY",
+      "network": true,
+      "credentials": true,
+      "openaiApiKey": false,
+      "codexLogin": false,
+      "cursorPlanTokens": false,
+      "emptyWell": "OPENROUTER_CREDENTIAL_REQUIRED",
+      "inProcessBind": "MastraAgent.getLocalAgents into CopilotRuntime, no runtimeUrl"
+    }
+  },
+  "cases": [
+    "agui-streaming-reconnect",
+    "controller-modes-isolated-sessions",
+    "resource-thread-binding",
+    "mode-tool-deny-precedence",
+    "stale-approval-after-restart",
+    "constrained-subagent-boundary",
+    "thread-om-privacy-filter",
+    "dynamic-workflow-registration-version",
+    "workflow-suspend-resume",
+    "durable-reconnect-readonly",
+    "trace-redaction-run-correlation",
+    "deterministic-eval-invocation",
+    "in-process-agui-bind",
+    "openrouter-generate"
+  ]
+}

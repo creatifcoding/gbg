@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "WorkflowRunReceipt",
+  "runId": "wfrun.fixture-bad-replay",
+  "definitionId": "wf.research-summary",
+  "definitionVersion": "1.0.0",
+  "digest": "3f589793bd40ed991b3608f1416319bee2b2622a8d9c9344e9b738227262ae09",
+  "startedAt": "2026-08-21T00:30:00Z",
+  "status": "success",
+  "sideEffectClass": "external-mutation",
+  "replaySafe": true,
+  "externalEffectCount": 1
+}

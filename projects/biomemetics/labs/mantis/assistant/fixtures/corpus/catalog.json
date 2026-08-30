@@ -1,0 +1,139 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "Draft202012Corpus",
+  "description": "Assistant A0 contract corpus. Paths are relative to projects/biomemetics/labs/mantis.",
+  "cases": [
+    {
+      "id": "care-subject-positive",
+      "instance": "assistant/fixtures/corpus/positive/care-subject.json",
+      "schema": "assistant/contracts/care-subject.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "observation-positive",
+      "instance": "assistant/fixtures/corpus/positive/observation.json",
+      "schema": "assistant/contracts/observation.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "interpretation-positive",
+      "instance": "assistant/fixtures/corpus/positive/interpretation.json",
+      "schema": "assistant/contracts/interpretation.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "care-event-positive",
+      "instance": "assistant/fixtures/corpus/positive/care-event.json",
+      "schema": "assistant/contracts/care-event.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "care-advice-positive",
+      "instance": "assistant/fixtures/corpus/positive/care-advice.json",
+      "schema": "assistant/contracts/care-advice.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "assistant-run-positive",
+      "instance": "assistant/fixtures/corpus/positive/assistant-run.json",
+      "schema": "assistant/contracts/assistant-run.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "tool-assay-positive",
+      "instance": "assistant/tools/assays/care-source-read.json",
+      "schema": "assistant/contracts/tool-assay-record.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "tool-admission-positive",
+      "instance": "assistant/tools/admissions/care-source-read.json",
+      "schema": "assistant/contracts/tool-admission.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "dynamic-workflow-positive",
+      "instance": "assistant/workflows/definitions/research-summary.v1.json",
+      "schema": "assistant/contracts/dynamic-workflow-definition.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "workflow-admission-positive",
+      "instance": "assistant/workflows/admissions/research-summary.v1.json",
+      "schema": "assistant/contracts/workflow-admission.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "workflow-run-receipt-positive",
+      "instance": "assistant/fixtures/corpus/positive/workflow-run-receipt.json",
+      "schema": "assistant/contracts/workflow-run-receipt.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "actuation-intent-positive",
+      "instance": "assistant/fixtures/corpus/positive/actuation-intent.json",
+      "schema": "assistant/contracts/actuation-intent.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "actuation-command-positive",
+      "instance": "assistant/fixtures/corpus/positive/actuation-command.json",
+      "schema": "assistant/contracts/actuation-command.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "actuation-receipt-positive",
+      "instance": "assistant/fixtures/corpus/positive/actuation-receipt.json",
+      "schema": "assistant/contracts/actuation-receipt.schema.json",
+      "expect": "pass"
+    },
+    {
+      "id": "care-subject-negative-specimen-id",
+      "instance": "assistant/fixtures/corpus/negative/care-subject-specimen-id.json",
+      "schema": "assistant/contracts/care-subject.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "interpretation-negative-confirmed",
+      "instance": "assistant/fixtures/corpus/negative/interpretation-confirmed.json",
+      "schema": "assistant/contracts/interpretation.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "care-event-negative-unconfirmed",
+      "instance": "assistant/fixtures/corpus/negative/care-event-unconfirmed.json",
+      "schema": "assistant/contracts/care-event.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "care-advice-negative-unsourced-number",
+      "instance": "assistant/fixtures/corpus/negative/care-advice-unsourced-number.json",
+      "schema": "assistant/contracts/care-advice.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "assistant-run-negative-om-as-observation",
+      "instance": "assistant/fixtures/corpus/negative/assistant-run-om-as-observation.json",
+      "schema": "assistant/contracts/assistant-run.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "actuation-command-negative-llm-issuer",
+      "instance": "assistant/fixtures/corpus/negative/actuation-command-llm-issuer.json",
+      "schema": "assistant/contracts/actuation-command.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "workflow-run-receipt-negative-replay-mutation",
+      "instance": "assistant/fixtures/corpus/negative/workflow-run-receipt-replay-mutation.json",
+      "schema": "assistant/contracts/workflow-run-receipt.schema.json",
+      "expect": "fail"
+    },
+    {
+      "id": "dynamic-workflow-negative-p5",
+      "instance": "assistant/fixtures/corpus/negative/dynamic-workflow-p5.json",
+      "schema": "assistant/contracts/dynamic-workflow-definition.schema.json",
+      "expect": "fail"
+    }
+  ]
+}
