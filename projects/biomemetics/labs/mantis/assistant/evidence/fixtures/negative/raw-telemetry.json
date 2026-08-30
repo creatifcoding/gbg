@@ -1,0 +1,6 @@
+{
+  "kind": "raw-telemetry",
+  "samples": [
+    { "parameter": "enclosure.temperature", "value": 24.1, "unit": "C" }
+  ]
+}

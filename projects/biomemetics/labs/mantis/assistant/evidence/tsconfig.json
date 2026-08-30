@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "rootDir": ".."
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "../projection/src/**/*.ts",
+    "../projection/test/**/*.ts"
+  ]
+}

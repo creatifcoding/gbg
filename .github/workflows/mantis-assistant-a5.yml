@@ -1,0 +1,50 @@
+name: Mantis Assistant A5
+
+on:
+  push:
+    paths:
+      - "projects/biomemetics/labs/mantis/assistant/evidence/**"
+      - "projects/biomemetics/labs/mantis/assistant/projection/**"
+      - "projects/biomemetics/labs/mantis/contracts/evidence.schema.json"
+      - "projects/biomemetics/labs/mantis/assistant/docs/A5*.md"
+      - ".github/workflows/mantis-assistant-a5.yml"
+  pull_request:
+    paths:
+      - "projects/biomemetics/labs/mantis/assistant/evidence/**"
+      - "projects/biomemetics/labs/mantis/assistant/projection/**"
+      - "projects/biomemetics/labs/mantis/contracts/evidence.schema.json"
+      - "projects/biomemetics/labs/mantis/assistant/docs/A5*.md"
+      - ".github/workflows/mantis-assistant-a5.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-projection:
+    name: evidence and projection
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/biomemetics/labs/mantis/assistant/evidence
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: projects/biomemetics/labs/mantis/assistant/evidence/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
