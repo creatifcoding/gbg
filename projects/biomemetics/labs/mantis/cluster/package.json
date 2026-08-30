@@ -1,0 +1,19 @@
+{
+  "name": "@mantis/cluster",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Mantis lab cluster roseleaf. Consumes @gbg/cluster; extends with Manifests.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gbg/cluster": "file:../../../../../packages/cluster"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "5.8.3",
+    "vitest": "^4.1.11"
+  }
+}

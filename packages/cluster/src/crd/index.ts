@@ -1,0 +1,6 @@
+export * from './types'
+export { RegisterCRDs } from './register'
+export { LabImageCRD } from './source/lab-image.crd'
+export { LabRegistryCRD } from './source/lab-registry.crd'
+export { LabWorkloadCRD } from './source/lab-workload.crd'
+export { LabAppletCRD } from './source/lab-applet.crd'
