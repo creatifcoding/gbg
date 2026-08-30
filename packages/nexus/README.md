@@ -1,11 +1,12 @@
 # @gbg/nexus
 
-Cosmo/WunderGraph federated GraphQL **router home**. Complete package, not a stub.
-Not tmnl. Not plexus. tmnl consumes this package.
+Cosmo/WunderGraph federated GraphQL **router home**. tmnl consumes this
+package. Not tmnl. Not plexus.
 
 Leftover Pepr (`cosmo-operator`, CosmoRouter / CosmoSubgraph CRDs) stays in
 `packages/tmnl/src/infra/graph`. This package does not copy those sources.
-Cluster is `@gbg/cluster`. Cosmo home is `@gbg/nexus`. k3d hosts applets.
+`@gbg/cluster` hosts applets. Cosmo home is `@gbg/nexus`. Procurement
+`LabApplet` + PGlite volume first.
 
 Catalog stays Postgres off-cluster; there is no catalog pod.
 
@@ -53,11 +54,17 @@ so `wgc@0.130.1` keeps its own lock, same pattern as `@gbg/cluster`.
 
 ## Ship
 
-Ship when CI is green on the lab branch. User corrects after the fact.
+Operator default is ship. User corrects after.
 
-Stop is only: paid cloud, deploy that leaves this machine, a second NATS, a
-second catalog source of truth, a second API group. Wallet still stops paid
-cloud and alchemy deploy that leaves this machine.
+Ship when CI is green on the lab branch. Do not sit on a green generate.
+
+Real stops: paid cloud, deploy that leaves this machine, a second NATS, a
+second catalog source of truth, a second API group.
+
+Dockerd from the existing gbg flake only. Package merge is not a running
+cluster.
+
+Missing OpenRouter or Paper bearer is not a merge gate.
 
 ```text
 npm install

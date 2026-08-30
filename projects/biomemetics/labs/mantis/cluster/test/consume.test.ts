@@ -35,11 +35,28 @@ describe('mantis cluster roseleaf', () => {
     expect(indexSrc).toContain("from '@gbg/cluster'");
     expect(indexSrc).not.toContain('Alchemy.Stack');
     expect(manifestsSrc).not.toContain('Alchemy.Stack');
-    expect(readme).toContain('k3d hosts applets');
+    expect(readme).toContain('@gbg/cluster');
+    expect(readme).toContain('hosts applets');
     expect(readme).toContain('@gbg/nexus');
+    expect(readme).toContain('Ship when CI is green on the lab branch');
+    expect(readme).toContain('Operator default is ship');
+    expect(readme).toContain('Do not sit on a green generate');
+    expect(readme).toContain('Dockerd from the existing gbg flake only');
+    expect(readme).toContain('Package merge is not a running cluster');
+    expect(readme).toContain('Missing OpenRouter or Paper bearer is not a merge gate');
+    expect(readme).toContain('first `LabApplet`');
+    expect(readme).toContain('PGlite');
     expect(readme).not.toContain('existing TMNL k3d default');
     expect(readme).not.toContain('the TMNL cluster');
     expect(readme).not.toContain('the one stack');
+    expect(readme).not.toContain('Hold deploy');
+    expect(readme).not.toContain('Hold merge');
+    expect(readme).not.toContain('from this land');
+    expect(readme).not.toContain('The applet is not started');
+    expect(readme).not.toContain('not applied');
+    expect(readme).not.toContain('gateway-plan-against');
+    expect(readme).not.toContain('Cosmo-in-tmnl');
+    expect(readme).not.toContain('nexus-prose-only');
   });
 
   test('extends with a procurement Namespace Manifest', () => {
@@ -59,7 +76,7 @@ describe('mantis cluster roseleaf', () => {
     expect(manifestsSrc).not.toContain('Cloudflare');
   });
 
-  test('extends with a procurement LabApplet object that is not applied', () => {
+  test('extends with a procurement LabApplet object', () => {
     expect(procurementApplet.kind).toBe('LabApplet');
     expect(procurementApplet.apiVersion).toBe('tmnl.gbg.dev/v1alpha1');
     expect(procurementApplet.metadata).toEqual({

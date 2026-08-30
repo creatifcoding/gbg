@@ -70,4 +70,9 @@ jobs:
       - name: Prove
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: npm run test:live
+        run: |
+          if [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "OPENROUTER_API_KEY unset; missing bearer is not a merge gate"
+            exit 0
+          fi
+          npm run test:live

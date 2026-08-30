@@ -5,19 +5,20 @@ Lab Alchemy host. k3d hosts applets on kube context `k3d-tmnl`. CRDs
 `tmnl.gbg.dev/v1alpha1`. Those strings are names, not a claim that TMNL is
 the cluster.
 
+`@gbg/nexus` is Cosmo home. `@gbg/cluster` hosts applets. Procurement
+`LabApplet` + PGlite volume first.
+
 ## Cluster
 
-k3d is the local kube runtime. Context name: `k3d-tmnl`. Create it with:
+k3d is the local kube runtime. Context name: `k3d-tmnl`. Dockerd comes from
+the existing gbg flake only. Do not start a second daemon. Package merge is
+not a running cluster.
 
-```text
-nix develop ./packages/tmnl#tmnl-k8s
-k8s-cluster-create
-```
-
-`k8s-cluster-create` lives in `packages/tmnl/nix/modules/k8s.nix` as a helper
-path. Cosmo/WunderGraph home is `@gbg/nexus`, not that path. Do not copy the
-helper here. Alchemy resolves kubeconfig from `$KUBECONFIG` or
-`~/.kube/config`. There is no host path in this stack.
+The create helper lives in `packages/tmnl/nix/modules/k8s.nix`
+(`nix develop ./packages/tmnl#tmnl-k8s`, then `k8s-cluster-create`). Cosmo
+home is `@gbg/nexus`, not that path. Do not copy the helper here. Alchemy
+resolves kubeconfig from `$KUBECONFIG` or `~/.kube/config`. There is no host
+path in this stack.
 
 ## Stack
 
@@ -61,11 +62,17 @@ reconcile controller.
 
 ## Ship
 
-Ship when CI is green on the lab branch. User corrects after the fact.
+Operator default is ship. User corrects after.
 
-Stop is only: paid cloud, deploy that leaves this machine, a second NATS, a
-second catalog source of truth, a second API group. Wallet still stops paid
-cloud and alchemy deploy that leaves this machine.
+Ship when CI is green on the lab branch. Do not sit on a green generate.
+
+Real stops: paid cloud, deploy that leaves this machine, a second NATS, a
+second catalog source of truth, a second API group.
+
+Dockerd from the existing gbg flake only. Package merge is not a running
+cluster.
+
+Missing OpenRouter or Paper bearer is not a merge gate.
 
 ```text
 npm install
