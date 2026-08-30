@@ -41,11 +41,11 @@ Cursor plan tokens.
 
 Do not commit, log, or print the key.
 
-`.github/workflows/mantis-assistant-ci.yml` runs unit tests without a key, then
-runs the live prove on `feat/mantis-biomemetics-lab`. The prove job passes
-`secrets.OPENROUTER_API_KEY` into `npm run test:live`. A missing secret leaves
-the env empty, so the live job fails closed. The job does not skip and does not
-use `createFakeModel` as the passing path. `MantisController.create()` still
+`.github/workflows/mantis-assistant-ci.yml` runs unit tests without a key.
+Unit is the merge gate. The prove job passes `secrets.OPENROUTER_API_KEY`
+into `npm run test:live` when the secret is present. A missing OpenRouter or
+Paper bearer is not a merge gate; the prove job exits 0 and does not use
+`createFakeModel` as the passing path. `MantisController.create()` still
 defaults to the live OpenRouter lane.
 
 The in-process AG-UI bind remains `MastraAgent.getLocalAgents` into

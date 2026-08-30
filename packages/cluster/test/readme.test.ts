@@ -30,9 +30,23 @@ describe('cluster README identity', () => {
     expect(readme).toContain('packages/tmnl/nix/modules/nats/values.yaml');
     expect(readme).toContain('@tmnl/msh');
     expect(readme).toContain('Ship when CI is green on the lab branch');
+    expect(readme).toContain('Operator default is ship');
+    expect(readme).toContain('Do not sit on a green generate');
+    expect(readme).toContain('Dockerd from the existing gbg flake only');
+    expect(readme).toContain('Package merge is not a running cluster');
+    expect(readme).toContain('Missing OpenRouter or Paper bearer is not a merge gate');
+    expect(readme).toContain('`@gbg/cluster` hosts applets');
+    expect(readme).toContain('Procurement');
+    expect(readme).toContain('LabApplet');
+    expect(readme).toContain('PGlite');
     expect(readme).not.toContain('Hold deploy');
+    expect(readme).not.toContain('Hold merge');
     expect(readme).not.toContain('from this land');
     expect(readme).not.toContain('I am not');
+    expect(readme).not.toContain('The applet is not started');
+    expect(readme).not.toContain('gateway-plan-against');
+    expect(readme).not.toContain('Cosmo-in-tmnl');
+    expect(readme).not.toContain('nexus-prose-only');
     expect(readme).not.toContain(
       'CosmoRouter and CosmoSubgraph stay GraphQL specializations in `packages/tmnl`',
     );
