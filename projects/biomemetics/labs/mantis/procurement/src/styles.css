@@ -1,0 +1,40 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0;
+}
+
+button.try {
+  transition: transform var(--vanta-fast) var(--vanta-out);
+}
+
+button.try:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

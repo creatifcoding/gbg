@@ -1,6 +1,10 @@
 name: mantis-procurement-ci
 
 on:
+  push:
+    paths:
+      - "projects/biomemetics/labs/mantis/procurement/**"
+      - ".github/workflows/mantis-procurement-ci.yml"
   pull_request:
     paths:
       - "projects/biomemetics/labs/mantis/procurement/**"
@@ -12,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  procurement:
-    name: procurement
+  test:
+    name: Mantis procurement
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,16 +25,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: projects/biomemetics/labs/mantis/procurement/package-lock.json
 
-      - name: Install, typecheck, and test
-        run: |
-          set -euo pipefail
-          dir="projects/biomemetics/labs/mantis/procurement"
-          if [ ! -f "$dir/package.json" ]; then
-            echo "$dir/package.json is not on this ref; skip"
-            exit 0
-          fi
-          cd "$dir"
-          npm install
-          npm run typecheck
-          npm test
+      - name: Install dependencies
+        working-directory: projects/biomemetics/labs/mantis/procurement
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: projects/biomemetics/labs/mantis/procurement
+        run: npm run typecheck
+
+      - name: Run tests
+        working-directory: projects/biomemetics/labs/mantis/procurement
+        run: npm test
