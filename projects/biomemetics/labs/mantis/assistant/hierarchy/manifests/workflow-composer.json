@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "workflow-composer",
+  "purpose": "Produce a dynamic-workflow JSON draft. Cannot register or execute it.",
+  "sourceClass": "workflow-draft",
+  "modes": ["research"],
+  "tools": ["primitive-catalog-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["register-workflow", "execute-draft"],
+  "yieldKind": "workflow-draft",
+  "forked": false
+}

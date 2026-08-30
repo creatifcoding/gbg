@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "YieldSeparationDataset",
+  "taxon": {
+    "kind": "interpretation",
+    "recordClass": "interpretation",
+    "confirmed": false
+  },
+  "assessor": { "kind": "assay-report", "admitted": false },
+  "curator": { "kind": "evidence-draft", "accepted": false },
+  "reviewer": { "kind": "attack-report", "edits": false }
+}

@@ -1,0 +1,7 @@
+Read-only copies of A0 files from PR 100, branch cursor/mantis-assistant-a0-9bdb, a02d73e8f340b672a3ca057945cdbea01f90cac5.
+
+This directory is not schema authority once assistant/contracts and assistant/policies exist on the same checkout. Prefer those live paths at runtime. Fall back here so this slice verifies without merging A0.
+
+Do not rewrite A0 files. Do not treat this copy as a pin change.
+
+Mastra core recorded from A0 src/pins.ts: 1.61.0

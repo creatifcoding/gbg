@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DelegationHookPolicy",
+  "includeFullTranscript": false,
+  "maxExcerptChars": 480,
+  "maxNestedDepth": 1,
+  "blockPrivilegeEscalation": true,
+  "prohibitSelfReview": true,
+  "prohibitToolSelfAdmission": true,
+  "stripExactLocation": true,
+  "stripSecrets": true,
+  "stripUnrelatedMedia": true,
+  "stripRawToolDumps": true,
+  "preserveSourceStatus": true,
+  "preserveCorrelationIds": true,
+  "defaultExecution": "policy-dry-run"
+}

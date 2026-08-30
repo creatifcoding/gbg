@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "care-source",
+  "purpose": "Source-grounded husbandry advice.",
+  "sourceClass": "reviewed-source",
+  "modes": ["care", "research", "review"],
+  "tools": ["care-source-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["diagnose", "publish", "actuate"],
+  "yieldKind": "care-advice-draft",
+  "forked": false
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@tmnl/mantis-assistant-hierarchy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Inspectable specialist registry, delegation policy, and thread-scoped assistant-memory ledger for mantis assistant A2. Not the A0 harness and not a keeper UI.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.3"
+  }
+}

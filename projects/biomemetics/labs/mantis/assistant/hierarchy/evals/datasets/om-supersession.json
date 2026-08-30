@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "OmSupersessionDataset",
+  "threadId": "care:fixture-cup-01:conversation-01",
+  "first": {
+    "kind": "conversation-observation",
+    "text": "Feeding was logged."
+  },
+  "correction": {
+    "kind": "canonical-correction",
+    "text": "Feeding was not logged.",
+    "canonicalRef": { "kind": "CareEvent", "id": "event.fixture-offer-01" }
+  }
+}

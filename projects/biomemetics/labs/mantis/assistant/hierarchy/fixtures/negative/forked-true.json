@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "care-source",
+  "purpose": "forked true must fail parse",
+  "sourceClass": "reviewed-source",
+  "modes": ["care"],
+  "tools": ["care-source-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["diagnose", "publish", "actuate"],
+  "yieldKind": "care-advice-draft",
+  "forked": true
+}

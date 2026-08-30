@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "SpecialistManifest",
+  "id": "observation-extractor",
+  "purpose": "Describe visible media and draft observations.",
+  "sourceClass": "visible-fact",
+  "modes": ["observe", "care", "research"],
+  "tools": ["observation-media-read"],
+  "budget": { "maxSteps": 4, "timeoutMs": 30000, "maxTokens": 4000 },
+  "contextFilter": {
+    "stripExactLocation": true,
+    "stripSecrets": true,
+    "stripUnrelatedMedia": true,
+    "stripRawToolDumps": true,
+    "preserveSourceStatus": true,
+    "preserveCorrelationIds": true,
+    "includeFullTranscript": false
+  },
+  "forbiddenActions": ["assert-taxon", "measure-without-scale"],
+  "yieldKind": "observation-draft",
+  "forked": false
+}

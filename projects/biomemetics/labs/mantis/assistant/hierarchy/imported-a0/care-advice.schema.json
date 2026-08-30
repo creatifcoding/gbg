@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:specimendb:biomemetics:mantis:assistant:contracts:care-advice:v1",
+  "title": "Mantis care advice",
+  "description": "Non-executable sourced guidance. Numerical prescriptions require a reviewed source and applicability, otherwise they are withheld.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "adviceId",
+    "careSubjectId",
+    "issuedAt",
+    "expiresAt",
+    "capabilityClass",
+    "statements",
+    "confidence",
+    "executable"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "CareAdvice" },
+    "adviceId": {
+      "type": "string",
+      "pattern": "^advice\\.[a-z][a-z0-9.-]*$"
+    },
+    "careSubjectId": {
+      "type": "string",
+      "pattern": "^care\\.[a-z][a-z0-9.-]*$"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^run\\.[a-z][a-z0-9.-]*$"
+    },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "capabilityClass": { "enum": ["P0", "P1", "P2"] },
+    "executable": { "const": false },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "statements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "kind", "numerical", "withheld"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "kind": {
+            "enum": ["do-now", "buy", "offer-amount", "warning", "reminder"]
+          },
+          "numerical": { "type": "boolean" },
+          "withheld": { "type": "boolean" },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "applicability"],
+              "properties": {
+                "id": { "type": "string", "minLength": 1 },
+                "applicability": {
+                  "enum": ["applies", "partial", "unknown"]
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "numerical": { "const": true }, "withheld": { "const": false } },
+              "required": ["numerical", "withheld"]
+            },
+            "then": {
+              "required": ["sources"],
+              "properties": {
+                "sources": { "type": "array", "minItems": 1 }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}
