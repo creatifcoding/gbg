@@ -41,8 +41,8 @@ Ship when CI is green on the lab branch. Do not sit on a green generate.
 Real stops: paid cloud, deploy that leaves this machine, a second NATS, a
 second catalog source of truth, a second API group.
 
-Dockerd from the existing gbg flake only. Package merge is not a running
-cluster. Composition root: `packages/cluster/alchemy.run.ts`.
+Dockerd from the existing gbg flake only. Package merge is not a running cluster.
+Composition root: `packages/cluster/alchemy.run.ts`.
 
 Missing OpenRouter or Paper bearer is not a merge gate.
 
