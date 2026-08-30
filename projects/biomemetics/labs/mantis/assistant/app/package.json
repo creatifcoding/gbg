@@ -1,0 +1,36 @@
+{
+  "name": "@tmnl/mantis-assistant-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A1 installable CopilotKit PWA: offline keeper slice. Local CareSubject only. Consumes A0/Mastra contracts; does not mint Specimen, actuate, or claim EVA/graph/shop-release.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:offline": "vitest run src/tests/offline.src.test.ts src/tests/schema-migration.test.ts src/tests/export-import.test.ts",
+    "test:privacy": "vitest run src/tests/privacy.test.ts",
+    "test:a11y": "vitest run src/tests/accessibility.smoke.test.ts"
+  },
+  "dependencies": {
+    "@copilotkit/react-core": "1.68.3",
+    "@copilotkit/react-ui": "1.68.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.3",
+    "vite-plugin-pwa": "^1.0.3",
+    "vitest": "^3.2.4"
+  }
+}
