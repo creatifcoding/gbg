@@ -1,0 +1,11 @@
+{
+  "id": "composer-self-admit.v1",
+  "expect": "reject-identity",
+  "definition": "assistant/workflows/definitions/composer-self-admit.v1.json",
+  "envelope": "assistant/workflows/laboratory/envelopes/composer-self-admit.v1.json",
+  "composer": "workflow-composer-fixture",
+  "assessor": "tool-assessor-fixture",
+  "adversary": "adversarial-reviewer-fixture",
+  "governor": "workflow-composer-fixture",
+  "diagnosticPath": "/reviewer"
+}

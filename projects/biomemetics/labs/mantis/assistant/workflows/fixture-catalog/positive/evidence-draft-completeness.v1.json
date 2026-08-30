@@ -1,0 +1,10 @@
+{
+  "id": "evidence-draft-completeness.v1",
+  "expect": "admit",
+  "definition": "assistant/workflows/definitions/evidence-draft-completeness.v1.json",
+  "envelope": "assistant/workflows/laboratory/envelopes/evidence-draft-completeness.v1.json",
+  "composer": "workflow-composer-fixture",
+  "assessor": "tool-assessor-fixture",
+  "adversary": "adversarial-reviewer-fixture",
+  "governor": "human-governor-fixture"
+}

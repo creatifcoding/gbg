@@ -1,0 +1,34 @@
+{
+  "kind": "LaboratoryEnvelope",
+  "schemaVersion": "1.0.0",
+  "definitionId": "wf.malicious-device-command",
+  "requestContextSchema": {
+    "type": "object",
+    "properties": {
+      "principalId": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "principalId"
+    ]
+  },
+  "budgets": {
+    "wallTimeMs": 8000,
+    "maxSteps": 8,
+    "maxParallel": 2,
+    "maxLoopIterations": 4,
+    "maxTokens": 4000,
+    "maxToolCalls": 8,
+    "maxCostUsd": 0.05,
+    "cancellable": true
+  },
+  "sleepPolicy": {
+    "allowedSignals": [
+      "reminder",
+      "revalidation"
+    ]
+  },
+  "capabilityClass": "P0",
+  "mastraCorePin": "1.61.0"
+}

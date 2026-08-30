@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolAssayRecord",
+  "assayId": "assay.observation-packet-read.v1",
+  "recordedAt": "2026-08-21T12:00:00Z",
+  "identity": {
+    "id": "observation-packet-read",
+    "version": "1.0.0",
+    "provider": "mantis-workflow-lab-fixture",
+    "license": "UNLICENSED-fixture",
+    "digest": "be0fde01ddc1c25ea01767dfb06ce2668e9d8ea04faee1c0359e586381eda6ed"
+  },
+  "contract": {
+    "inputSchemaRef": "assistant/workflows/fixture-catalog/assays/observation-packet-read.input.json",
+    "outputSchemaRef": "assistant/workflows/fixture-catalog/assays/observation-packet-read.output.json",
+    "errors": [
+      "not-found",
+      "timeout"
+    ],
+    "timeoutMs": 2000,
+    "streaming": false,
+    "determinism": "deterministic"
+  },
+  "effects": {
+    "read": true,
+    "write": false,
+    "execute": false,
+    "externalMutation": false,
+    "deviceImpact": false,
+    "rollback": "none"
+  },
+  "authority": {
+    "actor": "assistant",
+    "category": "read-private",
+    "allowedModes": [
+      "care",
+      "research",
+      "review",
+      "observe"
+    ],
+    "allowedAgents": [
+      "observation-extractor",
+      "workflow-composer"
+    ],
+    "llmExposed": true
+  },
+  "data": {
+    "privacyClass": "public",
+    "retention": "run-scoped",
+    "networkEgress": false,
+    "secrets": false,
+    "location": "none",
+    "media": "none"
+  },
+  "behavior": {
+    "idempotent": true,
+    "retrySafe": true,
+    "cancellation": "safe",
+    "concurrency": "safe"
+  },
+  "evidence": {
+    "sourceClassProduced": "external-source",
+    "provenanceFields": [
+      "sourceId"
+    ],
+    "simulator": true,
+    "fixtures": [
+      "assistant/workflows/fixture-catalog/assays/observation-packet-read.json"
+    ]
+  },
+  "safety": {
+    "staleStatePolicy": "not-applicable",
+    "approvalTier": "none",
+    "physicalInterlocks": false
+  },
+  "verification": {
+    "staticLint": true,
+    "sandboxSmoke": true,
+    "negativeTests": [
+      "unknown-id-denied"
+    ],
+    "adversarialTests": [
+      "prompt-injection-ignored"
+    ]
+  },
+  "review": {
+    "assessor": "tool-assessor-fixture",
+    "independentReviewer": "adversarial-reviewer-fixture",
+    "disposition": "admitted-read",
+    "expiry": "2027-08-21T00:00:00Z",
+    "reAssayTriggers": [
+      "schema-change",
+      "provider-version-change"
+    ]
+  }
+}

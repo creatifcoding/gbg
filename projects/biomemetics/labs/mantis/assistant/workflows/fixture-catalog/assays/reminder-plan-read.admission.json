@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolAdmission",
+  "admissionId": "admit-tool.reminder-plan-read.v1",
+  "toolId": "reminder-plan-read",
+  "assayId": "assay.reminder-plan-read.v1",
+  "state": "admitted-read",
+  "admittedAt": "2026-08-21T12:00:00Z",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "assessor": "tool-assessor-fixture",
+  "reviewer": "independent-reviewer-fixture",
+  "notes": "A3 fixture. Assessor did not admit this record."
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "WorkflowSimulatorHarness",
+  "schemaVersion": "1.0.0",
+  "clock": "2026-08-21T12:00:00Z",
+  "sideEffects": "disabled",
+  "replay": "disabled-for-external-mutation",
+  "notes": "Deterministic in-process walk of the JSON graph. Does not call Mastra or CopilotKit."
+}

@@ -1,0 +1,33 @@
+{
+  "kind": "WorkflowStaticLintRules",
+  "schemaVersion": "1.0.0",
+  "maxCapability": "P2",
+  "forbiddenToolIds": [
+    "device-command",
+    "admin",
+    "specimen-db-write",
+    "live-catalog-write",
+    "browser-mutate"
+  ],
+  "forbiddenCategories": [
+    "device-command",
+    "admin",
+    "external-write",
+    "device-intent"
+  ],
+  "requireAssayClosed": true,
+  "requireAdmittedReadOrIdempotent": true,
+  "sleepSignals": [
+    "reminder",
+    "revalidation"
+  ],
+  "requireLoopBound": true,
+  "requireParallelBound": true,
+  "denySecrets": true,
+  "denyReplayUnsafeWrites": true,
+  "distinctIdentities": {
+    "composerCannotAdmit": true,
+    "assessorCannotAdmit": true,
+    "adversaryCannotAdmit": true
+  }
+}

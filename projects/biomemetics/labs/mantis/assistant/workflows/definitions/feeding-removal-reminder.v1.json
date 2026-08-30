@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.feeding-removal-reminder",
+  "version": "1.0.0",
+  "description": "Plan a feeding-removal reminder. Sleep emits a reminder signal only.",
+  "capabilityClass": "P1",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "sources",
+      "toolId": "care-source-read"
+    },
+    {
+      "type": "tool",
+      "id": "plan",
+      "toolId": "reminder-plan-read"
+    },
+    {
+      "type": "mapping",
+      "id": "wait",
+      "mapping": "sleep",
+      "durationMs": 3600000,
+      "signal": "reminder"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "care-source-read",
+      "version": "1.0.0",
+      "assayId": "assay.care-source-read.v1"
+    },
+    {
+      "kind": "tool",
+      "id": "reminder-plan-read",
+      "version": "1.0.0",
+      "assayId": "assay.reminder-plan-read.v1"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "3d84a201ea36e3cb14b23c7dd36dbb8b572b7d764d44bf426f01aee5154876a9"
+}

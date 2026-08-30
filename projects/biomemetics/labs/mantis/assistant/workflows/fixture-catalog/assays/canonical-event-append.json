@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ToolAssayRecord",
+  "assayId": "assay.canonical-event-append.v1",
+  "recordedAt": "2026-08-21T12:00:00Z",
+  "identity": {
+    "id": "canonical-event-append",
+    "version": "1.0.0",
+    "provider": "mantis-workflow-lab-fixture",
+    "license": "UNLICENSED-fixture",
+    "digest": "1046d8634b64b073733213d85ada59a734048f67f597f48e737e1500c02991e2"
+  },
+  "contract": {
+    "inputSchemaRef": "assistant/workflows/fixture-catalog/assays/canonical-event-append.input.json",
+    "outputSchemaRef": "assistant/workflows/fixture-catalog/assays/canonical-event-append.output.json",
+    "errors": [
+      "not-found",
+      "timeout"
+    ],
+    "timeoutMs": 2000,
+    "streaming": false,
+    "determinism": "non-deterministic"
+  },
+  "effects": {
+    "read": false,
+    "write": true,
+    "execute": false,
+    "externalMutation": true,
+    "deviceImpact": false,
+    "rollback": "none"
+  },
+  "authority": {
+    "actor": "assistant",
+    "category": "external-write",
+    "allowedModes": [
+      "care",
+      "research",
+      "review",
+      "observe"
+    ],
+    "allowedAgents": [
+      "workflow-composer"
+    ],
+    "llmExposed": true
+  },
+  "data": {
+    "privacyClass": "public",
+    "retention": "run-scoped",
+    "networkEgress": false,
+    "secrets": false,
+    "location": "none",
+    "media": "none"
+  },
+  "behavior": {
+    "idempotent": false,
+    "retrySafe": false,
+    "cancellation": "unsafe",
+    "concurrency": "unknown"
+  },
+  "evidence": {
+    "sourceClassProduced": "none",
+    "provenanceFields": [
+      "sourceId"
+    ],
+    "simulator": true,
+    "fixtures": [
+      "assistant/workflows/fixture-catalog/assays/canonical-event-append.json"
+    ]
+  },
+  "safety": {
+    "staleStatePolicy": "not-applicable",
+    "approvalTier": "none",
+    "physicalInterlocks": false
+  },
+  "verification": {
+    "staticLint": true,
+    "sandboxSmoke": true,
+    "negativeTests": [
+      "unknown-id-denied"
+    ],
+    "adversarialTests": [
+      "prompt-injection-ignored"
+    ]
+  },
+  "review": {
+    "assessor": "tool-assessor-fixture",
+    "independentReviewer": "adversarial-reviewer-fixture",
+    "disposition": "quarantined",
+    "expiry": "2027-08-21T00:00:00Z",
+    "reAssayTriggers": [
+      "schema-change",
+      "provider-version-change"
+    ]
+  }
+}

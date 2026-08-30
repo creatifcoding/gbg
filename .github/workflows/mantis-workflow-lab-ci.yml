@@ -1,0 +1,48 @@
+# A3 workflow-lab. JSON admit/fixtures only. Does not start Mastra or CopilotKit.
+name: Mantis A3 workflow-lab
+
+on:
+  push:
+    branches: [master, main, feat/mantis-biomemetics-lab]
+    paths:
+      - 'projects/biomemetics/labs/mantis/assistant/workflows/**'
+      - 'projects/biomemetics/labs/mantis/tooling/typescript/mantis-workflow-lab/**'
+      - '.github/workflows/mantis-workflow-lab-ci.yml'
+  pull_request:
+    paths:
+      - 'projects/biomemetics/labs/mantis/assistant/workflows/**'
+      - 'projects/biomemetics/labs/mantis/tooling/typescript/mantis-workflow-lab/**'
+      - '.github/workflows/mantis-workflow-lab-ci.yml'
+  workflow_dispatch:
+
+env:
+  WORKING_DIR: projects/biomemetics/labs/mantis/tooling/typescript/mantis-workflow-lab
+
+jobs:
+  catalog:
+    name: Admit fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run typecheck
+
+      - name: Test
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm test
+
+      - name: Catalog
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run catalog

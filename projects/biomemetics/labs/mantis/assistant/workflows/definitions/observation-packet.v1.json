@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "DynamicWorkflowDefinition",
+  "definitionId": "wf.observation-packet",
+  "version": "1.0.0",
+  "description": "Assemble an observation packet from selected media annotations.",
+  "capabilityClass": "P1",
+  "author": "workflow-composer-fixture",
+  "expiresAt": "2027-08-21T00:00:00Z",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "stateSchema": {
+    "type": "object"
+  },
+  "graph": [
+    {
+      "type": "tool",
+      "id": "read-obs",
+      "toolId": "observation-packet-read"
+    },
+    {
+      "type": "mapping",
+      "id": "assemble",
+      "mapping": "assemble-packet"
+    }
+  ],
+  "referencedPrimitives": [
+    {
+      "kind": "tool",
+      "id": "observation-packet-read",
+      "version": "1.0.0",
+      "assayId": "assay.observation-packet-read.v1"
+    }
+  ],
+  "prohibited": {
+    "deviceCommand": true,
+    "browserMutation": true,
+    "secrets": true,
+    "directCanonicalMutation": true,
+    "specimenDbWrite": true
+  },
+  "digest": "b9a92af286c0e25bf43b698b03f8ec93938a8f4bef2ba9f2b20a9998256deee1"
+}

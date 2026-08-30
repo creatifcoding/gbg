@@ -1,0 +1,10 @@
+{
+  "id": "feeding-removal-reminder.v1",
+  "expect": "admit",
+  "definition": "assistant/workflows/definitions/feeding-removal-reminder.v1.json",
+  "envelope": "assistant/workflows/laboratory/envelopes/feeding-removal-reminder.v1.json",
+  "composer": "workflow-composer-fixture",
+  "assessor": "tool-assessor-fixture",
+  "adversary": "adversarial-reviewer-fixture",
+  "governor": "human-governor-fixture"
+}

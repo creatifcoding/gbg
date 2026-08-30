@@ -1,0 +1,10 @@
+{
+  "id": "care-source-comparison.v1",
+  "expect": "admit",
+  "definition": "assistant/workflows/definitions/care-source-comparison.v1.json",
+  "envelope": "assistant/workflows/laboratory/envelopes/care-source-comparison.v1.json",
+  "composer": "workflow-composer-fixture",
+  "assessor": "tool-assessor-fixture",
+  "adversary": "adversarial-reviewer-fixture",
+  "governor": "human-governor-fixture"
+}
