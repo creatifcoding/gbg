@@ -1,0 +1,234 @@
+:root {
+  --panel: #2c2a26;
+  --fog: #e4ebe6;
+  --acrylic: #c5d0c8;
+  --lichen: #8aa05a;
+  --umber: #6b3f2a;
+  --oxide: #b54a3c;
+  --paper: #c4a35a;
+  --steel: #7a8b99;
+  --ink: #1f1d1a;
+  --mute: #5c5854;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--panel);
+  color: var(--fog);
+  font-family: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+}
+
+.gallery {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.gallery-head {
+  grid-column: 1 / -1;
+}
+
+.gallery-head h1 {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: 1.4rem;
+}
+
+.gallery-head p {
+  color: var(--acrylic);
+  max-width: 42rem;
+}
+
+.terra-card {
+  background: color-mix(in srgb, var(--acrylic) 18%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--acrylic) 35%, transparent);
+  padding: 1rem 1rem 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.terra-stamp {
+  margin: 0;
+  display: inline-block;
+  justify-self: start;
+  transform: rotate(-3deg);
+  border: 2px solid var(--steel);
+  color: var(--steel);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+}
+
+.terra-kicker {
+  margin: 0;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.75rem;
+  color: var(--acrylic);
+}
+
+.terra-rail {
+  position: relative;
+  height: 2.4rem;
+  background: color-mix(in srgb, var(--umber) 45%, var(--panel));
+}
+
+.terra-rail-track {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  top: 50%;
+  height: 2px;
+  background: var(--ink);
+}
+
+.terra-carriage {
+  position: absolute;
+  top: 0.45rem;
+  width: 2.2rem;
+  height: 1.5rem;
+  background: var(--mute);
+}
+
+.terra-carriage--link-trained {
+  left: 62%;
+  background: var(--lichen);
+}
+
+.terra-carriage--pinch-safe,
+.terra-carriage--fault-latched {
+  left: 40%;
+  background: var(--oxide);
+}
+
+.terra-carriage--mechanically-seated,
+.terra-carriage--absent,
+.terra-carriage--lifted,
+.terra-carriage--power-mated,
+.terra-carriage--training-window {
+  left: 12%;
+  background: var(--paper);
+}
+
+.terra-locks {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.75rem;
+}
+
+.terra-locks dt {
+  color: var(--mute);
+}
+
+.terra-locks dd {
+  margin: 0;
+}
+
+.terra-camera {
+  border-top: 1px dashed var(--mute);
+  padding-top: 0.5rem;
+}
+
+.terra-camera h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+.terra-camera[data-video='unavailable'] {
+  color: var(--oxide);
+}
+
+.terra-stream {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.75rem;
+  color: var(--steel);
+}
+
+.terra-channels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.terra-channel {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 0.15rem 0.6rem;
+  align-items: baseline;
+}
+
+.terra-honesty {
+  grid-row: 1 / span 3;
+  align-self: center;
+  transform: rotate(-6deg);
+  border: 2px solid currentColor;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  text-align: center;
+  padding: 0.35rem 0.2rem;
+}
+
+.terra-channel--known {
+  color: var(--lichen);
+}
+
+.terra-channel--stale {
+  color: var(--paper);
+}
+
+.terra-channel--simulated {
+  color: var(--steel);
+}
+
+.terra-channel--faulted {
+  color: var(--oxide);
+}
+
+.terra-channel--unavailable {
+  color: var(--mute);
+}
+
+.terra-channel-id,
+.terra-value,
+.terra-receipt,
+.terra-clock {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.75rem;
+}
+
+.terra-channel-id {
+  color: var(--fog);
+}
+
+.terra-value {
+  color: var(--acrylic);
+}
+
+.terra-receipt {
+  color: var(--steel);
+}
+
+.terra-clock {
+  color: var(--mute);
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terra-stamp,
+  .terra-honesty {
+    transform: none;
+  }
+}

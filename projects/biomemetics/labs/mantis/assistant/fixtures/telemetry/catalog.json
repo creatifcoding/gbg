@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "telemetry-fixture-catalog",
+  "sourceClass": "simulated",
+  "banner": "SIMULATED PLANT",
+  "note": "A4a fixtures. Not a live terrarium. Calibration revision is cal.sim.a4a-unverified. No GPS, taxon, or physical revision.",
+  "entries": [
+    {
+      "id": "known-fresh",
+      "phase": "link-trained",
+      "file": "plants/known-fresh.json",
+      "paints": ["known", "simulated"]
+    },
+    {
+      "id": "stale-sample",
+      "phase": "link-trained",
+      "file": "plants/stale-sample.json",
+      "paints": ["stale", "known", "simulated"]
+    },
+    {
+      "id": "simulated-model",
+      "phase": "link-trained",
+      "file": "plants/simulated-model.json",
+      "paints": ["simulated", "known"]
+    },
+    {
+      "id": "fault-pinch",
+      "phase": "pinch-safe",
+      "file": "plants/fault-pinch.json",
+      "paints": ["faulted", "known"]
+    },
+    {
+      "id": "unavailable-channels",
+      "phase": "mechanically-seated",
+      "file": "plants/unavailable-channels.json",
+      "paints": ["unavailable", "known"]
+    }
+  ]
+}

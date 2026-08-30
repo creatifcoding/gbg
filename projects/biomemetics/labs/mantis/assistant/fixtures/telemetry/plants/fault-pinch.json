@@ -1,0 +1,44 @@
+{
+  "id": "fault-pinch",
+  "phase": "pinch-safe",
+  "samples": [
+    {
+      "kind": "reading",
+      "channel": "air.dry-bulb",
+      "value": 24.0,
+      "unit": "°C",
+      "uncertainty": { "kind": "symmetric", "value": 0.5, "unit": "°C" },
+      "observedAt": "2026-08-22T00:00:00.000Z",
+      "claim": "sensor-fixture",
+      "receiptId": "rec.air.dry-bulb.known"
+    },
+    {
+      "kind": "reading",
+      "channel": "air.relative-humidity",
+      "value": 55,
+      "unit": "%",
+      "uncertainty": { "kind": "symmetric", "value": 3, "unit": "%" },
+      "observedAt": "2026-08-22T00:00:00.000Z",
+      "claim": "sensor-fixture",
+      "receiptId": "rec.air.relative-humidity.known"
+    },
+    {
+      "kind": "reading",
+      "channel": "enclosure.illuminance",
+      "value": 120,
+      "unit": "lx",
+      "uncertainty": { "kind": "unverified", "note": "model output, not a bench meter" },
+      "observedAt": "2026-08-22T00:00:00.000Z",
+      "claim": "model",
+      "receiptId": "rec.enclosure.illuminance.model"
+    },
+    {
+      "kind": "faulted",
+      "channel": "rail.local-branch-voltage",
+      "unit": "V",
+      "fault": "pinch",
+      "observedAt": "2026-08-22T00:00:00.000Z",
+      "receiptId": "rec.fault.pinch"
+    }
+  ]
+}

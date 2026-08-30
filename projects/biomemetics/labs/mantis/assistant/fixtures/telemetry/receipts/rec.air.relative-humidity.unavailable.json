@@ -1,0 +1,1 @@
+{"id":"rec.air.relative-humidity.unavailable","href":"receipts/rec.air.relative-humidity.unavailable.json","recordedAt":"2026-08-22T00:00:00.000Z","sourceClass":"simulated","channel":"air.relative-humidity","reason":"hygrometer fixture not bound"}

@@ -1,0 +1,1 @@
+{"id":"rec.air.dry-bulb.known","href":"receipts/rec.air.dry-bulb.known.json","recordedAt":"2026-08-22T00:00:00.000Z","sourceClass":"simulated","channel":"air.dry-bulb","value":24,"unit":"°C","uncertainty":{"kind":"symmetric","value":0.5,"unit":"°C"},"calibrationRevision":"cal.sim.a4a-unverified"}

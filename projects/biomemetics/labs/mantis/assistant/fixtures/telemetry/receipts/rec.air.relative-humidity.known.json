@@ -1,0 +1,1 @@
+{"id":"rec.air.relative-humidity.known","href":"receipts/rec.air.relative-humidity.known.json","recordedAt":"2026-08-22T00:00:00.000Z","sourceClass":"simulated","channel":"air.relative-humidity","value":55,"unit":"%","uncertainty":{"kind":"symmetric","value":3,"unit":"%"},"calibrationRevision":"cal.sim.a4a-unverified"}

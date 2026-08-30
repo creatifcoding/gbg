@@ -1,0 +1,1 @@
+{"id":"rec.fault.stuck-switch","href":"receipts/rec.fault.stuck-switch.json","recordedAt":"2026-08-22T00:00:00.000Z","sourceClass":"simulated","channel":"rail.local-branch-voltage","fault":"stuck-switch","unit":"V"}
