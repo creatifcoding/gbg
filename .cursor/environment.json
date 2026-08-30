@@ -1,0 +1,8 @@
+// Cursor Cloud: install puts paper-mcp on PATH. start launches headless MCP, not the headed board.
+// Paper MCP is http://127.0.0.1:29979/mcp. It has no cookie session and 401s without a bearer.
+// Agents need a Paper bearer (env/secret), not Desktop Google cookies. This config does not invent a token.
+{
+  "name": "gbg (paper-mcp)",
+  "install": "bash .cursor/scripts/install-paper.sh",
+  "start": "bash .cursor/scripts/start-paper.sh"
+}
