@@ -29,6 +29,10 @@ describe('cluster README identity', () => {
     expect(readme).toContain('Catalog stays Postgres off-cluster');
     expect(readme).toContain('packages/tmnl/nix/modules/nats/values.yaml');
     expect(readme).toContain('@tmnl/msh');
+    expect(readme).toContain('Ship when CI is green on the lab branch');
+    expect(readme).not.toContain('Hold deploy');
+    expect(readme).not.toContain('from this land');
+    expect(readme).not.toContain('I am not');
     expect(readme).not.toContain(
       'CosmoRouter and CosmoSubgraph stay GraphQL specializations in `packages/tmnl`',
     );

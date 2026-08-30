@@ -1,11 +1,11 @@
 # @gbg/nexus
 
-Cosmo/WunderGraph federated GraphQL **router home**. Not a stub. Not a README
-with a name. Not tmnl. Not plexus. tmnl consumes this package.
+Cosmo/WunderGraph federated GraphQL **router home**. Complete package, not a stub.
+Not tmnl. Not plexus. tmnl consumes this package.
 
 Leftover Pepr (`cosmo-operator`, CosmoRouter / CosmoSubgraph CRDs) stays in
 `packages/tmnl/src/infra/graph`. This package does not copy those sources.
-This package is not on the cluster draft (`packages/cluster` / PR 109).
+Cluster is `@gbg/cluster`. Cosmo home is `@gbg/nexus`. k3d hosts applets.
 
 Catalog stays Postgres off-cluster; there is no catalog pod.
 
@@ -44,18 +44,20 @@ broker. No paid Synadia Cloud.
 ## tmnl consumes
 
 Import `@gbg/nexus` for compose helpers and types (`@gbg/nexus` is mapped in
-`packages/tmnl/tsconfig.json` and `tsconfig.base.json`). Do not treat
-`packages/tmnl/src/infra/graph` as Cosmo's home. That leftover is the Pepr
-operator. Cluster-create in `packages/tmnl/nix/modules/k8s.nix` is a helper
-path, not this home.
+`packages/tmnl/tsconfig.json` and `tsconfig.base.json`). Leftover Pepr stays
+in `packages/tmnl/src/infra/graph`. Cluster-create in
+`packages/tmnl/nix/modules/k8s.nix` is a helper path, not this home.
 
 This package is excluded from the root bun/npm workspace (`!packages/nexus`)
 so `wgc@0.130.1` keeps its own lock, same pattern as `@gbg/cluster`.
 
-## Hold merge. No deploy.
+## Ship
 
-Do not helm install, docker-compose.full, k3d apply, or pepr deploy from
-this land.
+Ship when CI is green on the lab branch. User corrects after the fact.
+
+Stop is only: paid cloud, deploy that leaves this machine, a second NATS, a
+second catalog source of truth, a second API group. Wallet still stops paid
+cloud and alchemy deploy that leaves this machine.
 
 ```text
 npm install
@@ -63,5 +65,5 @@ npm run typecheck
 npm test
 ```
 
-This package is not a root workspace member. CI sets `NPM_CONFIG_WORKSPACES=false`
-so those three commands install `wgc@0.130.1` into `packages/nexus`.
+CI sets `NPM_CONFIG_WORKSPACES=false` so those three commands install
+`wgc@0.130.1` into `packages/nexus`.

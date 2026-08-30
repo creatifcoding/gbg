@@ -19,7 +19,12 @@ describe('nexus README identity', () => {
     expect(readme).toContain('Catalog stays Postgres off-cluster');
     expect(readme).toContain('packages/tmnl/nix/modules/nats/values.yaml');
     expect(readme).toContain('@tmnl/msh');
-    expect(readme).toContain('Hold merge. No deploy');
+    expect(readme).toContain('Ship when CI is green on the lab branch');
+    expect(readme).toContain('User corrects after the fact');
+    expect(readme).not.toContain('Hold merge');
+    expect(readme).not.toContain('Hold deploy');
+    expect(readme).not.toContain('from this land');
+    expect(readme).not.toContain('I am not');
     expect(readme).not.toContain('packages/plexus');
     expect(readme).not.toContain('@gbg/plexus');
   });
