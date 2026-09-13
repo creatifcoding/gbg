@@ -10,7 +10,7 @@ A TLA is an Effect-flat ESM **module**, not an npm package. Clusters are the npm
 
 **Sequence:** [TMNL execution metaplan](cursor-plan://plan/tmnl_execution_metaplan_c9d81100.plan.md) (order). Naming law also lives on [TLA module rose tree](cursor-plan://plan/tla_module_rose_tree_a8c41f02.plan.md). If order disagrees, the metaplan wins. If names disagree, this RFC wins.
 
-**Addr:** `@tmnl/addr` is a substrate cluster. Locator law belongs in `rfc-addr-algebra.md` (same directory). That file is **not in the tree as of this RFC** — restore or rewrite it before the addr lift. Do not relitigate locators here. First identity schemes remain `doc://`, `pnl://`, `wnd://`. YDoc is impl. Instance-as-domain is addr, not `dmn`.
+**Addr:** `@tmnl/addr` is a substrate cluster. Locator law is [`rfc-addr-algebra.md`](./rfc-addr-algebra.md). Do not relitigate locators here. First identity schemes remain `doc://`, `pnl://`, `wnd://`. YDoc is impl. Instance-as-domain is addr, not `dmn`. ADDR-1 (OS spelling) and ADDR-3 (pty/widget shelf) stay deferred.
 
 ---
 
