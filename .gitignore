@@ -128,3 +128,6 @@ packages/tmnl/agent-browser
 prime-agent-session-*.html
 .tldr/stats/
 .tldr/daemon.pid
+
+# Local git worktrees
+/.worktrees/
