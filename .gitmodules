@@ -184,3 +184,6 @@
 	path = packages/mathkernel/vendor/eigen/agent-browser
 	url = https://github.com/vercel-labs/agent-browser
 	ignore = dirty
+[submodule "submodules/t3code"]
+	path = submodules/t3code
+	url = https://github.com/pingdotgg/t3code.git
